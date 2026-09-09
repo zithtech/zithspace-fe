@@ -21,6 +21,7 @@ export interface OpeningNavItem {
   icon: React.ReactNode;
   color: string;
   anyPerm: string[];
+  requiredSubscriptionFeature?: string[];
 }
 
 export const OPENING_NAV_ITEMS: OpeningNavItem[] = [
@@ -31,6 +32,7 @@ export const OPENING_NAV_ITEMS: OpeningNavItem[] = [
     icon: <LayoutDashboard size={16} />,
     color: PALETTE.blue,
     anyPerm: ['canReadOpening'],
+    requiredSubscriptionFeature: ['hrms_openings_dashboard', 'hrms_openings'],
   },
   {
     key: 'list',
@@ -39,6 +41,7 @@ export const OPENING_NAV_ITEMS: OpeningNavItem[] = [
     icon: <Briefcase size={16} />,
     color: PALETTE.blue,
     anyPerm: ['canReadOpening'],
+    requiredSubscriptionFeature: ['hrms_openings_list', 'hrms_openings'],
   },
   {
     key: 'approvals',
@@ -47,6 +50,7 @@ export const OPENING_NAV_ITEMS: OpeningNavItem[] = [
     icon: <BadgeCheck size={16} />,
     color: PALETTE.green,
     anyPerm: ['canReadOpening'],
+    requiredSubscriptionFeature: ['hrms_openings_approvals', 'hrms_openings'],
   },
   {
     key: 'closing',
@@ -55,6 +59,7 @@ export const OPENING_NAV_ITEMS: OpeningNavItem[] = [
     icon: <Megaphone size={16} />,
     color: PALETTE.green,
     anyPerm: ['canReadOpening'],
+    requiredSubscriptionFeature: ['hrms_openings_closing', 'hrms_openings'],
   },
   {
     key: 'archive',
@@ -63,6 +68,7 @@ export const OPENING_NAV_ITEMS: OpeningNavItem[] = [
     icon: <Archive size={16} />,
     color: PALETTE.ash,
     anyPerm: ['canReadOpening'],
+    requiredSubscriptionFeature: ['hrms_openings_archive', 'hrms_openings'],
   },
   {
     key: 'settings',
@@ -71,6 +77,7 @@ export const OPENING_NAV_ITEMS: OpeningNavItem[] = [
     icon: <Settings size={16} />,
     color: PALETTE.ash,
     anyPerm: ['canManageOpenings'],
+    requiredSubscriptionFeature: ['hrms_openings_settings', 'hrms_openings'],
   },
 ];
 
@@ -78,9 +85,15 @@ export function getOpeningNavItem(key: string): OpeningNavItem | undefined {
   return OPENING_NAV_ITEMS.find((item) => item.key === key);
 }
 
+/** True if the permission map grants access to a nav item. */
 export function canAccessOpeningItem(
   perms: Record<string, any>,
-  item: OpeningNavItem
+  item: OpeningNavItem,
+  hasAnySubscriptionFeature?: (...features: string[]) => boolean
 ): boolean {
-  return !!perms.canManageOpenings || item.anyPerm.some((p) => !!perms[p]);
+  const hasPerm = !!perms.canManageOpenings || item.anyPerm.some((p) => !!perms[p]);
+  const hasSub = hasAnySubscriptionFeature && item.requiredSubscriptionFeature
+    ? hasAnySubscriptionFeature(...item.requiredSubscriptionFeature)
+    : true;
+  return hasPerm && hasSub;
 }

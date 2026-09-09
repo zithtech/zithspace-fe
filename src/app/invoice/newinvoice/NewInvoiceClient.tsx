@@ -94,7 +94,10 @@ export default function InvoiceNewinvoicePage() {
     canUpdateInvoiceCustomer,
     canReadInvoiceSetting
   } = usePermission();
-  const { isLoading: authLoading } = useAuth();
+  const { isLoading: authLoading, hasAnySubscriptionFeature } = useAuth();
+  const canUseInvoiceTemplates = hasAnySubscriptionFeature("finance_invoice_invoice_templates");
+  const canUseInvoiceCustomers = hasAnySubscriptionFeature("finance_invoice_customers");
+  const canUseInvoiceSettings = hasAnySubscriptionFeature("finance_invoice_invoice_settings");
   const searchParams = useSearchParams();
   const editInvoiceId = searchParams.get("edit");
   const [form] = Form.useForm();
@@ -823,30 +826,30 @@ export default function InvoiceNewinvoicePage() {
             </div>
 
             <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 w-full lg:w-auto">
-              <div
-                className="template-pill flex items-center pl-2.5 pr-2 h-9 rounded-lg mr-1 transition-colors cursor-pointer w-full sm:w-auto"
-                style={{
-                  background: "var(--bg-slate-50)",
-                  border: "1px solid var(--border-color)",
-                }}
-              >
+              {canReadInvoiceTemplate && canUseInvoiceTemplates && (
                 <div
-                  className="w-6 h-6 rounded-md flex items-center justify-center flex-shrink-0"
+                  className="template-pill flex items-center pl-2.5 pr-2 h-9 rounded-lg mr-1 transition-colors cursor-pointer w-full sm:w-auto"
                   style={{
-                    background: "var(--bg-blue-50)",
-                    color: "var(--text-blue-700)",
-                    border: "1px solid var(--border-blue-200)",
+                    background: "var(--bg-slate-50)",
+                    border: "1px solid var(--border-color)",
                   }}
                 >
-                  <FileText size={12} strokeWidth={2.25} />
-                </div>
-                <span
-                  className="hidden sm:flex items-center mb-[2px] ml-2 mr-1 text-[13px] font-semibold"
-                  style={{ color: "var(--text-secondary)" }}
-                >
-                  Template
-                </span>
-                {canReadInvoiceTemplate && (
+                  <div
+                    className="w-6 h-6 rounded-md flex items-center justify-center flex-shrink-0"
+                    style={{
+                      background: "var(--bg-blue-50)",
+                      color: "var(--text-blue-700)",
+                      border: "1px solid var(--border-blue-200)",
+                    }}
+                  >
+                    <FileText size={12} strokeWidth={2.25} />
+                  </div>
+                  <span
+                    className="hidden sm:flex items-center mb-[2px] ml-2 mr-1 text-[13px] font-semibold"
+                    style={{ color: "var(--text-secondary)" }}
+                  >
+                    Template
+                  </span>
                   <Select
                     placeholder="None"
                     variant="borderless"
@@ -876,12 +879,14 @@ export default function InvoiceNewinvoicePage() {
                       </Select.Option>
                     ))}
                   </Select>
-                )}
-              </div>
-              <div
-                className="h-6 w-px hidden lg:block"
-                style={{ background: "var(--border-color)" }}
-              />
+                </div>
+              )}
+              {canReadInvoiceTemplate && canUseInvoiceTemplates && (
+                <div
+                  className="h-6 w-px hidden lg:block"
+                  style={{ background: "var(--border-color)" }}
+                />
+              )}
               <div className="flex items-center gap-1.5 sm:gap-2 w-full sm:w-auto">
                 <Button
                   icon={<EyeOutlined />}
@@ -986,219 +991,223 @@ export default function InvoiceNewinvoicePage() {
               >
                 <div className="lg:sticky lg:top-12 lg:pt-3 lg:pb-6 space-y-3">
                   {/* From */}
-                  <div className="pt-0">
-                    <div className="flex items-center gap-2">
-                      <span
-                        className="inline-flex items-center justify-center w-7 h-7 rounded-lg"
-                        style={{
-                          background: "var(--bg-blue-50)",
-                          color: "var(--text-blue-700)",
-                          border: "1px solid var(--border-blue-200)",
-                        }}
-                      >
-                        <Building2 size={14} strokeWidth={2.25} />
-                      </span>
-                      <div
-                        className="text-[12px] font-bold uppercase tracking-[0.1em]"
-                        style={{ color: "var(--text-secondary)" }}
-                      >
-                        From
-                      </div>
-                    </div>
-                    {canReadInvoiceSetting && (
-                      <Form.Item
-                        name="settingsProfileId"
-                        rules={[{ required: true, message: "Please select a profile" }]}
-                        style={{ marginTop: 8, marginBottom: 0 }}
-                      >
-                        <SearchableDropdown
-                          placeholder="Select issuer profile"
-                          loading={isLoading}
-                          itemNoun="profiles"
-                          options={activeProfiles.map((p) => ({ value: p.id, label: p.name }))}
-                          style={{ height: 36, minWidth: 0 }}
-                        />
-                      </Form.Item>
-                    )}
-                    {selectedProfile && (
-                      <div 
-                        className="flex items-start gap-3 p-2 rounded-xl transition-all"
-                        style={{
-                          marginTop: 6,
-                          background: "var(--bg-slate-50)",
-                          border: "1px solid var(--border-color)",
-                        }}
-                      >
-                        {selectedProfile.general?.companyLogo ? (
-                          <div
-                            className="w-10 h-10 flex-shrink-0 rounded-lg overflow-hidden"
+                  {canReadInvoiceSetting && canUseInvoiceSettings && (
+                    <>
+                      <div className="pt-0">
+                        <div className="flex items-center gap-2">
+                          <span
+                            className="inline-flex items-center justify-center w-7 h-7 rounded-lg"
                             style={{
+                              background: "var(--bg-blue-50)",
+                              color: "var(--text-blue-700)",
+                              border: "1px solid var(--border-blue-200)",
+                            }}
+                          >
+                            <Building2 size={14} strokeWidth={2.25} />
+                          </span>
+                          <div
+                            className="text-[12px] font-bold uppercase tracking-[0.1em]"
+                            style={{ color: "var(--text-secondary)" }}
+                          >
+                            From
+                          </div>
+                        </div>
+                        <Form.Item
+                          name="settingsProfileId"
+                          rules={canUseInvoiceSettings ? [{ required: true, message: "Please select a profile" }] : []}
+                          style={{ marginTop: 8, marginBottom: 0 }}
+                        >
+                          <SearchableDropdown
+                            placeholder="Select issuer profile"
+                            loading={isLoading}
+                            itemNoun="profiles"
+                            options={activeProfiles.map((p) => ({ value: p.id, label: p.name }))}
+                            style={{ height: 36, minWidth: 0 }}
+                          />
+                        </Form.Item>
+                        {selectedProfile && (
+                          <div 
+                            className="flex items-start gap-3 p-2 rounded-xl transition-all"
+                            style={{
+                              marginTop: 6,
                               background: "var(--bg-slate-50)",
                               border: "1px solid var(--border-color)",
                             }}
                           >
-                            <img
-                              src={selectedProfile.general.companyLogo}
-                              alt="logo"
-                              className="w-full h-full object-contain"
-                            />
-                          </div>
-                        ) : (
-                          <div
-                            className="w-10 h-10 flex-shrink-0 rounded-lg flex items-center justify-center text-sm font-bold"
-                            style={{
-                              background: "var(--bg-blue-50)",
-                              color: "var(--text-blue-700)",
-                              border: "1px solid var(--border-blue-200)",
-                            }}
-                          >
-                            {(
-                              selectedProfile.general?.companyName ||
-                              selectedProfile.name ||
-                              "Z"
-                            ).charAt(0)}
-                          </div>
-                        )}
-                        <div className="min-w-0 flex-1">
-                          <div
-                            className="text-sm font-semibold truncate"
-                            style={{ color: "var(--text-primary)" }}
-                          >
-                            {selectedProfile.general?.companyName ||
-                              selectedProfile.name}
-                          </div>
-                          {selectedProfile.general?.address && (
-                            <div
-                              className="text-[12px] mt-0.5 line-clamp-2"
-                              style={{ color: "var(--text-secondary)" }}
-                            >
-                              {formatAddress(selectedProfile.general.address)}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="border-b border-dashed" style={{ borderColor: "var(--border-color)", marginTop: "16px", marginBottom: "4px" }} />
-
-                  {/* Bill to */}
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <span
-                        className="inline-flex items-center justify-center w-7 h-7 rounded-lg"
-                        style={{
-                          background: "rgba(16, 185, 129, 0.1)",
-                          color: "#059669",
-                          border: "1px solid rgba(16, 185, 129, 0.25)",
-                        }}
-                      >
-                        <UserSquare2 size={14} strokeWidth={2.25} />
-                      </span>
-                      <div
-                        className="text-[12px] font-bold uppercase tracking-[0.1em]"
-                        style={{ color: "var(--text-secondary)" }}
-                      >
-                        Bill to
-                      </div>
-                    </div>
-                    {canReadInvoiceCustomer && (
-                      <Form.Item
-                        name="customer_id"
-                        rules={[{ required: true, message: "Please select a customer" }]}
-                        style={{ marginTop: 8, marginBottom: 0 }}
-                      >
-                        <SearchableDropdown
-                          placeholder="Select customer"
-                          loading={loadingCustomers}
-                          itemNoun="customers"
-                          options={customers.filter(c => c.isActive).map(c => ({ value: c.id, label: c.companyName }))}
-                          style={{ height: 36, minWidth: 0 }}
-                          onChange={(id) => {
-                            const c = customers.find((x) => x.id === id);
-                            if (c) {
-                              form.setFieldsValue({
-                                customer_snapshot: {
-                                  id: c.id,
-                                  companyName: c.companyName,
-                                  email: c.email,
-                                  phone: c.phone,
-                                  address: c.address,
-                                  city: c.city,
-                                  country: c.country,
-                                  taxId: c.taxId,
-                                  gstin: c.gstin,
-                                  pan: c.pan,
-                                },
-                              });
-                            }
-                          }}
-                        />
-                      </Form.Item>
-                    )}
-
-                    {selectedCustomer && (
-                      <Tooltip title={canUpdateInvoiceCustomer ? "Click to edit customer details" : "Customer details"}>
-                        <div
-                          onClick={() => {
-                            if (canUpdateInvoiceCustomer) {
-                              setEditingCustomer(selectedCustomer);
-                            }
-                          }}
-                          className={`${canUpdateInvoiceCustomer ? "cursor-pointer hover:border-blue-400" : "cursor-default"} group flex items-start gap-3 p-2 rounded-xl transition-all`}
-                          style={{
-                            marginTop: 6,
-                            background: "var(--bg-slate-50)",
-                            border: "1px solid var(--border-color)",
-                          }}
-                        >
-                          <div
-                            className="w-10 h-10 rounded-lg flex items-center justify-center text-sm font-bold flex-shrink-0"
-                            style={{
-                              background: "var(--bg-blue-50)",
-                              color: "var(--text-blue-700)",
-                              border: "1px solid var(--border-blue-200)",
-                            }}
-                          >
-                            {(selectedCustomer.companyName || "U").charAt(0)}
-                          </div>
-                          <div className="min-w-0 flex-1">
-                            <div
-                              className="text-sm font-semibold truncate group-hover:underline"
-                              style={{ color: "var(--text-primary)" }}
-                            >
-                              {selectedCustomer.companyName}
-                            </div>
-                            <div
-                              className="text-[12px] mt-0.5 line-clamp-2"
-                              style={{ color: "var(--text-secondary)" }}
-                            >
-                              {[
-                                selectedCustomer.address,
-                                selectedCustomer.city,
-                                selectedCustomer.country,
-                              ]
-                                .filter(Boolean)
-                                .join(", ") || "Click to add address"}
-                            </div>
-                            {selectedCustomer.taxId && (
+                            {selectedProfile.general?.companyLogo ? (
                               <div
-                                className="text-[11px] mt-1"
-                                style={{ color: "var(--text-secondary)" }}
+                                className="w-10 h-10 flex-shrink-0 rounded-lg overflow-hidden"
+                                style={{
+                                  background: "var(--bg-slate-50)",
+                                  border: "1px solid var(--border-color)",
+                                }}
                               >
-                                Tax ID ·{" "}
-                                <span style={{ color: "var(--text-primary)" }}>
-                                  {selectedCustomer.taxId}
-                                </span>
+                                <img
+                                  src={selectedProfile.general.companyLogo}
+                                  alt="logo"
+                                  className="w-full h-full object-contain"
+                                />
+                              </div>
+                            ) : (
+                              <div
+                                className="w-10 h-10 flex-shrink-0 rounded-lg flex items-center justify-center text-sm font-bold"
+                                style={{
+                                  background: "var(--bg-blue-50)",
+                                  color: "var(--text-blue-700)",
+                                  border: "1px solid var(--border-blue-200)",
+                                }}
+                              >
+                                {(
+                                  selectedProfile.general?.companyName ||
+                                  selectedProfile.name ||
+                                  "Z"
+                                ).charAt(0)}
                               </div>
                             )}
+                            <div className="min-w-0 flex-1">
+                              <div
+                                className="text-sm font-semibold truncate"
+                                style={{ color: "var(--text-primary)" }}
+                              >
+                                {selectedProfile.general?.companyName ||
+                                  selectedProfile.name}
+                              </div>
+                              {selectedProfile.general?.address && (
+                                <div
+                                  className="text-[12px] mt-0.5 line-clamp-2"
+                                  style={{ color: "var(--text-secondary)" }}
+                                >
+                                  {formatAddress(selectedProfile.general.address)}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="border-b border-dashed" style={{ borderColor: "var(--border-color)", marginTop: "16px", marginBottom: "4px" }} />
+                    </>
+                  )}
+
+                  {/* Bill to */}
+                  {canReadInvoiceCustomer && canUseInvoiceCustomers && (
+                    <>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span
+                            className="inline-flex items-center justify-center w-7 h-7 rounded-lg"
+                            style={{
+                              background: "rgba(16, 185, 129, 0.1)",
+                              color: "#059669",
+                              border: "1px solid rgba(16, 185, 129, 0.25)",
+                            }}
+                          >
+                            <UserSquare2 size={14} strokeWidth={2.25} />
+                          </span>
+                          <div
+                            className="text-[12px] font-bold uppercase tracking-[0.1em]"
+                            style={{ color: "var(--text-secondary)" }}
+                          >
+                            Bill to
                           </div>
                         </div>
-                      </Tooltip>
-                    )}
-                  </div>
+                        <Form.Item
+                          name="customer_id"
+                          rules={canUseInvoiceCustomers ? [{ required: true, message: "Please select a customer" }] : []}
+                          style={{ marginTop: 8, marginBottom: 0 }}
+                        >
+                          <SearchableDropdown
+                            placeholder="Select customer"
+                            loading={loadingCustomers}
+                            itemNoun="customers"
+                            options={customers.filter(c => c.isActive).map(c => ({ value: c.id, label: c.companyName }))}
+                            style={{ height: 36, minWidth: 0 }}
+                            onChange={(id) => {
+                              const c = customers.find((x) => x.id === id);
+                              if (c) {
+                                form.setFieldsValue({
+                                  customer_snapshot: {
+                                    id: c.id,
+                                    companyName: c.companyName,
+                                    email: c.email,
+                                    phone: c.phone,
+                                    address: c.address,
+                                    city: c.city,
+                                    country: c.country,
+                                    taxId: c.taxId,
+                                    gstin: c.gstin,
+                                    pan: c.pan,
+                                  },
+                                });
+                              }
+                            }}
+                          />
+                        </Form.Item>
 
-                  <div className="border-b border-dashed" style={{ borderColor: "var(--border-color)", marginTop: "16px", marginBottom: "4px" }} />
+                        {selectedCustomer && (
+                          <Tooltip title={canUpdateInvoiceCustomer ? "Click to edit customer details" : "Customer details"}>
+                            <div
+                              onClick={() => {
+                                if (canUpdateInvoiceCustomer) {
+                                  setEditingCustomer(selectedCustomer);
+                                }
+                              }}
+                              className={`${canUpdateInvoiceCustomer ? "cursor-pointer hover:border-blue-400" : "cursor-default"} group flex items-start gap-3 p-2 rounded-xl transition-all`}
+                              style={{
+                                marginTop: 6,
+                                background: "var(--bg-slate-50)",
+                                border: "1px solid var(--border-color)",
+                              }}
+                            >
+                              <div
+                                className="w-10 h-10 rounded-lg flex items-center justify-center text-sm font-bold flex-shrink-0"
+                                style={{
+                                  background: "var(--bg-blue-50)",
+                                  color: "var(--text-blue-700)",
+                                  border: "1px solid var(--border-blue-200)",
+                                }}
+                              >
+                                {(selectedCustomer.companyName || "U").charAt(0)}
+                              </div>
+                              <div className="min-w-0 flex-1">
+                                <div
+                                  className="text-sm font-semibold truncate group-hover:underline"
+                                  style={{ color: "var(--text-primary)" }}
+                                >
+                                  {selectedCustomer.companyName}
+                                </div>
+                                <div
+                                  className="text-[12px] mt-0.5 line-clamp-2"
+                                  style={{ color: "var(--text-secondary)" }}
+                                >
+                                  {[
+                                    selectedCustomer.address,
+                                    selectedCustomer.city,
+                                    selectedCustomer.country,
+                                  ]
+                                    .filter(Boolean)
+                                    .join(", ") || "Click to add address"}
+                                </div>
+                                {selectedCustomer.taxId && (
+                                  <div
+                                    className="text-[11px] mt-1"
+                                    style={{ color: "var(--text-secondary)" }}
+                                  >
+                                    Tax ID ·{" "}
+                                    <span style={{ color: "var(--text-primary)" }}>
+                                      {selectedCustomer.taxId}
+                                    </span>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          </Tooltip>
+                        )}
+                      </div>
+
+                      <div className="border-b border-dashed" style={{ borderColor: "var(--border-color)", marginTop: "16px", marginBottom: "4px" }} />
+                    </>
+                  )}
 
                   {/* Project dropdown */}
                   <div>

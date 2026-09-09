@@ -36,6 +36,7 @@ import {
   Lock,
   Plus,
   Save,
+  SlidersHorizontal,
   Tags,
   Sparkles,
   Target,
@@ -81,6 +82,7 @@ import {
   type PlaybookDetail,
   type PlaybookSummary,
   type PlaybookVisibility,
+  type PlaybookStatus,
 } from "@/components/qa/playbookShared";
 
 const { TextArea } = Input;
@@ -98,6 +100,7 @@ interface MetaState {
   version: string;
   changelog: string;
   visibility: PlaybookVisibility;
+  status: PlaybookStatus;
   price_credits: string;
   price_amount: string;
   price_currency: string;
@@ -109,6 +112,11 @@ interface Props {
   initial?: PlaybookDetail;
   /** Category to start a new playbook in, when the author came from one. */
   defaultCategory?: string;
+  /**
+   * A collection the author chose before the editor opened. The playbook is
+   * filed into it after it is created, because until then it has no id.
+   */
+  fileIntoCollectionId?: string;
   /** Vocabularies from GET /playbooks/meta, so nothing is hardcoded twice. */
   meta?: {
     levels: { value: string; label: string }[];
@@ -131,7 +139,13 @@ function sectionAt(sections: DraftSection[], path: number[]): DraftSection | und
   return node;
 }
 
-export default function PlaybookEditor({ mode, initial, meta, defaultCategory }: Props) {
+export default function PlaybookEditor({
+  mode,
+  initial,
+  meta,
+  defaultCategory,
+  fileIntoCollectionId,
+}: Props) {
   const router = useRouter();
   const queryClient = useQueryClient();
 
@@ -142,7 +156,8 @@ export default function PlaybookEditor({ mode, initial, meta, defaultCategory }:
     overview: initial?.overview ?? "",
     version: initial?.version ?? "1.0",
     changelog: "",
-    visibility: initial?.visibility ?? (meta?.canPublish ? "public" : "workspace"),
+    visibility: initial?.visibility ?? "workspace",
+    status: (initial?.status as any) ?? "draft",
     price_credits: initial?.priceCredits != null ? String(initial.priceCredits) : "",
     price_amount: initial?.priceAmount != null ? String(initial.priceAmount) : "",
     price_currency: initial?.priceCurrency ?? "USD",
@@ -269,7 +284,7 @@ export default function PlaybookEditor({ mode, initial, meta, defaultCategory }:
       summary: metaState.summary,
       version: metaState.version || "1.0",
       visibility: metaState.visibility,
-      status: initial?.status ?? "draft",
+      status: metaState.status,
       isOwn: true,
       locked: false,
       priceCredits: metaState.price_credits ? Number(metaState.price_credits) : null,
@@ -282,6 +297,44 @@ export default function PlaybookEditor({ mode, initial, meta, defaultCategory }:
     }),
     [metaState, itemCount, levelCounts, initial]
   );
+
+  const middleHeader = useMemo(() => {
+    if (selection.kind === "meta") {
+      const filled = [
+        metaState.name,
+        metaState.category,
+        metaState.summary,
+        metaState.overview,
+      ].filter((v) => v && v.trim().length > 0).length;
+      return {
+        icon: <BookOpen size={14} className="pb-col-header__icon" />,
+        title: "PLAYBOOK DETAILS",
+        meta: `${filled} of 4 fields`,
+      };
+    }
+    if (selection.kind === "section") {
+      const sec = sectionAt(sections, selection.path);
+      const isSub = selection.path.length > 1;
+      const count = sec?.items.length ?? 0;
+      return {
+        icon: <Layers size={14} className="pb-col-header__icon" />,
+        title: isSub ? "SUB-SECTION DETAILS" : "SECTION DETAILS",
+        meta: `${count} recommendation${count === 1 ? "" : "s"}`,
+      };
+    }
+    const sec = sectionAt(sections, selection.path);
+    const item = sec?.items[selection.index];
+    const filled = item
+      ? [item.title, item.what_to_test, item.expected, item.why_it_matters].filter(
+          (v) => v && v.trim().length > 0
+        ).length
+      : 0;
+    return {
+      icon: <FileText size={14} className="pb-col-header__icon" />,
+      title: "RECOMMENDATION",
+      meta: `${filled} of 4 fields`,
+    };
+  }, [selection, metaState, sections]);
 
   /**
    * Mutations rebuild only the nodes along the path they touch; every untouched
@@ -436,6 +489,7 @@ export default function PlaybookEditor({ mode, initial, meta, defaultCategory }:
       overview: metaState.overview,
       version: metaState.version.trim() || "1.0",
       visibility: metaState.visibility,
+      status: metaState.status,
       price_credits:
         metaState.visibility === "premium" && metaState.price_credits
           ? Number(metaState.price_credits)
@@ -471,6 +525,26 @@ export default function PlaybookEditor({ mode, initial, meta, defaultCategory }:
 
       await axios.put(`/api/v2/qa/playbooks/${id}/content`, contentBody);
 
+      /* File it into the collection the author picked on the way in.
+         DELIBERATELY NOT FATAL: the playbook is written and saved by this
+         point, and losing that work over a filing step would be the worst
+         possible trade. A pack that did not take it is something to say out
+         loud and fix from the collection, not a reason to fail the save. */
+      if (mode === "create" && fileIntoCollectionId && id) {
+        try {
+          await axios.post(
+            `/api/v2/qa/playbooks/collections/${fileIntoCollectionId}/playbooks/${id}`,
+            {}
+          );
+          await queryClient.invalidateQueries({ queryKey: ["qa", "collections"] });
+        } catch (filingError: any) {
+          message.warning(
+            filingError?.response?.data?.error ||
+              "Playbook saved, but it could not be added to that collection."
+          );
+        }
+      }
+
       /* The catalog holds its list for five minutes, so without this a playbook
          you just created is missing from the page you land on next — the cache
          answers before the new row ever gets asked for. Everything under the
@@ -479,7 +553,7 @@ export default function PlaybookEditor({ mode, initial, meta, defaultCategory }:
       await queryClient.invalidateQueries({ queryKey: ["qa", "playbooks"] });
 
       message.success(mode === "create" ? "Playbook created" : "Playbook saved");
-      router.push(`/qa-workspace/playbooks/${slug}`);
+      router.push(`/playbooks/${slug}`);
     } catch (err: any) {
       const reason =
         err?.response?.data?.error ||
@@ -564,7 +638,7 @@ export default function PlaybookEditor({ mode, initial, meta, defaultCategory }:
               <Button
                 type="text"
                 icon={<ArrowLeft size={17} />}
-                onClick={() => router.push("/qa-workspace/playbooks")}
+                onClick={() => router.push("/playbooks")}
               >
                 Playbooks
               </Button>
@@ -578,9 +652,13 @@ export default function PlaybookEditor({ mode, initial, meta, defaultCategory }:
             </div>
 
             <div className="sc-header-right">
-              <span className={`pb-tier pb-tier--${metaState.visibility}`}>
-                {VISIBILITY_LABELS[metaState.visibility]}
-              </span>
+              {metaState.status === "draft" ? (
+                <span className="pb-tier pb-tier--draft">Draft</span>
+              ) : (
+                <span className={`pb-tier pb-tier--${metaState.visibility}`}>
+                  {VISIBILITY_LABELS[metaState.visibility]}
+                </span>
+              )}
               <Button
                 className="pb-btn"
                 icon={showPreview ? <EyeOff size={15} /> : <Eye size={15} />}
@@ -655,38 +733,58 @@ export default function PlaybookEditor({ mode, initial, meta, defaultCategory }:
           )}
 
           <div className="pb-edit">
-            <nav className="pb-edit__nav">
-              <div className="pb-tree__head">Outline</div>
-              <button
-                type="button"
-                className={`pb-tree__row ${isOn({ kind: "meta" }) ? "is-on" : ""}`}
-                onClick={() => setSelection({ kind: "meta" })}
-              >
-                <BookOpen size={13} />
-                <span className="pb-tree__label">Playbook details</span>
-              </button>
-
-              {renderTree(sections)}
-
-              {/* The one structural act on this rail, so it does not look like a
-                  third "+" row: a section is the level a reader navigates by, and
-                  the copy says so rather than assuming the author knows. */}
-              <button type="button" className="pb-tree__addmain" onClick={addSection}>
-                <span className="pb-tree__addmain__badge">
-                  <Plus size={15} />
+            {/* Column 1: Outline */}
+            <div className="pb-edit-col pb-edit-col--outline">
+              <div className="pb-col-header">
+                <div className="pb-col-header__left">
+                  <SlidersHorizontal size={14} className="pb-col-header__icon" />
+                  <span className="pb-col-header__title">OUTLINE</span>
+                </div>
+                <span className="pb-col-header__meta">
+                  {sections.length} {sections.length === 1 ? "section" : "sections"}
                 </span>
-                <span className="pb-tree__addmain__text">
-                  <b>Add section</b>
-                  <em>
-                    A top-level group a reader jumps to — Basic Testing, Session &amp;
-                    Logout. Recommendations and sub-sections live inside one.
-                  </em>
-                </span>
-              </button>
-            </nav>
+              </div>
+              <nav className="pb-edit__nav">
+                <button
+                  type="button"
+                  className={`pb-tree__row ${isOn({ kind: "meta" }) ? "is-on" : ""}`}
+                  onClick={() => setSelection({ kind: "meta" })}
+                >
+                  <BookOpen size={13} />
+                  <span className="pb-tree__label">Playbook details</span>
+                </button>
 
-            <div className="pb-edit__body">
-              {selection.kind === "meta" && (
+                {renderTree(sections)}
+
+                {/* The one structural act on this rail, so it does not look like a
+                    third "+" row: a section is the level a reader navigates by, and
+                    the copy says so rather than assuming the author knows. */}
+                <button type="button" className="pb-tree__addmain" onClick={addSection}>
+                  <span className="pb-tree__addmain__badge">
+                    <Plus size={15} />
+                  </span>
+                  <span className="pb-tree__addmain__text">
+                    <b>Add section</b>
+                    <em>
+                      A top-level group a reader jumps to — Basic Testing, Session &amp;
+                      Logout. Recommendations and sub-sections live inside one.
+                    </em>
+                  </span>
+                </button>
+              </nav>
+            </div>
+
+            {/* Column 2: Form Details */}
+            <div className="pb-edit-col pb-edit-col--form">
+              <div className="pb-col-header">
+                <div className="pb-col-header__left">
+                  {middleHeader.icon}
+                  <span className="pb-col-header__title">{middleHeader.title}</span>
+                </div>
+                <span className="pb-col-header__meta">{middleHeader.meta}</span>
+              </div>
+              <div className="pb-edit__body">
+                {selection.kind === "meta" && (
                 <div className="pb-form">
                   <BodyHeader
                     crumbs={["Playbook"]}
@@ -801,35 +899,73 @@ export default function PlaybookEditor({ mode, initial, meta, defaultCategory }:
                     title="Visibility & access"
                     description="Who can see this playbook, and on what terms."
                   >
-                    {canPublish ? (
+                    <div className="pb-form__grid">
                       <Field
-                        label="Visibility"
-                        hint="Public is free for every workspace. Premium is listed everywhere with the body locked until access is granted."
+                        label="Status"
+                        hint={
+                          metaState.status === "draft"
+                            ? "Drafts are work-in-progress and visible only to you."
+                            : "Published playbooks are live and visible according to the visibility setting below."
+                        }
                       >
                         <SearchableDropdown
-                          value={metaState.visibility}
+                          value={metaState.status}
                           onChange={(value: string) =>
-                            setMetaState({ ...metaState, visibility: value as PlaybookVisibility })
+                            setMetaState({ ...metaState, status: value as PlaybookStatus })
                           }
                           options={[
-                            { value: "public", label: "Public", description: "Free for every workspace" },
                             {
-                              value: "premium",
-                              label: "Premium",
-                              description: "Listed everywhere, unlocked on purchase or grant",
+                              value: "draft",
+                              label: "Draft",
+                              description: "Work in progress (visible only to you)",
+                            },
+                            {
+                              value: "published",
+                              label: "Published",
+                              description: "Live (choose Public or Private workspace)",
                             },
                           ]}
-                          placeholder="Select visibility"
+                          placeholder="Select status"
                         />
                       </Field>
-                    ) : (
-                      <Field
-                        label="Visibility"
-                        hint="Playbooks you create stay private to your workspace. Publishing to every workspace is done by Testiez."
-                      >
-                        <Input value="My workspace" size="large" disabled />
-                      </Field>
-                    )}
+
+                      {metaState.status === "published" && (
+                        <Field
+                          label="Visibility"
+                          hint="Public is visible to all workspaces. Private is visible only to members of your workspace."
+                        >
+                          <SearchableDropdown
+                            value={metaState.visibility}
+                            onChange={(value: string) =>
+                              setMetaState({ ...metaState, visibility: value as PlaybookVisibility })
+                            }
+                            options={[
+                              {
+                                value: "workspace",
+                                label: "Private (My Workspace)",
+                                description: "Visible only within your workspace tenant",
+                              },
+                              {
+                                value: "public",
+                                label: "Public",
+                                description: "Visible to all workspaces and tenants",
+                              },
+                              ...(canPublish
+                                ? [
+                                    {
+                                      value: "premium",
+                                      label: "Premium",
+                                      description:
+                                        "Listed everywhere, unlocked on purchase or grant",
+                                    },
+                                  ]
+                                : []),
+                            ]}
+                            placeholder="Select visibility"
+                          />
+                        </Field>
+                      )}
+                    </div>
 
                     {canPublish && metaState.visibility === "premium" && (
                       <div className="pb-form__grid">
@@ -1366,25 +1502,30 @@ export default function PlaybookEditor({ mode, initial, meta, defaultCategory }:
                     </div>
                   );
                 })()}
+              </div>
             </div>
 
+            {/* Column 3: Live Preview */}
             {showPreview && (
-              <aside className="pb-preview">
-                <div className="pb-preview__head">
-                  <Eye size={13} />
-                  <span className="pb-preview__title">Live preview</span>
-                  <span className="pb-preview__what">
-                    {itemCount} recommendation{itemCount === 1 ? "" : "s"}
+              <aside className="pb-edit-col pb-edit-col--preview">
+                <div className="pb-col-header">
+                  <div className="pb-col-header__left">
+                    <Eye size={14} className="pb-col-header__icon" />
+                    <span className="pb-col-header__title">LIVE PREVIEW</span>
+                  </div>
+                  <span className="pb-col-header__meta">
+                    {itemCount} {itemCount === 1 ? "recommendation" : "recommendations"}
                   </span>
                 </div>
 
-                {/* The whole playbook as a reader gets it. The node being edited
-                    is ringed and scrolled to, so the author keeps the context of
-                    what sits either side of it. */}
-                <div
-                  ref={(el) => { nodeRefs.current["meta"] = el; }}
-                  className={`pb-pnode ${selectionKey === "meta" ? "is-editing" : ""}`}
-                >
+                <div className="pb-preview">
+                  {/* The whole playbook as a reader gets it. The node being edited
+                      is ringed and scrolled to, so the author keeps the context of
+                      what sits either side of it. */}
+                  <div
+                    ref={(el) => { nodeRefs.current["meta"] = el; }}
+                    className={`pb-pnode ${selectionKey === "meta" ? "is-editing" : ""}`}
+                  >
                   <PlaybookCatalogCard playbook={previewSummary} />
                   {metaState.overview.trim() ? (
                     <div style={{ marginTop: 12 }}>
@@ -1485,6 +1626,7 @@ export default function PlaybookEditor({ mode, initial, meta, defaultCategory }:
                     </section>
                   );
                 })}
+                </div>
               </aside>
             )}
           </div>

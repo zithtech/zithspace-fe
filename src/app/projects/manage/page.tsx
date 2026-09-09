@@ -35,6 +35,7 @@ import { useSearchParams } from "next/navigation";
 import ConfirmDialog from "@/components/common/ConfirmDialog";
 import ProjectFilters from "./ProjectFilters";
 import TicketFilterPill from "@/components/projects/TicketFilterPill";
+import { useSubscriptionFeature } from "@/hooks/useSubscriptionFeature";
 import type { Dayjs } from "dayjs";
 import {
   PlusOutlined,
@@ -184,6 +185,7 @@ const ProjectsManageContent: React.FC = () => {
   const [form] = Form.useForm();
   const [isRefreshing, setIsRefreshing] = useState(false);
   const { canReadProject, canCreateProject, canUpdateProject, canDeleteProject } = usePermission();
+  const canUseProjectTrash = useSubscriptionFeature('work_projects_project_trash');
   useActivitySource({ section: "WORK", module: "Projects", page: "ProjectList" });
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -202,7 +204,7 @@ const ProjectsManageContent: React.FC = () => {
   const [members, setMembers] = useState<Member[]>([]);
   const [pagination, setPagination] = useState({
     current: 1,
-    pageSize: 20,
+    pageSize: 15,
     total: 0,
   });
 
@@ -212,7 +214,7 @@ const ProjectsManageContent: React.FC = () => {
   // Filters
   const [filters, setFilters] = useState<ProjectsFilters>({
     page: 1,
-    limit: 20,
+    limit: 15,
   });
 
   const renderPosition = (position: any) => {
@@ -773,7 +775,7 @@ const ProjectsManageContent: React.FC = () => {
         key: 'edit',
         label: menuLabel('Configure', 'Open in the builder', <Settings2 size={15} />, '#64748b', 'rgba(100,116,139,0.12)'),
       }] : []),
-      ...(canDeleteProject ? [
+      ...(canDeleteProject && canUseProjectTrash ? [
         { type: 'divider' as const },
         {
           key: 'delete',
@@ -1269,7 +1271,7 @@ const ProjectsManageContent: React.FC = () => {
                     total={pagination.total}
                     onChange={(page, pageSize) => handleTableChange({ current: page, pageSize })}
                     showSizeChanger
-                    pageSizeOptions={[10, 20, 25, 50, 100]}
+                    pageSizeOptions={[10, 15, 20, 25, 50, 100]}
                   />
                 </div>
               )}

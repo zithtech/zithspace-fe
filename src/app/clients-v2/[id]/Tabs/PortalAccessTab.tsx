@@ -263,8 +263,9 @@ export default function PortalAccessTab({ clientId, contacts, onCountChange, onR
 
   const handleReset = async (user: ClientPortalUser) => {
     try {
+      const portalUrl = typeof window !== "undefined" ? `${window.location.origin}/portal/login` : undefined;
       const { temporaryPassword, emailSent } =
-        await clientPortalService.resetPassword(user.id);
+        await clientPortalService.resetPassword(user.id, { portalUrl });
       setResetDialog({ user, tempPassword: temporaryPassword, emailSent });
       if (emailSent) {
         messageApi.success(`Password reset: New temporary password emailed to ${user.email}.`);
@@ -754,6 +755,11 @@ export default function PortalAccessTab({ clientId, contacts, onCountChange, onR
             } have been signed out.`
             : ""
         }
+        portalUrl={
+          typeof window !== "undefined" ? `${window.location.origin}/portal/login` : ""
+        }
+        username={resetDialog?.user.username}
+        email={resetDialog?.user.email}
         password={resetDialog?.tempPassword}
         onClose={() => setResetDialog(null)}
         onCopy={copyToClipboard}

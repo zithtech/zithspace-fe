@@ -36,6 +36,7 @@ import { useBulkResolveTickets } from "@/hooks/useSprintCompletion";
 import SprintCompletionService from "@/services/sprintCompletionService";
 import { SprintCreationForm, type SprintFormData } from "../SprintCreationForm";
 import { BucketCreationForm, type BucketFormData } from "../BucketCreationForm";
+import { useSubscriptionFeature } from "@/hooks/useSubscriptionFeature";
 import ReleasePlanService from "@/services/releasePlanService";
 import BucketService from "@/services/bucketService";
 
@@ -68,6 +69,8 @@ export const PendingTicketsTab: React.FC<PendingTicketsTabProps> = ({
   onActionComplete,
 }) => {
   const { modal, message } = App.useApp();
+  const canUseBuckets = useSubscriptionFeature('work_tickets_buckets');
+  const canUseTrash = useSubscriptionFeature('work_tickets_trash');
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
   const [pageSize, setPageSize] = useState<number>(20);
   const [selectedTicketId, setSelectedTicketId] = useState<string | null>(null);
@@ -404,30 +407,34 @@ export const PendingTicketsTab: React.FC<PendingTicketsTabProps> = ({
                     }}
                   />
 
-                  <SearchableDropdown
-                    placeholder="Move to Bucket"
-                    searchPlaceholder="Search buckets"
-                    itemNoun="buckets"
-                    style={{ width: 180 }}
-                    width={320}
-                    avatarColor="#2563eb"
-                    allowClear={false}
-                    value={undefined}
-                    options={bucketOptions}
-                    onChange={(value) => {
-                      if (!value) return;
-                      if (value === '__create_new__') setShowBucketModal(true);
-                      else handleBulkAction('move_to_bucket', value);
-                    }}
-                  />
-
-                  <Tooltip title="Move to Trash">
-                    <Button
-                      icon={<DeleteOutlined />}
-                      onClick={() => handleBulkAction('move_to_trash')}
-                      className="sc-action-btn sc-action-btn-danger"
+                  {canUseBuckets && (
+                    <SearchableDropdown
+                      placeholder="Move to Bucket"
+                      searchPlaceholder="Search buckets"
+                      itemNoun="buckets"
+                      style={{ width: 180 }}
+                      width={320}
+                      avatarColor="#2563eb"
+                      allowClear={false}
+                      value={undefined}
+                      options={bucketOptions}
+                      onChange={(value) => {
+                        if (!value) return;
+                        if (value === '__create_new__') setShowBucketModal(true);
+                        else handleBulkAction('move_to_bucket', value);
+                      }}
                     />
-                  </Tooltip>
+                  )}
+
+                  {canUseTrash && (
+                    <Tooltip title="Move to Trash">
+                      <Button
+                        icon={<DeleteOutlined />}
+                        onClick={() => handleBulkAction('move_to_trash')}
+                        className="sc-action-btn sc-action-btn-danger"
+                      />
+                    </Tooltip>
+                  )}
 
                   {activeBulkAction && (
                     <Button

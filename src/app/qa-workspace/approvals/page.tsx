@@ -177,7 +177,7 @@ function ApprovalsContent() {
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
 
   const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
+  const [pageSize, setPageSize] = useState(15);
   const [total, setTotal] = useState(0);
 
   /** The decision modals — one submission at a time, each with its own note. */
@@ -788,7 +788,7 @@ function ApprovalsContent() {
                     setPageSize(v);
                     setPage(1);
                   }}
-                  options={[10, 20, 25, 50, 100].map((n) => ({ value: n, label: `${n} / page` }))}
+                  options={[10, 15, 20, 25, 50, 100].map((n) => ({ value: n, label: `${n} / page` }))}
                   popupMatchSelectWidth={120}
                 />
               </div>

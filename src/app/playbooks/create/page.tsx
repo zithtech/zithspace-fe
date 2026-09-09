@@ -8,6 +8,7 @@ import { useQuery } from "@tanstack/react-query";
 
 import MainLayout from "@/components/layout/MainLayout";
 import NoData from "@/components/common/NoData";
+import { useAuth } from "@/context/AuthContext";
 import { usePermission } from "@/hooks/usePermission";
 import { useActivitySource } from "@/hooks/useActivitySource";
 import { api as axios } from "@/lib/axios";
@@ -16,24 +17,33 @@ import PlaybookEditor from "@/components/qa/PlaybookEditor";
 function CreatePlaybook() {
   useActivitySource({ section: "WORK", module: "QA", page: "CreatePlaybook" });
 
-  const { canCreateCase } = usePermission();
+  const { user } = useAuth();
+  const { canCreatePlaybook } = usePermission();
+  const params = useSearchParams();
   /* Arriving from a category in the catalog: the new playbook is filed where
      the author was already standing, rather than making them retype it. */
-  const category = useSearchParams().get("category") ?? "";
+  const category = params.get("category") ?? "";
+  /* And the collection the author picked before the editor opened — filed into
+     it once the playbook actually exists and has an id. */
+  const collectionId = params.get("collection") ?? "";
+
+  const hasNewPlaybookFeature =
+    !user?.subscriptionFeatures ||
+    user.subscriptionFeatures.includes("work_playbooks_qa_playbooks_new_playbook");
 
   const { data: meta } = useQuery<any>({
     queryKey: ["qa", "playbooks", "meta"],
     queryFn: () => axios.get("/api/v2/qa/playbooks/meta"),
-    enabled: canCreateCase,
+    enabled: canCreatePlaybook && hasNewPlaybookFeature,
     staleTime: 60 * 60 * 1000,
   });
 
-  if (!canCreateCase) {
+  if (!canCreatePlaybook || !hasNewPlaybookFeature) {
     return (
       <MainLayout>
         <NoData
           title="No access"
-          description="You need permission to create test cases before you can author a playbook."
+          description="You do not have permission or subscription access to create playbooks."
         />
       </MainLayout>
     );
@@ -41,7 +51,12 @@ function CreatePlaybook() {
 
   return (
     <MainLayout noPadding>
-      <PlaybookEditor mode="create" meta={meta} defaultCategory={category} />
+      <PlaybookEditor
+        mode="create"
+        meta={meta}
+        defaultCategory={category}
+        fileIntoCollectionId={collectionId || undefined}
+      />
     </MainLayout>
   );
 }

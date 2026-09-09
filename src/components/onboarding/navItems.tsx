@@ -18,6 +18,7 @@ export interface OnboardingNavItem {
   icon: React.ReactNode;
   color: string;
   anyPerm: string[];
+  requiredSubscriptionFeature?: string[];
 }
 
 export const ONBOARDING_NAV_ITEMS: OnboardingNavItem[] = [
@@ -28,6 +29,7 @@ export const ONBOARDING_NAV_ITEMS: OnboardingNavItem[] = [
     icon: <Users size={16} />,
     color: '#3B82F6',
     anyPerm: ['canReadOnboarding'],
+    requiredSubscriptionFeature: ['hrms_onboarding_employees', 'hrms_onboarding'],
   },
   {
     key: 'create',
@@ -36,6 +38,7 @@ export const ONBOARDING_NAV_ITEMS: OnboardingNavItem[] = [
     icon: <UserPlus size={16} />,
     color: '#10B981',
     anyPerm: ['canCreateOnboarding', 'canUpdateOnboarding'],
+    requiredSubscriptionFeature: ['hrms_onboarding_create', 'hrms_onboarding'],
   },
   {
     key: 'invites',
@@ -44,6 +47,7 @@ export const ONBOARDING_NAV_ITEMS: OnboardingNavItem[] = [
     icon: <Link2 size={16} />,
     color: '#8B5CF6',
     anyPerm: ['canCreateOnboarding', 'canReadOnboarding'],
+    requiredSubscriptionFeature: ['hrms_onboarding_invites', 'hrms_onboarding'],
   },
   {
     key: 'documents',
@@ -52,6 +56,7 @@ export const ONBOARDING_NAV_ITEMS: OnboardingNavItem[] = [
     icon: <FileText size={16} />,
     color: '#F59E0B',
     anyPerm: ['canReadOnboarding'],
+    requiredSubscriptionFeature: ['hrms_onboarding_documents', 'hrms_onboarding'],
   },
   {
     key: 'settings',
@@ -60,6 +65,7 @@ export const ONBOARDING_NAV_ITEMS: OnboardingNavItem[] = [
     icon: <SettingsIcon size={16} />,
     color: '#64748B',
     anyPerm: ['canReadOnboardingSetting', 'canUpdateOnboardingSetting'],
+    requiredSubscriptionFeature: ['hrms_onboarding_settings', 'hrms_onboarding'],
   },
 ];
 
@@ -71,6 +77,11 @@ export function getOnboardingNavItem(key: string): OnboardingNavItem | undefined
 export function canAccessOnboardingItem(
   perms: Record<string, any>,
   item: OnboardingNavItem,
+  hasAnySubscriptionFeature?: (...features: string[]) => boolean
 ): boolean {
-  return item.anyPerm.some((p) => !!perms[p]);
+  const hasPerm = item.anyPerm.some((p) => !!perms[p]);
+  const hasSub = hasAnySubscriptionFeature && item.requiredSubscriptionFeature
+    ? hasAnySubscriptionFeature(...item.requiredSubscriptionFeature)
+    : true;
+  return hasPerm && hasSub;
 }

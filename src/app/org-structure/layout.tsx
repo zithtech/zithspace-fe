@@ -35,6 +35,7 @@ interface OrgNavItem {
   icon: React.ReactNode;
   /** Visible if the user holds ANY of these permissions. */
   anyPermission: string[];
+  requiredSubscriptionFeature?: string[];
 }
 
 const ORG_NAV_ITEMS: OrgNavItem[] = [
@@ -44,6 +45,7 @@ const ORG_NAV_ITEMS: OrgNavItem[] = [
     path: "/org-structure/overview",
     icon: <Eye size={15} strokeWidth={1.75} />,
     anyPermission: [Permissions.ORG_READ],
+    requiredSubscriptionFeature: ["admin_org_structure_overview", "admin_org_structure"],
   },
   {
     key: "grades",
@@ -51,6 +53,7 @@ const ORG_NAV_ITEMS: OrgNavItem[] = [
     path: "/org-structure/grades",
     icon: <Award size={15} strokeWidth={1.75} />,
     anyPermission: [Permissions.ORG_GRADE_READ, Permissions.ORG_MANAGE],
+    requiredSubscriptionFeature: ["admin_org_structure_grades"],
   },
   {
     key: "employment-types",
@@ -58,6 +61,7 @@ const ORG_NAV_ITEMS: OrgNavItem[] = [
     path: "/org-structure/employment-types",
     icon: <BadgeInfo size={15} strokeWidth={1.75} />,
     anyPermission: [Permissions.ORG_EMPLOYMENT_TYPE_READ, Permissions.ORG_MANAGE],
+    requiredSubscriptionFeature: ["admin_org_structure_employment_type"],
   },
   {
     key: "departments",
@@ -65,6 +69,7 @@ const ORG_NAV_ITEMS: OrgNavItem[] = [
     path: "/org-structure/departments",
     icon: <Building size={15} strokeWidth={1.75} />,
     anyPermission: [Permissions.ORG_DEPARTMENT_READ, Permissions.ORG_MANAGE],
+    requiredSubscriptionFeature: ["admin_org_structure_department"],
   },
   {
     key: "sub-departments",
@@ -72,6 +77,7 @@ const ORG_NAV_ITEMS: OrgNavItem[] = [
     path: "/org-structure/sub-departments",
     icon: <Building2 size={15} strokeWidth={1.75} />,
     anyPermission: [Permissions.ORG_DEPARTMENT_READ, Permissions.ORG_MANAGE],
+    requiredSubscriptionFeature: ["admin_org_structure_sub_department"],
   },
   {
     key: "positions",
@@ -79,16 +85,41 @@ const ORG_NAV_ITEMS: OrgNavItem[] = [
     path: "/org-structure/positions",
     icon: <Briefcase size={15} strokeWidth={1.75} />,
     anyPermission: [Permissions.ORG_POSITION_READ, Permissions.ORG_MANAGE],
+    requiredSubscriptionFeature: ["admin_org_structure_position"],
   },
 ];
 
 export default function OrgStructureLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
-  const { hasAnyPermission } = useAuth();
+  const { hasAnyPermission, hasAnySubscriptionFeature, isLoading: authLoading } = useAuth();
   const [mobileSidebarOpen, setMobileSidebarOpen] = React.useState(false);
 
-  const visibleItems = ORG_NAV_ITEMS.filter((item) => hasAnyPermission(...item.anyPermission));
+  const visibleItems = React.useMemo(() => {
+    return ORG_NAV_ITEMS.filter((item) => {
+      const hasPerm = hasAnyPermission(...item.anyPermission);
+      const hasSub = item.requiredSubscriptionFeature
+        ? hasAnySubscriptionFeature(...item.requiredSubscriptionFeature)
+        : true;
+      return hasPerm && hasSub;
+    });
+  }, [hasAnyPermission, hasAnySubscriptionFeature]);
+
+  React.useEffect(() => {
+    if (authLoading || !pathname) return;
+
+    if (visibleItems.length === 0) {
+      router.replace("/dashboard");
+      return;
+    }
+
+    const currentAllowed = visibleItems.some((item) =>
+      pathname === item.path || pathname.startsWith(item.path + "/")
+    );
+    if (!currentAllowed) {
+      router.replace(visibleItems[0].path);
+    }
+  }, [authLoading, pathname, visibleItems, router]);
 
   return (
     <ProtectedRoute>

@@ -1102,7 +1102,7 @@ export default function TopNav({
 
 
         {/* Mobile Timer Modal - Rendering form content directly for seamless mobile use */}
-        {isCustomBreakpoint && (
+        {isCustomBreakpoint && hasAnySubscriptionFeature("work_time_tracking") && (
           <Modal
             open={isPopoverOpen}
             onCancel={() => setPopoverOpen(false)}

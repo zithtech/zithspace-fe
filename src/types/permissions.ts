@@ -103,6 +103,19 @@ export const Permissions = {
   QA_ANALYTICS_READ:      'qa.analytics.read',
   QA_MANAGE:       'qa.manage',
 
+  // ─── Playbooks ────────────────────────────────────────────────────
+  PLAYBOOK_CREATE:   'playbook.create',
+  PLAYBOOK_READ:     'playbook.read',
+  PLAYBOOK_UPDATE:   'playbook.update',
+  PLAYBOOK_DELETE:   'playbook.delete',
+  PLAYBOOK_TRASH_READ:    'playbook.trash.read',
+  PLAYBOOK_TRASH_RESTORE: 'playbook.trash.restore',
+  PLAYBOOK_TRASH_DELETE:  'playbook.trash.delete',
+  PLAYBOOK_REQUEST:  'playbook.request',
+  PLAYBOOK_TEMPLATE: 'playbook.template',
+  PLAYBOOK_UPLOAD:   'playbook.upload',
+  PLAYBOOK_MANAGE:   'playbook.manage',
+
   // Yapiez — API definition + flow execution; a sibling of QA Space, not a page
   // inside it. Developers own the catalog, QA owns the flows built from it, and
   // EXECUTE is separate again because running a flow sends real requests.

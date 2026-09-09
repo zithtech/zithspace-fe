@@ -125,6 +125,7 @@ import { TablePreferenceService } from "@/services/tablePreferenceService";
 import { SearchableDropdown } from "@/components/common/SearchableDropdown";
 import { useTour } from "@/context/TourContext";
 import { ticketsTourSteps } from "@/components/tour/TourSteps";
+import { useSubscriptionFeature } from "@/hooks/useSubscriptionFeature";
 
 const { Title, Text } = Typography;
 
@@ -208,6 +209,9 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
     canReadTicketPlan,
     canUpdateTicketPlan
   } = usePermission();
+  const canUseBuckets = useSubscriptionFeature('work_tickets_buckets');
+  const canUseArchive = useSubscriptionFeature('work_tickets_archived');
+  const canUseTrash = useSubscriptionFeature('work_tickets_trash');
   const router = useRouter();
   const queryClient = useQueryClient();
   const { message, modal, notification } = App.useApp();
@@ -517,11 +521,11 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
   // Pagination state
   const [pagination, setPagination] = useState({
     current: 1,
-    pageSize: 20,
+    pageSize: 15,
   });
   const [activePagination, setActivePagination] = useState({
     current: 1,
-    pageSize: 20,
+    pageSize: 15,
   });
 
 
@@ -694,7 +698,7 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
     isLoading: activeSprintLoading,
     isFetching: activeSprintFetching,
     refetch: refetchActive
-  } = useTickets(activeSprintParams);
+  } = useTickets(activeSprintParams, { staleTime: 0 });
 
   // 2. Fetch Backlog Tickets
   const {
@@ -702,7 +706,7 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
     isLoading: backlogLoading,
     isFetching: backlogFetching,
     refetch: refetchBacklog
-  } = useTickets(backlogParams);
+  } = useTickets(backlogParams, { staleTime: 0 });
 
   // Unfiltered backlog data query to keep total backlog count in sidebar constant
   const { data: unfilteredBacklogData } = useTickets({
@@ -797,6 +801,7 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
     isFetching: filteredViewFetching,
   } = useTickets(filteredViewParams, {
     enabled: isFilteredView && quickFilterTicketIds.length > 0,
+    staleTime: 0,
   });
   const filteredViewTickets = filteredViewData?.data || [];
   const filteredViewTotal = filteredViewData?.pagination?.total || 0;
@@ -1270,9 +1275,9 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
   useEffect(() => {
     if (viewMode === 'board') {
       // Board mode uses Kanban endpoint, no pagination needed
-      setPagination(prev => ({ ...prev, current: 1, pageSize: 20 }));
+      setPagination(prev => ({ ...prev, current: 1, pageSize: 15 }));
     } else {
-      setPagination(prev => ({ ...prev, current: 1, pageSize: 20 }));
+      setPagination(prev => ({ ...prev, current: 1, pageSize: 15 }));
     }
   }, [viewMode]);
 
@@ -2107,7 +2112,7 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
                       ),
                       onClick: handleShare
                     },
-                    canDeleteTicket && {
+                    canDeleteTicket && canUseTrash && {
                       key: 'delete',
                       danger: true,
                       label: (
@@ -2340,7 +2345,7 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
             className="pp-pagesize"
             value={pageSize}
             onChange={(v) => onPageSizeChange(v)}
-            options={[10, 20, 25, 50, 100].map((n) => ({ value: n, label: `${n} / page` }))}
+            options={[10, 15, 20, 25, 50, 100].map((n) => ({ value: n, label: `${n} / page` }))}
             popupMatchSelectWidth={120}
             size="small"
           />
@@ -4704,7 +4709,7 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
                           )}
 
                           {/* Move to Archive */}
-                          {canManageTickets && (
+                          {canManageTickets && canUseArchive && (
                             <Button
                               size="small"
                               icon={<FolderAddOutlined style={{ fontSize: 11 }} />}
@@ -4725,135 +4730,137 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
                           )}
 
                           {/* Move to Bucket */}
-                          <Dropdown
-                            open={bucketDropdownOpen}
-                            onOpenChange={(open) => {
-                              setBucketDropdownOpen(open);
-                              if (open && buckets.length === 0 && !bucketsLoading) {
-                                setBucketsLoading(true);
-                                import('@/services/bucketService').then(mod => {
-                                  mod.default.getBuckets(projectId).then(data => {
-                                    setBuckets(data);
-                                  }).catch(() => { }).finally(() => setBucketsLoading(false));
-                                });
-                              }
-                            }}
-                            trigger={['click']}
-                            menu={{ items: [] }}
-                            dropdownRender={() => (
-                              <div style={{
-                                background: theme === 'dark' ? '#1e293b' : '#fff',
-                                borderRadius: 10,
-                                border: theme === 'dark' ? '1px solid #334155' : '1px solid #e2e8f0',
-                                boxShadow: theme === 'dark' ? '0 8px 24px rgba(0,0,0,0.40)' : '0 8px 24px rgba(0,0,0,0.10)',
-                                padding: '6px 4px',
-                                minWidth: 220,
-                                maxHeight: 320,
-                                overflowY: 'auto',
-                              }}>
-                                <div style={{ padding: '4px 8px 8px', fontSize: 10, fontWeight: 700, textTransform: 'uppercase', color: '#94a3b8', letterSpacing: '0.05em' }}>Move to Bucket</div>
-                                {bucketsLoading ? (
-                                  <div style={{ padding: '8px 12px', color: '#94a3b8', fontSize: 12 }}>Loading...</div>
-                                ) : buckets.length === 0 ? (
-                                  <div style={{ padding: '6px 12px', color: '#94a3b8', fontSize: 12 }}>No buckets found</div>
-                                ) : (
-                                  buckets.map((b: any) => (
-                                    <div
-                                      key={b.id}
-                                      style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 10px', cursor: 'pointer', borderRadius: 6, fontSize: 13 }}
-                                      className="tl-action-item"
-                                      onClick={() => {
-                                        import('@/services/bucketService').then(mod => {
-                                          mod.default.assignTicketsToBucket(b.id, activeSelectedRowKeys as string[]).then(() => {
-                                            message.success(`Moved ${activeSelectedRowKeys.length} ticket(s) to "${b.name}"`);
-                                            setActiveSelectedRowKeys([]);
-                                            setBacklogSelectedRowKeys([]);
-                                            refetchActive();
-                                            refetchBacklog();
-                                            queryClient.invalidateQueries({ queryKey: ['tickets'] });
-                                            setBucketDropdownOpen(false);
-                                          }).catch((e: any) => message.error(e.message || 'Failed to move to bucket'));
-                                        });
-                                      }}
-                                    >
-                                      <div style={{ width: 10, height: 10, borderRadius: '50%', background: b.color || '#8b5cf6', flexShrink: 0 }} />
-                                      <span style={{ fontWeight: 500, flex: 1, color: theme === 'dark' ? '#f1f5f9' : '#1e293b' }}>{b.name}</span>
-                                      <span style={{ fontSize: 10, color: '#94a3b8' }}>{b._count?.tickets ?? 0} tickets</span>
+                          {canUseBuckets && (
+                            <Dropdown
+                              open={bucketDropdownOpen}
+                              onOpenChange={(open) => {
+                                setBucketDropdownOpen(open);
+                                if (open && buckets.length === 0 && !bucketsLoading) {
+                                  setBucketsLoading(true);
+                                  import('@/services/bucketService').then(mod => {
+                                    mod.default.getBuckets(projectId).then(data => {
+                                      setBuckets(data);
+                                    }).catch(() => { }).finally(() => setBucketsLoading(false));
+                                  });
+                                }
+                              }}
+                              trigger={['click']}
+                              menu={{ items: [] }}
+                              dropdownRender={() => (
+                                <div style={{
+                                  background: theme === 'dark' ? '#1e293b' : '#fff',
+                                  borderRadius: 10,
+                                  border: theme === 'dark' ? '1px solid #334155' : '1px solid #e2e8f0',
+                                  boxShadow: theme === 'dark' ? '0 8px 24px rgba(0,0,0,0.40)' : '0 8px 24px rgba(0,0,0,0.10)',
+                                  padding: '6px 4px',
+                                  minWidth: 220,
+                                  maxHeight: 320,
+                                  overflowY: 'auto',
+                                }}>
+                                  <div style={{ padding: '4px 8px 8px', fontSize: 10, fontWeight: 700, textTransform: 'uppercase', color: '#94a3b8', letterSpacing: '0.05em' }}>Move to Bucket</div>
+                                  {bucketsLoading ? (
+                                    <div style={{ padding: '8px 12px', color: '#94a3b8', fontSize: 12 }}>Loading...</div>
+                                  ) : buckets.length === 0 ? (
+                                    <div style={{ padding: '6px 12px', color: '#94a3b8', fontSize: 12 }}>No buckets found</div>
+                                  ) : (
+                                    buckets.map((b: any) => (
+                                      <div
+                                        key={b.id}
+                                        style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 10px', cursor: 'pointer', borderRadius: 6, fontSize: 13 }}
+                                        className="tl-action-item"
+                                        onClick={() => {
+                                          import('@/services/bucketService').then(mod => {
+                                            mod.default.assignTicketsToBucket(b.id, activeSelectedRowKeys as string[]).then(() => {
+                                              message.success(`Moved ${activeSelectedRowKeys.length} ticket(s) to "${b.name}"`);
+                                              setActiveSelectedRowKeys([]);
+                                              setBacklogSelectedRowKeys([]);
+                                              refetchActive();
+                                              refetchBacklog();
+                                              queryClient.invalidateQueries({ queryKey: ['tickets'] });
+                                              setBucketDropdownOpen(false);
+                                            }).catch((e: any) => message.error(e.message || 'Failed to move to bucket'));
+                                          });
+                                        }}
+                                      >
+                                        <div style={{ width: 10, height: 10, borderRadius: '50%', background: b.color || '#8b5cf6', flexShrink: 0 }} />
+                                        <span style={{ fontWeight: 500, flex: 1, color: theme === 'dark' ? '#f1f5f9' : '#1e293b' }}>{b.name}</span>
+                                        <span style={{ fontSize: 10, color: '#94a3b8' }}>{b._count?.tickets ?? 0} tickets</span>
+                                      </div>
+                                    ))
+                                  )}
+                                  <div style={{ borderTop: theme === 'dark' ? '1px solid #334155' : '1px solid #f1f5f9', margin: '6px 4px 4px', paddingTop: 6 }}>
+                                    <div style={{ padding: '4px 8px 4px', fontSize: 10, fontWeight: 700, textTransform: 'uppercase', color: '#94a3b8', letterSpacing: '0.05em' }}>Create New Bucket</div>
+                                    <div style={{ padding: '4px 8px', display: 'flex', gap: 6 }}>
+                                      <input
+                                        placeholder="Bucket name..."
+                                        value={newBucketName}
+                                        onChange={e => setNewBucketName(e.target.value)}
+                                        onKeyDown={e => e.stopPropagation()}
+                                        style={{
+                                          flex: 1,
+                                          height: 28,
+                                          borderRadius: 6,
+                                          border: theme === 'dark' ? '1px solid #475569' : '1px solid #e2e8f0',
+                                          padding: '0 8px',
+                                          fontSize: 12,
+                                          outline: 'none',
+                                          background: theme === 'dark' ? '#0f172a' : '#fff',
+                                          color: theme === 'dark' ? '#f1f5f9' : '#1e293b'
+                                        }}
+                                      />
+                                      <button
+                                        disabled={!newBucketName.trim() || creatingBucket}
+                                        style={{
+                                          height: 28, padding: '0 10px', borderRadius: 6, border: 'none',
+                                          background: newBucketName.trim() ? '#8b5cf6' : (theme === 'dark' ? '#334155' : '#e2e8f0'),
+                                          color: newBucketName.trim() ? '#fff' : '#94a3b8',
+                                          cursor: newBucketName.trim() ? 'pointer' : 'not-allowed',
+                                          fontSize: 12, fontWeight: 700,
+                                        }}
+                                        onClick={() => {
+                                          if (!newBucketName.trim()) return;
+                                          setCreatingBucket(true);
+                                          import('@/services/bucketService').then(mod => {
+                                            mod.default.createBucket({ name: newBucketName.trim(), projectId }).then(newB => {
+                                              setBuckets(prev => [newB, ...prev]);
+                                              return mod.default.assignTicketsToBucket(newB.id, activeSelectedRowKeys as string[]);
+                                            }).then(() => {
+                                              message.success(`Created bucket "${newBucketName.trim()}" and moved ${activeSelectedRowKeys.length} ticket(s)`);
+                                              setActiveSelectedRowKeys([]);
+                                              setBacklogSelectedRowKeys([]);
+                                              refetchActive();
+                                              refetchBacklog();
+                                              queryClient.invalidateQueries({ queryKey: ['tickets'] });
+                                              setNewBucketName('');
+                                              setBucketDropdownOpen(false);
+                                            }).catch((e: any) => message.error(e.message || 'Failed')).finally(() => setCreatingBucket(false));
+                                          });
+                                        }}
+                                      >
+                                        {creatingBucket ? '...' : 'Create'}
+                                      </button>
                                     </div>
-                                  ))
-                                )}
-                                <div style={{ borderTop: theme === 'dark' ? '1px solid #334155' : '1px solid #f1f5f9', margin: '6px 4px 4px', paddingTop: 6 }}>
-                                  <div style={{ padding: '4px 8px 4px', fontSize: 10, fontWeight: 700, textTransform: 'uppercase', color: '#94a3b8', letterSpacing: '0.05em' }}>Create New Bucket</div>
-                                  <div style={{ padding: '4px 8px', display: 'flex', gap: 6 }}>
-                                    <input
-                                      placeholder="Bucket name..."
-                                      value={newBucketName}
-                                      onChange={e => setNewBucketName(e.target.value)}
-                                      onKeyDown={e => e.stopPropagation()}
-                                      style={{
-                                        flex: 1,
-                                        height: 28,
-                                        borderRadius: 6,
-                                        border: theme === 'dark' ? '1px solid #475569' : '1px solid #e2e8f0',
-                                        padding: '0 8px',
-                                        fontSize: 12,
-                                        outline: 'none',
-                                        background: theme === 'dark' ? '#0f172a' : '#fff',
-                                        color: theme === 'dark' ? '#f1f5f9' : '#1e293b'
-                                      }}
-                                    />
-                                    <button
-                                      disabled={!newBucketName.trim() || creatingBucket}
-                                      style={{
-                                        height: 28, padding: '0 10px', borderRadius: 6, border: 'none',
-                                        background: newBucketName.trim() ? '#8b5cf6' : (theme === 'dark' ? '#334155' : '#e2e8f0'),
-                                        color: newBucketName.trim() ? '#fff' : '#94a3b8',
-                                        cursor: newBucketName.trim() ? 'pointer' : 'not-allowed',
-                                        fontSize: 12, fontWeight: 700,
-                                      }}
-                                      onClick={() => {
-                                        if (!newBucketName.trim()) return;
-                                        setCreatingBucket(true);
-                                        import('@/services/bucketService').then(mod => {
-                                          mod.default.createBucket({ name: newBucketName.trim(), projectId }).then(newB => {
-                                            setBuckets(prev => [newB, ...prev]);
-                                            return mod.default.assignTicketsToBucket(newB.id, activeSelectedRowKeys as string[]);
-                                          }).then(() => {
-                                            message.success(`Created bucket "${newBucketName.trim()}" and moved ${activeSelectedRowKeys.length} ticket(s)`);
-                                            setActiveSelectedRowKeys([]);
-                                            setBacklogSelectedRowKeys([]);
-                                            refetchActive();
-                                            refetchBacklog();
-                                            queryClient.invalidateQueries({ queryKey: ['tickets'] });
-                                            setNewBucketName('');
-                                            setBucketDropdownOpen(false);
-                                          }).catch((e: any) => message.error(e.message || 'Failed')).finally(() => setCreatingBucket(false));
-                                        });
-                                      }}
-                                    >
-                                      {creatingBucket ? '...' : 'Create'}
-                                    </button>
                                   </div>
                                 </div>
-                              </div>
-                            )}
-                          >
-                            <Button
-                              size="small"
-                              icon={<AppstoreOutlined style={{ fontSize: 11 }} />}
-                              style={{
-                                height: 28,
-                                fontSize: 11,
-                                fontWeight: 700,
-                                borderRadius: 6,
-                                borderColor: '#8b5cf6',
-                                color: '#8b5cf6',
-                                background: 'transparent'
-                              }}
+                              )}
                             >
-                              Move to Bucket
-                            </Button>
-                          </Dropdown>
+                              <Button
+                                size="small"
+                                icon={<AppstoreOutlined style={{ fontSize: 11 }} />}
+                                style={{
+                                  height: 28,
+                                  fontSize: 11,
+                                  fontWeight: 700,
+                                  borderRadius: 6,
+                                  borderColor: '#8b5cf6',
+                                  color: '#8b5cf6',
+                                  background: 'transparent'
+                                }}
+                              >
+                                Move to Bucket
+                              </Button>
+                            </Dropdown>
+                          )}
 
                           {/* Move to Sprint */}
                           <Dropdown
@@ -4935,7 +4942,7 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
                           </Dropdown>
 
                           {/* Delete */}
-                          {canDeleteTicket && (
+                          {canDeleteTicket && canUseTrash && (
                             <ConfirmDialog
                               tone="danger"
                               title="Move to Trash"
@@ -5232,7 +5239,7 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
                           )}
 
                           {/* Move to Archive */}
-                          {canManageTickets && (
+                          {canManageTickets && canUseArchive && (
                             <Button
                               size="small"
                               icon={<FolderAddOutlined style={{ fontSize: 11 }} />}
@@ -5253,135 +5260,137 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
                           )}
 
                           {/* Move to Bucket */}
-                          <Dropdown
-                            open={bucketDropdownOpen}
-                            onOpenChange={(open) => {
-                              setBucketDropdownOpen(open);
-                              if (open && buckets.length === 0 && !bucketsLoading) {
-                                setBucketsLoading(true);
-                                import('@/services/bucketService').then(mod => {
-                                  mod.default.getBuckets(projectId).then(data => {
-                                    setBuckets(data);
-                                  }).catch(() => { }).finally(() => setBucketsLoading(false));
-                                });
-                              }
-                            }}
-                            trigger={['click']}
-                            menu={{ items: [] }}
-                            dropdownRender={() => (
-                              <div style={{
-                                background: theme === 'dark' ? '#1e293b' : '#fff',
-                                borderRadius: 10,
-                                border: theme === 'dark' ? '1px solid #334155' : '1px solid #e2e8f0',
-                                boxShadow: theme === 'dark' ? '0 8px 24px rgba(0,0,0,0.40)' : '0 8px 24px rgba(0,0,0,0.10)',
-                                padding: '6px 4px',
-                                minWidth: 220,
-                                maxHeight: 320,
-                                overflowY: 'auto',
-                              }}>
-                                <div style={{ padding: '4px 8px 8px', fontSize: 10, fontWeight: 700, textTransform: 'uppercase', color: '#94a3b8', letterSpacing: '0.05em' }}>Move to Bucket</div>
-                                {bucketsLoading ? (
-                                  <div style={{ padding: '8px 12px', color: '#94a3b8', fontSize: 12 }}>Loading...</div>
-                                ) : buckets.length === 0 ? (
-                                  <div style={{ padding: '6px 12px', color: '#94a3b8', fontSize: 12 }}>No buckets found</div>
-                                ) : (
-                                  buckets.map((b: any) => (
-                                    <div
-                                      key={b.id}
-                                      style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 10px', cursor: 'pointer', borderRadius: 6, fontSize: 13 }}
-                                      className="tl-action-item"
-                                      onClick={() => {
-                                        import('@/services/bucketService').then(mod => {
-                                          mod.default.assignTicketsToBucket(b.id, backlogSelectedRowKeys as string[]).then(() => {
-                                            message.success(`Moved ${backlogSelectedRowKeys.length} ticket(s) to "${b.name}"`);
-                                            setBacklogSelectedRowKeys([]);
-                                            setBacklogSelectedRowKeys([]);
-                                            refetchActive();
-                                            refetchBacklog();
-                                            queryClient.invalidateQueries({ queryKey: ['tickets'] });
-                                            setBucketDropdownOpen(false);
-                                          }).catch((e: any) => message.error(e.message || 'Failed to move to bucket'));
-                                        });
-                                      }}
-                                    >
-                                      <div style={{ width: 10, height: 10, borderRadius: '50%', background: b.color || '#8b5cf6', flexShrink: 0 }} />
-                                      <span style={{ fontWeight: 500, flex: 1, color: theme === 'dark' ? '#f1f5f9' : '#1e293b' }}>{b.name}</span>
-                                      <span style={{ fontSize: 10, color: '#94a3b8' }}>{b._count?.tickets ?? 0} tickets</span>
+                          {canUseBuckets && (
+                            <Dropdown
+                              open={bucketDropdownOpen}
+                              onOpenChange={(open) => {
+                                setBucketDropdownOpen(open);
+                                if (open && buckets.length === 0 && !bucketsLoading) {
+                                  setBucketsLoading(true);
+                                  import('@/services/bucketService').then(mod => {
+                                    mod.default.getBuckets(projectId).then(data => {
+                                      setBuckets(data);
+                                    }).catch(() => { }).finally(() => setBucketsLoading(false));
+                                  });
+                                }
+                              }}
+                              trigger={['click']}
+                              menu={{ items: [] }}
+                              dropdownRender={() => (
+                                <div style={{
+                                  background: theme === 'dark' ? '#1e293b' : '#fff',
+                                  borderRadius: 10,
+                                  border: theme === 'dark' ? '1px solid #334155' : '1px solid #e2e8f0',
+                                  boxShadow: theme === 'dark' ? '0 8px 24px rgba(0,0,0,0.40)' : '0 8px 24px rgba(0,0,0,0.10)',
+                                  padding: '6px 4px',
+                                  minWidth: 220,
+                                  maxHeight: 320,
+                                  overflowY: 'auto',
+                                }}>
+                                  <div style={{ padding: '4px 8px 8px', fontSize: 10, fontWeight: 700, textTransform: 'uppercase', color: '#94a3b8', letterSpacing: '0.05em' }}>Move to Bucket</div>
+                                  {bucketsLoading ? (
+                                    <div style={{ padding: '8px 12px', color: '#94a3b8', fontSize: 12 }}>Loading...</div>
+                                  ) : buckets.length === 0 ? (
+                                    <div style={{ padding: '6px 12px', color: '#94a3b8', fontSize: 12 }}>No buckets found</div>
+                                  ) : (
+                                    buckets.map((b: any) => (
+                                      <div
+                                        key={b.id}
+                                        style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 10px', cursor: 'pointer', borderRadius: 6, fontSize: 13 }}
+                                        className="tl-action-item"
+                                        onClick={() => {
+                                          import('@/services/bucketService').then(mod => {
+                                            mod.default.assignTicketsToBucket(b.id, backlogSelectedRowKeys as string[]).then(() => {
+                                              message.success(`Moved ${backlogSelectedRowKeys.length} ticket(s) to "${b.name}"`);
+                                              setBacklogSelectedRowKeys([]);
+                                              setBacklogSelectedRowKeys([]);
+                                              refetchActive();
+                                              refetchBacklog();
+                                              queryClient.invalidateQueries({ queryKey: ['tickets'] });
+                                              setBucketDropdownOpen(false);
+                                            }).catch((e: any) => message.error(e.message || 'Failed to move to bucket'));
+                                          });
+                                        }}
+                                      >
+                                        <div style={{ width: 10, height: 10, borderRadius: '50%', background: b.color || '#8b5cf6', flexShrink: 0 }} />
+                                        <span style={{ fontWeight: 500, flex: 1, color: theme === 'dark' ? '#f1f5f9' : '#1e293b' }}>{b.name}</span>
+                                        <span style={{ fontSize: 10, color: '#94a3b8' }}>{b._count?.tickets ?? 0} tickets</span>
+                                      </div>
+                                    ))
+                                  )}
+                                  <div style={{ borderTop: theme === 'dark' ? '1px solid #334155' : '1px solid #f1f5f9', margin: '6px 4px 4px', paddingTop: 6 }}>
+                                    <div style={{ padding: '4px 8px 4px', fontSize: 10, fontWeight: 700, textTransform: 'uppercase', color: '#94a3b8', letterSpacing: '0.05em' }}>Create New Bucket</div>
+                                    <div style={{ padding: '4px 8px', display: 'flex', gap: 6 }}>
+                                      <input
+                                        placeholder="Bucket name..."
+                                        value={newBucketName}
+                                        onChange={e => setNewBucketName(e.target.value)}
+                                        onKeyDown={e => e.stopPropagation()}
+                                        style={{
+                                          flex: 1,
+                                          height: 28,
+                                          borderRadius: 6,
+                                          border: theme === 'dark' ? '1px solid #475569' : '1px solid #e2e8f0',
+                                          padding: '0 8px',
+                                          fontSize: 12,
+                                          outline: 'none',
+                                          background: theme === 'dark' ? '#0f172a' : '#fff',
+                                          color: theme === 'dark' ? '#f1f5f9' : '#1e293b'
+                                        }}
+                                      />
+                                      <button
+                                        disabled={!newBucketName.trim() || creatingBucket}
+                                        style={{
+                                          height: 28, padding: '0 10px', borderRadius: 6, border: 'none',
+                                          background: newBucketName.trim() ? '#8b5cf6' : (theme === 'dark' ? '#334155' : '#e2e8f0'),
+                                          color: newBucketName.trim() ? '#fff' : '#94a3b8',
+                                          cursor: newBucketName.trim() ? 'pointer' : 'not-allowed',
+                                          fontSize: 12, fontWeight: 700,
+                                        }}
+                                        onClick={() => {
+                                          if (!newBucketName.trim()) return;
+                                          setCreatingBucket(true);
+                                          import('@/services/bucketService').then(mod => {
+                                            mod.default.createBucket({ name: newBucketName.trim(), projectId }).then(newB => {
+                                              setBuckets(prev => [newB, ...prev]);
+                                              return mod.default.assignTicketsToBucket(newB.id, backlogSelectedRowKeys as string[]);
+                                            }).then(() => {
+                                              message.success(`Created bucket "${newBucketName.trim()}" and moved ${backlogSelectedRowKeys.length} ticket(s)`);
+                                              setBacklogSelectedRowKeys([]);
+                                              setBacklogSelectedRowKeys([]);
+                                              refetchActive();
+                                              refetchBacklog();
+                                              queryClient.invalidateQueries({ queryKey: ['tickets'] });
+                                              setNewBucketName('');
+                                              setBucketDropdownOpen(false);
+                                            }).catch((e: any) => message.error(e.message || 'Failed')).finally(() => setCreatingBucket(false));
+                                          });
+                                        }}
+                                      >
+                                        {creatingBucket ? '...' : 'Create'}
+                                      </button>
                                     </div>
-                                  ))
-                                )}
-                                <div style={{ borderTop: theme === 'dark' ? '1px solid #334155' : '1px solid #f1f5f9', margin: '6px 4px 4px', paddingTop: 6 }}>
-                                  <div style={{ padding: '4px 8px 4px', fontSize: 10, fontWeight: 700, textTransform: 'uppercase', color: '#94a3b8', letterSpacing: '0.05em' }}>Create New Bucket</div>
-                                  <div style={{ padding: '4px 8px', display: 'flex', gap: 6 }}>
-                                    <input
-                                      placeholder="Bucket name..."
-                                      value={newBucketName}
-                                      onChange={e => setNewBucketName(e.target.value)}
-                                      onKeyDown={e => e.stopPropagation()}
-                                      style={{
-                                        flex: 1,
-                                        height: 28,
-                                        borderRadius: 6,
-                                        border: theme === 'dark' ? '1px solid #475569' : '1px solid #e2e8f0',
-                                        padding: '0 8px',
-                                        fontSize: 12,
-                                        outline: 'none',
-                                        background: theme === 'dark' ? '#0f172a' : '#fff',
-                                        color: theme === 'dark' ? '#f1f5f9' : '#1e293b'
-                                      }}
-                                    />
-                                    <button
-                                      disabled={!newBucketName.trim() || creatingBucket}
-                                      style={{
-                                        height: 28, padding: '0 10px', borderRadius: 6, border: 'none',
-                                        background: newBucketName.trim() ? '#8b5cf6' : (theme === 'dark' ? '#334155' : '#e2e8f0'),
-                                        color: newBucketName.trim() ? '#fff' : '#94a3b8',
-                                        cursor: newBucketName.trim() ? 'pointer' : 'not-allowed',
-                                        fontSize: 12, fontWeight: 700,
-                                      }}
-                                      onClick={() => {
-                                        if (!newBucketName.trim()) return;
-                                        setCreatingBucket(true);
-                                        import('@/services/bucketService').then(mod => {
-                                          mod.default.createBucket({ name: newBucketName.trim(), projectId }).then(newB => {
-                                            setBuckets(prev => [newB, ...prev]);
-                                            return mod.default.assignTicketsToBucket(newB.id, backlogSelectedRowKeys as string[]);
-                                          }).then(() => {
-                                            message.success(`Created bucket "${newBucketName.trim()}" and moved ${backlogSelectedRowKeys.length} ticket(s)`);
-                                            setBacklogSelectedRowKeys([]);
-                                            setBacklogSelectedRowKeys([]);
-                                            refetchActive();
-                                            refetchBacklog();
-                                            queryClient.invalidateQueries({ queryKey: ['tickets'] });
-                                            setNewBucketName('');
-                                            setBucketDropdownOpen(false);
-                                          }).catch((e: any) => message.error(e.message || 'Failed')).finally(() => setCreatingBucket(false));
-                                        });
-                                      }}
-                                    >
-                                      {creatingBucket ? '...' : 'Create'}
-                                    </button>
                                   </div>
                                 </div>
-                              </div>
-                            )}
-                          >
-                            <Button
-                              size="small"
-                              icon={<AppstoreOutlined style={{ fontSize: 11 }} />}
-                              style={{
-                                height: 28,
-                                fontSize: 11,
-                                fontWeight: 700,
-                                borderRadius: 6,
-                                borderColor: '#8b5cf6',
-                                color: '#8b5cf6',
-                                background: 'transparent'
-                              }}
+                              )}
                             >
-                              Move to Bucket
-                            </Button>
-                          </Dropdown>
+                              <Button
+                                size="small"
+                                icon={<AppstoreOutlined style={{ fontSize: 11 }} />}
+                                style={{
+                                  height: 28,
+                                  fontSize: 11,
+                                  fontWeight: 700,
+                                  borderRadius: 6,
+                                  borderColor: '#8b5cf6',
+                                  color: '#8b5cf6',
+                                  background: 'transparent'
+                                }}
+                              >
+                                Move to Bucket
+                              </Button>
+                            </Dropdown>
+                          )}
 
                           {/* Move to Sprint */}
                           <Dropdown
@@ -5464,7 +5473,7 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
                           </Dropdown>
 
                           {/* Delete */}
-                          {canDeleteTicket && (
+                          {canDeleteTicket && canUseTrash && (
                             <ConfirmDialog
                               tone="danger"
                               title="Move to Trash"
@@ -5651,10 +5660,10 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
                       setManualCreateDefaultStatus(statusId);
                       setManualModalOpen(true);
                     } : undefined}
-                    onBulkArchive={(ids) => bulkArchiveMutation.mutate(ids)}
-                    onBulkDelete={(ids) => {
+                    onBulkArchive={canUseArchive ? (ids) => bulkArchiveMutation.mutate(ids) : undefined}
+                    onBulkDelete={canUseTrash ? (ids) => {
                       bulkDeleteMutation.mutate(ids);
-                    }}
+                    } : undefined}
                   />
                 ) : (
                   <Card className="saas-card"><NoData description="No tickets found" /></Card>

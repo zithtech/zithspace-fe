@@ -13,6 +13,7 @@ export interface AttendanceNavItem {
   icon: React.ReactNode;
   color: string;
   anyPerm: string[];
+  requiredSubscriptionFeature?: string[];
 }
 
 export const ATTENDANCE_NAV_ITEMS: AttendanceNavItem[] = [
@@ -23,6 +24,7 @@ export const ATTENDANCE_NAV_ITEMS: AttendanceNavItem[] = [
     icon: <LayoutDashboard size={16} />,
     color: '#3B82F6',
     anyPerm: ['canReadAttendanceDashboard', 'canReadAttendance'],
+    requiredSubscriptionFeature: ['hrms_attendance_dashboard', 'hrms_attendance'],
   },
   {
     key: 'clock-in-out',
@@ -34,6 +36,7 @@ export const ATTENDANCE_NAV_ITEMS: AttendanceNavItem[] = [
     // users granted my_hub.attendance.read (without full attendance module
     // access) can still reach this page via My Hub.
     anyPerm: ['canClockInOut', 'canReadAttendance', 'canReadMyHubAttendance'],
+    requiredSubscriptionFeature: ['hrms_attendance_clock_in_out', 'hrms_attendance', 'my_hub'],
   },
   {
     key: 'manage',
@@ -48,6 +51,7 @@ export const ATTENDANCE_NAV_ITEMS: AttendanceNavItem[] = [
       'canReadAttendance',
       'canDeleteAttendance',
     ],
+    requiredSubscriptionFeature: ['hrms_attendance_manage', 'hrms_attendance'],
   },
 ];
 
@@ -58,7 +62,12 @@ export function getAttendanceNavItem(key: string): AttendanceNavItem | undefined
 /** True if the permission map grants access to a nav item. */
 export function canAccessAttendanceItem(
   perms: Record<string, any>,
-  item: AttendanceNavItem
+  item: AttendanceNavItem,
+  hasAnySubscriptionFeature?: (...features: string[]) => boolean
 ): boolean {
-  return item.anyPerm.some((p) => !!perms[p]);
+  const hasPerm = item.anyPerm.some((p) => !!perms[p]);
+  const hasSub = hasAnySubscriptionFeature && item.requiredSubscriptionFeature
+    ? hasAnySubscriptionFeature(...item.requiredSubscriptionFeature)
+    : true;
+  return hasPerm && hasSub;
 }

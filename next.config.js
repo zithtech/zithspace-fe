@@ -11,6 +11,20 @@ const nextConfig = {
     return [
       { source: "/yapiez", destination: "/api-hub", permanent: false },
       { source: "/yapiez/:path*", destination: "/api-hub", permanent: false },
+
+      // Playbooks moved out of QA Space into its own nav section, and out of
+      // the /qa-workspace prefix with it. Every sub-route came along, so the
+      // wildcard maps them one-for-one rather than dumping them on the index.
+      {
+        source: "/qa-workspace/playbooks",
+        destination: "/playbooks",
+        permanent: false,
+      },
+      {
+        source: "/qa-workspace/playbooks/:path*",
+        destination: "/playbooks/:path*",
+        permanent: false,
+      },
     ];
   },
 };

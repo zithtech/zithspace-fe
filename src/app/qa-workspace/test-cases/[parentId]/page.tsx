@@ -9,7 +9,7 @@ import ZukvoLoader from "@/components/common/ZukvoLoader";
 import React, { useState, useEffect } from "react";
 import MainLayout from "@/components/layout/MainLayout";
 import { Button, Table, Tag, Dropdown, Drawer, Input, Select, Row, Col, Typography, Form, Tooltip, Popover, Space, Divider  } from "antd";
-import { PlusOutlined, EllipsisOutlined, ArrowLeftOutlined, SaveOutlined, InfoCircleOutlined, FileTextOutlined, BugOutlined, CheckCircleOutlined, LinkOutlined, SnippetsOutlined, CloseOutlined, SearchOutlined, SortAscendingOutlined, SortDescendingOutlined, FilterOutlined, ExpandAltOutlined, ReloadOutlined, ThunderboltOutlined, AppstoreOutlined } from "@ant-design/icons";
+import { PlusOutlined, EllipsisOutlined, ArrowLeftOutlined, SaveOutlined, InfoCircleOutlined, FileTextOutlined, BugOutlined, CheckCircleOutlined, LinkOutlined, SnippetsOutlined, CloseOutlined, SearchOutlined, SortAscendingOutlined, SortDescendingOutlined, FilterOutlined, ExpandAltOutlined, ReloadOutlined, ThunderboltOutlined, AppstoreOutlined, EditOutlined, CheckOutlined } from "@ant-design/icons";
 import { usePermission } from "@/hooks/usePermission";
 import { useRouter, useParams } from "next/navigation";
 import { Target, Trash2, Pencil, Folder, ShieldCheck, User, UserPlus, Zap, Activity, Layers, Sparkles, CalendarDays, RotateCw, Braces, ChevronDown, ChevronRight, Copy, Plug, ListOrdered, GripVertical, ArrowUp, ArrowDown, Route, Rows3 } from "lucide-react";
@@ -174,7 +174,7 @@ export default function ParentTestCaseDetailsPage() {
   const [statusFilter, setStatusFilter] = useState<string | undefined>();
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
   const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
+  const [pageSize, setPageSize] = useState(15);
 
   useEffect(() => {
     setPage(1);
@@ -220,6 +220,24 @@ export default function ParentTestCaseDetailsPage() {
   const [editingCaseId, setEditingCaseId] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [newStepInput, setNewStepInput] = useState("");
+  const [editingStepIdx, setEditingStepIdx] = useState<number | null>(null);
+  const [editingStepVal, setEditingStepVal] = useState<string>("");
+
+  const handleSaveStepEdit = () => {
+    if (editingStepIdx === null) return;
+    if (editingStepVal.trim()) {
+      const updated = [...(formData.steps_to_reproduce || [])];
+      updated[editingStepIdx] = editingStepVal.trim();
+      setFormData({ ...formData, steps_to_reproduce: updated });
+    }
+    setEditingStepIdx(null);
+    setEditingStepVal("");
+  };
+
+  const handleCancelStepEdit = () => {
+    setEditingStepIdx(null);
+    setEditingStepVal("");
+  };
 
   // "Create with Zai" — drafts the case from a plain-language description
   const [zaiOpen, setZaiOpen] = useState(true);
@@ -819,6 +837,8 @@ export default function ParentTestCaseDetailsPage() {
   const handleOpenCreateDrawer = () => {
     setEditingCaseId(null);
     setNewStepInput("");
+    setEditingStepIdx(null);
+    setEditingStepVal("");
     setZaiPrompt("");
     setZaiGenerating(false);
     setZaiOpen(true);
@@ -846,6 +866,8 @@ export default function ParentTestCaseDetailsPage() {
   const handleOpenEditDrawer = (record: any) => {
     setEditingCaseId(record.id);
     setNewStepInput("");
+    setEditingStepIdx(null);
+    setEditingStepVal("");
     setZaiPrompt("");
     setZaiGenerating(false);
     setZaiOpen(false); // editing starts from existing content, not a blank draft
@@ -882,18 +904,51 @@ export default function ParentTestCaseDetailsPage() {
     }
     try {
       setSubmitting(true);
-      const finalSteps = [...(formData.steps_to_reproduce || [])];
+      let finalSteps = [...(formData.steps_to_reproduce || [])];
+      if (editingStepIdx !== null && editingStepVal.trim()) {
+        finalSteps[editingStepIdx] = editingStepVal.trim();
+        setEditingStepIdx(null);
+        setEditingStepVal("");
+      }
       if (newStepInput.trim()) {
         finalSteps.push(newStepInput.trim());
         setNewStepInput("");
       }
-      const payload = {
+      finalSteps = finalSteps.filter(s => s.trim() !== "");
+
+      let payload = {
         ...formData,
         steps_to_reproduce: JSON.stringify(finalSteps),
         parent_test_case_id: parentId,
         module_id: parentData?.module_id || null,
         feature: parentData?.feature || null
       };
+
+      try {
+        const correctRes: any = await axios.post("/api/v2/qa/correct-spelling", {
+          testCase: {
+            name: formData.name,
+            description: formData.description,
+            preconditions: formData.preconditions,
+            steps: finalSteps,
+            expected_result: formData.expected_result
+          }
+        });
+        const correctedData = correctRes?.data?.data?.[0];
+        if (correctedData) {
+          const resSteps = Array.isArray(correctedData.steps) && correctedData.steps.length ? correctedData.steps : finalSteps;
+          payload = {
+            ...payload,
+            name: correctedData.name || payload.name,
+            description: correctedData.description !== undefined ? correctedData.description : payload.description,
+            preconditions: correctedData.preconditions !== undefined ? correctedData.preconditions : payload.preconditions,
+            steps_to_reproduce: JSON.stringify(resSteps),
+            expected_result: correctedData.expected_result !== undefined ? correctedData.expected_result : payload.expected_result
+          };
+        }
+      } catch (e) {
+        // Continue gracefully if AI is offline
+      }
 
       if (editingCaseId) {
         await axios.put(`/api/v2/qa/${editingCaseId}`, payload);
@@ -2379,7 +2434,7 @@ export default function ParentTestCaseDetailsPage() {
                         className="pp-pagesize"
                         value={pageSize}
                         onChange={(v) => { setPageSize(v); setPage(1); }}
-                        options={[10, 20, 25, 50, 100].map((n) => ({ value: n, label: `${n} / page` }))}
+                        options={[10, 15, 20, 25, 50, 100].map((n) => ({ value: n, label: `${n} / page` }))}
                         popupMatchSelectWidth={120}
                       />
                     </div>
@@ -3040,25 +3095,87 @@ export default function ParentTestCaseDetailsPage() {
                 <Form.Item label="Steps to Reproduce" style={{ marginBottom: 16 }}>
                   <div style={{ border: '1px solid var(--border-slate-300, #cbd5e1)', borderRadius: 8, padding: '12px 14px', background: 'var(--bg-pure-white, #ffffff)' }}>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                      {(formData.steps_to_reproduce || []).map((step: string, idx: number) => (
-                        <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                          <div style={{ width: 22, height: 22, borderRadius: '50%', background: 'rgba(59, 130, 246, 0.15)', color: '#3b82f6', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, flexShrink: 0 }}>
-                            {idx + 1}
+                      {(formData.steps_to_reproduce || []).map((step: string, idx: number) => {
+                        const isEditing = editingStepIdx === idx;
+                        return (
+                          <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: 10, minHeight: 32 }}>
+                            <div style={{ width: 22, height: 22, borderRadius: '50%', background: 'rgba(59, 130, 246, 0.15)', color: '#3b82f6', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, flexShrink: 0 }}>
+                              {idx + 1}
+                            </div>
+                            {isEditing ? (
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 6, flex: 1 }}>
+                                <Input
+                                  autoFocus
+                                  size="small"
+                                  value={editingStepVal}
+                                  onChange={(e) => setEditingStepVal(e.target.value)}
+                                  onPressEnter={(e) => {
+                                    e.preventDefault();
+                                    handleSaveStepEdit();
+                                  }}
+                                  onKeyDown={(e) => {
+                                    if (e.key === 'Escape') {
+                                      e.preventDefault();
+                                      handleCancelStepEdit();
+                                    }
+                                  }}
+                                  style={{ flex: 1, borderRadius: 6, fontSize: 13 }}
+                                />
+                                <Button
+                                  type="text"
+                                  size="small"
+                                  icon={<CheckOutlined style={{ color: '#16a34a', fontSize: 13 }} />}
+                                  onClick={handleSaveStepEdit}
+                                  title="Save step"
+                                  style={{ width: 24, height: 24, padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                                />
+                                <Button
+                                  type="text"
+                                  size="small"
+                                  icon={<CloseOutlined style={{ color: '#dc2626', fontSize: 12 }} />}
+                                  onClick={handleCancelStepEdit}
+                                  title="Cancel"
+                                  style={{ width: 24, height: 24, padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                                />
+                              </div>
+                            ) : (
+                              <>
+                                <span style={{ fontSize: 13, color: 'var(--text-slate-800)', flex: 1, wordBreak: 'break-word' }}>{step}</span>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                                  <Button
+                                    type="text"
+                                    size="small"
+                                    icon={<EditOutlined style={{ fontSize: 13, color: 'var(--text-slate-500)' }} />}
+                                    style={{ padding: 0, width: 24, height: 24, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                                    onClick={() => {
+                                      setEditingStepIdx(idx);
+                                      setEditingStepVal(step);
+                                    }}
+                                    title="Edit step"
+                                  />
+                                  <Button
+                                    type="text"
+                                    size="small"
+                                    danger
+                                    icon={<CloseOutlined style={{ fontSize: 12 }} />}
+                                    style={{ padding: 0, width: 24, height: 24, display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: 0.8 }}
+                                    onClick={() => {
+                                      if (editingStepIdx === idx) {
+                                        setEditingStepIdx(null);
+                                        setEditingStepVal("");
+                                      }
+                                      const updated = [...(formData.steps_to_reproduce || [])];
+                                      updated.splice(idx, 1);
+                                      setFormData({ ...formData, steps_to_reproduce: updated });
+                                    }}
+                                    title="Remove step"
+                                  />
+                                </div>
+                              </>
+                            )}
                           </div>
-                          <span style={{ fontSize: 13, color: 'var(--text-slate-800)', flex: 1, wordBreak: 'break-word' }}>{step}</span>
-                          <Button
-                            type="text"
-                            size="small"
-                            danger
-                            style={{ padding: '0 6px', fontSize: 15, lineHeight: 1, opacity: 0.8 }}
-                            onClick={() => {
-                              const updated = [...(formData.steps_to_reproduce || [])];
-                              updated.splice(idx, 1);
-                              setFormData({ ...formData, steps_to_reproduce: updated });
-                            }}
-                          >×</Button>
-                        </div>
-                      ))}
+                        );
+                      })}
                       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: (formData.steps_to_reproduce || []).length > 0 ? 4 : 0, paddingTop: (formData.steps_to_reproduce || []).length > 0 ? 8 : 0, borderTop: (formData.steps_to_reproduce || []).length > 0 ? '1px dashed var(--border-slate-300, #cbd5e1)' : 'none' }}>
                         <div style={{ width: 22, height: 22, borderRadius: '50%', background: 'rgba(59, 130, 246, 0.1)', color: '#3b82f6', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 700, flexShrink: 0 }}>
                           +

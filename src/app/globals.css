@@ -735,7 +735,7 @@ body {
 }
 
 [data-theme='dark'] .saas-header-container {
-  background: transparent !important;
+  background: var(--bg-pure-white);
 }
 
 [data-theme='dark'] .saas-segmented-premium {

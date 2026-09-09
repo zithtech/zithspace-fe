@@ -6,7 +6,7 @@ import React, { useState, useEffect } from "react";
 
 import MainLayout from "@/components/layout/MainLayout";
 import { Button, Input, Row, Col } from "antd";
-import { ArrowLeftOutlined, CloseOutlined, PlusOutlined } from "@ant-design/icons";
+import { ArrowLeftOutlined, CloseOutlined, PlusOutlined, EditOutlined, CheckOutlined } from "@ant-design/icons";
 import { usePermission } from "@/hooks/usePermission";
 import { useRouter, useParams } from "next/navigation";
 import { api as axios } from "@/lib/axios";
@@ -27,6 +27,25 @@ export default function EditTestCasePage() {
   const [modules, setModules] = useState<any[]>([]);
   const [stepsList, setStepsList] = useState<string[]>([]);
   const [newStepInput, setNewStepInput] = useState<string>("");
+  const [editingStepIndex, setEditingStepIndex] = useState<number | null>(null);
+  const [editingStepText, setEditingStepText] = useState<string>("");
+
+  const handleSaveStepEdit = () => {
+    if (editingStepIndex === null) return;
+    if (editingStepText.trim()) {
+      const newSteps = [...stepsList];
+      newSteps[editingStepIndex] = editingStepText.trim();
+      setStepsList(newSteps);
+      setFormData({ ...formData, steps_to_reproduce: JSON.stringify(newSteps) });
+    }
+    setEditingStepIndex(null);
+    setEditingStepText("");
+  };
+
+  const handleCancelStepEdit = () => {
+    setEditingStepIndex(null);
+    setEditingStepText("");
+  };
 
   const handleStepChange = (idx: number, val: string) => {
     const newSteps = [...stepsList];
@@ -122,7 +141,48 @@ export default function EditTestCasePage() {
 
     try {
       setSubmitting(true);
-      await axios.put(`/api/v2/qa/${id}`, formData);
+
+      let currentSteps = [...stepsList];
+      if (editingStepIndex !== null && editingStepText.trim()) {
+        currentSteps[editingStepIndex] = editingStepText.trim();
+      }
+      if (newStepInput?.trim()) {
+        currentSteps.push(newStepInput.trim());
+      }
+      currentSteps = currentSteps.filter(s => s.trim() !== "");
+
+      let payloadToSave = {
+        ...formData,
+        steps_to_reproduce: JSON.stringify(currentSteps)
+      };
+
+      try {
+        const correctRes: any = await axios.post("/api/v2/qa/correct-spelling", {
+          testCase: {
+            name: formData.name,
+            description: formData.description,
+            preconditions: formData.preconditions,
+            steps: currentSteps,
+            expected_result: formData.expected_result
+          }
+        });
+        const correctedData = correctRes?.data?.data?.[0];
+        if (correctedData) {
+          const finalSteps = Array.isArray(correctedData.steps) && correctedData.steps.length ? correctedData.steps : currentSteps;
+          payloadToSave = {
+            ...payloadToSave,
+            name: correctedData.name || payloadToSave.name,
+            description: correctedData.description !== undefined ? correctedData.description : payloadToSave.description,
+            preconditions: correctedData.preconditions !== undefined ? correctedData.preconditions : payloadToSave.preconditions,
+            steps_to_reproduce: JSON.stringify(finalSteps),
+            expected_result: correctedData.expected_result !== undefined ? correctedData.expected_result : payloadToSave.expected_result
+          };
+        }
+      } catch (e) {
+        // Continue gracefully if AI is offline
+      }
+
+      await axios.put(`/api/v2/qa/${id}`, payloadToSave);
       message.success("Test Case updated successfully");
       router.push("/qa-workspace/test-cases");
     } catch (error: any) {
@@ -260,21 +320,85 @@ export default function EditTestCasePage() {
                 <Col span={24}>
                   <span className="form-label">Steps To Reproduce</span>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                    {stepsList.map((step, idx) => (
-                      <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                        <div style={{ width: 24, height: 24, borderRadius: '50%', background: 'var(--brand-50)', color: 'var(--brand-500)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: 12, fontWeight: 600 }}>
-                          {idx + 1}
+                    {stepsList.map((step, idx) => {
+                      const isEditing = editingStepIndex === idx;
+                      return (
+                        <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: 10, minHeight: 32 }}>
+                          <div style={{ width: 24, height: 24, borderRadius: '50%', background: 'var(--brand-50)', color: 'var(--brand-500)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: 12, fontWeight: 600 }}>
+                            {idx + 1}
+                          </div>
+                          {isEditing ? (
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 6, flex: 1 }}>
+                              <Input
+                                autoFocus
+                                size="small"
+                                value={editingStepText}
+                                onChange={(e) => setEditingStepText(e.target.value)}
+                                onPressEnter={(e) => {
+                                  e.preventDefault();
+                                  handleSaveStepEdit();
+                                }}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Escape') {
+                                    e.preventDefault();
+                                    handleCancelStepEdit();
+                                  }
+                                }}
+                                style={{ flex: 1, borderRadius: 6, fontSize: 13 }}
+                              />
+                              <Button
+                                type="text"
+                                size="small"
+                                icon={<CheckOutlined style={{ color: '#16a34a', fontSize: 13 }} />}
+                                onClick={handleSaveStepEdit}
+                                title="Save step"
+                                style={{ width: 24, height: 24, padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                              />
+                              <Button
+                                type="text"
+                                size="small"
+                                icon={<CloseOutlined style={{ color: '#dc2626', fontSize: 12 }} />}
+                                onClick={handleCancelStepEdit}
+                                title="Cancel"
+                                style={{ width: 24, height: 24, padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                              />
+                            </div>
+                          ) : (
+                            <>
+                              <span style={{ fontSize: 13, color: 'var(--text-slate-800)', flex: 1, wordBreak: 'break-word' }}>{step}</span>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                                <Button
+                                  type="text"
+                                  size="small"
+                                  icon={<EditOutlined style={{ fontSize: 13, color: 'var(--text-slate-500)' }} />}
+                                  style={{ padding: 0, width: 24, height: 24, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                                  onClick={() => {
+                                    setEditingStepIndex(idx);
+                                    setEditingStepText(step);
+                                  }}
+                                  title="Edit step"
+                                />
+                                <Button
+                                  type="text"
+                                  size="small"
+                                  danger
+                                  icon={<CloseOutlined style={{ fontSize: 12 }} />}
+                                  style={{ padding: 0, width: 24, height: 24, display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: 0.6 }}
+                                  onClick={() => {
+                                    if (editingStepIndex === idx) {
+                                      setEditingStepIndex(null);
+                                      setEditingStepText("");
+                                    }
+                                    removeStep(idx);
+                                  }}
+                                  title="Remove step"
+                                />
+                              </div>
+                            </>
+                          )}
                         </div>
-                        <span style={{ fontSize: 13, color: 'var(--text-slate-800)', flex: 1, wordBreak: 'break-word' }}>{step}</span>
-                        <Button
-                          type="text"
-                          size="small"
-                          danger
-                          style={{ padding: '0 6px', fontSize: 15, lineHeight: 1, opacity: 0.5 }}
-                          onClick={() => removeStep(idx)}
-                        >×</Button>
-                      </div>
-                    ))}
+                      );
+                    })}
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 4, paddingTop: stepsList.length > 0 ? 8 : 0, borderTop: stepsList.length > 0 ? '1px dashed var(--border-slate-200)' : 'none' }}>
                       <div style={{ width: 24, height: 24, borderRadius: '50%', background: 'var(--bg-slate-100)', color: 'var(--text-slate-400)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: 12, fontWeight: 600 }}>
                         {stepsList.length + 1}

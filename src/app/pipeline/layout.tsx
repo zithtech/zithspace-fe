@@ -8,15 +8,50 @@ import MainLayout from '@/components/layout/MainLayout';
 import ProtectedRoute from '@/components/common/ProtectedRoute';
 import { usePermission } from '@/hooks/usePermission';
 
+import { useAuth } from '@/context/AuthContext';
+import { useRouter } from 'next/navigation';
+
 export default function PipelineLayout({ children }: { children: React.ReactNode }) {
+  const router = useRouter();
   const pathname = usePathname();
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const { canReadRecruitmentSetting } = usePermission();
+  const { hasAnySubscriptionFeature, isLoading } = useAuth();
 
   const NAV_ITEMS = [
-    { key: 'candidates', label: 'Candidates', href: '/pipeline/candidates', icon: <Users size={16} /> },
-    ...(canReadRecruitmentSetting ? [{ key: 'configs', label: 'Configurations', href: '/pipeline/configurations', icon: <Settings size={16} /> }] : []),
-  ];
+    {
+      key: 'candidates',
+      label: 'Candidates',
+      href: '/pipeline/candidates',
+      icon: <Users size={16} />,
+      requiredSubscriptionFeature: ['hrms_candidate_pipeline_candidates', 'hrms_candidate_pipeline'],
+    },
+    ...(canReadRecruitmentSetting
+      ? [{
+          key: 'configs',
+          label: 'Configurations',
+          href: '/pipeline/configurations',
+          icon: <Settings size={16} />,
+          requiredSubscriptionFeature: ['hrms_candidate_pipeline_configurations', 'hrms_candidate_pipeline'],
+        }]
+      : []),
+  ].filter((item) => hasAnySubscriptionFeature(...item.requiredSubscriptionFeature));
+
+  React.useEffect(() => {
+    if (isLoading || !pathname) return;
+
+    if (NAV_ITEMS.length === 0) {
+      router.replace('/dashboard');
+      return;
+    }
+
+    const currentAllowed = NAV_ITEMS.some((item) =>
+      pathname === item.href || pathname.startsWith(item.href + '/')
+    );
+    if (!currentAllowed) {
+      router.replace(NAV_ITEMS[0].href);
+    }
+  }, [isLoading, pathname, NAV_ITEMS, router]);
 
   return (
     <ProtectedRoute>
@@ -190,6 +225,68 @@ export default function PipelineLayout({ children }: { children: React.ReactNode
           .pl-mobile-header { display: none; align-items: center; gap: 12px; padding: 6px 0 10px 0; margin-bottom: 8px; border-bottom: 1px solid var(--border-slate-100); }
           .pl-mobile-toggle { background: transparent; border: none; color: var(--text-slate-700); cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 4px; }
           .pl-mobile-title { font-size: 16px; font-weight: 700; color: var(--text-slate-900); }
+
+          /* View mode segmented & Refresh button */
+          .pp-segmented { display: inline-flex; border: 1px solid var(--border-slate-200); border-radius: 8px; overflow: hidden; background: var(--bg-pure-white); }
+          .pp-segmented button { width: 32px; height: 32px; border: none; background: transparent; cursor: pointer; color: var(--text-slate-400); font-size: 14px; display: inline-flex; align-items: center; justify-content: center; transition: all .12s ease; }
+          .pp-segmented button:hover { color: var(--text-slate-700); background: var(--bg-slate-100); }
+          .pp-segmented button.is-active { background: var(--bg-blue-50); color: #3B82F6; }
+
+          .pl-refresh-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 32px;
+            height: 32px;
+            padding: 0;
+            border-radius: 8px;
+            border: 1px solid var(--border-slate-200);
+            background: var(--bg-pure-white);
+            color: var(--text-slate-500);
+            cursor: pointer;
+            transition: all .12s ease;
+          }
+          .pl-refresh-btn:hover:not(:disabled) {
+            color: var(--text-slate-800);
+            background: var(--bg-slate-100);
+            border-color: var(--border-slate-300);
+          }
+          .pl-refresh-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+          }
+
+          [data-theme='dark'] .pl-sidebar { background: #0f1419 !important; border-color: #1f2937 !important; }
+          [data-theme='dark'] .pl-shell { background: #0B0F1A !important; }
+          [data-theme='dark'] .pl-topbar { background: #0f1419 !important; border-color: #1f2937 !important; }
+          [data-theme='dark'] .pl-search-wrap { background: #0B0F1A !important; border-color: #2d3748 !important; }
+          [data-theme='dark'] .pl-search { color: #f1f5f9 !important; }
+          [data-theme='dark'] .pl-side-title { color: #f1f5f9 !important; }
+          [data-theme='dark'] .pl-side-logo { color: #f1f5f9 !important; }
+          [data-theme='dark'] .pl-view-item:hover { background: #1a2332 !important; }
+          [data-theme='dark'] .pl-view-item.is-active { background: rgba(59,130,246,0.15) !important; }
+          [data-theme='dark'] .pl-view-item.is-active .pl-view-label { color: #60a5fa !important; }
+          [data-theme='dark'] .pl-view-label { color: #cbd5e1 !important; }
+          [data-theme='dark'] .pl-footer--sticky { background: #0f1419 !important; border-color: #1f2937 !important; }
+          [data-theme='dark'] .pp-segmented { background: #0f1419 !important; border-color: #2d3748 !important; }
+          [data-theme='dark'] .pp-segmented button:hover { background: #1a2332 !important; color: #f1f5f9 !important; }
+          [data-theme='dark'] .pp-segmented button.is-active { background: rgba(59,130,246,0.15) !important; color: #60a5fa !important; }
+          [data-theme='dark'] .pl-refresh-btn {
+            background: #0f1419 !important;
+            border-color: #2d3748 !important;
+            color: #94a3b8 !important;
+          }
+          [data-theme='dark'] .pl-refresh-btn:hover:not(:disabled) {
+            background: #1a2332 !important;
+            color: #f1f5f9 !important;
+            border-color: #374151 !important;
+          }
+          [data-theme='dark'] .pl-pager-btn,
+          [data-theme='dark'] .pl-pager-num {
+            background: #0f1419 !important;
+            border-color: #2d3748 !important;
+            color: #cbd5e1 !important;
+          }
 
           @media (max-width: 1024px) {
             .pl-sidebar {

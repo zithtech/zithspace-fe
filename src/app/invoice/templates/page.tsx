@@ -85,7 +85,8 @@ export default function InvoiceTemplatePage() {
     canUpdateInvoiceTemplate,
     canDeleteInvoiceTemplate
   } = usePermission();
-  const { isLoading: authLoading } = useAuth();
+  const { isLoading: authLoading, hasAnySubscriptionFeature } = useAuth();
+  const canUseNewInvoice = hasAnySubscriptionFeature("finance_invoice_newinvoice");
 
   // Route guard
   React.useEffect(() => {
@@ -649,7 +650,11 @@ export default function InvoiceTemplatePage() {
                     <div
                       key={template.id}
                       className="pc-card"
-                      onClick={() => router.push(`/invoice/newinvoice?templateId=${template.id}`)}
+                      onClick={() => {
+                        if (canUseNewInvoice) {
+                          router.push(`/invoice/newinvoice?templateId=${template.id}`);
+                        }
+                      }}
                     >
                       <div className="pc-top">
                         <div
@@ -748,17 +753,21 @@ export default function InvoiceTemplatePage() {
                               </span>
                             )}
                           </span>
-                          <span className="pc-foot-div" />
-                          <button
-                            type="button"
-                            className="pc-foot-item pc-view-btn"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              router.push(`/invoice/newinvoice?templateId=${template.id}`);
-                            }}
-                          >
-                            Use Template
-                          </button>
+                          {canUseNewInvoice && (
+                            <>
+                              <span className="pc-foot-div" />
+                              <button
+                                type="button"
+                                className="pc-foot-item pc-view-btn"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  router.push(`/invoice/newinvoice?templateId=${template.id}`);
+                                }}
+                              >
+                                Use Template
+                              </button>
+                            </>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -812,8 +821,11 @@ export default function InvoiceTemplatePage() {
                   className="pp-table"
                   scroll={{ x: 1100, y: 'calc(100vh - 325px)' }}
                   onRow={(record) => ({
-                    onClick: () =>
-                      router.push(`/invoice/newinvoice?templateId=${record.id}`),
+                    onClick: () => {
+                      if (canUseNewInvoice) {
+                        router.push(`/invoice/newinvoice?templateId=${record.id}`);
+                      }
+                    },
                     className: "pp-row",
                   })} locale={{ emptyText: <NoData /> }}
                 />

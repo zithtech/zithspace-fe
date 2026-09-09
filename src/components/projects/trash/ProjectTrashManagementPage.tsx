@@ -111,7 +111,7 @@ export default function ProjectTrashManagementPage() {
   const [viewMode, setViewMode] = useState<"card" | "table">("table");
   const { theme } = useTheme();
   const isDark = theme === "dark";
-  const [pagination, setPagination] = useState({ current: 1, pageSize: 20 });
+  const [pagination, setPagination] = useState({ current: 1, pageSize: 15 });
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
   const [filters, setFilters] = useState<{
     projectId?: string;
@@ -799,7 +799,7 @@ export default function ProjectTrashManagementPage() {
                   total={totalTrashItems}
                   onChange={(page, pageSize) => setPagination({ current: page, pageSize })}
                   showSizeChanger
-                  pageSizeOptions={[10, 20, 25, 50, 100]}
+                  pageSizeOptions={[10, 15, 20, 25, 50, 100]}
                 />
               </div>
             )}

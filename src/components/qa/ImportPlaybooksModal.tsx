@@ -15,7 +15,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
-import { Button, Modal, message } from "antd";
+import { Button, Input, Modal, message } from "antd";
 import {
   AlertCircle,
   ArrowUpRight,
@@ -49,6 +49,8 @@ interface ParsedPlaybook {
   name?: string;
   category?: string;
   summary?: string;
+  visibility?: string;
+  status?: string;
   sections?: ParsedSection[];
 }
 
@@ -90,6 +92,14 @@ const BRIEF_STARTERS = [
     label: "File upload",
     text: "Users upload files up to 25 MB (PDF, PNG, DOCX). Uploads are virus-scanned, and a failed scan quarantines the file and notifies the owner.",
   },
+];
+
+/** Suggestions for narrowing document extraction focus */
+const FOCUS_STARTERS = [
+  "Checkout & Refunds",
+  "Auth & Roles",
+  "Admin & Settings",
+  "API & Webhooks",
 ];
 
 const PLAYBOOK_PRESETS = [1, 3, 5, 10];
@@ -207,7 +217,27 @@ export default function ImportPlaybooksModal({ open, onClose }: Props) {
   >([]);
   const [result, setResult] = useState<ImportResult | null>(null);
   const [rejected, setRejected] = useState<ValidationDetail[] | null>(null);
+  const [targetCollectionId, setTargetCollectionId] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement | null>(null);
+
+  const { data: collectionData } = useQuery<{
+    collections: { id: string; name: string; slug: string }[];
+  }>({
+    queryKey: ["qa", "collections", "for-import-modal"],
+    queryFn: () => axios.get("/api/v2/qa/playbooks/collections?all=true"),
+    enabled: open,
+    staleTime: 5 * 60 * 1000,
+  });
+  const collections = collectionData?.collections ?? [];
+
+  const collectionOptions = useMemo(
+    () =>
+      collections.map((c) => ({
+        value: c.id,
+        label: c.name,
+      })),
+    [collections]
+  );
 
   /**
    * Parsed on every keystroke rather than behind a "Validate" button: the
@@ -489,7 +519,14 @@ export default function ImportPlaybooksModal({ open, onClose }: Props) {
 
       try {
         const response: any = await axios.post("/api/v2/qa/playbooks/import", {
-          playbooks: [playbook],
+          collection_id: targetCollectionId || undefined,
+          playbooks: [
+            {
+              ...playbook,
+              status: playbook.status || "draft",
+              visibility: playbook.visibility || "workspace",
+            },
+          ],
         });
 
         const madeIt = response?.created?.[0];
@@ -527,7 +564,10 @@ export default function ImportPlaybooksModal({ open, onClose }: Props) {
         }
         const reason =
           (Array.isArray(fields) && fields.length > 0
-            ? `${fields.length} field${fields.length === 1 ? "" : "s"} rejected`
+            ? fields
+                .map((f) => `${f.path.replace(/^playbooks\.0\./, "")}: ${f.message}`)
+                .slice(0, 2)
+                .join("; ")
             : null) ||
           err?.response?.data?.error ||
           err?.message ||
@@ -744,7 +784,7 @@ export default function ImportPlaybooksModal({ open, onClose }: Props) {
                   className="pb-import__row is-ok"
                   onClick={() => {
                     close();
-                    router.push(`/qa-workspace/playbooks/${row.slug}`);
+                    router.push(`/playbooks/${row.slug}`);
                   }}
                 >
                   <span className="pb-import__cat">{row.category}</span>
@@ -832,6 +872,34 @@ export default function ImportPlaybooksModal({ open, onClose }: Props) {
         </div>
       ) : (
         <div className="pb-import">
+          <div style={{ marginBottom: 14, display: "flex", alignItems: "center", gap: 10 }}>
+            <span
+              style={{
+                fontSize: 13,
+                fontWeight: 500,
+                color: "var(--text-secondary, #64748b)",
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 6,
+                whiteSpace: "nowrap",
+              }}
+            >
+              <Layers size={14} /> Add to collection:
+            </span>
+            <div style={{ flex: 1 }}>
+              <SearchableDropdown
+                value={targetCollectionId}
+                onChange={(val) => setTargetCollectionId((val as string) || null)}
+                options={collectionOptions}
+                placeholder="Optional: Pick a collection (e.g. HRMS, Fintech...)"
+                searchPlaceholder="Search collections…"
+                allowClear
+                width="100%"
+                style={{ width: "100%" }}
+              />
+            </div>
+          </div>
+
           {/* Two ways in: JSON someone already has, or a requirements document
               Zai reads into playbooks. */}
           {/* Describe first: it is the shortest path from "I have a feature" to
@@ -1036,28 +1104,50 @@ export default function ImportPlaybooksModal({ open, onClose }: Props) {
                   hedging every field with "optional". */}
               <div className="pb-import__optional">
                 <div className="pb-import__optionalhead">
-                  <SlidersHorizontal size={13} />
-                  Fine-tune
+                  <SlidersHorizontal size={12} />
+                  Fine-tune extraction
                   <span>optional</span>
                 </div>
 
-                <label className="pb-ask__field">
-                  <span className="pb-ask__label">
-                    <Target size={13} />
-                    What should Zai focus on?
-                  </span>
-                  <input
-                    className="pb-ask__input ant-input"
+                <div className="pb-focusbox">
+                  <div className="pb-focusbox__top">
+                    <label htmlFor="zai-doc-focus-input" className="pb-ask__label" style={{ marginBottom: 0 }}>
+                      <Target size={12} style={{ color: "#2563eb" }} />
+                      Focus on specific flows
+                    </label>
+                    <span className="pb-focusbox__count">
+                      {hint.length > 0 ? `${hint.length}/400` : "all flows"}
+                    </span>
+                  </div>
+
+                  <Input
+                    id="zai-doc-focus-input"
+                    className="pb-focusbox__input"
                     value={hint}
                     onChange={(e) => setHint(e.target.value)}
                     placeholder="e.g. only the checkout and refund flows"
                     maxLength={400}
+                    allowClear
+                    prefix={<Target size={13} style={{ color: hint ? "#2563eb" : "#94a3b8" }} />}
                   />
-                  <span className="pb-ask__help">
-                    Narrows a long document to the part you are about to test. Leave it
-                    empty and Zai covers whatever it finds.
-                  </span>
-                </label>
+
+                  <div className="pb-focusbox__suggest">
+                    <span className="pb-focusbox__suggestlabel">Try:</span>
+                    {FOCUS_STARTERS.map((starter) => {
+                      const isActive = hint.toLowerCase() === starter.toLowerCase();
+                      return (
+                        <button
+                          key={starter}
+                          type="button"
+                          className={`pb-focusbox__chip ${isActive ? "is-on" : ""}`}
+                          onClick={() => setHint(starter)}
+                        >
+                          {starter}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
 
                 <PlaybookCountPicker value={maxPlaybooks} onChange={setMaxPlaybooks} />
               </div>

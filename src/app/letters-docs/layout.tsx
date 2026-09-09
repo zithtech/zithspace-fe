@@ -16,10 +16,11 @@ interface NavItem {
   icon: React.ReactNode;
   color: string;
   requiredPermission?: boolean;
+  requiredSubscriptionFeature?: string[];
 }
 
 export default function LettersDocsLayout({ children }: { children: React.ReactNode }) {
-  const { isLoading, hasPermission, hasAnyPermission } = useAuth();
+  const { isLoading, hasAnySubscriptionFeature } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
   const perms = usePermission() as unknown as Record<string, any>;
@@ -34,6 +35,7 @@ export default function LettersDocsLayout({ children }: { children: React.ReactN
         icon: <FileCode size={18} />,
         color: '#3b82f6', // blue-500
         requiredPermission: Boolean(perms.canReadLetterTemplate),
+        requiredSubscriptionFeature: ['hrms_doc_suite_templates', 'hrms_doc_suite'],
       },
       {
         key: 'generate',
@@ -42,6 +44,7 @@ export default function LettersDocsLayout({ children }: { children: React.ReactN
         icon: <FilePlus size={18} />,
         color: '#3b82f6', // blue-500
         requiredPermission: Boolean(perms.canGenerateLetter),
+        requiredSubscriptionFeature: ['hrms_doc_suite_generate', 'hrms_doc_suite'],
       },
       {
         key: 'repository',
@@ -50,6 +53,7 @@ export default function LettersDocsLayout({ children }: { children: React.ReactN
         icon: <Archive size={18} />,
         color: '#3b82f6', // blue-500
         requiredPermission: Boolean(perms.canReadLetter),
+        requiredSubscriptionFeature: ['hrms_doc_suite_repository', 'hrms_doc_suite'],
       },
       {
         key: 'structures',
@@ -58,14 +62,21 @@ export default function LettersDocsLayout({ children }: { children: React.ReactN
         icon: <Layers size={18} />,
         color: '#3b82f6', // blue-500
         requiredPermission: Boolean(perms.canReadLetterFormat),
+        requiredSubscriptionFeature: ['hrms_doc_suite_structures', 'hrms_doc_suite'],
       },
     ],
     [perms.canReadLetterTemplate, perms.canGenerateLetter, perms.canReadLetter, perms.canReadLetterFormat]
   );
 
   const visibleItems = useMemo(
-    () => navItems.filter((item) => item.requiredPermission !== false),
-    [navItems]
+    () => navItems.filter((item) => {
+      const permOk = item.requiredPermission !== false;
+      const subOk = item.requiredSubscriptionFeature
+        ? hasAnySubscriptionFeature(...item.requiredSubscriptionFeature)
+        : true;
+      return permOk && subOk;
+    }),
+    [navItems, hasAnySubscriptionFeature]
   );
 
   useEffect(() => {
@@ -79,10 +90,20 @@ export default function LettersDocsLayout({ children }: { children: React.ReactN
   }, []);
 
   useEffect(() => {
-    if (!isLoading && !perms.canReadLetterTemplate && !perms.canReadLetter && !perms.canGenerateLetter && !perms.canReadLetterFormat) {
-      router.push('/dashboard');
+    if (isLoading || !pathname) return;
+
+    if (visibleItems.length === 0) {
+      router.replace('/dashboard');
+      return;
     }
-  }, [isLoading, perms.canReadLetterTemplate, perms.canReadLetter, perms.canGenerateLetter, perms.canReadLetterFormat, router]);
+
+    const currentAllowed = visibleItems.some((item) =>
+      pathname === item.href || pathname.startsWith(item.href + '/')
+    );
+    if (!currentAllowed) {
+      router.replace(visibleItems[0].href);
+    }
+  }, [isLoading, pathname, visibleItems, router]);
 
   return (
     <ProtectedRoute>

@@ -62,7 +62,11 @@ export default function TemplateManagementPage() {
   const router = useRouter();
   const { hasPermission, user } = useAuth();
   const perms = usePermission() as unknown as Record<string, any>;
-  const hasPrime = !user?.subscriptionFeatures ? true : user.subscriptionFeatures.includes('work_doc_suite_templates_prime');
+  const hasPrime = !user?.subscriptionFeatures
+    ? true
+    : (user.subscriptionFeatures.includes('hrms_doc_suite_templates_prime') ||
+       user.subscriptionFeatures.includes('work_doc_suite_templates_prime') ||
+       user.subscriptionFeatures.some((f: string) => f.includes('doc_suite') && f.includes('prime')));
 
   useEffect(() => {
     if (perms.canReadLetterTemplate === false) {

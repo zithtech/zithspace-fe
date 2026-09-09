@@ -181,7 +181,7 @@ export default function BugListPage() {
 
   const [filters, setFilters] = useState<FilterState>(DEFAULT_FILTERS);
   const [page, setPage] = useState(1);
-  const [limit, setLimit] = useState(20);
+  const [limit, setLimit] = useState(15);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const { theme } = useTheme();
   const router = useRouter();
@@ -1676,7 +1676,7 @@ export default function BugListPage() {
                   setLimit(v);
                   setPage(1);
                 }}
-                options={[10, 20, 25, 50, 100].map((n) => ({
+                options={[10, 15, 20, 25, 50, 100].map((n) => ({
                   value: n,
                   label: `${n} / page`,
                 }))}

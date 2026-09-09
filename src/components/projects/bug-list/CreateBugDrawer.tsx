@@ -880,14 +880,14 @@ export default function CreateBugDrawer({
   // ─── Submit ────────────────────────────────────────────────────────────
   const isValid =
     description.trim().length > 0 &&
-    !!severity &&
-    !!bugType;
+    (!severityOptions?.filter(s => s.isActive).length || !!severity) &&
+    (!typeOptions?.filter(t => t.isActive).length || !!bugType);
 
   /** Drives the header's readiness meter — the three fields the API insists on. */
   const readyChecks = [
     { label: "Description", done: description.trim().length > 0 },
-    { label: "Severity", done: !!severity },
-    { label: "Type", done: !!bugType },
+    ...(severityOptions?.filter(s => s.isActive).length ? [{ label: "Severity", done: !!severity }] : []),
+    ...(typeOptions?.filter(t => t.isActive).length ? [{ label: "Type", done: !!bugType }] : []),
   ];
   const doneCount = readyChecks.filter((c) => c.done).length;
   const readyPercent = Math.round((doneCount / readyChecks.length) * 100);
@@ -1148,7 +1148,7 @@ export default function CreateBugDrawer({
               </SectionCard>
 
               <SectionCard step="STEP 2" icon={<AppstoreOutlined style={{ color: '#475569', fontSize: 13 }} />} title="Classification" subtitle="Severity and type">
-                <Form.Item label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: "#64748b" }}>Severity</Text>} required validateStatus={!severity && descriptionTouched ? 'error' : ''}>
+                <Form.Item label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: "#64748b" }}>Severity</Text>} required={!!severityOptions?.filter(s => s.isActive).length} validateStatus={!severity && severityOptions?.filter(s => s.isActive).length && descriptionTouched ? 'error' : ''}>
                   <SearchableDropdown
                     placeholder="Select severity"
                     itemNoun="severities"
@@ -1163,7 +1163,7 @@ export default function CreateBugDrawer({
                     style={{ flex: 1, width: "100%", height: 32 }}
                   />
                 </Form.Item>
-                <Form.Item label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: "#64748b" }}>Type</Text>} required validateStatus={!bugType && descriptionTouched ? 'error' : ''}>
+                <Form.Item label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: "#64748b" }}>Type</Text>} required={!!typeOptions?.filter(t => t.isActive).length} validateStatus={!bugType && typeOptions?.filter(t => t.isActive).length && descriptionTouched ? 'error' : ''}>
                   <SearchableDropdown
                     placeholder="Select type"
                     itemNoun="types"

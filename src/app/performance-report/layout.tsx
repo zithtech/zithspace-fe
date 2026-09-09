@@ -15,25 +15,33 @@ import { PR_NAV_ITEMS, canAccessPRItem } from '@/components/performance-report/n
 // state is derived from the URL (not local state), and items are filtered by
 // permission.
 export default function PerformanceReportLayout({ children }: { children: React.ReactNode }) {
-  const { isLoading } = useAuth();
+  const { isLoading, hasAnySubscriptionFeature } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
   const perms = usePermission() as unknown as Record<string, any>;
   const [isMobileOpen, setIsMobileOpen] = useState(false);
 
   const visibleItems = useMemo(
-    () => PR_NAV_ITEMS.filter((item) => canAccessPRItem(perms, item)),
-    [perms]
+    () => PR_NAV_ITEMS.filter((item) => canAccessPRItem(perms, item, hasAnySubscriptionFeature)),
+    [perms, hasAnySubscriptionFeature]
   );
 
-  // Base guard: redirect only when NO page is accessible. "My Reports" is always
-  // visible, so every authenticated user can enter (and sees just that page if
-  // they lack the admin permissions).
+  // Base guard: redirect if no items are accessible, or if the current tab is invalid.
   useEffect(() => {
-    if (!isLoading && visibleItems.length === 0) {
-      router.push('/dashboard');
+    if (isLoading || !pathname) return;
+
+    if (visibleItems.length === 0) {
+      router.replace('/dashboard');
+      return;
     }
-  }, [isLoading, visibleItems.length, router]);
+
+    const currentAllowed = visibleItems.some((item) =>
+      pathname === item.href || pathname.startsWith(item.href + '/')
+    );
+    if (!currentAllowed) {
+      router.replace(visibleItems[0].href);
+    }
+  }, [isLoading, pathname, visibleItems, router]);
 
   return (
     <ProtectedRoute>

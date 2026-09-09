@@ -23,6 +23,7 @@ import MainLayout from "@/components/layout/MainLayout";
 import NoData from "@/components/common/NoData";
 import { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
 import TicketFilterPill from "@/components/projects/TicketFilterPill";
+import { useAuth } from "@/context/AuthContext";
 import { usePermission } from "@/hooks/usePermission";
 import { useActivitySource } from "@/hooks/useActivitySource";
 import { useDebounce } from "@/hooks/useDebounce";
@@ -113,7 +114,12 @@ export default function PlaybookReaderPage() {
   const router = useRouter();
   const params = useParams();
   const slug = String((params as any)?.slug ?? "");
-  const { canReadCase, canCreateCase } = usePermission();
+  const { user } = useAuth();
+  const { canReadPlaybook, canCreatePlaybook, canUpdatePlaybook, canCreateCase } = usePermission();
+
+  const hasNewPlaybookFeature =
+    !user?.subscriptionFeatures ||
+    user.subscriptionFeatures.includes("work_playbooks_qa_playbooks_new_playbook");
 
   const [levels, setLevels] = useState<string[]>([]);
   const [categories, setCategories] = useState<string[]>([]);
@@ -131,7 +137,7 @@ export default function PlaybookReaderPage() {
   }>({
     queryKey: ["qa", "playbooks", "meta"],
     queryFn: () => axios.get("/api/v2/qa/playbooks/meta"),
-    enabled: canReadCase,
+    enabled: canReadPlaybook,
     staleTime: 60 * 60 * 1000,
   });
 
@@ -145,8 +151,7 @@ export default function PlaybookReaderPage() {
         `/api/v2/qa/playbooks/${encodeURIComponent(slug)}${query.length ? `?${query.join("&")}` : ""}`
       );
     },
-    enabled: canReadCase && !!slug,
-    staleTime: 5 * 60 * 1000,
+    enabled: canReadPlaybook && !!slug,
   });
 
   const categoryLabels = useMemo(() => {
@@ -344,12 +349,12 @@ export default function PlaybookReaderPage() {
   );
   const hiddenSelectedCount = selected.size - selectedVisible.length;
 
-  if (!canReadCase) {
+  if (!canReadPlaybook) {
     return (
       <MainLayout>
         <NoData
           title="No access to QA Playbooks"
-          description="You need test case read access to open the playbook library."
+          description="You need test playbook read access to open the playbook library."
         />
       </MainLayout>
     );
@@ -366,7 +371,7 @@ export default function PlaybookReaderPage() {
               <Button
                 type="text"
                 icon={<ArrowLeft size={17} />}
-                onClick={() => router.push("/qa-workspace/playbooks")}
+                onClick={() => router.push("/playbooks")}
               >
                 Playbooks
               </Button>
@@ -438,30 +443,33 @@ export default function PlaybookReaderPage() {
             <div className="sc-header-right">
               {playbook && (
                 <>
-                  <span className={`pb-tier pb-tier--${playbook.visibility}`}>
-                    {VISIBILITY_LABELS[playbook.visibility]}
-                  </span>
+                  {playbook.status === "draft" ? (
+                    <span className="pb-tier pb-tier--draft">Draft</span>
+                  ) : (
+                    <span className={`pb-tier pb-tier--${playbook.visibility}`}>
+                      {VISIBILITY_LABELS[playbook.visibility]}
+                    </span>
+                  )}
                   <span className="pb-tag">
                     v{playbook.version}
                     {playbook.lastUpdatedAt
                       ? ` · ${dayjs(playbook.lastUpdatedAt).format("D MMM YYYY")}`
                       : ""}
                   </span>
-                  {/* Same rule the API enforces: your workspace's own playbooks,
-                      and the maintained library for a super_admin — who would
-                      otherwise have no way back into a library playbook they
-                      just wrote. */}
-                  {canCreateCase && (playbook.isOwn || meta?.canPublish) && (
-                    <Button
-                      className="pb-btn is-sm"
-                      icon={<Pencil size={14} />}
-                      onClick={() =>
-                        router.push(`/qa-workspace/playbooks/${playbook.slug}/edit`)
-                      }
-                    >
-                      Edit
-                    </Button>
-                  )}
+                  {/* Only the creator of the playbook can edit it. */}
+                  {(canUpdatePlaybook || canCreatePlaybook) &&
+                    hasNewPlaybookFeature &&
+                    Boolean(playbook.isOwn) && (
+                      <Button
+                        className="pb-btn is-sm"
+                        icon={<Pencil size={14} />}
+                        onClick={() =>
+                          router.push(`/playbooks/${playbook.slug}/edit`)
+                        }
+                      >
+                        Edit
+                      </Button>
+                    )}
                 </>
               )}
             </div>

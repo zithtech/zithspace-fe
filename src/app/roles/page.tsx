@@ -82,6 +82,7 @@ const RESOURCE_LABELS: Record<string, string> = {
   project: "Projects",
   ticket: "Tickets",
   qa: "QA Space",
+  playbook: "Playbooks",
   yapiez: "API Hub",
   attendance: "Attendance",
   leave: "Leaves",
@@ -269,6 +270,33 @@ const API_HUB_PAGE_ORDER = [
   'API Hub Settings',
 ];
 
+/**
+ * Playbooks — map each permission to the section it gates, so the Roles UI
+ * lists Playbooks, Templates, Upload, Requests, and Settings by name.
+ */
+const PLAYBOOK_PAGE_BY_PERM: Record<string, string> = {
+  'playbook.read': 'Playbooks',
+  'playbook.create': 'Playbooks',
+  'playbook.update': 'Playbooks',
+  'playbook.delete': 'Playbooks',
+  'playbook.trash.read': 'Playbook Recycle Bin',
+  'playbook.trash.restore': 'Playbook Recycle Bin',
+  'playbook.trash.delete': 'Playbook Recycle Bin',
+  'playbook.template': 'Playbook Templates',
+  'playbook.upload': 'Playbook Upload',
+  'playbook.request': 'Playbook Requests',
+  'playbook.manage': 'Playbook Settings',
+};
+
+const PLAYBOOK_PAGE_ORDER = [
+  'Playbooks',
+  'Playbook Templates',
+  'Playbook Upload',
+  'Playbook Requests',
+  'Playbook Recycle Bin',
+  'Playbook Settings',
+];
+
 const DOC_SUITE_PAGE_ORDER = [
   'Template Builder',
   'Letter Composer',
@@ -358,7 +386,7 @@ const getAccessGroups = (isTestiez: boolean): AccessGroup[] => [
     key: 'work',
     label: 'Work',
     icon: <RocketOutlined />,
-    resources: ['project', 'ticket', 'qa', 'yapiez', 'timesheet', 'daily_update', 'document', 'squad', 'lead', 'bidiq', 'proposal', 'pipeline'],
+    resources: ['project', 'ticket', 'qa', 'playbook', 'yapiez', 'timesheet', 'daily_update', 'document', 'squad', 'lead', 'bidiq', 'proposal', 'pipeline'],
     accent: '#8b5cf6',
   },
   {
@@ -441,6 +469,7 @@ const RESOURCE_TO_SUBSCRIPTION_FEATURE: Record<string, string[]> = {
   proposal: ["work_proposals"],
   pipeline: ["pipeline"],
   qa: ["work_qa_space", "work_qa_workspace"],
+  playbook: ["work_playbooks", "work_playbooks_qa_playbooks"],
   yapiez: ["work_qa_space", "work_qa_workspace"],
 
   // HRMS
@@ -475,6 +504,39 @@ const RESOURCE_TO_SUBSCRIPTION_FEATURE: Record<string, string[]> = {
   my_hub: ["my_hub"],
 };
 
+/** Maps specific RBAC permission names to required leaf subscription features */
+const PERMISSION_TO_SUBSCRIPTION_FEATURE: Record<string, string[]> = {
+  'playbook.template': ['work_playbooks_qa_playbooks_template', 'work_playbooks_template'],
+  'playbook.upload': ['work_playbooks_qa_playbooks_upload', 'work_playbooks_upload'],
+  'playbook.create': [
+    'work_playbooks_qa_playbooks_new_playbook',
+    'work_playbooks_collections_new_collections',
+    'work_playbooks_qa_playbooks_new_collections',
+    'work_playbooks_new_playbook',
+  ],
+  'playbook.update': [
+    'work_playbooks_qa_playbooks_new_playbook',
+    'work_playbooks_collections_new_collections',
+    'work_playbooks_qa_playbooks_new_collections',
+    'work_playbooks_new_playbook',
+  ],
+  'playbook.delete': [
+    'work_playbooks_qa_playbooks_new_playbook',
+    'work_playbooks_collections_new_collections',
+    'work_playbooks_qa_playbooks_new_collections',
+    'work_playbooks_new_playbook',
+  ],
+  'playbook.request': [
+    'work_playbooks_requested_playbooks_request_playbook',
+    'work_playbooks_qa_playbooks_request_playbook',
+    'work_playbooks_request_playbook',
+  ],
+  'playbook.manage': [
+    'work_playbooks_qa_playbooks_access',
+    'work_playbooks_access',
+  ],
+};
+
 const gradientFor = (seed: string): string => {
   const idx =
     Math.abs(seed.split('').reduce((a, c) => a + c.charCodeAt(0), 0)) %
@@ -501,7 +563,7 @@ const PERMISSION_MODULES = [
   },
   {
     title: "Work",
-    resources: ["project", "ticket", "qa", "yapiez", "timesheet", "daily_update", "document", "squad", "lead", "pipeline"]
+    resources: ["project", "ticket", "qa", "playbook", "yapiez", "timesheet", "daily_update", "document", "squad", "lead", "pipeline"]
   },
   {
     title: "HRMS",
@@ -1023,6 +1085,30 @@ export default function RolesPage() {
     );
   };
 
+  const isPermFeatureEnabled = useCallback(
+    (permName: string): boolean => {
+      const req = PERMISSION_TO_SUBSCRIPTION_FEATURE[permName];
+      if (!req || req.length === 0) return true;
+      return hasAnySubscriptionFeature(...req);
+    },
+    [hasAnySubscriptionFeature],
+  );
+
+  const getFilteredPermsForResource = useCallback(
+    (resource: string): RBACPermission[] => {
+      const raw =
+        resource === 'letter'
+          ? [
+              ...(allPermissions['letter'] || []),
+              ...(allPermissions['letter_template'] || []),
+              ...(allPermissions['letter.format'] || []),
+            ]
+          : allPermissions[resource] || [];
+      return raw.filter((p) => isPermFeatureEnabled(p.name));
+    },
+    [allPermissions, isPermFeatureEnabled],
+  );
+
   const toggleResource = (perms: RBACPermission[]) => {
     const ids = perms.map((p) => p.id);
     const allSelected = ids.every((id) => selectedPermIds.includes(id));
@@ -1034,7 +1120,8 @@ export default function RolesPage() {
   };
 
   const selectAll = () => {
-    const all = Object.values(allPermissions).flatMap((perms) => perms.map((p) => p.id));
+    const all = Object.keys(allPermissions)
+      .flatMap((r) => getFilteredPermsForResource(r).map((p) => p.id));
     setSelectedPermIds(all);
   };
 
@@ -1752,7 +1839,9 @@ export default function RolesPage() {
               const allResources = Object.keys(allPermissions).filter(res => {
                 const subFeatures = RESOURCE_TO_SUBSCRIPTION_FEATURE[res] || [res];
                 const isUniversal = ['notification', 'profile', 'role', 'settings', 'dashboard'].includes(res);
-                return isUniversal || hasAnySubscriptionFeature(...subFeatures);
+                const resourceAllowed = isUniversal || hasAnySubscriptionFeature(...subFeatures);
+                if (!resourceAllowed) return false;
+                return getFilteredPermsForResource(res).length > 0;
               });
               const tabResources = getResourcesForGroup(accessTab, allResources, isTestiez);
               const searchQ = permSearch.trim().toLowerCase();
@@ -1762,23 +1851,15 @@ export default function RolesPage() {
               tabResources.forEach((res) => {
                 if (res === 'letter_template' || res === 'letter.format') return;
 
-                let perms = allPermissions[res] || [];
-                if (res === 'letter') {
-                  if (allPermissions['letter_template']) {
-                    perms = [...perms, ...allPermissions['letter_template']];
-                  }
-                  if (allPermissions['letter.format']) {
-                    perms = [...perms, ...allPermissions['letter.format']];
-                  }
-                }
+                const perms = getFilteredPermsForResource(res);
 
                 if (!searchQ) {
-                  filteredByResource[res] = perms;
+                  if (perms.length > 0) filteredByResource[res] = perms;
                   return;
                 }
                 const label = (RESOURCE_LABELS[res] || res).toLowerCase();
                 if (label.includes(searchQ) || (res === 'letter' && ((RESOURCE_LABELS['letter_template'] || '').toLowerCase().includes(searchQ) || (RESOURCE_LABELS['letter.format'] || '').toLowerCase().includes(searchQ)))) {
-                  filteredByResource[res] = perms;
+                  if (perms.length > 0) filteredByResource[res] = perms;
                   return;
                 }
                 const matching = perms.filter(
@@ -1797,34 +1878,34 @@ export default function RolesPage() {
               ACCESS_GROUPS.forEach((g) => {
                 const res = getResourcesForGroup(g.key, allResources, isTestiez);
                 groupCounts[g.key] = res.reduce(
-                  (sum, r) => sum + (allPermissions[r]?.length || 0),
+                  (sum, r) => sum + getFilteredPermsForResource(r).length,
                   0,
                 );
               });
 
               const totalPerms = allResources.reduce(
-                (s, r) => s + (allPermissions[r]?.length || 0),
+                (s, r) => s + getFilteredPermsForResource(r).length,
                 0,
               );
               const selectedInTabPerms = tabResources.reduce((sum, r) => {
-                const perms = allPermissions[r] || [];
+                const perms = getFilteredPermsForResource(r);
                 return sum + perms.filter((p) => selectedPermIds.includes(p.id)).length;
               }, 0);
               const tabTotalPerms = tabResources.reduce(
-                (sum, r) => sum + (allPermissions[r]?.length || 0),
+                (sum, r) => sum + getFilteredPermsForResource(r).length,
                 0,
               );
 
               const handleSelectTab = () => {
                 const ids = tabResources.flatMap((r) =>
-                  (allPermissions[r] || []).map((p) => p.id),
+                  getFilteredPermsForResource(r).map((p) => p.id),
                 );
                 setSelectedPermIds((prev) => [...new Set([...prev, ...ids])]);
               };
               const handleClearTab = () => {
                 const ids = new Set(
                   tabResources.flatMap((r) =>
-                    (allPermissions[r] || []).map((p) => p.id),
+                    getFilteredPermsForResource(r).map((p) => p.id),
                   ),
                 );
                 setSelectedPermIds((prev) => prev.filter((id) => !ids.has(id)));
@@ -1959,13 +2040,7 @@ export default function RolesPage() {
                     ) : (
                       visibleResources.map((resource) => {
                         const perms = filteredByResource[resource];
-                        const allPermsForRes = resource === 'letter'
-                          ? [
-                            ...(allPermissions['letter'] || []),
-                            ...(allPermissions['letter_template'] || []),
-                            ...(allPermissions['letter.format'] || [])
-                          ]
-                          : (allPermissions[resource] || []);
+                        const allPermsForRes = getFilteredPermsForResource(resource);
                         const label = RESOURCE_LABELS[resource] || resource;
                         const isFeatureEnabled = true; // Pre-filtered at allResources
                         const selectedCount = allPermsForRes.filter((p) =>
@@ -2005,6 +2080,12 @@ export default function RolesPage() {
                           // (see QA_PAGE_BY_PERM).
                           perms.forEach((p) => {
                             const subKey = QA_PAGE_BY_PERM[p.name] || 'Other';
+                            if (!subGroups[subKey]) subGroups[subKey] = [];
+                            subGroups[subKey].push(p);
+                          });
+                        } else if (resource === 'playbook') {
+                          perms.forEach((p) => {
+                            const subKey = PLAYBOOK_PAGE_BY_PERM[p.name] || 'Other';
                             if (!subGroups[subKey]) subGroups[subKey] = [];
                             subGroups[subKey].push(p);
                           });
@@ -2118,11 +2199,13 @@ export default function RolesPage() {
                                         ? ([...MY_HUB_PAGE_ORDER, 'Other'].filter((t) => subGroups[t]).map((t) => [t, subGroups[t]] as [string, RBACPermission[]]))
                                         : resource === 'qa'
                                           ? ([...QA_PAGE_ORDER, 'Other'].filter((t) => subGroups[t]).map((t) => [t, subGroups[t]] as [string, RBACPermission[]]))
-                                          : resource === 'yapiez'
-                                            ? ([...API_HUB_PAGE_ORDER, 'Other'].filter((t) => subGroups[t]).map((t) => [t, subGroups[t]] as [string, RBACPermission[]]))
-                                            : resource === 'letter'
-                                              ? ([...DOC_SUITE_PAGE_ORDER, 'Other'].filter((t) => subGroups[t]).map((t) => [t, subGroups[t]] as [string, RBACPermission[]]))
-                                              : Object.entries(subGroups)
+                                          : resource === 'playbook'
+                                            ? ([...PLAYBOOK_PAGE_ORDER, 'Other'].filter((t) => subGroups[t]).map((t) => [t, subGroups[t]] as [string, RBACPermission[]]))
+                                            : resource === 'yapiez'
+                                              ? ([...API_HUB_PAGE_ORDER, 'Other'].filter((t) => subGroups[t]).map((t) => [t, subGroups[t]] as [string, RBACPermission[]]))
+                                              : resource === 'letter'
+                                                ? ([...DOC_SUITE_PAGE_ORDER, 'Other'].filter((t) => subGroups[t]).map((t) => [t, subGroups[t]] as [string, RBACPermission[]]))
+                                                : Object.entries(subGroups)
                                   ).map(([subTitle, subPerms]) => (
                                     <div key={subTitle} className="rp-acc-subgroup">
                                       <div className="rp-acc-subgroup__title">{subTitle}</div>
@@ -2150,7 +2233,7 @@ export default function RolesPage() {
                                                         const verb = action.split('.').pop() || action;
                                                         return verb.charAt(0).toUpperCase() + verb.slice(1);
                                                       }
-                                                      if (name.startsWith('qa.') || name.startsWith('bug.') || name.startsWith('yapiez.')) {
+                                                      if (name.startsWith('qa.') || name.startsWith('bug.') || name.startsWith('yapiez.') || name.startsWith('playbook.')) {
                                                         // QA Space / API Hub page is the sub-group title; show only the verb.
                                                         const verb = action.split('.').pop() || action;
                                                         if (verb === 'try') return 'Try API';

@@ -11,11 +11,13 @@
  */
 
 import React, { useMemo } from "react";
-import { Checkbox, Tooltip } from "antd";
+import { Checkbox, Dropdown, Tooltip } from "antd";
 import {
   ArrowUpRight,
   BookOpen,
+  Check,
   CheckCircle2,
+  ChevronDown,
   ExternalLink,
   Info,
   Layers,
@@ -29,14 +31,15 @@ import ConfirmDialog from "@/components/common/ConfirmDialog";
 
 import {
   LEVEL_LABELS,
-  LEVEL_ORDER,
   REFERENCE_TYPES,
   RISK_LABELS,
   VISIBILITY_LABELS,
   priceLabel,
   type DraftItem,
   type PlaybookItem,
+  type PlaybookStatus,
   type PlaybookSummary,
+  type PlaybookVisibility,
 } from "@/components/qa/playbookShared";
 
 /* ── Overview ────────────────────────────────────────────────────────────── */
@@ -308,6 +311,8 @@ interface CatalogCardProps {
   /** Both omitted on a playbook this caller may not manage. */
   onEdit?: () => void;
   onDelete?: () => void;
+  onStatusChange?: (status: PlaybookStatus, visibility?: PlaybookVisibility) => void;
+  canPublish?: boolean;
   deleting?: boolean;
 }
 
@@ -316,10 +321,12 @@ export function PlaybookCatalogCard({
   onOpen,
   onEdit,
   onDelete,
+  onStatusChange,
+  canPublish,
   deleting,
 }: CatalogCardProps) {
   const interactive = typeof onOpen === "function";
-  const manageable = typeof onEdit === "function" || typeof onDelete === "function";
+  const manageable = typeof onEdit === "function" || typeof onDelete === "function" || typeof onStatusChange === "function";
 
   /* A div rather than a button when the card carries its own actions: nesting
      Edit and Delete inside a button is invalid markup, and a click on either
@@ -406,43 +413,142 @@ export function PlaybookCatalogCard({
 
       <p className="pb-card__summary">{playbook.summary}</p>
 
+      {/* The footer answers "how big is this, and may I read it?". */}
       <div className="pb-card__foot">
         <span className="pb-card__total">
           <Layers size={13} />
           {playbook.itemCount} recommendations
         </span>
 
-        {playbook.locked ? (
-          <span className="pb-card__price">
-            <Lock size={12} />
-            {priceLabel(playbook)}
-          </span>
-        ) : (
-          <span className="pb-levels">
-            {LEVEL_ORDER.map((level) => {
-              const count = playbook.levelCounts?.[level] ?? 0;
-              if (!count) return null;
-              return (
-                <Tooltip key={level} title={`${count} ${LEVEL_LABELS[level]} recommendations`}>
-                  <span className={`pb-level pb-level--${level}`}>
-                    {LEVEL_LABELS[level].slice(0, 1)}
-                    <b>{count}</b>
-                  </span>
-                </Tooltip>
-              );
-            })}
-          </span>
-        )}
+        <span
+          className="pb-card__state"
+          onClick={(e) => e.stopPropagation()}
+          onKeyDown={(e) => e.stopPropagation()}
+        >
+          {playbook.locked && (
+            <span className="pb-card__price">
+              <Lock size={12} />
+              {priceLabel(playbook)}
+            </span>
+          )}
+          {onStatusChange ? (
+            <Dropdown
+              trigger={["click"]}
+              placement="bottomRight"
+              menu={{
+                items: [
+                  {
+                    key: "draft",
+                    label: (
+                      <div style={{ display: "flex", flexDirection: "column", padding: "2px 0" }}>
+                        <span style={{ fontWeight: 600, fontSize: 12.5, color: "#0f172a" }}>Draft</span>
+                        <span style={{ fontSize: 11, color: "#64748b" }}>Visible only to you</span>
+                      </div>
+                    ),
+                    icon: playbook.status === "draft" ? <Check size={14} color="#2563eb" /> : <div style={{ width: 14 }} />,
+                    onClick: (e) => {
+                      e.domEvent.stopPropagation();
+                      onStatusChange("draft");
+                    },
+                  },
+                  {
+                    type: "divider",
+                  },
+                  {
+                    key: "workspace",
+                    label: (
+                      <div style={{ display: "flex", flexDirection: "column", padding: "2px 0" }}>
+                        <span style={{ fontWeight: 600, fontSize: 12.5, color: "#0f172a" }}>Publish (Private)</span>
+                        <span style={{ fontSize: 11, color: "#64748b" }}>Visible only to your workspace</span>
+                      </div>
+                    ),
+                    icon: playbook.status === "published" && playbook.visibility === "workspace" ? <Check size={14} color="#2563eb" /> : <div style={{ width: 14 }} />,
+                    onClick: (e) => {
+                      e.domEvent.stopPropagation();
+                      onStatusChange("published", "workspace");
+                    },
+                  },
+                  {
+                    key: "public",
+                    label: (
+                      <div style={{ display: "flex", flexDirection: "column", padding: "2px 0" }}>
+                        <span style={{ fontWeight: 600, fontSize: 12.5, color: "#0f172a" }}>Publish (Public)</span>
+                        <span style={{ fontSize: 11, color: "#64748b" }}>Visible to all workspaces</span>
+                      </div>
+                    ),
+                    icon: playbook.status === "published" && playbook.visibility === "public" ? <Check size={14} color="#2563eb" /> : <div style={{ width: 14 }} />,
+                    onClick: (e) => {
+                      e.domEvent.stopPropagation();
+                      onStatusChange("published", "public");
+                    },
+                  },
+                  ...(canPublish ? [
+                    {
+                      key: "premium",
+                      label: (
+                        <div style={{ display: "flex", flexDirection: "column", padding: "2px 0" }}>
+                          <span style={{ fontWeight: 600, fontSize: 12.5, color: "#7e22ce" }}>Publish (Premium)</span>
+                          <span style={{ fontSize: 11, color: "#64748b" }}>Listed globally, unlocked on purchase</span>
+                        </div>
+                      ),
+                      icon: playbook.status === "published" && playbook.visibility === "premium" ? <Check size={14} color="#7e22ce" /> : <div style={{ width: 14 }} />,
+                      onClick: (e: any) => {
+                        e.domEvent.stopPropagation();
+                        onStatusChange("published", "premium");
+                      },
+                    },
+                  ] : []),
+                ],
+              }}
+            >
+              <button
+                type="button"
+                className={`pb-tier ${playbook.status === "draft" ? "pb-tier--draft" : `pb-tier--${playbook.visibility}`} is-clickable`}
+                onClick={(e) => e.stopPropagation()}
+                title="Click to change status"
+                style={{ cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 4 }}
+              >
+                {playbook.status === "draft" ? "Draft" : VISIBILITY_LABELS[playbook.visibility]}
+                <ChevronDown size={11} style={{ opacity: 0.6 }} />
+              </button>
+            </Dropdown>
+          ) : (
+            playbook.status === "draft" ? (
+              <span className="pb-tier pb-tier--draft">Draft</span>
+            ) : (
+              <span className={`pb-tier pb-tier--${playbook.visibility}`}>
+                {VISIBILITY_LABELS[playbook.visibility]}
+              </span>
+            )
+          )}
+        </span>
       </div>
 
-      <div className="pb-item__tags">
-        <span className={`pb-tier pb-tier--${playbook.visibility}`}>
-          {VISIBILITY_LABELS[playbook.visibility]}
-        </span>
-        {playbook.status !== "published" && (
-          <span className="pb-tier pb-tier--draft">{playbook.status}</span>
-        )}
-      </div>
+      {/* The packs this playbook belongs to, and nothing else — the tier moved
+          up into the footer. Two, then a count: the card answers "what is
+          this?", and a wall of chips buries that. The row disappears entirely
+          when no collection has claimed it, rather than leaving a gap. */}
+      {(playbook.collections?.length ?? 0) > 0 && (
+        <div className="pb-item__tags">
+          <span className="pbc-chips">
+            {playbook.collections!.slice(0, 2).map((collection) => (
+              <Tooltip key={collection.slug} title={`In the ${collection.name} collection`}>
+                <span className="pbc-chip">{collection.name}</span>
+              </Tooltip>
+            ))}
+            {playbook.collections!.length > 2 && (
+              <Tooltip
+                title={playbook
+                  .collections!.slice(2)
+                  .map((c) => c.name)
+                  .join(", ")}
+              >
+                <span className="pbc-chip">+{playbook.collections!.length - 2}</span>
+              </Tooltip>
+            )}
+          </span>
+        </div>
+      )}
     </Tag>
   );
 }

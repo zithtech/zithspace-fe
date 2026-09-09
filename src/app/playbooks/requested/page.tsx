@@ -32,6 +32,7 @@ import dayjs from "dayjs";
 import MainLayout from "@/components/layout/MainLayout";
 import NoData from "@/components/common/NoData";
 import { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
+import { useAuth } from "@/context/AuthContext";
 import { usePermission } from "@/hooks/usePermission";
 import { useActivitySource } from "@/hooks/useActivitySource";
 import { api as axios } from "@/lib/axios";
@@ -69,7 +70,13 @@ export default function RequestedPlaybooksPage() {
 
   const router = useRouter();
   const queryClient = useQueryClient();
-  const { canReadCase } = usePermission();
+  const { user } = useAuth();
+  const { canReadPlaybook, canRequestPlaybook } = usePermission();
+
+  const hasRequestPlaybookFeature =
+    !user?.subscriptionFeatures ||
+    user.subscriptionFeatures.includes("work_playbooks_requested_playbooks_request_playbook") ||
+    user.subscriptionFeatures.includes("work_playbooks_qa_playbooks_request_playbook");
 
   const [status, setStatus] = useState("all");
   const [askOpen, setAskOpen] = useState(false);
@@ -82,7 +89,7 @@ export default function RequestedPlaybooksPage() {
   const { data: catalog } = useQuery<{ canPublish: boolean }>({
     queryKey: ["qa", "playbooks", "catalog"],
     queryFn: () => axios.get("/api/v2/qa/playbooks?all=true"),
-    enabled: canReadCase,
+    enabled: canReadPlaybook,
     staleTime: 5 * 60 * 1000,
   });
   const isAdmin = catalog?.canPublish ?? false;
@@ -97,7 +104,7 @@ export default function RequestedPlaybooksPage() {
           ? `/api/v2/qa/playbooks/admin/playbook-requests?status=${status}`
           : `/api/v2/qa/playbooks/requests${status === "all" ? "" : `?status=${status}`}`
       ),
-    enabled: canReadCase,
+    enabled: canReadPlaybook,
   });
 
   const requests = data ?? [];
@@ -137,12 +144,12 @@ export default function RequestedPlaybooksPage() {
     }
   };
 
-  if (!canReadCase) {
+  if (!canReadPlaybook) {
     return (
       <MainLayout>
         <NoData
           title="No access to QA Playbooks"
-          description="You need test case read access to open the playbook library."
+          description="You need test playbook read access to open the playbook library."
         />
       </MainLayout>
     );
@@ -198,18 +205,20 @@ export default function RequestedPlaybooksPage() {
               <Button
                 className="pb-btn"
                 icon={<Inbox size={14} />}
-                onClick={() => router.push("/qa-workspace/playbooks")}
+                onClick={() => router.push("/playbooks")}
               >
                 Playbooks
               </Button>
-              <Button
-                type="primary"
-                className="pb-btn"
-                icon={<Send size={14} />}
-                onClick={() => setAskOpen(true)}
-              >
-                Request playbook
-              </Button>
+              {hasRequestPlaybookFeature && canRequestPlaybook && (
+                <Button
+                  type="primary"
+                  className="pb-btn"
+                  icon={<Send size={14} />}
+                  onClick={() => setAskOpen(true)}
+                >
+                  Request playbook
+                </Button>
+              )}
             </div>
           </div>
 
@@ -292,7 +301,7 @@ export default function RequestedPlaybooksPage() {
                               onClick={(e) => {
                                 e.stopPropagation();
                                 router.push(
-                                  `/qa-workspace/playbooks/${request.playbook_slug}`
+                                  `/playbooks/${request.playbook_slug}`
                                 );
                               }}
                             >
@@ -480,7 +489,7 @@ export default function RequestedPlaybooksPage() {
                 className="pb-btn"
                 icon={<ArrowUpRight size={14} />}
                 onClick={() =>
-                  router.push(`/qa-workspace/playbooks/${detail.playbook_slug}`)
+                  router.push(`/playbooks/${detail.playbook_slug}`)
                 }
               >
                 Open {detail.playbook_name}

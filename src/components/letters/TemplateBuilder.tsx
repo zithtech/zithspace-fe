@@ -550,7 +550,7 @@ export default function TemplateBuilder({ templateId }: TemplateBuilderProps) {
   }
 
   return (
-    <div className="template-builder-container" style={{ padding: '12px 16px 24px' }}>
+    <div className="template-builder-container" style={{ padding: '12px 16px 16px', display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0, overflow: 'hidden', boxSizing: 'border-box' }}>
       {/* Top Navigation Bar */}
       <div
         className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700"
@@ -562,9 +562,10 @@ export default function TemplateBuilder({ templateId }: TemplateBuilderProps) {
           borderRadius: '12px',
           borderWidth: '1px',
           borderStyle: 'solid',
-          marginBottom: '16px',
+          marginBottom: '10px',
           gap: '12px',
           flexWrap: 'wrap',
+          flexShrink: 0,
           boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
         }}
       >
@@ -705,7 +706,7 @@ export default function TemplateBuilder({ templateId }: TemplateBuilderProps) {
 
       {/* Global Validation Error Banner */}
       {saveError && !isVersionModalOpen && (
-        <div className="bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 border-red-200 dark:border-red-900/50" style={{ borderBottomWidth: '1px', borderBottomStyle: 'solid', padding: '10px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '14px', fontWeight: 600 }}>
+        <div className="bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 border-red-200 dark:border-red-900/50" style={{ borderBottomWidth: '1px', borderBottomStyle: 'solid', padding: '10px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '14px', fontWeight: 600, flexShrink: 0, marginBottom: '10px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <span style={{ fontSize: '16px' }}>⚠️</span>
             <span>{saveError}</span>
@@ -721,33 +722,34 @@ export default function TemplateBuilder({ templateId }: TemplateBuilderProps) {
       )}
 
       {/* Editor & Sidebar Container */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 420px', gap: '24px', alignItems: 'start' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 400px', gap: '16px', alignItems: 'stretch', flex: 1, minHeight: 0, overflow: 'hidden' }}>
         {/* Left: Tiptap Editor */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-          <div className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400" style={{ padding: '12px 16px', borderRadius: '10px', borderWidth: '1px', borderStyle: 'solid', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px' }}>
-            <Sparkles size={16} style={{ color: '#f59e0b' }} />
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', height: '100%', minHeight: 0, overflow: 'hidden' }}>
+          <div className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400" style={{ padding: '8px 14px', borderRadius: '10px', borderWidth: '1px', borderStyle: 'solid', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', flexShrink: 0 }}>
+            <Sparkles size={16} style={{ color: '#f59e0b', flexShrink: 0 }} />
             <span>
               Tip: Use the placeholder drawer on the right to insert dynamic employee fields (like <code>{"{{Employee Name}}"}</code>).
             </span>
           </div>
 
-          <LetterTiptapEditor
-            content={editorContent}
-            onChange={(html) => {
-              setEditorContent(html);
-              setHasEdited(true);
-            }}
-            onEditorReady={(ed) => {
-              editorRef.current = ed;
-            }}
-            minHeight={580}
-          />
+          <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+            <LetterTiptapEditor
+              content={editorContent}
+              onChange={(html) => {
+                setEditorContent(html);
+                setHasEdited(true);
+              }}
+              onEditorReady={(ed) => {
+                editorRef.current = ed;
+              }}
+            />
+          </div>
         </div>
 
         {/* Right: Tabbed Drawer */}
-        <div className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800" style={{ borderRadius: '12px', borderWidth: '1px', borderStyle: 'solid', overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.02)', position: 'sticky', top: '80px', maxHeight: 'calc(100vh - 100px)', display: 'flex', flexDirection: 'column' }}>
+        <div className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800" style={{ borderRadius: '12px', borderWidth: '1px', borderStyle: 'solid', overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.02)', height: '100%', minHeight: 0, display: 'flex', flexDirection: 'column' }}>
           {/* Drawer Tabs Header */}
-          <div className="bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-800" style={{ display: 'flex', borderBottomWidth: '1px', borderBottomStyle: 'solid' }}>
+          <div className="bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-800" style={{ display: 'flex', borderBottomWidth: '1px', borderBottomStyle: 'solid', flexShrink: 0 }}>
             <button
               onClick={() => setActiveTab('placeholders')}
               className={`transition-colors ${activeTab === 'placeholders' ? 'bg-white dark:bg-slate-900 text-blue-600 dark:text-blue-400' : 'bg-transparent text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300'}`}

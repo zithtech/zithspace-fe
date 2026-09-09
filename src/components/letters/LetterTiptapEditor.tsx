@@ -419,6 +419,10 @@ export default function LetterTiptapEditor({
         boxShadow: "0 1px 3px rgba(0,0,0,0.05)",
         display: "flex",
         flexDirection: "column",
+        flex: 1,
+        minHeight: 0,
+        height: "100%",
+        overflow: "hidden",
       }}
     >
       {/* Toolbar */}
@@ -437,6 +441,7 @@ export default function LetterTiptapEditor({
             flexWrap: "wrap",
             gap: "6px",
             alignItems: "center",
+            flexShrink: 0,
           }}
         >
           <SearchableDropdown
@@ -1204,7 +1209,9 @@ export default function LetterTiptapEditor({
       <div
         style={{
           padding: "24px 32px",
-          minHeight: `${minHeight}px`,
+          minHeight: 0,
+          flex: 1,
+          overflowY: "auto",
           background: "var(--editor-bg, #ffffff)",
           borderRadius: "0 0 10px 10px",
         }}

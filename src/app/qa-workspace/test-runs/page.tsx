@@ -70,7 +70,7 @@ function TestRunsContent() {
   } = useQaProject();
   const projectFilter = selectedProjectId || undefined;
   const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
+  const [pageSize, setPageSize] = useState(15);
   const [totalItems, setTotalItems] = useState(0);
   const [stats, setStats] = useState<any>({});
 
@@ -876,7 +876,7 @@ function TestRunsContent() {
                           className="pp-pagesize"
                           value={pageSize}
                           onChange={(v) => { setPageSize(v); setPage(1); }}
-                          options={[10, 20, 25, 50, 100].map((n) => ({ value: n, label: `${n} / page` }))}
+                          options={[10, 15, 20, 25, 50, 100].map((n) => ({ value: n, label: `${n} / page` }))}
                           popupMatchSelectWidth={120}
                         />
                       </div>

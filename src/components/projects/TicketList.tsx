@@ -502,11 +502,11 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
   // Pagination state
   const [pagination, setPagination] = useState({
     current: 1,
-    pageSize: 20,
+    pageSize: 15,
   });
   const [activePagination, setActivePagination] = useState({
     current: 1,
-    pageSize: 20,
+    pageSize: 15,
   });
 
 
@@ -679,7 +679,7 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
     isLoading: activeSprintLoading,
     isFetching: activeSprintFetching,
     refetch: refetchActive
-  } = useTickets(activeSprintParams);
+  } = useTickets(activeSprintParams, { staleTime: 0 });
 
   // 2. Fetch Backlog Tickets
   const {
@@ -687,7 +687,7 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
     isLoading: backlogLoading,
     isFetching: backlogFetching,
     refetch: refetchBacklog
-  } = useTickets(backlogParams);
+  } = useTickets(backlogParams, { staleTime: 0 });
 
   // Unfiltered backlog data query to keep total backlog count in sidebar constant
   const { data: unfilteredBacklogData } = useTickets({
@@ -782,6 +782,7 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
     isFetching: filteredViewFetching,
   } = useTickets(filteredViewParams, {
     enabled: isFilteredView && quickFilterTicketIds.length > 0,
+    staleTime: 0,
   });
   const filteredViewTickets = filteredViewData?.data || [];
   const filteredViewTotal = filteredViewData?.pagination?.total || 0;
@@ -1255,9 +1256,9 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
   useEffect(() => {
     if (viewMode === 'board') {
       // Board mode uses Kanban endpoint, no pagination needed
-      setPagination(prev => ({ ...prev, current: 1, pageSize: 20 }));
+      setPagination(prev => ({ ...prev, current: 1, pageSize: 15 }));
     } else {
-      setPagination(prev => ({ ...prev, current: 1, pageSize: 20 }));
+      setPagination(prev => ({ ...prev, current: 1, pageSize: 15 }));
     }
   }, [viewMode]);
 
@@ -2320,7 +2321,7 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
             className="pp-pagesize"
             value={pageSize}
             onChange={(v) => onPageSizeChange(v)}
-            options={[10, 20, 25, 50, 100].map((n) => ({ value: n, label: `${n} / page` }))}
+            options={[10, 15, 20, 25, 50, 100].map((n) => ({ value: n, label: `${n} / page` }))}
             popupMatchSelectWidth={120}
             size="small"
           />

@@ -3,7 +3,7 @@
 import NoData from "@/components/common/NoData";
 import { SectionCard, drawerFormStyles } from "@/components/common/DrawerSection";
 import ConfirmDialog from "@/components/common/ConfirmDialog";
-import ZukvoLoader from "@/components/common/ZukvoLoader";
+import ZukvoLoader, { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
 import React, { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import {
@@ -406,7 +406,12 @@ export default function BugListConfigManager() {
               )}
             </div>
           </div>
-          <div className="dh-main-scroll bcm-pane">
+          <ZukvoLoadingOverlay 
+            loading={isRefreshing} 
+            className="dh-main-scroll bcm-pane"
+            message="Refreshing configurations..."
+            size="lg"
+          >
             {modulesNavActive ? (
               <ModulesTable
                 items={qaModules.items}
@@ -488,7 +493,7 @@ export default function BugListConfigManager() {
               }}
             />
             )}
-          </div>
+          </ZukvoLoadingOverlay>
         </main>
       </div>
 

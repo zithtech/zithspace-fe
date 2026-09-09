@@ -53,6 +53,7 @@ import {
 } from "lucide-react";
 import { api } from "@/lib/axios";
 import { usePermission } from "@/hooks/usePermission";
+import { useSubscriptionFeature } from "@/hooks/useSubscriptionFeature";
 import dayjs from "dayjs";
 import { TimeTrackingHeader } from "@/components/time-tracking/TimeTrackingHeader";
 import {
@@ -82,6 +83,7 @@ interface ProjectsTabProps {
 
 export default function ProjectsTab({ clientId, onRefresh }: ProjectsTabProps) {
   const { canUpdateClient } = usePermission();
+  const canUseProjectTrash = useSubscriptionFeature('work_projects_project_trash');
   const router = useRouter();
   const [projects, setProjects] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
@@ -136,31 +138,33 @@ export default function ProjectsTab({ clientId, onRefresh }: ProjectsTabProps) {
           openEditModal(project);
         }
       },
-      {
-        key: "delete",
-        danger: true,
-        disabled: !canUpdateClient,
-        label: (
-          <div className="pp-menu-item">
-            <span className="pp-menu-ic" style={{ color: "#ef4444", background: "rgba(239, 68, 68, 0.12)" }}><Trash2 size={13} /></span>
-            <span className="pp-menu-text">
-              <span className="pp-menu-title" style={{ color: "#ef4444" }}>Delete</span>
-              <span className="pp-menu-desc">Remove project permanently</span>
-            </span>
-          </div>
-        ),
-        onClick: (info: any) => {
-          info.domEvent?.stopPropagation();
-          modal.confirm({
-            title: "Delete Project",
-            content: `Are you sure you want to delete "${project.name}"? This action cannot be undone.`,
-            okText: "Delete",
-            okType: "danger",
-            cancelText: "Cancel",
-            onOk: () => handleDeleteProject(project.id, project.name),
-          });
+      ...(canUseProjectTrash ? [
+        {
+          key: "delete",
+          danger: true,
+          disabled: !canUpdateClient,
+          label: (
+            <div className="pp-menu-item">
+              <span className="pp-menu-ic" style={{ color: "#ef4444", background: "rgba(239, 68, 68, 0.12)" }}><Trash2 size={13} /></span>
+              <span className="pp-menu-text">
+                <span className="pp-menu-title" style={{ color: "#ef4444" }}>Delete</span>
+                <span className="pp-menu-desc">Remove project permanently</span>
+              </span>
+            </div>
+          ),
+          onClick: (info: any) => {
+            info.domEvent?.stopPropagation();
+            modal.confirm({
+              title: "Delete Project",
+              content: `Are you sure you want to delete "${project.name}"? This action cannot be undone.`,
+              okText: "Delete",
+              okType: "danger",
+              cancelText: "Cancel",
+              onOk: () => handleDeleteProject(project.id, project.name),
+            });
+          }
         }
-      }
+      ] : [])
     ]
   });
 

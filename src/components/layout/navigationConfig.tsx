@@ -307,20 +307,15 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
             label: "Plans",
             icon: I(Map),
             path: "/tickets/plans",
+            requiredSubscriptionFeature: ["work_tickets_plans"],
             requiredPermission: Permissions.TICKET_PLAN_READ,
           },
-          // {
-          //   key: "/projects/create",
-          //   label: "Create Ticket",
-          //   icon: I(FilePlus2),
-          //   path: "/projects/create",
-          //   requiredPermission: Permissions.TICKET_CREATE,
-          // },
           {
             key: "/tickets/select",
             label: "Tickets",
             icon: I(ListChecks),
             path: "/tickets/select",
+            requiredSubscriptionFeature: ["work_tickets_select"],
             requiredPermission: Permissions.TICKET_READ,
           },
           {
@@ -328,6 +323,7 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
             label: "Buckets",
             icon: I(LayoutGrid),
             path: "/tickets/buckets",
+            requiredSubscriptionFeature: ["work_tickets_buckets"],
             requiredPermission: Permissions.TICKET_BUCKET_READ,
           },
           {
@@ -335,6 +331,7 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
             label: "Reports",
             icon: I(BarChart3),
             path: "/tickets/reports",
+            requiredSubscriptionFeature: ["work_tickets_reports"],
             requiredPermission: Permissions.TICKET_READ,
           },
           {
@@ -342,6 +339,7 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
             label: "Settings",
             icon: I(SlidersHorizontal),
             path: "/tickets/settings",
+            requiredSubscriptionFeature: ["work_tickets_settings"],
             requiredPermission: Permissions.TICKET_SETTING_READ,
           },
           {
@@ -349,6 +347,7 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
             label: "Trash",
             icon: I(Trash2),
             path: "/tickets/trash",
+            requiredSubscriptionFeature: ["work_tickets_trash"],
             requiredPermission: Permissions.TICKET_TRASH_READ,
           },
           {
@@ -356,6 +355,7 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
             label: "Archived",
             icon: I(Archive),
             path: "/tickets/archived",
+            requiredSubscriptionFeature: ["work_tickets_archived"],
             requiredPermission: Permissions.TICKET_ARCHIVE_READ,
           },
         ],
@@ -379,22 +379,18 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
             label: "QA Playbooks",
             icon: I(BookOpen),
             path: "/playbooks",
+            requiredSubscriptionFeature: ["work_playbooks_qa_playbooks"],
             requiredAnyPermission: [Permissions.PLAYBOOK_READ],
           },
           {
-            // The other axis on the same library: categories say what part of an
-            // app a playbook covers, a collection says who it is for. It is the
-            // first stop for a customer who has just opened a library of
-            // hundreds and does not know which of them are theirs.
             key: "/playbooks/collections",
             label: "Collections",
             icon: I(Layers),
             path: "/playbooks/collections",
+            requiredSubscriptionFeature: ["work_playbooks_collections"],
             requiredAnyPermission: [Permissions.PLAYBOOK_READ],
           },
           {
-            // The other half of the catalog: what this workspace asked Testiez
-            // to write, and where each ask has got to.
             key: "/playbooks/requested",
             label: "Requested Playbooks",
             icon: I(Sparkles),
@@ -411,6 +407,7 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
             label: "Trash",
             icon: I(Trash2),
             path: "/playbooks/trash",
+            requiredSubscriptionFeature: ["work_playbooks_playbook_trash"],
             requiredPermission: Permissions.PLAYBOOK_TRASH_READ,
           },
         ],
@@ -438,6 +435,7 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
             label: "Scope",
             icon: I(Target),
             path: "/qa-workspace/test-scope",
+            requiredSubscriptionFeature: ["work_qa_space_scope"],
             requiredPermission: Permissions.QA_SCOPE_READ,
           },
           {
@@ -445,6 +443,7 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
             label: "Cases",
             icon: I(ClipboardList),
             path: "/qa-workspace/test-cases",
+            requiredSubscriptionFeature: ["work_qa_space_cases"],
             requiredPermission: Permissions.QA_CASE_READ,
           },
           {
@@ -452,6 +451,7 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
             label: "Suites",
             icon: I(Boxes),
             path: "/qa-workspace/test-suites",
+            requiredSubscriptionFeature: ["work_qa_space_suites"],
             requiredPermission: Permissions.QA_SUITE_READ,
           },
           {
@@ -459,6 +459,7 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
             label: "Runs",
             icon: I(PlayCircle),
             path: "/qa-workspace/test-runs",
+            requiredSubscriptionFeature: ["work_qa_space_runs"],
             requiredPermission: Permissions.QA_RUN_READ,
           },
           {
@@ -466,6 +467,7 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
             label: "Bug List",
             icon: I(Bug),
             path: "/qa-workspace/bug-list",
+            requiredSubscriptionFeature: ["work_qa_space_bug_list"],
             requiredPermission: Permissions.BUG_READ,
           },
           {
@@ -473,6 +475,7 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
             label: "QA Submissions",
             icon: I(FileCheck2),
             path: "/qa-workspace/qa-submissions",
+            requiredSubscriptionFeature: ["work_qa_space_qa_submissions"],
             requiredPermission: Permissions.QA_SUBMISSION_READ,
           },
           {
@@ -480,6 +483,7 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
             label: "Approvals",
             icon: I(ThumbsUp),
             path: "/qa-workspace/approvals",
+            requiredSubscriptionFeature: ["work_qa_space_approvals"],
             requiredAnyPermission: [
               Permissions.QA_APPROVAL_READ,
               Permissions.QA_APPROVAL_APPROVE,
@@ -491,6 +495,7 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
             label: "Coverage Map",
             icon: I(Network),
             path: "/qa-workspace/coverage-map",
+            requiredSubscriptionFeature: ["work_qa_space_coverage_map"],
             requiredPermission: Permissions.QA_COVERAGE_MAP_READ,
           },
           {
@@ -498,6 +503,7 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
             label: "Analytics",
             icon: I(BarChart3),
             path: "/qa-workspace/analytics",
+            requiredSubscriptionFeature: ["work_qa_space_analytics"],
             requiredPermission: Permissions.QA_ANALYTICS_READ,
           },
           {
@@ -505,6 +511,7 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
             label: "Settings",
             icon: I(Settings),
             path: "/qa-workspace/settings",
+            requiredSubscriptionFeature: ["work_qa_space_settings"],
             requiredPermission: Permissions.BUG_MANAGE,
           },
         ],
@@ -531,6 +538,7 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
             label: "Projects",
             icon: I(ListChecks),
             path: "/projects/manage",
+            requiredSubscriptionFeature: ["work_projects_manage"],
             requiredPermission: Permissions.PROJECT_READ,
           },
           {
@@ -538,6 +546,7 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
             label: "Trash",
             icon: I(Trash2),
             path: "/projects/project-trash",
+            requiredSubscriptionFeature: ["work_projects_project_trash"],
             requiredPermission: Permissions.PROJECT_TRASH_READ,
           },
         ]
@@ -560,6 +569,7 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
             label: "Dashboard",
             icon: I(Gauge),
             path: "/timesheet/dashboard",
+            requiredSubscriptionFeature: ["work_timesheet_dashboard"],
             requiredPermission: Permissions.TIMESHEET_READ,
           },
           {
@@ -567,6 +577,7 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
             label: "My Timesheets",
             icon: I(FileClock),
             path: "/timesheet",
+            requiredSubscriptionFeature: ["work_timesheet_my_timesheets"],
             requiredPermission: Permissions.TIMESHEET_READ,
           },
           {
@@ -574,6 +585,7 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
             label: "Submit Timesheet",
             icon: I(Send),
             path: "/timesheet/submit",
+            requiredSubscriptionFeature: ["work_timesheet_submit"],
             requiredPermission: Permissions.TIMESHEET_CREATE,
           },
           {
@@ -581,6 +593,7 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
             label: "Teams",
             icon: I(Users),
             path: "/timesheet/teams",
+            requiredSubscriptionFeature: ["work_timesheet_teams"],
             requiredPermission: Permissions.TIMESHEET_APPROVE,
           },
           {
@@ -588,6 +601,7 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
             label: "Approval",
             icon: I(CheckCircle2),
             path: "/timesheet/approval",
+            requiredSubscriptionFeature: ["work_timesheet_approval"],
             requiredPermission: Permissions.TIMESHEET_APPROVE,
           },
         ],
@@ -596,7 +610,7 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
         key: "time-tracking",
         label: "Time Tracking",
         icon: I(Timer),
-        requiredSubscriptionFeature: ["work_time_tracking", "work_timesheet"],
+        requiredSubscriptionFeature: ["work_time_tracking"],
         requiredAnyPermission: [
           Permissions.TIME_TRACKING_READ,
           Permissions.TIME_TRACKING_TEAM_READ,
@@ -607,6 +621,7 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
             label: "My Tracking",
             icon: I(UserCog),
             path: "/time-tracking/my",
+            requiredSubscriptionFeature: ["work_time_tracking_my"],
             requiredPermission: Permissions.TIME_TRACKING_READ,
           },
           {
@@ -614,6 +629,7 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
             label: "Team Tracking",
             icon: I(UsersRound2),
             path: "/time-tracking/team",
+            requiredSubscriptionFeature: ["work_time_tracking_team"],
             requiredPermission: Permissions.TIME_TRACKING_TEAM_READ,
           },
         ],
@@ -633,6 +649,7 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
             label: "Submit Update",
             icon: I(PenLine),
             path: "/daily-updates/submit",
+            requiredSubscriptionFeature: ["work_daily_updates_submit"],
             requiredPermission: Permissions.DAILY_UPDATE_CREATE,
           },
           {
@@ -640,6 +657,7 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
             label: "View Updates",
             icon: I(Eye),
             path: "/daily-updates/view",
+            requiredSubscriptionFeature: ["work_daily_updates_view"],
             requiredPermission: Permissions.DAILY_UPDATE_READ,
           },
         ],
@@ -664,6 +682,7 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
             label: "All Proposals",
             icon: I(List),
             path: "/proposals",
+            requiredSubscriptionFeature: ["work_proposals_all_proposals"],
             requiredPermission: Permissions.PROPOSAL_READ,
           },
           {
@@ -671,6 +690,7 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
             label: "Create Proposal",
             icon: I(FilePlus2),
             path: "/proposals/builder",
+            requiredSubscriptionFeature: ["work_proposals_builder"],
             requiredAnyPermission: [Permissions.PROPOSAL_CREATE, Permissions.PROPOSAL_UPDATE],
           },
           {
@@ -678,6 +698,7 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
             label: "Section Library",
             icon: I(LayoutGrid),
             path: "/proposals/sections",
+            requiredSubscriptionFeature: ["work_proposals_sections"],
             requiredPermission: Permissions.PROPOSAL_READ,
           },
           {
@@ -685,6 +706,7 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
             label: "Template Library",
             icon: I(Layers),
             path: "/proposals/templates",
+            requiredSubscriptionFeature: ["work_proposals_templates"],
             requiredPermission: Permissions.PROPOSAL_READ,
           },
           {
@@ -692,6 +714,7 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
             label: "Cover Themes",
             icon: I(Palette),
             path: "/proposals/themes",
+            requiredSubscriptionFeature: ["work_proposals"],
             requiredPermission: Permissions.PROPOSAL_READ,
           },
           {
@@ -699,6 +722,7 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
             label: "Trash",
             icon: I(Trash2),
             path: "/proposals/trash",
+            requiredSubscriptionFeature: ["work_proposals_proposals_trash"],
             requiredPermission: Permissions.PROPOSAL_READ,
           },
         ],
@@ -727,27 +751,15 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
             label: "Escalation List",
             icon: I(List),
             path: "/escalations",
+            requiredSubscriptionFeature: ["work_escalations_escalation_list"],
             requiredPermission: Permissions.ESCALATION_READ,
           },
-          // {
-          //   key: "/escalations/create",
-          //   label: "Create Escalation",
-          //   icon: I(PlusCircle),
-          //   path: "/escalations/create",
-          //   requiredPermission: Permissions.ESCALATION_CREATE,
-          // },
-          // {
-          //   key: "/escalations/sla-rules",
-          //   label: "SLA & Rules Engine",
-          //   icon: I(Gavel),
-          //   path: "/escalations/sla-rules",
-          //   requiredPermission: Permissions.ESCALATION_MANAGE,
-          // },
           {
             key: "/escalations/settings",
             label: "Settings",
             icon: I(Cog),
             path: "/escalations/settings",
+            requiredSubscriptionFeature: ["work_escalations_escalation_settings"],
             requiredPermission: Permissions.ESCALATION_MANAGE,
           },
           {
@@ -755,6 +767,7 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
             label: "Trash",
             icon: I(Trash2),
             path: "/escalations/trash",
+            requiredSubscriptionFeature: ["work_escalations_escalation_trash"],
             requiredPermission: Permissions.ESCALATION_READ,
           },
         ],
@@ -775,6 +788,7 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
             label: "Leads",
             icon: I(Sparkles),
             path: "/leads",
+            requiredSubscriptionFeature: ["work_lead_management_leads"],
             requiredPermission: Permissions.LEAD_READ,
           },
           {
@@ -782,6 +796,7 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
             label: "Settings",
             icon: I(Settings2),
             path: "/leads/settings",
+            requiredSubscriptionFeature: ["work_lead_management_lead_settings"],
             requiredPermission: Permissions.LEAD_SETTING_READ,
           },
           {
@@ -789,6 +804,7 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
             label: "Trash",
             icon: I(Trash2),
             path: "/leads/trash",
+            requiredSubscriptionFeature: ["work_lead_management_lead_trash"],
             requiredPermission: Permissions.LEAD_TRASH_READ,
           },
         ],
@@ -1182,6 +1198,7 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
             label: "Dashboard",
             icon: I(BarChart3),
             path: "/accounts/accounts-dashboard",
+            requiredSubscriptionFeature: ["finance_accounts_accounts_dashboard"],
             requiredPermission: Permissions.ACCOUNT_READ,
           },
           {
@@ -1189,6 +1206,7 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
             label: "Settings",
             icon: I(Settings),
             path: "/accounts/settings",
+            requiredSubscriptionFeature: ["finance_accounts_accounts_settings"],
             requiredPermission: Permissions.ACCOUNT_SETTING_READ,
           },
 
@@ -1214,6 +1232,7 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
             label: "Dashboard",
             icon: I(LineChart),
             path: "/invoice/dashboard",
+            requiredSubscriptionFeature: ["finance_invoice_invoice_dashboard"],
             requiredAnyPermission: [
               Permissions.INVOICE_DASHBOARD_READ,
             ],
@@ -1223,6 +1242,7 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
             label: "Invoices",
             icon: I(Files),
             path: "/invoice/invoices",
+            requiredSubscriptionFeature: ["finance_invoice_invoices"],
             requiredAnyPermission: [
               Permissions.INVOICE_READ,
             ],
@@ -1232,6 +1252,7 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
             label: "New Invoice",
             icon: I(FilePlus),
             path: "/invoice/newinvoice",
+            requiredSubscriptionFeature: ["finance_invoice_newinvoice"],
             requiredAnyPermission: [
               Permissions.INVOICE_CREATE,
             ],
@@ -1241,6 +1262,7 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
             label: "Template",
             icon: I(LayoutTemplate),
             path: "/invoice/templates",
+            requiredSubscriptionFeature: ["finance_invoice_invoice_templates"],
             requiredAnyPermission: [
               Permissions.INVOICE_TEMPLATE_READ,
             ],
@@ -1250,6 +1272,7 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
             label: "Customers",
             icon: I(Contact),
             path: "/invoice/customers",
+            requiredSubscriptionFeature: ["finance_invoice_customers"],
             requiredAnyPermission: [
               Permissions.INVOICE_CUSTOMER_READ,
               Permissions.INVOICE_MANAGE,
@@ -1260,6 +1283,7 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
             label: "Settings",
             icon: I(Settings2),
             path: "/invoice/settings",
+            requiredSubscriptionFeature: ["finance_invoice_invoice_settings"],
             requiredAnyPermission: [
               Permissions.INVOICE_SETTING_READ,
               Permissions.INVOICE_MANAGE,
@@ -1270,6 +1294,7 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
             label: "Trash",
             icon: I(Trash2),
             path: "/invoice/trash",
+            requiredSubscriptionFeature: ["finance_invoice_invoice_trash"],
             requiredAnyPermission: [
               Permissions.INVOICE_TRASH_READ,
               Permissions.INVOICE_MANAGE,

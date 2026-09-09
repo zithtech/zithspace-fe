@@ -212,7 +212,9 @@ export default function InvoiceInvoicesPage() {
     canReadInvoiceHistory,
     canDeleteInvoiceTrash
   } = usePermission();
-  const { isLoading: authLoading } = useAuth();
+  const { isLoading: authLoading, hasAnySubscriptionFeature } = useAuth();
+  const canUseNewInvoice = hasAnySubscriptionFeature("finance_invoice_newinvoice");
+  const canUseInvoiceTrash = hasAnySubscriptionFeature("finance_invoice_invoice_trash");
 
   // Register UX context for activity logging
   useActivitySource({ section: "FINANCE", module: "Invoices", page: "InvoiceList" });
@@ -423,7 +425,7 @@ export default function InvoiceInvoicesPage() {
         router.push(`/invoice/invoices/view/${record.invoiceNumber}`);
       },
     },
-    canUpdateInvoice && ["DRAFT", "PENDING", "APPROVED", "APPROVAL"].includes(record.status) && {
+    canUpdateInvoice && canUseNewInvoice && ["DRAFT", "PENDING", "APPROVED", "APPROVAL"].includes(record.status) && {
       key: "edit",
       label: menuLabel("Edit Invoice", "Modify invoice information", <Edit2 size={14} />, '#64748b', 'rgba(100,116,139,0.12)'),
       onClick: () => {
@@ -465,8 +467,8 @@ export default function InvoiceInvoicesPage() {
         setTransactionDrawerOpen(true);
       },
     },
-    (canUpdateInvoice || canDeleteInvoice || canDeleteInvoiceTrash) && { type: "divider" },
-    (canDeleteInvoice || canDeleteInvoiceTrash) && {
+    ((canUpdateInvoice && canUseNewInvoice) || ((canDeleteInvoice || canDeleteInvoiceTrash) && canUseInvoiceTrash)) && { type: "divider" },
+    (canDeleteInvoice || canDeleteInvoiceTrash) && canUseInvoiceTrash && {
       key: "delete",
       danger: true,
       label: (
@@ -1012,7 +1014,7 @@ export default function InvoiceInvoicesPage() {
             </div>
           </div>
 
-          {canCreateInvoice && (
+          {canCreateInvoice && canUseNewInvoice && (
             <Button
               type="primary"
               icon={<Plus size={14} />}
@@ -1124,13 +1126,15 @@ export default function InvoiceInvoicesPage() {
               <span className="pp-view-icon" style={{ color: "#3b82f6" }}><ChevronRight size={14} style={{ transform: "rotate(180deg)" }} /></span>
               <span className="pp-view-label">Dashboard</span>
             </button>
-            <button
-              type="button"
-              className="pp-trash"
-              onClick={() => router.push("/invoice/trash")}
-            >
-              <RestOutlined /> Trash
-            </button>
+            {canUseInvoiceTrash && (
+              <button
+                type="button"
+                className="pp-trash"
+                onClick={() => router.push("/invoice/trash")}
+              >
+                <RestOutlined /> Trash
+              </button>
+            )}
           </div>
         </aside>
 
@@ -1287,7 +1291,7 @@ export default function InvoiceInvoicesPage() {
                   >
                     Download
                   </Button>
-                  {(canDeleteInvoice || canDeleteInvoiceTrash) && (
+                  {(canDeleteInvoice || canDeleteInvoiceTrash) && canUseInvoiceTrash && (
                     <Button
                       size="small"
                       danger
@@ -1357,7 +1361,7 @@ export default function InvoiceInvoicesPage() {
                           ? "Try adjusting your search or filters."
                           : "Get started by creating your first invoice."}
                       </span>
-                      {!searchText && !customerFilter && !dateRange && canCreateInvoice && (
+                      {!searchText && !customerFilter && !dateRange && canCreateInvoice && canUseNewInvoice && (
                         <Button
                           type="primary"
                           icon={<Plus size={14} />}

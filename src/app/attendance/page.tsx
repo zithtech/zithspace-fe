@@ -2,18 +2,22 @@
 
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { useAuth } from '@/context/AuthContext';
 import { usePermission } from '@/hooks/usePermission';
 import { ATTENDANCE_NAV_ITEMS, canAccessAttendanceItem } from '@/components/attendance/navItems';
 
 // /attendance index → redirect to the first page the user can access.
 export default function AttendanceIndex() {
   const router = useRouter();
+  const { hasAnySubscriptionFeature, isLoading } = useAuth();
   const perms = usePermission() as unknown as Record<string, any>;
 
   useEffect(() => {
-    const first = ATTENDANCE_NAV_ITEMS.find((i) => canAccessAttendanceItem(perms, i));
+    if (isLoading) return;
+    const first = ATTENDANCE_NAV_ITEMS.find((i) => canAccessAttendanceItem(perms, i, hasAnySubscriptionFeature));
     router.replace(first ? first.href : '/dashboard');
-  }, [perms, router]);
+  }, [perms, hasAnySubscriptionFeature, isLoading, router]);
 
   return null;
 }
+

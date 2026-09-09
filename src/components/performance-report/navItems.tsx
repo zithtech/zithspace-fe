@@ -14,6 +14,7 @@ export interface PRNavItem {
   color: string;
   anyPerm: string[];
   always?: boolean;
+  requiredSubscriptionFeature?: string[];
 }
 
 export const PR_NAV_ITEMS: PRNavItem[] = [
@@ -24,6 +25,7 @@ export const PR_NAV_ITEMS: PRNavItem[] = [
     icon: <Gauge size={16} />,
     color: '#3B82F6',
     anyPerm: ['canReadPerformanceReport'],
+    requiredSubscriptionFeature: ['hrms_performance_reports', 'hrms_performance'],
   },
   {
     key: 'settings',
@@ -32,6 +34,7 @@ export const PR_NAV_ITEMS: PRNavItem[] = [
     icon: <SlidersHorizontal size={16} />,
     color: '#64748B',
     anyPerm: ['canReadPerformanceReportSetting'],
+    requiredSubscriptionFeature: ['hrms_performance_settings', 'hrms_performance'],
   },
   {
     key: 'generated',
@@ -40,6 +43,7 @@ export const PR_NAV_ITEMS: PRNavItem[] = [
     icon: <Archive size={16} />,
     color: '#8B5CF6',
     anyPerm: ['canReadGeneratedPerformanceReport'],
+    requiredSubscriptionFeature: ['hrms_performance_generated', 'hrms_performance'],
   },
   {
     key: 'my-reports',
@@ -51,6 +55,7 @@ export const PR_NAV_ITEMS: PRNavItem[] = [
     // users granted my_hub.performance.read (without full performance-report
     // module access) can still reach this page via My Hub.
     anyPerm: ['canReadMyPerformanceReport', 'canReadMyHubPerformance'],
+    requiredSubscriptionFeature: ['hrms_performance_my_reports', 'hrms_performance', 'my_hub'],
   },
 ];
 
@@ -59,6 +64,14 @@ export function getPRNavItem(key: string): PRNavItem | undefined {
 }
 
 /** True if the permission map grants access to a nav item. */
-export function canAccessPRItem(perms: Record<string, any>, item: PRNavItem): boolean {
-  return !!item.always || item.anyPerm.some((p) => !!perms[p]);
+export function canAccessPRItem(
+  perms: Record<string, any>,
+  item: PRNavItem,
+  hasAnySubscriptionFeature?: (...features: string[]) => boolean
+): boolean {
+  const hasPerm = !!item.always || item.anyPerm.some((p) => !!perms[p]);
+  const hasSub = hasAnySubscriptionFeature && item.requiredSubscriptionFeature
+    ? hasAnySubscriptionFeature(...item.requiredSubscriptionFeature)
+    : true;
+  return hasPerm && hasSub;
 }

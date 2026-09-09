@@ -38,22 +38,39 @@ export default function MainLayout({ children, noPadding, hideSideNav }: MainLay
   const { modules: navigation, standalonePages, deniedPrefixes } = useProductNavigation();
 
   /**
-   * Is this path excluded on this surface?
+   * Is this path excluded on this surface / plan?
    *
-   * Deny only when the path matches an excluded prefix AND no allowed one — an
-   * excluded prefix can legitimately be a prefix of something still reachable,
-   * and rejecting on the exclusion alone would lock people out of pages they do
-   * have. Presentation only: the API enforces the same boundary independently.
+   * Deny when the path matches a denied prefix, unless an allowed surviving item
+   * is at least as specific as the denied prefix.
    */
   const isDeniedPath = React.useCallback(
     (path: string): boolean => {
       const matches = (p: string) => path === p || path.startsWith(`${p}/`);
-      if (!deniedPrefixes.some(matches)) return false;
+      const deniedMatch = deniedPrefixes.find(matches);
+      if (!deniedMatch) return false;
 
-      const allowed =
-        navigation.some((m) => m.pathPrefixes.some(matches)) ||
-        standalonePages.some((p) => matches(p.path));
-      return !allowed;
+      // Collect all surviving reachable item paths
+      const allKeptPaths: string[] = [];
+      const collect = (items: any[]) => {
+        for (const item of items) {
+          if (item.path) allKeptPaths.push(item.path);
+          if (item.children) collect(item.children);
+        }
+      };
+      for (const m of navigation) {
+        collect(m.items);
+      }
+      for (const p of standalonePages) {
+        if (p.path) allKeptPaths.push(p.path);
+      }
+
+      // If an allowed path matches and is at least as specific as the denied match, permit it
+      const allowedMatch = allKeptPaths.find(matches);
+      if (allowedMatch && allowedMatch.length >= deniedMatch.length) {
+        return false;
+      }
+
+      return true;
     },
     [deniedPrefixes, navigation, standalonePages],
   );

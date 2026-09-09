@@ -38,6 +38,7 @@ import {
 import MainLayout from "@/components/layout/MainLayout";
 import NoData from "@/components/common/NoData";
 import { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
+import { useSubscriptionFeature } from "@/hooks/useSubscriptionFeature";
 import { useAuth } from "@/context/AuthContext";
 import { usePermission } from "@/hooks/usePermission";
 import { useActivitySource } from "@/hooks/useActivitySource";
@@ -1005,7 +1006,7 @@ export default function PlaybooksPage() {
                         /* mutateAsync, so the confirmation card keeps spinning
                            until the row is actually gone. */
                         onDelete={
-                          canManage(playbook)
+                          canManage(playbook) && canDeletePlaybook
                             ? () => remove.mutateAsync(playbook.id).catch(() => {})
                             : undefined
                         }

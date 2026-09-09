@@ -14,18 +14,18 @@ import { ATTENDANCE_NAV_ITEMS, canAccessAttendanceItem } from '@/components/atte
 // rendered here once; sub-route pages render into {children}. Active state is
 // derived from the URL (not local state), and items are filtered by permission.
 export default function AttendanceLayout({ children }: { children: React.ReactNode }) {
-  const { isLoading } = useAuth();
+  const { isLoading, hasAnySubscriptionFeature } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
   const perms = usePermission() as unknown as Record<string, any>;
   const [isMobileOpen, setIsMobileOpen] = useState(false);
 
   const visibleItems = useMemo(
-    () => ATTENDANCE_NAV_ITEMS.filter((item) => canAccessAttendanceItem(perms, item)),
-    [perms]
+    () => ATTENDANCE_NAV_ITEMS.filter((item) => canAccessAttendanceItem(perms, item, hasAnySubscriptionFeature)),
+    [perms, hasAnySubscriptionFeature]
   );
 
-  // Base guard: must be able to touch attendance in some way.
+  // Base guard: must be able to touch attendance in some way and have visible items.
   const canViewAttendance =
     !!perms.canReadAttendanceDashboard ||
     !!perms.canClockInOut ||
@@ -33,10 +33,20 @@ export default function AttendanceLayout({ children }: { children: React.ReactNo
     !!perms.canReadAttendance;
 
   useEffect(() => {
-    if (!isLoading && !canViewAttendance) {
-      router.push('/dashboard');
+    if (isLoading || !pathname) return;
+
+    if (!canViewAttendance || visibleItems.length === 0) {
+      router.replace('/dashboard');
+      return;
     }
-  }, [isLoading, canViewAttendance, router]);
+
+    const currentAllowed = visibleItems.some((item) =>
+      pathname === item.href || pathname.startsWith(item.href + '/')
+    );
+    if (!currentAllowed) {
+      router.replace(visibleItems[0].href);
+    }
+  }, [isLoading, pathname, canViewAttendance, visibleItems, router]);
 
   return (
     <ProtectedRoute>

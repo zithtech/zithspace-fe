@@ -14,15 +14,15 @@ import { LEAVE_NAV_ITEMS, canAccessLeaveItem } from '@/components/leaves-v2/navI
 // rendered here once; sub-route pages render into {children}. Active state is
 // derived from the URL (not local state), and items are filtered by permission.
 export default function LeavesV2Layout({ children }: { children: React.ReactNode }) {
-  const { isLoading } = useAuth();
+  const { isLoading, hasAnySubscriptionFeature } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
   const perms = usePermission() as unknown as Record<string, any>;
   const [isMobileOpen, setIsMobileOpen] = useState(false);
 
   const visibleItems = useMemo(
-    () => LEAVE_NAV_ITEMS.filter((item) => canAccessLeaveItem(perms, item)),
-    [perms]
+    () => LEAVE_NAV_ITEMS.filter((item) => canAccessLeaveItem(perms, item, hasAnySubscriptionFeature)),
+    [perms, hasAnySubscriptionFeature]
   );
 
   // Close sidebar on navigation
@@ -36,12 +36,22 @@ export default function LeavesV2Layout({ children }: { children: React.ReactNode
     return () => window.removeEventListener('open-lv-sidebar', handleOpenSidebar);
   }, []);
 
-  // Base guard: must be able to read or manage leaves at all.
+  // Base guard: must be able to read or manage leaves at all, and have at least one visible item.
   useEffect(() => {
-    if (!isLoading && !perms.canReadLeave && !perms.canManageLeaves) {
-      router.push('/dashboard');
+    if (isLoading || !pathname) return;
+
+    if ((!perms.canReadLeave && !perms.canManageLeaves) || visibleItems.length === 0) {
+      router.replace('/dashboard');
+      return;
     }
-  }, [isLoading, perms.canReadLeave, perms.canManageLeaves, router]);
+
+    const currentAllowed = visibleItems.some((item) =>
+      pathname === item.href || pathname.startsWith(item.href + '/')
+    );
+    if (!currentAllowed) {
+      router.replace(visibleItems[0].href);
+    }
+  }, [isLoading, pathname, perms.canReadLeave, perms.canManageLeaves, visibleItems, router]);
 
   return (
     <ProtectedRoute>

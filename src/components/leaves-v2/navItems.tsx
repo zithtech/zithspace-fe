@@ -22,6 +22,7 @@ export interface LeaveNavItem {
   icon: React.ReactNode;
   color: string;
   anyPerm: string[];
+  requiredSubscriptionFeature?: string[];
 }
 
 export const LEAVE_NAV_ITEMS: LeaveNavItem[] = [
@@ -32,6 +33,7 @@ export const LEAVE_NAV_ITEMS: LeaveNavItem[] = [
     icon: <LayoutDashboard size={16} />,
     color: '#3B82F6',
     anyPerm: ['canReadLeaveDashboard', 'canReadLeave'],
+    requiredSubscriptionFeature: ['hrms_leaves_v2_dashboard', 'hrms_leaves_v2'],
   },
   {
     key: 'apply',
@@ -43,6 +45,7 @@ export const LEAVE_NAV_ITEMS: LeaveNavItem[] = [
     // users granted my_hub.apply_leave.read (without full leave module
     // access) can still reach this page via My Hub.
     anyPerm: ['canReadLeave', 'canReadMyHubApplyLeave'],
+    requiredSubscriptionFeature: ['hrms_leaves_v2_apply', 'my_hub'],
   },
   {
     key: 'approvals',
@@ -51,6 +54,7 @@ export const LEAVE_NAV_ITEMS: LeaveNavItem[] = [
     icon: <BadgeCheck size={16} />,
     color: '#F59E0B',
     anyPerm: ['canApproveLeave'],
+    requiredSubscriptionFeature: ['hrms_leaves_v2_approvals'],
   },
   {
     key: 'holidays',
@@ -59,6 +63,7 @@ export const LEAVE_NAV_ITEMS: LeaveNavItem[] = [
     icon: <Landmark size={16} />,
     color: '#8B5CF6',
     anyPerm: ['canReadLeaveHoliday'],
+    requiredSubscriptionFeature: ['hrms_leaves_v2_holidays'],
   },
   {
     key: 'adjustment',
@@ -67,6 +72,7 @@ export const LEAVE_NAV_ITEMS: LeaveNavItem[] = [
     icon: <CalendarCog size={16} />,
     color: '#EC4899',
     anyPerm: ['canReadLeaveAdjustment'],
+    requiredSubscriptionFeature: ['hrms_leaves_v2_adjustment'],
   },
   {
     key: 'types',
@@ -75,6 +81,7 @@ export const LEAVE_NAV_ITEMS: LeaveNavItem[] = [
     icon: <TagIcon size={16} />,
     color: '#06B6D4',
     anyPerm: ['canReadLeaveType'],
+    requiredSubscriptionFeature: ['hrms_leaves_v2_types'],
   },
   {
     key: 'policy',
@@ -83,6 +90,7 @@ export const LEAVE_NAV_ITEMS: LeaveNavItem[] = [
     icon: <BookOpen size={16} />,
     color: '#F97316',
     anyPerm: ['canReadLeavePolicy'],
+    requiredSubscriptionFeature: ['hrms_leaves_v2_policy'],
   },
   {
     key: 'add-holidays',
@@ -91,6 +99,7 @@ export const LEAVE_NAV_ITEMS: LeaveNavItem[] = [
     icon: <CalendarHeart size={16} />,
     color: '#EF4444',
     anyPerm: ['canCreateLeaveHoliday', 'canReadLeaveHoliday'],
+    requiredSubscriptionFeature: ['hrms_leaves_v2_add_holidays', 'hrms_leaves_v2_holidays'],
   },
   {
     key: 'configuration',
@@ -99,6 +108,7 @@ export const LEAVE_NAV_ITEMS: LeaveNavItem[] = [
     icon: <SettingsIcon size={16} />,
     color: '#64748B',
     anyPerm: ['canManageLeaves'],
+    requiredSubscriptionFeature: ['hrms_leaves_v2_configuration'],
   },
 ];
 
@@ -107,6 +117,14 @@ export function getLeaveNavItem(key: string): LeaveNavItem | undefined {
 }
 
 /** True if the permission map grants access to a nav item. */
-export function canAccessLeaveItem(perms: Record<string, any>, item: LeaveNavItem): boolean {
-  return !!perms.canManageLeaves || item.anyPerm.some((p) => !!perms[p]);
+export function canAccessLeaveItem(
+  perms: Record<string, any>,
+  item: LeaveNavItem,
+  hasAnySubscriptionFeature?: (...features: string[]) => boolean
+): boolean {
+  const hasPerm = !!perms.canManageLeaves || item.anyPerm.some((p) => !!perms[p]);
+  const hasSub = hasAnySubscriptionFeature && item.requiredSubscriptionFeature
+    ? hasAnySubscriptionFeature(...item.requiredSubscriptionFeature)
+    : true;
+  return hasPerm && hasSub;
 }

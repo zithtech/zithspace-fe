@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { App } from "antd";
 import BugListService, {
   BugConfigCreateInput,
+  BugConfigOption,
   BugConfigUpdateInput,
   BugListFilters,
   BugSheetStatus,

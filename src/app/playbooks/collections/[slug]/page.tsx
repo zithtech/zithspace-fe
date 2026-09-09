@@ -29,6 +29,7 @@ import NoData from "@/components/common/NoData";
 import ConfirmDialog from "@/components/common/ConfirmDialog";
 import { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
 import { usePermission } from "@/hooks/usePermission";
+import { useSubscriptionFeature } from "@/hooks/useSubscriptionFeature";
 import { useActivitySource } from "@/hooks/useActivitySource";
 import { api as axios } from "@/lib/axios";
 import CollectionCurateDrawer from "@/components/qa/CollectionCurateDrawer";
@@ -48,6 +49,7 @@ export default function CollectionDetailPage() {
   const params = useParams();
   const queryClient = useQueryClient();
   const { canReadPlaybook } = usePermission();
+  const hasTrashFeature = useSubscriptionFeature("work_playbooks_playbook_trash");
   const slug = String(params?.slug ?? "");
 
   const [curating, setCurating] = useState(false);
@@ -183,17 +185,19 @@ export default function CollectionDetailPage() {
                   <Tooltip title="Edit name, kind and summary">
                     <Button icon={<Pencil size={14} />} onClick={() => setEditing(true)} />
                   </Tooltip>
-                  <ConfirmDialog
-                    tone="danger"
-                    title="Delete this collection?"
-                    description={`"${data.name}" is removed from the shelf. The playbooks in it are library entries and are left untouched.`}
-                    confirmText="Delete"
-                    onConfirm={() => remove.mutate()}
-                  >
-                    <Tooltip title="Delete">
-                      <Button danger icon={<Trash2 size={14} />} loading={remove.isPending} />
-                    </Tooltip>
-                  </ConfirmDialog>
+                  {hasTrashFeature && (
+                    <ConfirmDialog
+                      tone="danger"
+                      title="Delete this collection?"
+                      description={`"${data.name}" is removed from the shelf. The playbooks in it are library entries and are left untouched.`}
+                      confirmText="Delete"
+                      onConfirm={() => remove.mutate()}
+                    >
+                      <Tooltip title="Delete">
+                        <Button danger icon={<Trash2 size={14} />} loading={remove.isPending} />
+                      </Tooltip>
+                    </ConfirmDialog>
+                  )}
                   <Button icon={<ListOrdered size={14} />} onClick={() => setCurating(true)}>
                     Map playbooks
                   </Button>

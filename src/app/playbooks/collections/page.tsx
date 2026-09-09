@@ -34,6 +34,7 @@ import {
 import MainLayout from "@/components/layout/MainLayout";
 import NoData from "@/components/common/NoData";
 import { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
+import { useSubscriptionFeature } from "@/hooks/useSubscriptionFeature";
 import { useAuth } from "@/context/AuthContext";
 import { usePermission } from "@/hooks/usePermission";
 import { useActivitySource } from "@/hooks/useActivitySource";
@@ -258,6 +259,8 @@ export default function CollectionsPage() {
     user.subscriptionFeatures.includes("work_playbooks_collections_new_collections") ||
     user.subscriptionFeatures.includes("work_playbooks_qa_playbooks_new_collections");
 
+  const hasTrashFeature = useSubscriptionFeature("work_playbooks_playbook_trash");
+
   const { data, isLoading } = useQuery<{
     collections: CollectionSummary[];
     industries: string[];
@@ -389,7 +392,7 @@ export default function CollectionsPage() {
             />
             <div style={{ marginLeft: "auto", display: "inline-flex", gap: 8 }}>
               <Button onClick={() => router.push("/playbooks")}>All playbooks</Button>
-              {canReadPlaybookTrash && (
+              {canReadPlaybookTrash && hasTrashFeature && (
                 <Button
                   icon={<Trash2 size={14} />}
                   onClick={() => router.push("/playbooks/trash?tab=collections")}

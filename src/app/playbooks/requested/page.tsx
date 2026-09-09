@@ -73,6 +73,13 @@ export default function RequestedPlaybooksPage() {
   const { user } = useAuth();
   const { canReadPlaybook, canRequestPlaybook } = usePermission();
 
+  const hasRequestedFeature = Boolean(
+    user?.subscriptionFeatures &&
+    (user.subscriptionFeatures.includes("work_playbooks_requested_playbooks_requested") ||
+     user.subscriptionFeatures.includes("work_playbooks_qa_playbooks_requested") ||
+     user.subscriptionFeatures.includes("work_playbooks_requested_playbooks"))
+  );
+
   const hasRequestPlaybookFeature = Boolean(
     user?.subscriptionFeatures &&
     (user.subscriptionFeatures.includes("work_playbooks_requested_playbooks_request_playbook") ||
@@ -90,7 +97,7 @@ export default function RequestedPlaybooksPage() {
   const { data: catalog } = useQuery<{ canPublish: boolean }>({
     queryKey: ["qa", "playbooks", "catalog"],
     queryFn: () => axios.get("/api/v2/qa/playbooks?all=true"),
-    enabled: canReadPlaybook,
+    enabled: canReadPlaybook && hasRequestedFeature,
     staleTime: 5 * 60 * 1000,
   });
   const isAdmin = catalog?.canPublish ?? false;
@@ -105,7 +112,7 @@ export default function RequestedPlaybooksPage() {
           ? `/api/v2/qa/playbooks/admin/playbook-requests?status=${status}`
           : `/api/v2/qa/playbooks/requests${status === "all" ? "" : `?status=${status}`}`
       ),
-    enabled: canReadPlaybook,
+    enabled: canReadPlaybook && hasRequestedFeature,
   });
 
   const requests = data ?? [];
@@ -145,12 +152,12 @@ export default function RequestedPlaybooksPage() {
     }
   };
 
-  if (!canReadPlaybook) {
+  if (!canReadPlaybook || !hasRequestedFeature) {
     return (
       <MainLayout>
         <NoData
-          title="No access to QA Playbooks"
-          description="You need test playbook read access to open the playbook library."
+          title="No access to Requested Playbooks"
+          description="You do not have subscription access to Requested Playbooks."
         />
       </MainLayout>
     );

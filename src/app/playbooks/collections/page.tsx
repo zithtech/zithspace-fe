@@ -393,7 +393,7 @@ export default function CollectionsPage() {
             />
             <div style={{ marginLeft: "auto", display: "inline-flex", gap: 8 }}>
               <Button onClick={() => router.push("/playbooks")}>All playbooks</Button>
-              {canReadPlaybookTrash && hasTrashFeature && (
+              {canReadPlaybookTrash && (
                 <Button
                   icon={<Trash2 size={14} />}
                   onClick={() => router.push("/playbooks/trash?tab=collections")}

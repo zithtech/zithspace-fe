@@ -32,6 +32,7 @@ import dayjs from "dayjs";
 import MainLayout from "@/components/layout/MainLayout";
 import NoData from "@/components/common/NoData";
 import { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
+import { useAuth } from "@/context/AuthContext";
 import { usePermission } from "@/hooks/usePermission";
 import { useActivitySource } from "@/hooks/useActivitySource";
 import { api as axios } from "@/lib/axios";
@@ -92,7 +93,13 @@ export default function PlaybookRequestsPage() {
 
   const router = useRouter();
   const queryClient = useQueryClient();
+  const { user } = useAuth();
   const { canReadPlaybook } = usePermission();
+
+  const hasAccessFeature = Boolean(
+    user?.subscriptionFeatures &&
+    user.subscriptionFeatures.includes("work_playbooks_qa_playbooks_access")
+  );
 
   const [scope, setScope] = useState<Scope>("playbooks");
   const [status, setStatus] = useState("pending");
@@ -102,7 +109,7 @@ export default function PlaybookRequestsPage() {
   const { data, isLoading, error } = useQuery<UnlockRequest[]>({
     queryKey: ["qa", "playbooks", "requests", "access", status],
     queryFn: () => axios.get(`/api/v2/qa/playbooks/admin/unlock-requests?status=${status}`),
-    enabled: canReadPlaybook && scope === "playbooks",
+    enabled: canReadPlaybook && hasAccessFeature && scope === "playbooks",
   });
 
   const {
@@ -113,7 +120,7 @@ export default function PlaybookRequestsPage() {
     queryKey: ["qa", "collections", "requests", "access", status],
     queryFn: () =>
       axios.get(`/api/v2/qa/playbooks/collections/admin/unlock-requests?status=${status}`),
-    enabled: canReadPlaybook && scope === "collections",
+    enabled: canReadPlaybook && hasAccessFeature && scope === "collections",
   });
 
   const decideCollection = async (id: string, decision: "approved" | "declined") => {
@@ -157,6 +164,17 @@ export default function PlaybookRequestsPage() {
       setDeciding(null);
     }
   };
+
+  if (!canReadPlaybook || !hasAccessFeature) {
+    return (
+      <MainLayout>
+        <NoData
+          title="No access"
+          description="You do not have subscription access to Access Requests."
+        />
+      </MainLayout>
+    );
+  }
 
   // The API returns 403 for anyone who is not Testiez staff.
   if (error || collectionsError) {

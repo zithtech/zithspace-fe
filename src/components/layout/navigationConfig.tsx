@@ -200,6 +200,8 @@ export const EXTRA_ROUTE_FEATURES: ReadonlyArray<readonly [string, string]> = [
   ["/position-configuration", "hrms"],
   // FINANCE prefixes cover /reimbursement and /reimbursement-v2 but not this.
   ["/reimburseCreate", "finance"],
+  ["/playbooks/create", "work_playbooks_qa_playbooks_new_playbook"],
+  ["/playbooks/requests", "work_playbooks_qa_playbooks_access"],
 ];
 
 

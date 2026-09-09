@@ -445,6 +445,7 @@ export default function BugListConfigManager() {
                       : types.data || []
               }
               showColor={activeSection.key === "severity" || activeSection.key === "priority"}
+              canManage={activeSection.key === "type" ? canManageQa : canManageBugs}
               onCreate={() => setEditing({ kind: activeSection.key as EditorKind, option: null })}
               onEdit={(o) => setEditing({ kind: activeSection.key as EditorKind, option: o })}
               onDelete={async (id) => {
@@ -579,6 +580,7 @@ interface ConfigSectionProps {
   loading: boolean;
   options: BugConfigOption[];
   showColor: boolean;
+  canManage: boolean;
   onCreate: () => void;
   onEdit: (o: BugConfigOption) => void;
   onDelete: (id: string) => Promise<void>;
@@ -591,12 +593,12 @@ function ConfigSection({
   loading,
   options,
   showColor,
+  canManage,
   onCreate,
   onEdit,
   onDelete,
   onToggleActive,
 }: ConfigSectionProps) {
-  const { canManageBugs } = usePermission();
   const lowerTitle = title.toLowerCase();
   const [searchTerm, setSearchTerm] = useState("");
 
@@ -660,7 +662,7 @@ function ConfigSection({
       width: 80,
       align: "center",
       render: (val: boolean, row) => (
-        <Switch checked={val} size="small" onChange={() => onToggleActive(row)} disabled={!canManageBugs} />
+        <Switch checked={val} size="small" onChange={() => onToggleActive(row)} disabled={!canManage} />
       ),
     },
     {
@@ -669,8 +671,7 @@ function ConfigSection({
       width: 100,
       align: "right",
       render: (_, row) => {
-        // Bug definitions are a bug.manage action
-        if (!canManageBugs) return <span className="sc-muted">—</span>;
+        if (!canManage) return <span className="sc-muted">—</span>;
         return (
           <div className="sc-rowactions">
             <Tooltip title="Edit">
@@ -711,7 +712,7 @@ function ConfigSection({
             style={{ width: 200 }}
             allowClear
           />
-          {canManageBugs && (
+          {canManage && (
             <Button type="primary" size="small" icon={<Plus size={14} />} onClick={onCreate}>Add Option</Button>
           )}
         </div>
@@ -733,7 +734,7 @@ function ConfigSection({
               <Settings size={26} className="sc-empty__icon" />
               <p className="sc-empty__title">No {lowerTitle} options yet</p>
               <p className="sc-empty__desc">{description}</p>
-              {canManageBugs && (
+              {canManage && (
                 <Button type="primary" size="small" icon={<Plus size={14} />} onClick={onCreate}>Add the first option</Button>
               )}
             </div>
@@ -823,18 +824,26 @@ function OptionEditor({
   const eyebrowKind =
     editing?.kind === "severity" ? "Severity option"
       : editing?.kind === "priority" ? "Priority option"
-        : "Type option";
+        : editing?.kind === "bug_type" ? "Bug Type option"
+          : "Testing Type option";
+  const kindLabel =
+    editing?.kind === "severity" ? "Severity"
+      : editing?.kind === "priority" ? "Priority"
+        : editing?.kind === "bug_type" ? "Bug Type"
+          : "Testing Type";
   const titleText = editing
     ? isEdit
-      ? `Edit ${editing.kind}`
-      : `New ${editing.kind}`
+      ? `Edit ${kindLabel}`
+      : `New ${kindLabel}`
     : "";
   const subText =
     editing?.kind === "severity"
       ? "Severities surface in the Capture Bug dropdown and the table pill."
       : editing?.kind === "priority"
         ? "Priorities are shared across test cases and runs."
-        : "Types categorize bugs (UI / Functional / API and any custom buckets).";
+        : editing?.kind === "bug_type"
+          ? "Bug Types categorize bugs (UI / Functional / API and any custom buckets)."
+          : "Testing Types categorize test cases by test area or methodology.";
 
   return (
     <Drawer

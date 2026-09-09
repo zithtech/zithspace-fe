@@ -612,7 +612,10 @@ export const useDeleteBugSeverity = () => {
   const { message } = App.useApp();
   return useMutation({
     mutationFn: (id: string) => BugListService.deleteSeverityOption(id),
-    onSuccess: () => {
+    onSuccess: (_, id) => {
+      qc.setQueryData(severityKeys.all, (old: BugConfigOption[] | undefined) => 
+        old ? old.filter(item => item.id !== id) : old
+      );
       qc.invalidateQueries({ queryKey: severityKeys.all });
       message.success("Severity deleted");
     },
@@ -665,7 +668,10 @@ export const useDeleteBugType = () => {
   const { message } = App.useApp();
   return useMutation({
     mutationFn: (id: string) => BugListService.deleteTypeOption(id),
-    onSuccess: () => {
+    onSuccess: (_, id) => {
+      qc.setQueryData(bugTypeKeys.all, (old: BugConfigOption[] | undefined) => 
+        old ? old.filter(item => item.id !== id) : old
+      );
       qc.invalidateQueries({ queryKey: bugTypeKeys.all });
       message.success("Type deleted");
     },
@@ -718,7 +724,10 @@ export const useDeleteBugListType = () => {
   const { message } = App.useApp();
   return useMutation({
     mutationFn: (id: string) => BugListService.deleteBugListTypeOption(id),
-    onSuccess: () => {
+    onSuccess: (_, id) => {
+      qc.setQueryData(bugListTypeKeys.all, (old: BugConfigOption[] | undefined) => 
+        old ? old.filter(item => item.id !== id) : old
+      );
       qc.invalidateQueries({ queryKey: bugListTypeKeys.all });
       message.success("Bug type deleted");
     },
@@ -772,7 +781,10 @@ export const useDeleteBugPriority = () => {
   const { message } = App.useApp();
   return useMutation({
     mutationFn: (id: string) => BugListService.deletePriorityOption(id),
-    onSuccess: () => {
+    onSuccess: (_, id) => {
+      qc.setQueryData(priorityKeys.all, (old: BugConfigOption[] | undefined) => 
+        old ? old.filter(item => item.id !== id) : old
+      );
       qc.invalidateQueries({ queryKey: priorityKeys.all });
       message.success("Priority deleted");
     },

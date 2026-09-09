@@ -73,10 +73,11 @@ export default function RequestedPlaybooksPage() {
   const { user } = useAuth();
   const { canReadPlaybook, canRequestPlaybook } = usePermission();
 
-  const hasRequestPlaybookFeature =
-    !user?.subscriptionFeatures ||
-    user.subscriptionFeatures.includes("work_playbooks_requested_playbooks_request_playbook") ||
-    user.subscriptionFeatures.includes("work_playbooks_qa_playbooks_request_playbook");
+  const hasRequestPlaybookFeature = Boolean(
+    user?.subscriptionFeatures &&
+    (user.subscriptionFeatures.includes("work_playbooks_requested_playbooks_request_playbook") ||
+     user.subscriptionFeatures.includes("work_playbooks_qa_playbooks_request_playbook"))
+  );
 
   const [status, setStatus] = useState("all");
   const [askOpen, setAskOpen] = useState(false);

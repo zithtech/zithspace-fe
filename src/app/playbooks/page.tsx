@@ -109,32 +109,39 @@ export default function PlaybooksPage() {
   const [browseBy, setBrowseBy] = useState<BrowseBy>("collections");
   const [category, setCategory] = useState<string>(ALL_GROUP);
 
-  const hasRequestPlaybookFeature =
-    !user?.subscriptionFeatures ||
-    user.subscriptionFeatures.includes("work_playbooks_requested_playbooks_request_playbook") ||
-    user.subscriptionFeatures.includes("work_playbooks_qa_playbooks_request_playbook");
-  const hasRequestedFeature =
-    !user?.subscriptionFeatures ||
-    user.subscriptionFeatures.includes("work_playbooks_requested_playbooks_requested") ||
-    user.subscriptionFeatures.includes("work_playbooks_qa_playbooks_requested") ||
-    user.subscriptionFeatures.includes("work_playbooks_requested_playbooks");
+  const hasRequestPlaybookFeature = Boolean(
+    user?.subscriptionFeatures &&
+    (user.subscriptionFeatures.includes("work_playbooks_requested_playbooks_request_playbook") ||
+     user.subscriptionFeatures.includes("work_playbooks_qa_playbooks_request_playbook"))
+  );
+  const hasRequestedFeature = Boolean(
+    user?.subscriptionFeatures &&
+    (user.subscriptionFeatures.includes("work_playbooks_requested_playbooks_requested") ||
+     user.subscriptionFeatures.includes("work_playbooks_qa_playbooks_requested") ||
+     user.subscriptionFeatures.includes("work_playbooks_requested_playbooks"))
+  );
 
-  const hasTemplateFeature =
-    !user?.subscriptionFeatures ||
-    user.subscriptionFeatures.includes("work_playbooks_qa_playbooks_template");
-  const hasUploadFeature =
-    !user?.subscriptionFeatures ||
-    user.subscriptionFeatures.includes("work_playbooks_qa_playbooks_upload");
-  const hasAccessFeature =
-    !user?.subscriptionFeatures ||
-    user.subscriptionFeatures.includes("work_playbooks_qa_playbooks_access");
-  const hasNewCollectionFeature =
-    !user?.subscriptionFeatures ||
-    user.subscriptionFeatures.includes("work_playbooks_collections_new_collections") ||
-    user.subscriptionFeatures.includes("work_playbooks_qa_playbooks_new_collections");
-  const hasNewPlaybookFeature =
-    !user?.subscriptionFeatures ||
-    user.subscriptionFeatures.includes("work_playbooks_qa_playbooks_new_playbook");
+  const hasTemplateFeature = Boolean(
+    user?.subscriptionFeatures &&
+    user.subscriptionFeatures.includes("work_playbooks_qa_playbooks_template")
+  );
+  const hasUploadFeature = Boolean(
+    user?.subscriptionFeatures &&
+    user.subscriptionFeatures.includes("work_playbooks_qa_playbooks_upload")
+  );
+  const hasAccessFeature = Boolean(
+    user?.subscriptionFeatures &&
+    user.subscriptionFeatures.includes("work_playbooks_qa_playbooks_access")
+  );
+  const hasNewCollectionFeature = Boolean(
+    user?.subscriptionFeatures &&
+    (user.subscriptionFeatures.includes("work_playbooks_collections_new_collections") ||
+     user.subscriptionFeatures.includes("work_playbooks_qa_playbooks_new_collections"))
+  );
+  const hasNewPlaybookFeature = Boolean(
+    user?.subscriptionFeatures &&
+    user.subscriptionFeatures.includes("work_playbooks_qa_playbooks_new_playbook")
+  );
   /**
    * The second step INSIDE a collection.
    *

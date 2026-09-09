@@ -399,6 +399,11 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
             label: "Requested Playbooks",
             icon: I(Sparkles),
             path: "/playbooks/requested",
+            requiredSubscriptionFeature: [
+              "work_playbooks_requested_playbooks",
+              "work_playbooks_requested_playbooks_requested",
+              "work_playbooks_qa_playbooks_requested"
+            ],
             requiredAnyPermission: [Permissions.PLAYBOOK_READ],
           },
           {

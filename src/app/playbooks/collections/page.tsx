@@ -14,11 +14,22 @@
  */
 
 import React, { useMemo, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
-import { Button, Input } from "antd";
+import { Button, Dropdown, Input, Tooltip, message } from "antd";
 import { PlusOutlined } from "@ant-design/icons";
-import { ArrowUpRight, BookOpen, Layers, Lock, Search, Sparkles, Trash2 } from "lucide-react";
+import {
+  ArrowUpRight,
+  BookOpen,
+  Check,
+  ChevronDown,
+  Layers,
+  Lock,
+  Pencil,
+  Search,
+  Sparkles,
+  Trash2,
+} from "lucide-react";
 
 import MainLayout from "@/components/layout/MainLayout";
 import NoData from "@/components/common/NoData";
@@ -35,50 +46,175 @@ import {
   COLLECTION_KIND_HEADINGS,
   COLLECTION_KIND_ORDER,
   PLAYBOOK_STYLES,
+  VISIBILITY_LABELS,
   type CollectionKind,
   type CollectionSummary,
+  type PlaybookStatus,
+  type PlaybookVisibility,
 } from "@/components/qa/playbookShared";
 
 /**
  * One collection on the shelf.
- *
- * Extracted because the pinned band and the kind sections render the SAME card
- * — a second copy is how the two quietly stop agreeing about what a locked or
- * empty pack looks like.
  */
 function CollectionCard({
   collection,
   onOpen,
+  onEdit,
+  onStatusChange,
+  canPublish,
 }: {
   collection: CollectionSummary;
   onOpen: () => void;
+  onEdit?: () => void;
+  onStatusChange?: (status: PlaybookStatus, visibility?: PlaybookVisibility) => void;
+  canPublish?: boolean;
 }) {
   return (
-    <button type="button" className="pbc-card" onClick={onOpen}>
+    <div
+      role="button"
+      tabIndex={0}
+      className="pbc-card"
+      onClick={onOpen}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          onOpen();
+        }
+      }}
+    >
       <div className="pbc-card__top">
         <span className="pbc-card__av">
           <CollectionIcon name={collection.icon} />
         </span>
         <div className="pbc-card__id">
           <span className="pbc-card__name">{collection.name}</span>
-          <span className="pbc-card__tags">
+          <span
+            className="pbc-card__tags"
+            onClick={(e) => e.stopPropagation()}
+            onKeyDown={(e) => e.stopPropagation()}
+          >
             {collection.pinned && <span className="pbc-tag is-pinned">Yours</span>}
-            {/* A premium pack this workspace has not bought. It still opens —
-                you cannot decide to buy what you cannot see. */}
+            {onStatusChange ? (
+              <Dropdown
+                trigger={["click"]}
+                placement="bottomLeft"
+                menu={{
+                  items: [
+                    {
+                      key: "draft",
+                      label: (
+                        <div style={{ display: "flex", flexDirection: "column", padding: "2px 0" }}>
+                          <span style={{ fontWeight: 600, fontSize: 12.5, color: "#0f172a" }}>Draft</span>
+                          <span style={{ fontSize: 11, color: "#64748b" }}>Work in progress (unlisted)</span>
+                        </div>
+                      ),
+                      icon: collection.status === "draft" ? <Check size={14} color="#2563eb" /> : <div style={{ width: 14 }} />,
+                      onClick: (e) => {
+                        e.domEvent.stopPropagation();
+                        onStatusChange("draft");
+                      },
+                    },
+                    {
+                      type: "divider",
+                    },
+                    {
+                      key: "workspace",
+                      label: (
+                        <div style={{ display: "flex", flexDirection: "column", padding: "2px 0" }}>
+                          <span style={{ fontWeight: 600, fontSize: 12.5, color: "#0f172a" }}>Publish (Private)</span>
+                          <span style={{ fontSize: 11, color: "#64748b" }}>Visible only to your workspace</span>
+                        </div>
+                      ),
+                      icon: collection.status === "published" && collection.visibility === "workspace" ? <Check size={14} color="#2563eb" /> : <div style={{ width: 14 }} />,
+                      onClick: (e) => {
+                        e.domEvent.stopPropagation();
+                        onStatusChange("published", "workspace");
+                      },
+                    },
+                    {
+                      key: "public",
+                      label: (
+                        <div style={{ display: "flex", flexDirection: "column", padding: "2px 0" }}>
+                          <span style={{ fontWeight: 600, fontSize: 12.5, color: "#0f172a" }}>Publish (Public)</span>
+                          <span style={{ fontSize: 11, color: "#64748b" }}>Visible to all workspaces</span>
+                        </div>
+                      ),
+                      icon: collection.status === "published" && collection.visibility === "public" ? <Check size={14} color="#2563eb" /> : <div style={{ width: 14 }} />,
+                      onClick: (e) => {
+                        e.domEvent.stopPropagation();
+                        onStatusChange("published", "public");
+                      },
+                    },
+                    ...(canPublish ? [
+                      {
+                        key: "premium",
+                        label: (
+                          <div style={{ display: "flex", flexDirection: "column", padding: "2px 0" }}>
+                            <span style={{ fontWeight: 600, fontSize: 12.5, color: "#7e22ce" }}>Publish (Premium)</span>
+                            <span style={{ fontSize: 11, color: "#64748b" }}>Listed globally, unlocked on purchase</span>
+                          </div>
+                        ),
+                        icon: collection.status === "published" && collection.visibility === "premium" ? <Check size={14} color="#7e22ce" /> : <div style={{ width: 14 }} />,
+                        onClick: (e: any) => {
+                          e.domEvent.stopPropagation();
+                          onStatusChange("published", "premium");
+                        },
+                      },
+                    ] : []),
+                  ],
+                }}
+              >
+                <button
+                  type="button"
+                  className={`pb-tier ${collection.status === "draft" ? "pb-tier--draft" : `pb-tier--${collection.visibility}`} is-clickable`}
+                  onClick={(e) => e.stopPropagation()}
+                  title="Click to change status"
+                  style={{ cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 4 }}
+                >
+                  {collection.status === "draft" ? "Draft" : VISIBILITY_LABELS[collection.visibility]}
+                  <ChevronDown size={11} style={{ opacity: 0.6 }} />
+                </button>
+              </Dropdown>
+            ) : (
+              collection.status === "draft" ? (
+                <span className="pb-tier pb-tier--draft">Draft</span>
+              ) : (
+                <span className={`pb-tier pb-tier--${collection.visibility}`}>
+                  {VISIBILITY_LABELS[collection.visibility]}
+                </span>
+              )
+            )}
             {collection.locked && (
               <span className="pbc-tag is-locked">
                 <Lock size={9} /> Premium
               </span>
             )}
-            {/* Only a curator ever sees a draft, so the tag is only ever
-                meaningful to them. */}
-            {collection.status !== "published" && (
-              <span className="pbc-tag is-draft">{collection.status}</span>
-            )}
           </span>
         </div>
-        <span className="pbc-card__go">
-          <ArrowUpRight size={16} />
+        <span
+          className="pbc-card__actions"
+          onClick={(e) => e.stopPropagation()}
+          onKeyDown={(e) => e.stopPropagation()}
+          style={{ display: "inline-flex", alignItems: "center", gap: 4, marginLeft: "auto" }}
+        >
+          {onEdit && (
+            <Tooltip title="Edit collection">
+              <button
+                type="button"
+                className="pb-iconbtn"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onEdit();
+                }}
+                aria-label="Edit collection"
+              >
+                <Pencil size={13} />
+              </button>
+            </Tooltip>
+          )}
+          <span className="pbc-card__go">
+            <ArrowUpRight size={16} />
+          </span>
         </span>
       </div>
 
@@ -100,7 +236,7 @@ function CollectionCard({
           </>
         )}
       </div>
-    </button>
+    </div>
   );
 }
 
@@ -114,6 +250,7 @@ export default function CollectionsPage() {
   const [search, setSearch] = useState("");
   const [creating, setCreating] = useState(false);
   const [pinning, setPinning] = useState(false);
+  const [editingCollection, setEditingCollection] = useState<CollectionSummary | null>(null);
   const debouncedSearch = useDebounce(search, 300);
 
   const hasNewCollectionFeature =
@@ -141,6 +278,36 @@ export default function CollectionsPage() {
   });
 
   const canCurate = data?.canCurate ?? false;
+  const queryClient = useQueryClient();
+
+  const setStatusMutation = useMutation({
+    mutationFn: async ({
+      id,
+      status,
+      visibility,
+    }: {
+      id: string;
+      status: PlaybookStatus;
+      visibility?: PlaybookVisibility;
+    }) => {
+      const res = await axios.post(`/api/v2/qa/playbooks/collections/${id}/status`, {
+        status,
+        visibility,
+      });
+      return res.data;
+    },
+    onSuccess: (_, variables) => {
+      message.success(
+        variables.status === "draft"
+          ? "Collection moved to Draft"
+          : `Collection published as ${VISIBILITY_LABELS[variables.visibility || "workspace"]}`
+      );
+      queryClient.invalidateQueries({ queryKey: ["qa", "collections"] });
+    },
+    onError: (err: any) => {
+      message.error(err?.response?.data?.error || "Failed to update status");
+    },
+  });
 
   const all = useMemo(() => data?.collections ?? [], [data]);
   /* What this workspace said it builds. The API already sorts these first; the
@@ -304,6 +471,22 @@ export default function CollectionsPage() {
                           onOpen={() =>
                             router.push(`/playbooks/collections/${collection.slug}`)
                           }
+                          onEdit={
+                            collection.isOwn
+                              ? () => setEditingCollection(collection)
+                              : undefined
+                          }
+                          canPublish={Boolean(collection.isOwn)}
+                          onStatusChange={
+                            collection.isOwn
+                              ? (status, visibility) =>
+                                  setStatusMutation.mutate({
+                                    id: collection.id,
+                                    status,
+                                    visibility,
+                                  })
+                              : undefined
+                          }
                         />
                       ))}
                     </div>
@@ -324,6 +507,22 @@ export default function CollectionsPage() {
                           onOpen={() =>
                             router.push(`/playbooks/collections/${collection.slug}`)
                           }
+                          onEdit={
+                            collection.isOwn
+                              ? () => setEditingCollection(collection)
+                              : undefined
+                          }
+                          canPublish={Boolean(collection.isOwn)}
+                          onStatusChange={
+                            collection.isOwn
+                              ? (status, visibility) =>
+                                  setStatusMutation.mutate({
+                                    id: collection.id,
+                                    status,
+                                    visibility,
+                                  })
+                              : undefined
+                          }
                         />
                       ))}
                     </div>
@@ -342,12 +541,19 @@ export default function CollectionsPage() {
       />
 
       <CollectionFormModal
-        open={creating}
-        canCurate={canCurate}
+        collection={editingCollection}
+        open={creating || editingCollection !== null}
+        canCurate={Boolean(editingCollection?.isOwn ?? true)}
         existing={all}
         industries={data?.industries ?? []}
-        onClose={() => setCreating(false)}
-        onSaved={(slug) => slug && router.push(`/playbooks/collections/${slug}`)}
+        onClose={() => {
+          setCreating(false);
+          setEditingCollection(null);
+        }}
+        onSaved={(slug) => {
+          setEditingCollection(null);
+          if (slug && creating) router.push(`/playbooks/collections/${slug}`);
+        }}
       />
     </MainLayout>
   );

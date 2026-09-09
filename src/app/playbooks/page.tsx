@@ -53,7 +53,10 @@ import { downloadTemplate, templatePrompt } from "@/components/qa/playbookTempla
 import { SearchableDropdown } from "@/components/common/SearchableDropdown";
 import {
   PLAYBOOK_STYLES,
+  VISIBILITY_LABELS,
   type CollectionSummary,
+  type PlaybookStatus,
+  type PlaybookVisibility,
   type PlaybookSummary,
 } from "@/components/qa/playbookShared";
 
@@ -467,13 +470,40 @@ export default function PlaybooksPage() {
     router.push(`/playbooks/create${query ? `?${query}` : ""}`);
   };
 
-  /* Only what the API would accept: your workspace's own playbooks, and for a
-     super_admin the maintained library as well. Mirrors assertCanEdit on the
-     server, so no card offers an action that would come back 403. */
+  /* Only the creator of the playbook can edit, delete, or change status. */
   const canManage = (playbook: PlaybookSummary) =>
     (canUpdatePlaybook || canCreatePlaybook) &&
     hasNewPlaybookFeature &&
-    (playbook.isOwn || canPublish || canManagePlaybook);
+    Boolean(playbook.isOwn);
+
+  const setStatusMutation = useMutation({
+    mutationFn: async ({
+      id,
+      status,
+      visibility,
+    }: {
+      id: string;
+      status: PlaybookStatus;
+      visibility?: PlaybookVisibility;
+    }) => {
+      const res = await axios.post(`/api/v2/qa/playbooks/${id}/status`, {
+        status,
+        visibility,
+      });
+      return res.data;
+    },
+    onSuccess: (_, variables) => {
+      message.success(
+        variables.status === "draft"
+          ? "Playbook moved to Draft"
+          : `Playbook published as ${VISIBILITY_LABELS[variables.visibility || "workspace"]}`
+      );
+      queryClient.invalidateQueries({ queryKey: ["qa", "playbooks"] });
+    },
+    onError: (err: any) => {
+      message.error(err?.response?.data?.error || "Failed to update status");
+    },
+  });
 
   const remove = useMutation({
     mutationFn: (id: string) => axios.delete(`/api/v2/qa/playbooks/${id}`),
@@ -972,6 +1002,17 @@ export default function PlaybooksPage() {
                             ? () => remove.mutateAsync(playbook.id).catch(() => {})
                             : undefined
                         }
+                        onStatusChange={
+                          canManage(playbook)
+                            ? (status, visibility) =>
+                                setStatusMutation.mutate({
+                                  id: playbook.id,
+                                  status,
+                                  visibility,
+                                })
+                            : undefined
+                        }
+                        canPublish={canPublish}
                         deleting={remove.isPending && remove.variables === playbook.id}
                       />
                     ))}

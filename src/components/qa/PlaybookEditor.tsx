@@ -82,6 +82,7 @@ import {
   type PlaybookDetail,
   type PlaybookSummary,
   type PlaybookVisibility,
+  type PlaybookStatus,
 } from "@/components/qa/playbookShared";
 
 const { TextArea } = Input;
@@ -99,6 +100,7 @@ interface MetaState {
   version: string;
   changelog: string;
   visibility: PlaybookVisibility;
+  status: PlaybookStatus;
   price_credits: string;
   price_amount: string;
   price_currency: string;
@@ -154,7 +156,8 @@ export default function PlaybookEditor({
     overview: initial?.overview ?? "",
     version: initial?.version ?? "1.0",
     changelog: "",
-    visibility: initial?.visibility ?? (meta?.canPublish ? "public" : "workspace"),
+    visibility: initial?.visibility ?? "workspace",
+    status: (initial?.status as any) ?? "draft",
     price_credits: initial?.priceCredits != null ? String(initial.priceCredits) : "",
     price_amount: initial?.priceAmount != null ? String(initial.priceAmount) : "",
     price_currency: initial?.priceCurrency ?? "USD",
@@ -281,7 +284,7 @@ export default function PlaybookEditor({
       summary: metaState.summary,
       version: metaState.version || "1.0",
       visibility: metaState.visibility,
-      status: initial?.status ?? "draft",
+      status: metaState.status,
       isOwn: true,
       locked: false,
       priceCredits: metaState.price_credits ? Number(metaState.price_credits) : null,
@@ -486,6 +489,7 @@ export default function PlaybookEditor({
       overview: metaState.overview,
       version: metaState.version.trim() || "1.0",
       visibility: metaState.visibility,
+      status: metaState.status,
       price_credits:
         metaState.visibility === "premium" && metaState.price_credits
           ? Number(metaState.price_credits)
@@ -648,9 +652,13 @@ export default function PlaybookEditor({
             </div>
 
             <div className="sc-header-right">
-              <span className={`pb-tier pb-tier--${metaState.visibility}`}>
-                {VISIBILITY_LABELS[metaState.visibility]}
-              </span>
+              {metaState.status === "draft" ? (
+                <span className="pb-tier pb-tier--draft">Draft</span>
+              ) : (
+                <span className={`pb-tier pb-tier--${metaState.visibility}`}>
+                  {VISIBILITY_LABELS[metaState.visibility]}
+                </span>
+              )}
               <Button
                 className="pb-btn"
                 icon={showPreview ? <EyeOff size={15} /> : <Eye size={15} />}
@@ -891,35 +899,73 @@ export default function PlaybookEditor({
                     title="Visibility & access"
                     description="Who can see this playbook, and on what terms."
                   >
-                    {canPublish ? (
+                    <div className="pb-form__grid">
                       <Field
-                        label="Visibility"
-                        hint="Public is free for every workspace. Premium is listed everywhere with the body locked until access is granted."
+                        label="Status"
+                        hint={
+                          metaState.status === "draft"
+                            ? "Drafts are work-in-progress and visible only to you."
+                            : "Published playbooks are live and visible according to the visibility setting below."
+                        }
                       >
                         <SearchableDropdown
-                          value={metaState.visibility}
+                          value={metaState.status}
                           onChange={(value: string) =>
-                            setMetaState({ ...metaState, visibility: value as PlaybookVisibility })
+                            setMetaState({ ...metaState, status: value as PlaybookStatus })
                           }
                           options={[
-                            { value: "public", label: "Public", description: "Free for every workspace" },
                             {
-                              value: "premium",
-                              label: "Premium",
-                              description: "Listed everywhere, unlocked on purchase or grant",
+                              value: "draft",
+                              label: "Draft",
+                              description: "Work in progress (visible only to you)",
+                            },
+                            {
+                              value: "published",
+                              label: "Published",
+                              description: "Live (choose Public or Private workspace)",
                             },
                           ]}
-                          placeholder="Select visibility"
+                          placeholder="Select status"
                         />
                       </Field>
-                    ) : (
-                      <Field
-                        label="Visibility"
-                        hint="Playbooks you create stay private to your workspace. Publishing to every workspace is done by Testiez."
-                      >
-                        <Input value="My workspace" size="large" disabled />
-                      </Field>
-                    )}
+
+                      {metaState.status === "published" && (
+                        <Field
+                          label="Visibility"
+                          hint="Public is visible to all workspaces. Private is visible only to members of your workspace."
+                        >
+                          <SearchableDropdown
+                            value={metaState.visibility}
+                            onChange={(value: string) =>
+                              setMetaState({ ...metaState, visibility: value as PlaybookVisibility })
+                            }
+                            options={[
+                              {
+                                value: "workspace",
+                                label: "Private (My Workspace)",
+                                description: "Visible only within your workspace tenant",
+                              },
+                              {
+                                value: "public",
+                                label: "Public",
+                                description: "Visible to all workspaces and tenants",
+                              },
+                              ...(canPublish
+                                ? [
+                                    {
+                                      value: "premium",
+                                      label: "Premium",
+                                      description:
+                                        "Listed everywhere, unlocked on purchase or grant",
+                                    },
+                                  ]
+                                : []),
+                            ]}
+                            placeholder="Select visibility"
+                          />
+                        </Field>
+                      )}
+                    </div>
 
                     {canPublish && metaState.visibility === "premium" && (
                       <div className="pb-form__grid">

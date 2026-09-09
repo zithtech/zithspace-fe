@@ -10,19 +10,11 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter, useSearchParams } from "next/navigation";
+import { Button, Checkbox, Input, Tooltip, message, Modal } from "antd";
 import {
-  Button,
-  Checkbox,
-  Input,
-  Modal,
-  Popconfirm,
-  Tooltip,
-  message,
-} from "antd";
-import {
+  AlertTriangle,
   ArrowLeft,
   BookOpen,
-  Calendar,
   CheckSquare,
   Clock,
   FolderArchive,
@@ -30,11 +22,11 @@ import {
   RefreshCw,
   RotateCcw,
   Search,
+  Sparkles,
   Square,
   Trash2,
   User,
-  AlertTriangle,
-  Sparkles,
+  X,
 } from "lucide-react";
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
@@ -42,8 +34,11 @@ import relativeTime from "dayjs/plugin/relativeTime";
 import MainLayout from "@/components/layout/MainLayout";
 import NoData from "@/components/common/NoData";
 import { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
+import ConfirmDialog from "@/components/common/ConfirmDialog";
+import { CollectionIcon } from "@/components/qa/CollectionIcon";
 import { usePermission } from "@/hooks/usePermission";
 import { useActivitySource } from "@/hooks/useActivitySource";
+import { useDebounce } from "@/hooks/useDebounce";
 import { api as axios } from "@/lib/axios";
 import { PLAYBOOK_STYLES } from "@/components/qa/playbookShared";
 
@@ -124,6 +119,7 @@ export default function PlaybooksTrashPage() {
   }, [tabParam]);
 
   const [search, setSearch] = useState("");
+  const debouncedSearch = useDebounce(search, 250);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [actionLoading, setActionLoading] = useState(false);
 
@@ -153,13 +149,14 @@ export default function PlaybooksTrashPage() {
   const categories = data?.categories || [];
   const counts = data?.counts || { playbooks: 0, collections: 0, categories: 0, total: 0 };
 
-  const q = search.trim().toLowerCase();
+  const q = debouncedSearch.trim().toLowerCase();
   const filteredPlaybooks = useMemo(
     () =>
       playbooks.filter(
         (p) =>
           !q ||
           (p.name || "").toLowerCase().includes(q) ||
+          (p.slug || "").toLowerCase().includes(q) ||
           (p.category || "").toLowerCase().includes(q) ||
           (p.summary || "").toLowerCase().includes(q) ||
           (p.deleted_by_name || "").toLowerCase().includes(q)
@@ -173,6 +170,7 @@ export default function PlaybooksTrashPage() {
         (c) =>
           !q ||
           (c.name || "").toLowerCase().includes(q) ||
+          (c.slug || "").toLowerCase().includes(q) ||
           (c.kind || "").toLowerCase().includes(q) ||
           (c.summary || "").toLowerCase().includes(q) ||
           (c.deleted_by_name || "").toLowerCase().includes(q)
@@ -186,6 +184,7 @@ export default function PlaybooksTrashPage() {
         (cat) =>
           !q ||
           (cat.name || "").toLowerCase().includes(q) ||
+          (cat.slug || "").toLowerCase().includes(q) ||
           (cat.description || "").toLowerCase().includes(q) ||
           (cat.deleted_by_name || "").toLowerCase().includes(q)
       ),
@@ -407,329 +406,198 @@ export default function PlaybooksTrashPage() {
     <MainLayout noPadding>
       <style dangerouslySetInnerHTML={{ __html: PLAYBOOK_STYLES }} />
       <style jsx global>{`
-        .pb-trash-page {
-          display: flex;
-          flex-direction: column;
-          height: 100%;
-          min-height: calc(100vh - 64px);
-          background: #f8fafc;
-        }
-        .pb-trash-hero {
-          background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
-          border-bottom: 1px solid #e2e8f0;
-          padding: 24px 32px 20px 32px;
-        }
-        .pb-trash-hero__top {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          margin-bottom: 20px;
-          gap: 16px;
-        }
-        .pb-trash-hero__title-wrap {
-          display: flex;
-          align-items: center;
-          gap: 14px;
-        }
-        .pb-trash-hero__icon {
-          width: 44px;
-          height: 44px;
-          border-radius: 12px;
-          background: #fee2e2;
-          border: 1px solid #fecaca;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          color: #dc2626;
-          box-shadow: 0 2px 6px rgba(220, 38, 38, 0.08);
-        }
-        .pb-trash-hero__title {
-          font-size: 20px;
-          font-weight: 700;
-          color: #0f172a;
-          margin: 0;
-          line-height: 1.2;
-        }
-        .pb-trash-hero__sub {
-          font-size: 13px;
-          color: #64748b;
-          margin-top: 4px;
-        }
-        .pb-trash-stats-row {
-          display: grid;
-          grid-template-columns: repeat(4, 1fr);
-          gap: 14px;
-        }
-        @media (max-width: 900px) {
-          .pb-trash-stats-row {
-            grid-template-columns: repeat(2, 1fr);
-          }
-        }
-        .pb-trash-stat-box {
-          background: #ffffff;
-          border: 1px solid #e2e8f0;
-          border-radius: 10px;
-          padding: 12px 16px;
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
-          transition: transform 0.15s ease, border-color 0.15s ease;
-        }
-        .pb-trash-stat-box:hover {
-          border-color: #cbd5e1;
-          transform: translateY(-1px);
-        }
-        .pb-trash-stat-box__label {
-          font-size: 12px;
-          color: #64748b;
-          font-weight: 500;
-        }
-        .pb-trash-stat-box__val {
-          font-size: 18px;
-          font-weight: 700;
-          color: #0f172a;
-        }
-
-        /* ── Controls Toolbar ── */
-        .pb-trash-toolbar {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          padding: 16px 32px;
-          background: #ffffff;
-          border-bottom: 1px solid #e2e8f0;
-          gap: 16px;
-          flex-wrap: wrap;
-        }
-        .pb-trash-pills {
-          display: flex;
-          gap: 6px;
-          background: #f1f5f9;
-          padding: 4px;
-          border-radius: 9px;
-        }
-        .pb-trash-pill {
-          border: none;
-          background: transparent;
-          font-size: 13px;
-          font-weight: 500;
-          color: #64748b;
-          padding: 6px 14px;
-          border-radius: 6px;
-          cursor: pointer;
-          transition: all 0.15s ease;
-          display: inline-flex;
-          align-items: center;
-          gap: 6px;
-        }
-        .pb-trash-pill:hover {
-          color: #0f172a;
-        }
-        .pb-trash-pill.is-active {
-          background: #ffffff;
-          color: #2563eb;
-          font-weight: 600;
-          box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
-        }
-        .pb-trash-pill__count {
-          padding: 1px 6px;
-          border-radius: 10px;
-          font-size: 11px;
-          background: #e2e8f0;
-          color: #475569;
-        }
-        .pb-trash-pill.is-active .pb-trash-pill__count {
-          background: #eff6ff;
-          color: #2563eb;
-        }
-
-        /* ── Bulk Action Bar ── */
-        .pb-trash-bulk-bar {
-          background: #f0fdf4;
-          border: 1px solid #bbf7d0;
-          border-radius: 10px;
-          padding: 10px 18px;
-          margin: 16px 32px 0 32px;
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
-          animation: fadeIn 0.2s ease;
-        }
-        @keyframes fadeIn {
-          from { opacity: 0; transform: translateY(-4px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-
-        /* ── Cards Grid ── */
-        .pb-trash-content {
-          padding: 24px 32px;
-          flex: 1;
-        }
+        /* ── Unified Trash Styling ─────────────────────────────────────────── */
         .pb-trash-grid {
           display: grid;
           grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
-          gap: 18px;
+          gap: 16px;
         }
 
-        /* ── Trash Card Component ── */
-        .pb-tcard {
-          background: #ffffff;
-          border: 1px solid #e2e8f0;
-          border-radius: 14px;
-          padding: 20px;
-          display: flex;
-          flex-direction: column;
+        .pb-card.is-trashed {
           position: relative;
-          box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
-          transition: all 0.2s ease;
+          cursor: default;
+          transition: border-color 0.18s ease, box-shadow 0.18s ease, transform 0.18s ease;
         }
-        .pb-tcard:hover {
-          border-color: #cbd5e1;
-          box-shadow: 0 6px 16px rgba(0, 0, 0, 0.06);
+        .pb-card.is-trashed:hover {
+          border-color: var(--border-slate-300, #cbd5e1);
+          box-shadow: 0 6px 20px rgba(15, 23, 42, 0.06);
           transform: translateY(-2px);
         }
-        .pb-tcard.is-selected {
+        .pb-card.is-trashed.is-selected {
           border-color: #3b82f6;
-          background: #f8faff;
-          box-shadow: 0 0 0 1px #3b82f6, 0 4px 12px rgba(59, 130, 246, 0.08);
+          background: rgba(59, 130, 246, 0.03);
+          box-shadow: 0 0 0 1px #3b82f6, 0 4px 14px rgba(59, 130, 246, 0.08);
         }
-        .pb-tcard__top {
+
+        .pb-trash-av--playbook {
+          color: #dc2626;
+          background: rgba(239, 68, 68, 0.1);
+          border-color: rgba(239, 68, 68, 0.2);
+        }
+        .pb-trash-av--collection {
+          color: #9333ea;
+          background: rgba(147, 51, 234, 0.1);
+          border-color: rgba(147, 51, 234, 0.2);
+        }
+        .pb-trash-av--category {
+          color: #ea580c;
+          background: rgba(234, 88, 12, 0.1);
+          border-color: rgba(234, 88, 12, 0.2);
+        }
+
+        .pb-trash-meta-row {
           display: flex;
           align-items: center;
           justify-content: space-between;
-          gap: 10px;
-          margin-bottom: 12px;
+          padding: 8px 10px;
+          margin-top: 10px;
+          border-radius: 8px;
+          background: var(--bg-slate-50, #f8fafc);
+          border: 1px solid var(--border-slate-200, #e2e8f0);
+          font-size: 11.5px;
+          color: var(--text-slate-500, #64748b);
         }
-        .pb-tcard__badge-row {
+        [data-theme='dark'] .pb-trash-meta-row {
+          background: #0b0f14;
+          border-color: #1f2937;
+        }
+
+        .pb-trash-bulk-floating {
+          position: sticky;
+          top: 12px;
+          z-index: 20;
           display: flex;
           align-items: center;
-          gap: 6px;
-          flex-wrap: wrap;
-        }
-        .pb-tcard__category-badge {
-          display: inline-flex;
-          align-items: center;
-          gap: 4px;
-          padding: 3px 10px;
-          border-radius: 6px;
-          font-size: 11px;
-          font-weight: 600;
-          background: #f1f5f9;
-          color: #475569;
-          border: 1px solid #e2e8f0;
-        }
-        .pb-tcard__version-badge {
-          padding: 3px 8px;
-          border-radius: 6px;
-          font-size: 11px;
-          font-weight: 500;
-          background: #eff6ff;
-          color: #2563eb;
-          border: 1px solid #dbeafe;
-        }
-        .pb-tcard__kind-badge {
-          padding: 3px 9px;
-          border-radius: 6px;
-          font-size: 11px;
-          font-weight: 600;
-          background: #faf5ff;
-          color: #7e22ce;
-          border: 1px solid #f3e8ff;
-          text-transform: capitalize;
-        }
-        .pb-tcard__head {
-          display: flex;
-          align-items: flex-start;
+          justify-content: space-between;
           gap: 12px;
-          margin-bottom: 10px;
+          padding: 10px 16px;
+          margin-bottom: 16px;
+          background: #ffffff;
+          border: 1px solid #3b82f6;
+          border-radius: 12px;
+          box-shadow: 0 10px 25px -5px rgba(59, 130, 246, 0.15), 0 4px 10px -2px rgba(0, 0, 0, 0.05);
+          animation: slideDownFade 0.2s ease-out;
         }
-        .pb-tcard__icon {
-          width: 36px;
-          height: 36px;
-          border-radius: 9px;
-          background: #f8fafc;
-          border: 1px solid #e2e8f0;
-          display: flex;
+        [data-theme='dark'] .pb-trash-bulk-floating {
+          background: #0f1419;
+          border-color: #3b82f6;
+        }
+
+        @keyframes slideDownFade {
+          from {
+            opacity: 0;
+            transform: translateY(-8px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+
+        .pb-pill__count {
+          display: inline-flex;
           align-items: center;
           justify-content: center;
-          color: #475569;
-          flex-shrink: 0;
+          height: 18px;
+          padding: 0 6px;
+          border-radius: 999px;
+          font-size: 10.5px;
+          font-weight: 700;
+          background: rgba(100, 116, 139, 0.12);
+          color: var(--text-slate-500, #64748b);
+          margin-left: 4px;
         }
-        .pb-tcard__title {
-          font-size: 15px;
-          font-weight: 600;
-          color: #0f172a;
-          margin: 0;
-          line-height: 1.35;
-        }
-        .pb-tcard__slug {
-          font-size: 11px;
-          color: #94a3b8;
-          margin-top: 2px;
-          font-family: ui-monospace, monospace;
-        }
-        .pb-tcard__summary {
-          font-size: 12px;
-          color: #64748b;
-          line-height: 1.5;
-          margin-bottom: 16px;
-          display: -webkit-box;
-          -webkit-line-clamp: 2;
-          -webkit-box-orient: vertical;
-          overflow: hidden;
-          flex: 1;
-        }
-        .pb-tcard__meta-bar {
-          display: flex;
-          flex-direction: column;
-          gap: 6px;
-          padding: 10px 12px;
-          background: #f8fafc;
-          border-radius: 8px;
-          border: 1px solid #f1f5f9;
-          margin-bottom: 16px;
-        }
-        .pb-tcard__meta-row {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          font-size: 12px;
-          color: #475569;
-        }
-        .pb-tcard__meta-label {
-          display: inline-flex;
-          align-items: center;
-          gap: 5px;
-          color: #64748b;
-        }
-        .pb-tcard__actions {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          padding-top: 14px;
-          border-top: 1px solid #f1f5f9;
+        .pb-pill.is-on .pb-pill__count {
+          background: rgba(59, 130, 246, 0.18);
+          color: #2563eb;
         }
       `}</style>
 
-      <div className="pb-trash-page">
-        {/* ── Top Hero Area ── */}
-        <div className="pb-trash-hero">
-          <div className="pb-trash-hero__top">
-            <div className="pb-trash-hero__title-wrap">
-              <div className="pb-trash-hero__icon">
-                <Trash2 size={22} />
-              </div>
-              <div>
-                <h1 className="pb-trash-hero__title">Playbooks Recycle Bin</h1>
-                <p className="pb-trash-hero__sub">
-                  Safely review, restore, or permanently purge deleted playbooks, collections, and categories.
-                </p>
-              </div>
+      <div className="dh-shell">
+        <main className="dh-main">
+          {/* ── Top Hero Area ── */}
+          <div className="pb-hero">
+            <span className="pb-hero__badge" style={{ color: "#dc2626", background: "rgba(220, 38, 38, 0.1)", borderColor: "rgba(220, 38, 38, 0.2)" }}>
+              <Trash2 size={18} />
+            </span>
+            <div className="pb-hero__text">
+              <h1 className="pb-hero__title">Playbooks Recycle Bin</h1>
+              <p className="pb-hero__sub">
+                Safely review, restore, or permanently purge deleted playbooks, collections, and categories.
+              </p>
             </div>
 
-            <div style={{ display: "flex", gap: 10 }}>
+            {/* Total counts chips */}
+            <div className="pb-hero__stats">
+              <div className="pb-hero__stat">
+                <BookOpen size={14} />
+                <b>{counts.playbooks}</b>
+                <span>{counts.playbooks === 1 ? "playbook" : "playbooks"}</span>
+              </div>
+              <div className="pb-hero__stat">
+                <FolderArchive size={14} />
+                <b>{counts.collections}</b>
+                <span>{counts.collections === 1 ? "collection" : "collections"}</span>
+              </div>
+              <div className="pb-hero__stat">
+                <Layers size={14} />
+                <b>{counts.categories}</b>
+                <span>{counts.categories === 1 ? "category" : "categories"}</span>
+              </div>
+            </div>
+          </div>
+
+          {/* ── Filter Toolbar ── */}
+          <div className="pb-toolbar">
+            <div className="pb-pills">
+              {(
+                [
+                  ["playbooks", "Playbooks", counts.playbooks, BookOpen],
+                  ["collections", "Collections", counts.collections, FolderArchive],
+                  ["categories", "Categories", counts.categories, Layers],
+                ] as [TrashTab, string, number, any][]
+              ).map(([value, label, count, Icon]) => (
+                <button
+                  key={value}
+                  type="button"
+                  className={`pb-pill ${tab === value ? "is-on" : ""}`}
+                  onClick={() => handleTabChange(value)}
+                >
+                  <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}>
+                    <Icon size={13} />
+                    {label}
+                    <span className="pb-pill__count">{count}</span>
+                  </span>
+                </button>
+              ))}
+            </div>
+
+            <Input
+              allowClear
+              prefix={<Search size={14} style={{ color: "#94a3b8" }} />}
+              placeholder={`Search trashed ${tab}…`}
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="pb-search is-wide"
+            />
+
+            {currentList.length > 0 && (
+              <Button
+                className="pb-btn"
+                onClick={toggleSelectAll}
+                icon={
+                  selectedIds.length > 0 && selectedIds.length === currentIds.length ? (
+                    <CheckSquare size={14} color="#2563eb" />
+                  ) : (
+                    <Square size={14} />
+                  )
+                }
+              >
+                {selectedIds.length === currentIds.length ? "Deselect all" : "Select all"}
+              </Button>
+            )}
+
+            <div className="pb-toolbar__actions">
               <Button
                 className="pb-btn"
                 icon={<ArrowLeft size={14} />}
@@ -737,6 +605,7 @@ export default function PlaybooksTrashPage() {
               >
                 Back to Playbooks
               </Button>
+
               <Button
                 className="pb-btn"
                 icon={<RefreshCw size={14} />}
@@ -745,459 +614,421 @@ export default function PlaybooksTrashPage() {
               >
                 Refresh
               </Button>
+
               {canDeletePlaybookTrash && counts.total > 0 && (
-                <Button
-                  danger
-                  className="pb-btn"
-                  icon={<Trash2 size={14} />}
-                  onClick={handleEmptyTrash}
-                  loading={actionLoading}
-                >
-                  Empty Recycle Bin
-                </Button>
+                <Tooltip title="Permanently delete all items currently in the recycle bin">
+                  <Button
+                    danger
+                    className="pb-btn"
+                    icon={<Trash2 size={14} />}
+                    onClick={handleEmptyTrash}
+                    loading={actionLoading}
+                  >
+                    Empty Recycle Bin
+                  </Button>
+                </Tooltip>
               )}
             </div>
           </div>
 
-          {/* Stats Counters */}
-          <div className="pb-trash-stats-row">
-            <div className="pb-trash-stat-box">
-              <span className="pb-trash-stat-box__label">Trashed Playbooks</span>
-              <span className="pb-trash-stat-box__val">{counts.playbooks}</span>
-            </div>
-            <div className="pb-trash-stat-box">
-              <span className="pb-trash-stat-box__label">Trashed Collections</span>
-              <span className="pb-trash-stat-box__val">{counts.collections}</span>
-            </div>
-            <div className="pb-trash-stat-box">
-              <span className="pb-trash-stat-box__label">Trashed Categories</span>
-              <span className="pb-trash-stat-box__val">{counts.categories}</span>
-            </div>
-            <div className="pb-trash-stat-box" style={{ background: "#fff1f2", borderColor: "#fecdd3" }}>
-              <span className="pb-trash-stat-box__label" style={{ color: "#e11d48" }}>Total Items in Trash</span>
-              <span className="pb-trash-stat-box__val" style={{ color: "#be123c" }}>{counts.total}</span>
-            </div>
-          </div>
-        </div>
+          {/* ── Main Scroll Area ── */}
+          <div className="dh-main-scroll">
+            <ZukvoLoadingOverlay loading={isLoading || actionLoading} minHeight={340}>
+              {/* Floating bulk actions bar */}
+              {selectedIds.length > 0 && (
+                <div className="pb-trash-bulk-floating">
+                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                    <span
+                      style={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: 6,
+                        fontWeight: 700,
+                        fontSize: 13,
+                        color: "#2563eb",
+                      }}
+                    >
+                      <CheckSquare size={16} />
+                      {selectedIds.length} {tab} selected
+                    </span>
+                    <Button
+                      type="text"
+                      size="small"
+                      icon={<X size={13} />}
+                      onClick={() => setSelectedIds([])}
+                      style={{ fontSize: 12, color: "#64748b" }}
+                    >
+                      Clear
+                    </Button>
+                  </div>
 
-        {/* ── Filter Toolbar ── */}
-        <div className="pb-trash-toolbar">
-          <div className="pb-trash-pills">
-            <button
-              type="button"
-              className={`pb-trash-pill ${tab === "playbooks" ? "is-active" : ""}`}
-              onClick={() => handleTabChange("playbooks")}
-            >
-              <BookOpen size={14} />
-              <span>Playbooks</span>
-              <span className="pb-trash-pill__count">{counts.playbooks}</span>
-            </button>
-            <button
-              type="button"
-              className={`pb-trash-pill ${tab === "collections" ? "is-active" : ""}`}
-              onClick={() => handleTabChange("collections")}
-            >
-              <FolderArchive size={14} />
-              <span>Collections</span>
-              <span className="pb-trash-pill__count">{counts.collections}</span>
-            </button>
-            <button
-              type="button"
-              className={`pb-trash-pill ${tab === "categories" ? "is-active" : ""}`}
-              onClick={() => handleTabChange("categories")}
-            >
-              <Layers size={14} />
-              <span>Categories</span>
-              <span className="pb-trash-pill__count">{counts.categories}</span>
-            </button>
-          </div>
-
-          <div style={{ display: "flex", alignItems: "center", gap: 12, flex: 1, maxWidth: 440 }}>
-            <Input
-              allowClear
-              prefix={<Search size={14} style={{ color: "#94a3b8" }} />}
-              placeholder={`Search trashed ${tab}…`}
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              style={{ borderRadius: 8, height: 38 }}
-            />
-          </div>
-
-          {currentList.length > 0 && (
-            <Button
-              className="pb-btn"
-              onClick={toggleSelectAll}
-              icon={
-                selectedIds.length > 0 && selectedIds.length === currentIds.length ? (
-                  <CheckSquare size={14} color="#2563eb" />
-                ) : (
-                  <Square size={14} />
-                )
-              }
-            >
-              {selectedIds.length === currentIds.length ? "Deselect All" : "Select All"}
-            </Button>
-          )}
-        </div>
-
-        {/* ── Bulk Bar ── */}
-        {selectedIds.length > 0 && (
-          <div className="pb-trash-bulk-bar">
-            <span style={{ fontSize: 13, fontWeight: 600, color: "#166534" }}>
-              {selectedIds.length} {tab} selected
-            </span>
-            <div style={{ display: "flex", gap: 8 }}>
-              {canRestorePlaybookTrash && (
-                <Button
-                  size="small"
-                  type="primary"
-                  icon={<RotateCcw size={13} />}
-                  onClick={handleBulkRestore}
-                  loading={actionLoading}
-                >
-                  Restore Selected ({selectedIds.length})
-                </Button>
-              )}
-              {canDeletePlaybookTrash && (
-                <Button
-                  size="small"
-                  danger
-                  icon={<Trash2 size={13} />}
-                  onClick={handleBulkPermanentDelete}
-                  loading={actionLoading}
-                >
-                  Delete Permanently
-                </Button>
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* ── Cards Grid View ── */}
-        <div className="pb-trash-content">
-          <ZukvoLoadingOverlay loading={isLoading || actionLoading} minHeight={340}>
-            {currentList.length === 0 ? (
-              <div style={{ padding: "60px 24px", background: "#ffffff", borderRadius: 14, border: "1px solid #e2e8f0" }}>
-                <NoData
-                  title="Recycle bin is clean"
-                  description={
-                    search
-                      ? `No trashed ${tab} match "${search}".`
-                      : `No ${tab} are currently in the recycle bin.`
-                  }
-                />
-              </div>
-            ) : (
-              <div className="pb-trash-grid">
-                {/* ── Tab: Playbooks ── */}
-                {tab === "playbooks" &&
-                  filteredPlaybooks.map((p) => {
-                    const isSelected = selectedIds.includes(p.id);
-                    return (
-                      <div
-                        key={p.id}
-                        className={`pb-tcard ${isSelected ? "is-selected" : ""}`}
+                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    {canRestorePlaybookTrash && (
+                      <Button
+                        type="primary"
+                        className="pb-btn"
+                        icon={<RotateCcw size={14} />}
+                        onClick={handleBulkRestore}
+                        loading={actionLoading}
                       >
-                        <div className="pb-tcard__top">
-                          <div className="pb-tcard__badge-row">
-                            <span className="pb-tcard__category-badge">
-                              <Layers size={11} />
-                              {p.category || "General"}
-                            </span>
-                            <span className="pb-tcard__version-badge">v{p.version}</span>
-                          </div>
-                          <Checkbox
-                            checked={isSelected}
-                            onChange={() => toggleSelectOne(p.id)}
-                          />
-                        </div>
+                        Restore selected ({selectedIds.length})
+                      </Button>
+                    )}
 
-                        <div className="pb-tcard__head">
-                          <div className="pb-tcard__icon" style={{ background: "#eff6ff", color: "#2563eb", borderColor: "#dbeafe" }}>
-                            <BookOpen size={18} />
-                          </div>
-                          <div style={{ flex: 1, minWidth: 0 }}>
-                            <h3 className="pb-tcard__title">{p.name}</h3>
-                            <div className="pb-tcard__slug">{p.slug}</div>
-                          </div>
-                        </div>
+                    {canDeletePlaybookTrash && (
+                      <Button
+                        danger
+                        className="pb-btn"
+                        icon={<Trash2 size={14} />}
+                        onClick={handleBulkPermanentDelete}
+                        loading={actionLoading}
+                      >
+                        Delete permanently
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              )}
 
-                        <p className="pb-tcard__summary">
-                          {p.summary || "No summary provided for this playbook."}
-                        </p>
+              {/* Cards Grid or Empty State */}
+              {currentList.length === 0 ? (
+                <div style={{ padding: "64px 24px", background: "var(--bg-pure-white)", borderRadius: 14, border: "1px solid var(--border-slate-200)" }}>
+                  <NoData
+                    title="Recycle bin is empty"
+                    description={
+                      search
+                        ? `No trashed ${tab} match "${search}".`
+                        : `No ${tab} are currently in the recycle bin.`
+                    }
+                  />
+                </div>
+              ) : (
+                <div className="pb-trash-grid">
+                  {/* ── TAB 1: PLAYBOOKS ── */}
+                  {tab === "playbooks" &&
+                    filteredPlaybooks.map((p) => {
+                      const isSelected = selectedIds.includes(p.id);
+                      return (
+                        <div
+                          key={p.id}
+                          className={`pb-card is-trashed ${isSelected ? "is-selected" : ""}`}
+                          onClick={() => toggleSelectOne(p.id)}
+                        >
+                          <div className="pb-card__top">
+                            <div
+                              onClick={(e) => e.stopPropagation()}
+                              style={{ display: "inline-flex", alignItems: "center", marginRight: 2 }}
+                            >
+                              <Checkbox
+                                checked={isSelected}
+                                onChange={() => toggleSelectOne(p.id)}
+                              />
+                            </div>
 
-                        <div className="pb-tcard__meta-bar">
-                          <div className="pb-tcard__meta-row">
-                            <span className="pb-tcard__meta-label">
-                              <Sparkles size={12} />
-                              Test items
+                            <span className="pb-card__av pb-trash-av--playbook">
+                              <BookOpen size={16} />
                             </span>
-                            <span style={{ fontWeight: 600, color: "#0f172a" }}>
-                              {p.item_count} recommendation{p.item_count === 1 ? "" : "s"}
+
+                            <div className="pb-card__id">
+                              <span className="pb-card__name">{p.name}</span>
+                              <span className="pb-card__meta">
+                                v{p.version} · <code style={{ fontSize: 10, color: "#94a3b8" }}>{p.slug}</code>
+                              </span>
+                            </div>
+
+                            <span
+                              className="pb-card__actions"
+                              onClick={(e) => e.stopPropagation()}
+                              onKeyDown={(e) => e.stopPropagation()}
+                            >
+                              {canRestorePlaybookTrash && (
+                                <Tooltip title="Restore playbook">
+                                  <button
+                                    type="button"
+                                    className="pb-iconbtn"
+                                    onClick={() => handleRestorePlaybook(p.id, p.name)}
+                                    aria-label="Restore"
+                                    disabled={actionLoading}
+                                  >
+                                    <RotateCcw size={14} />
+                                  </button>
+                                </Tooltip>
+                              )}
+
+                              {canDeletePlaybookTrash && (
+                                <ConfirmDialog
+                                  tone="danger"
+                                  title="Permanently delete playbook?"
+                                  description={`"${p.name}" and all its recommendations will be permanently erased.`}
+                                  confirmText="Delete permanently"
+                                  onConfirm={() => handlePermanentDeletePlaybook(p.id, p.name)}
+                                >
+                                  <Tooltip title="Delete permanently">
+                                    <button
+                                      type="button"
+                                      className="pb-iconbtn is-danger"
+                                      aria-label="Delete permanently"
+                                      disabled={actionLoading}
+                                    >
+                                      <Trash2 size={14} />
+                                    </button>
+                                  </Tooltip>
+                                </ConfirmDialog>
+                              )}
                             </span>
                           </div>
-                          <div className="pb-tcard__meta-row">
-                            <span className="pb-tcard__meta-label">
+
+                          <p className="pb-card__summary">
+                            {p.summary || "No summary provided for this playbook."}
+                          </p>
+
+                          <div className="pb-trash-meta-row">
+                            <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}>
                               <User size={12} />
-                              Deleted by
-                            </span>
-                            <span style={{ fontWeight: 500 }}>{p.deleted_by_name || "Workspace Member"}</span>
-                          </div>
-                          <div className="pb-tcard__meta-row">
-                            <span className="pb-tcard__meta-label">
-                              <Clock size={12} />
-                              Deleted at
+                              {p.deleted_by_name || "Workspace member"}
                             </span>
                             <Tooltip title={dayjs(p.deleted_at).format("YYYY-MM-DD HH:mm:ss")}>
-                              <span>{dayjs(p.deleted_at).fromNow()}</span>
+                              <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+                                <Clock size={12} />
+                                {dayjs(p.deleted_at).fromNow()}
+                              </span>
                             </Tooltip>
                           </div>
-                        </div>
 
-                        <div className="pb-tcard__actions">
-                          {canRestorePlaybookTrash && (
-                            <Button
-                              type="primary"
-                              ghost
-                              style={{ flex: 1, borderRadius: 8 }}
-                              icon={<RotateCcw size={14} />}
-                              onClick={() => handleRestorePlaybook(p.id, p.name)}
-                              loading={actionLoading}
+                          <div className="pb-card__foot">
+                            <span className="pb-card__total">
+                              <Layers size={13} />
+                              {p.item_count} {p.item_count === 1 ? "recommendation" : "recommendations"}
+                            </span>
+
+                            <span className="pb-card__state">
+                              <span className="pb-tier pb-tier--public">
+                                {p.category || "General"}
+                              </span>
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    })}
+
+                  {/* ── TAB 2: COLLECTIONS ── */}
+                  {tab === "collections" &&
+                    filteredCollections.map((c) => {
+                      const isSelected = selectedIds.includes(c.id);
+                      return (
+                        <div
+                          key={c.id}
+                          className={`pb-card is-trashed ${isSelected ? "is-selected" : ""}`}
+                          onClick={() => toggleSelectOne(c.id)}
+                        >
+                          <div className="pb-card__top">
+                            <div
+                              onClick={(e) => e.stopPropagation()}
+                              style={{ display: "inline-flex", alignItems: "center", marginRight: 2 }}
                             >
-                              Restore
-                            </Button>
-                          )}
-                          {canDeletePlaybookTrash && (
-                            <Popconfirm
-                              title="Delete playbook permanently?"
-                              description="This playbook and all its test items will be permanently erased."
-                              okText="Delete"
-                              okButtonProps={{ danger: true }}
-                              cancelText="Cancel"
-                              onConfirm={() => handlePermanentDeletePlaybook(p.id, p.name)}
+                              <Checkbox
+                                checked={isSelected}
+                                onChange={() => toggleSelectOne(c.id)}
+                              />
+                            </div>
+
+                            <span className="pb-card__av pb-trash-av--collection">
+                              <CollectionIcon name={c.icon} />
+                            </span>
+
+                            <div className="pb-card__id">
+                              <span className="pb-card__name">{c.name}</span>
+                              <span className="pb-card__meta">
+                                {c.kind || "Curated"} · <code style={{ fontSize: 10, color: "#94a3b8" }}>{c.slug}</code>
+                              </span>
+                            </div>
+
+                            <span
+                              className="pb-card__actions"
+                              onClick={(e) => e.stopPropagation()}
+                              onKeyDown={(e) => e.stopPropagation()}
                             >
-                              <Button
-                                danger
-                                style={{ flex: 1, borderRadius: 8 }}
-                                icon={<Trash2 size={14} />}
-                                loading={actionLoading}
-                              >
-                                Delete
-                              </Button>
-                            </Popconfirm>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })}
+                              {canRestorePlaybookTrash && (
+                                <Tooltip title="Restore collection">
+                                  <button
+                                    type="button"
+                                    className="pb-iconbtn"
+                                    onClick={() => handleRestoreCollection(c.id, c.name)}
+                                    aria-label="Restore"
+                                    disabled={actionLoading}
+                                  >
+                                    <RotateCcw size={14} />
+                                  </button>
+                                </Tooltip>
+                              )}
 
-                {/* ── Tab: Collections ── */}
-                {tab === "collections" &&
-                  filteredCollections.map((c) => {
-                    const isSelected = selectedIds.includes(c.id);
-                    return (
-                      <div
-                        key={c.id}
-                        className={`pb-tcard ${isSelected ? "is-selected" : ""}`}
-                      >
-                        <div className="pb-tcard__top">
-                          <div className="pb-tcard__badge-row">
-                            <span className="pb-tcard__kind-badge">{c.kind || "Curated"}</span>
-                            <span className="pb-tcard__category-badge">
-                              {c.playbook_count} playbook{c.playbook_count === 1 ? "" : "s"}
+                              {canDeletePlaybookTrash && (
+                                <ConfirmDialog
+                                  tone="danger"
+                                  title="Permanently delete collection?"
+                                  description={`"${c.name}" bundle will be permanently erased. Linked playbooks remain safe.`}
+                                  confirmText="Delete permanently"
+                                  onConfirm={() => handlePermanentDeleteCollection(c.id, c.name)}
+                                >
+                                  <Tooltip title="Delete permanently">
+                                    <button
+                                      type="button"
+                                      className="pb-iconbtn is-danger"
+                                      aria-label="Delete permanently"
+                                      disabled={actionLoading}
+                                    >
+                                      <Trash2 size={14} />
+                                    </button>
+                                  </Tooltip>
+                                </ConfirmDialog>
+                              )}
                             </span>
                           </div>
-                          <Checkbox
-                            checked={isSelected}
-                            onChange={() => toggleSelectOne(c.id)}
-                          />
-                        </div>
 
-                        <div className="pb-tcard__head">
-                          <div className="pb-tcard__icon" style={{ background: "#faf5ff", color: "#9333ea", borderColor: "#f3e8ff" }}>
-                            <FolderArchive size={18} />
-                          </div>
-                          <div style={{ flex: 1, minWidth: 0 }}>
-                            <h3 className="pb-tcard__title">{c.name}</h3>
-                            <div className="pb-tcard__slug">{c.slug}</div>
-                          </div>
-                        </div>
+                          <p className="pb-card__summary">
+                            {c.summary || "Curated collection bundle of test playbooks."}
+                          </p>
 
-                        <p className="pb-tcard__summary">
-                          {c.summary || "Curated collection bundle of test playbooks."}
-                        </p>
-
-                        <div className="pb-tcard__meta-bar">
-                          <div className="pb-tcard__meta-row">
-                            <span className="pb-tcard__meta-label">
-                              <Layers size={12} />
-                              Linked playbooks
-                            </span>
-                            <span style={{ fontWeight: 600, color: "#0f172a" }}>
-                              {c.playbook_count}
-                            </span>
-                          </div>
-                          <div className="pb-tcard__meta-row">
-                            <span className="pb-tcard__meta-label">
+                          <div className="pb-trash-meta-row">
+                            <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}>
                               <User size={12} />
-                              Deleted by
-                            </span>
-                            <span style={{ fontWeight: 500 }}>{c.deleted_by_name || "Workspace Member"}</span>
-                          </div>
-                          <div className="pb-tcard__meta-row">
-                            <span className="pb-tcard__meta-label">
-                              <Clock size={12} />
-                              Deleted at
+                              {c.deleted_by_name || "Workspace member"}
                             </span>
                             <Tooltip title={dayjs(c.deleted_at).format("YYYY-MM-DD HH:mm:ss")}>
-                              <span>{dayjs(c.deleted_at).fromNow()}</span>
+                              <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+                                <Clock size={12} />
+                                {dayjs(c.deleted_at).fromNow()}
+                              </span>
                             </Tooltip>
                           </div>
-                        </div>
 
-                        <div className="pb-tcard__actions">
-                          {canRestorePlaybookTrash && (
-                            <Button
-                              type="primary"
-                              ghost
-                              style={{ flex: 1, borderRadius: 8 }}
-                              icon={<RotateCcw size={14} />}
-                              onClick={() => handleRestoreCollection(c.id, c.name)}
-                              loading={actionLoading}
+                          <div className="pb-card__foot">
+                            <span className="pb-card__total">
+                              <BookOpen size={13} />
+                              {c.playbook_count} {c.playbook_count === 1 ? "playbook" : "playbooks"}
+                            </span>
+
+                            <span className="pb-card__state">
+                              <span className="pb-tier pb-tier--premium" style={{ textTransform: "capitalize" }}>
+                                {c.kind || "Curated"}
+                              </span>
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    })}
+
+                  {/* ── TAB 3: CATEGORIES ── */}
+                  {tab === "categories" &&
+                    filteredCategories.map((cat) => {
+                      const isSelected = selectedIds.includes(cat.id);
+                      return (
+                        <div
+                          key={cat.id}
+                          className={`pb-card is-trashed ${isSelected ? "is-selected" : ""}`}
+                          onClick={() => toggleSelectOne(cat.id)}
+                        >
+                          <div className="pb-card__top">
+                            <div
+                              onClick={(e) => e.stopPropagation()}
+                              style={{ display: "inline-flex", alignItems: "center", marginRight: 2 }}
                             >
-                              Restore
-                            </Button>
-                          )}
-                          {canDeletePlaybookTrash && (
-                            <Popconfirm
-                              title="Delete collection permanently?"
-                              description="This collection bundle will be permanently erased. Its playbooks remain intact."
-                              okText="Delete"
-                              okButtonProps={{ danger: true }}
-                              cancelText="Cancel"
-                              onConfirm={() => handlePermanentDeleteCollection(c.id, c.name)}
+                              <Checkbox
+                                checked={isSelected}
+                                onChange={() => toggleSelectOne(cat.id)}
+                              />
+                            </div>
+
+                            <span className="pb-card__av pb-trash-av--category">
+                              <Layers size={16} />
+                            </span>
+
+                            <div className="pb-card__id">
+                              <span className="pb-card__name">{cat.name}</span>
+                              <span className="pb-card__meta">
+                                Category · <code style={{ fontSize: 10, color: "#94a3b8" }}>{cat.slug}</code>
+                              </span>
+                            </div>
+
+                            <span
+                              className="pb-card__actions"
+                              onClick={(e) => e.stopPropagation()}
+                              onKeyDown={(e) => e.stopPropagation()}
                             >
-                              <Button
-                                danger
-                                style={{ flex: 1, borderRadius: 8 }}
-                                icon={<Trash2 size={14} />}
-                                loading={actionLoading}
-                              >
-                                Delete
-                              </Button>
-                            </Popconfirm>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })}
+                              {canRestorePlaybookTrash && (
+                                <Tooltip title="Restore category (and child playbooks)">
+                                  <button
+                                    type="button"
+                                    className="pb-iconbtn"
+                                    onClick={() => handleRestoreCategory(cat.id, cat.name)}
+                                    aria-label="Restore"
+                                    disabled={actionLoading}
+                                  >
+                                    <RotateCcw size={14} />
+                                  </button>
+                                </Tooltip>
+                              )}
 
-                {/* ── Tab: Categories ── */}
-                {tab === "categories" &&
-                  filteredCategories.map((cat) => {
-                    const isSelected = selectedIds.includes(cat.id);
-                    return (
-                      <div
-                        key={cat.id}
-                        className={`pb-tcard ${isSelected ? "is-selected" : ""}`}
-                      >
-                        <div className="pb-tcard__top">
-                          <div className="pb-tcard__badge-row">
-                            <span className="pb-tcard__category-badge" style={{ background: "#fff1f2", color: "#e11d48", borderColor: "#fecdd3" }}>
-                              <AlertTriangle size={11} />
-                              {cat.playbook_count} cascaded playbook{cat.playbook_count === 1 ? "" : "s"}
+                              {canDeletePlaybookTrash && (
+                                <ConfirmDialog
+                                  tone="danger"
+                                  title="Permanently delete category?"
+                                  description={`"${cat.name}" and any playbooks deleted with it will be permanently erased.`}
+                                  confirmText="Delete permanently"
+                                  onConfirm={() => handlePermanentDeleteCategory(cat.id, cat.name)}
+                                >
+                                  <Tooltip title="Delete permanently">
+                                    <button
+                                      type="button"
+                                      className="pb-iconbtn is-danger"
+                                      aria-label="Delete permanently"
+                                      disabled={actionLoading}
+                                    >
+                                      <Trash2 size={14} />
+                                    </button>
+                                  </Tooltip>
+                                </ConfirmDialog>
+                              )}
                             </span>
                           </div>
-                          <Checkbox
-                            checked={isSelected}
-                            onChange={() => toggleSelectOne(cat.id)}
-                          />
-                        </div>
 
-                        <div className="pb-tcard__head">
-                          <div className="pb-tcard__icon" style={{ background: "#f0fdf4", color: "#16a34a", borderColor: "#dcfce7" }}>
-                            <Layers size={18} />
-                          </div>
-                          <div style={{ flex: 1, minWidth: 0 }}>
-                            <h3 className="pb-tcard__title">{cat.name}</h3>
-                            <div className="pb-tcard__slug">{cat.slug}</div>
-                          </div>
-                        </div>
+                          <p className="pb-card__summary">
+                            {cat.description || "Category grouping for playbooks."}
+                          </p>
 
-                        <p className="pb-tcard__summary">
-                          {cat.description || "Category grouping for playbooks."}
-                        </p>
-
-                        <div className="pb-tcard__meta-bar">
-                          <div className="pb-tcard__meta-row">
-                            <span className="pb-tcard__meta-label">
-                              <BookOpen size={12} />
-                              Child playbooks
-                            </span>
-                            <span style={{ fontWeight: 600, color: "#0f172a" }}>
-                              {cat.playbook_count}
-                            </span>
-                          </div>
-                          <div className="pb-tcard__meta-row">
-                            <span className="pb-tcard__meta-label">
+                          <div className="pb-trash-meta-row">
+                            <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}>
                               <User size={12} />
-                              Deleted by
-                            </span>
-                            <span style={{ fontWeight: 500 }}>{cat.deleted_by_name || "Workspace Member"}</span>
-                          </div>
-                          <div className="pb-tcard__meta-row">
-                            <span className="pb-tcard__meta-label">
-                              <Clock size={12} />
-                              Deleted at
+                              {cat.deleted_by_name || "Workspace member"}
                             </span>
                             <Tooltip title={dayjs(cat.deleted_at).format("YYYY-MM-DD HH:mm:ss")}>
-                              <span>{dayjs(cat.deleted_at).fromNow()}</span>
+                              <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+                                <Clock size={12} />
+                                {dayjs(cat.deleted_at).fromNow()}
+                              </span>
                             </Tooltip>
                           </div>
-                        </div>
 
-                        <div className="pb-tcard__actions">
-                          {canRestorePlaybookTrash && (
-                            <Tooltip title="Restoring will also restore all child playbooks in this category">
-                              <Button
-                                type="primary"
-                                ghost
-                                style={{ flex: 1, borderRadius: 8 }}
-                                icon={<RotateCcw size={14} />}
-                                onClick={() => handleRestoreCategory(cat.id, cat.name)}
-                                loading={actionLoading}
-                              >
-                                Restore Category
-                              </Button>
-                            </Tooltip>
-                          )}
-                          {canDeletePlaybookTrash && (
-                            <Popconfirm
-                              title="Delete category permanently?"
-                              description="This category and its category-deleted playbooks will be permanently purged."
-                              okText="Delete"
-                              okButtonProps={{ danger: true }}
-                              cancelText="Cancel"
-                              onConfirm={() => handlePermanentDeleteCategory(cat.id, cat.name)}
-                            >
-                              <Button
-                                danger
-                                style={{ flex: 1, borderRadius: 8 }}
-                                icon={<Trash2 size={14} />}
-                                loading={actionLoading}
-                              >
-                                Delete
-                              </Button>
-                            </Popconfirm>
-                          )}
+                          <div className="pb-card__foot">
+                            <span className="pb-card__total" style={{ color: "#e11d48" }}>
+                              <AlertTriangle size={13} />
+                              {cat.playbook_count} cascaded {cat.playbook_count === 1 ? "playbook" : "playbooks"}
+                            </span>
+
+                            <span className="pb-card__state">
+                              <span className="pb-tier pb-tier--draft">
+                                Category
+                              </span>
+                            </span>
+                          </div>
                         </div>
-                      </div>
-                    );
-                  })}
-              </div>
-            )}
-          </ZukvoLoadingOverlay>
-        </div>
+                      );
+                    })}
+                </div>
+              )}
+            </ZukvoLoadingOverlay>
+          </div>
+        </main>
       </div>
     </MainLayout>
   );

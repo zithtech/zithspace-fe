@@ -24,7 +24,7 @@ import { SearchableDropdown } from "@/components/common/SearchableDropdown";
 import { api as axios } from "@/lib/axios";
 import { CollectionIcon } from "@/components/qa/CollectionIcon";
 import { INDUSTRY_OPTIONS, iconForIndustry } from "@/components/qa/collectionVocabulary";
-import type { CollectionSummary } from "@/components/qa/playbookShared";
+import type { CollectionSummary, PlaybookStatus, PlaybookVisibility } from "@/components/qa/playbookShared";
 
 export default function NewPlaybookCollectionModal({
   collections,
@@ -48,6 +48,8 @@ export default function NewPlaybookCollectionModal({
   const [creating, setCreating] = useState(false);
   const [name, setName] = useState("");
   const [industry, setIndustry] = useState("");
+  const [visibility, setVisibility] = useState<PlaybookVisibility>("workspace");
+  const [status, setStatus] = useState<PlaybookStatus>("draft");
 
   useEffect(() => {
     if (!open) return;
@@ -55,6 +57,8 @@ export default function NewPlaybookCollectionModal({
     setCreating(false);
     setName("");
     setIndustry("");
+    setVisibility("workspace");
+    setStatus("draft");
   }, [open]);
 
   /* Only packs this person could actually file into: their own workspace's, or
@@ -80,7 +84,8 @@ export default function NewPlaybookCollectionModal({
         kind: "industry",
         industry: industry.trim() || null,
         icon: iconForIndustry(industry),
-        visibility: canPublish ? "public" : "workspace",
+        visibility,
+        status,
         // Appended to the shelf rather than jumping ahead of curated packs.
         sort_order:
           collections.reduce((max, c) => Math.max(max, c.sortOrder ?? 0), 0) + 10,
@@ -106,7 +111,16 @@ export default function NewPlaybookCollectionModal({
       onCancel={onClose}
       title="Where does this playbook belong?"
       width={620}
-      className="pb-gen"
+      centered
+      className="pb-gen pbf-modal-compact"
+      styles={{
+        body: {
+          maxHeight: "calc(78vh - 120px)",
+          overflowY: "auto",
+          overflowX: "hidden",
+          paddingRight: "6px",
+        },
+      }}
       footer={[
         <Button key="skip" onClick={() => { onContinue(null); onClose(); }}>
           Skip for now
@@ -177,6 +191,56 @@ export default function NewPlaybookCollectionModal({
               style={{ width: "100%" }}
             />
           </div>
+
+          <div className="pbf-field">
+            <div className="pbf-label">Status</div>
+            <SearchableDropdown
+              value={status}
+              onChange={(value: string) => setStatus(value as PlaybookStatus)}
+              options={[
+                {
+                  value: "draft",
+                  label: "Draft",
+                  description: "Work in progress (visible only to you)",
+                },
+                {
+                  value: "published",
+                  label: "Published",
+                  description: "Live on shelf (choose Public or Private workspace)",
+                },
+              ]}
+              placeholder="Select status"
+              hideAvatar
+              width="100%"
+              style={{ width: "100%" }}
+            />
+          </div>
+
+          {status === "published" && (
+            <div className="pbf-field">
+              <div className="pbf-label">Visibility</div>
+              <SearchableDropdown
+                value={visibility}
+                onChange={(value: string) => setVisibility(value as PlaybookVisibility)}
+                options={[
+                  {
+                    value: "workspace",
+                    label: "Private (My Workspace)",
+                    description: "Visible only within your workspace tenant",
+                  },
+                  {
+                    value: "public",
+                    label: "Public",
+                    description: "Visible to all workspaces and tenants",
+                  },
+                ]}
+                placeholder="Select visibility"
+                hideAvatar
+                width="100%"
+                style={{ width: "100%" }}
+              />
+            </div>
+          )}
 
           <div className="pbf-hint">
             Summary, description and pricing are on the collection itself — this is

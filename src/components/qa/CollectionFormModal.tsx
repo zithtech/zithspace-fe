@@ -1,40 +1,14 @@
 "use client";
 
 /**
- * Creating and editing a collection's identity — everything except its
- * membership, which is the curation drawer's job.
- *
- * TWO FIELDS DOING TWO JOBS, which is the correction migration 010 makes:
- *
- *   Name      free text. What this pack is CALLED — "Fintech Essentials",
- *             "Our Q3 regression pack". Nothing constrains it.
- *   Industry  a dropdown. Who it is FOR. Picked from the list, or typed to
- *             add a new one.
- *
- * They were one field before, and that collapsed two different things: there
- * was no way to have two packs for one industry, and the industry itself lived
- * in free text where "Fintech", "FinTech" and "Financial services" become
- * three audiences. The dropdown is what keeps the vocabulary from drifting;
- * being able to type into it is what keeps the list from being a cage.
- *
- * NO KIND PICKER. Everything authored here is an industry pack. The other kinds
- * — a compliance standard, an editorial "start here" — are Testiez's own seeded
- * rows, and asking every author to classify their pack five ways was a question
- * about the taxonomy rather than about their work.
- *
- * NO ICON FIELD. It is derived from the industry, and preserved as-is on a
- * collection that already has one. The preview at the top shows the result.
- *
- * WHO SEES WHAT: a curator gets the tier and price fields, because only the
- * platform library may be sold. Everyone else is authoring a pack for their own
- * workspace, where 'workspace' is the only tier that exists — so those fields
- * are not shown, and the server forces the tier regardless of what this form
- * sends.
+ * Creating and editing a collection's identity — compact, non-scrolling modal
+ * with internal scrollable form body.
  */
 
 import React, { useEffect, useMemo, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Button, Checkbox, Input, Modal, message } from "antd";
+import { Button, Input, Modal, message } from "antd";
+import { Layers, Lock, Sparkles } from "lucide-react";
 
 import { SearchableDropdown } from "@/components/common/SearchableDropdown";
 import { api as axios } from "@/lib/axios";
@@ -45,6 +19,8 @@ import {
 } from "@/components/qa/collectionVocabulary";
 import {
   type CollectionSummary,
+  type PlaybookStatus,
+  type PlaybookVisibility,
 } from "@/components/qa/playbookShared";
 
 export default function CollectionFormModal({
@@ -54,18 +30,10 @@ export default function CollectionFormModal({
   open,
   onClose,
   onSaved,
-  /** Curator — may publish to the platform library and price it. */
   canCurate = false,
 }: {
-  /**
-   * Absent when creating. `description` comes with it because a save sends the
-   * WHOLE record — seeding the form from a summary alone would silently blank
-   * the description of every collection anyone edited.
-   */
   collection?: (CollectionSummary & { description?: string | null }) | null;
-  /** What is already on the shelf, so a duplicate name can be pointed out. */
   existing?: CollectionSummary[];
-  /** Industries anyone has already used, merged into the picker's list. */
   industries?: string[];
   open: boolean;
   onClose: () => void;
@@ -80,35 +48,29 @@ export default function CollectionFormModal({
   const [summary, setSummary] = useState("");
   const [description, setDescription] = useState("");
   const [sortOrder, setSortOrder] = useState("0");
-  const [premium, setPremium] = useState(false);
+  const [visibility, setVisibility] = useState<PlaybookVisibility>("workspace");
+  const [status, setStatus] = useState<PlaybookStatus>("draft");
   const [priceAmount, setPriceAmount] = useState("");
   const [priceCredits, setPriceCredits] = useState("");
 
-  /* Re-seed on open so a cancelled edit leaves nothing behind. */
   useEffect(() => {
     if (!open) return;
     setName(collection?.name ?? "");
     setIndustry(collection?.industry ?? "");
     setSummary(collection?.summary ?? "");
     setDescription(collection?.description ?? "");
-    /* A new pack goes at the END of the shelf, not the front. Defaulting to 0
-       put every freshly created collection ahead of the curated ones, which is
-       the opposite of what a first draft has earned. Gaps of ten so it can be
-       slotted between two others later without renumbering the row. */
+    setVisibility(collection?.visibility ?? "workspace");
+    setStatus(collection?.status ?? "draft");
     setSortOrder(
       String(
         collection?.sortOrder ??
           existing.reduce((max, c) => Math.max(max, c.sortOrder ?? 0), 0) + 10
       )
     );
-    setPremium(collection?.visibility === "premium");
     setPriceAmount(collection?.priceAmount ?? "");
     setPriceCredits(collection?.priceCredits != null ? String(collection.priceCredits) : "");
   }, [open, collection, existing]);
 
-  /* Names already on the shelf, so the picker can say so rather than letting
-     someone create a second "Fintech & Payments" and wonder why. The one being
-     edited does not count as a clash with itself. */
   const taken = useMemo(() => {
     const set = new Set<string>();
     for (const c of existing) {
@@ -118,36 +80,24 @@ export default function CollectionFormModal({
     return set;
   }, [existing, collection]);
 
-  /* One source with the short "where does this playbook belong?" step, so the
-     two cannot start offering different lists. */
   const industryOptions = useMemo(() => INDUSTRY_OPTIONS(industries), [industries]);
-
   const clash = taken.has(name.trim().toLowerCase());
   const icon = iconForIndustry(industry, collection?.icon);
 
   const save = useMutation({
     mutationFn: () => {
+      const isPremium = visibility === "premium" && canCurate;
       const body = {
         name: name.trim(),
-        /* Everything authored through this form is an industry pack. The other
-           kinds are Testiez's seeded rows; an edit keeps whatever it already
-           is rather than being reclassified by a form that no longer asks. */
         kind: collection?.kind ?? "industry",
         industry: industry.trim() || null,
         summary: summary.trim() || null,
         description: description.trim() || null,
-        // Derived, not chosen — see the header note.
         icon,
-        /* Only a curator's write can be anything but a workspace pack, and the
-           server re-derives this from who is asking either way. */
-        visibility: canCurate ? (premium ? "premium" : "public") : "workspace",
-        /* Both ways to charge, matching the playbook form — a plan buys with
-           credits, a one-off buys with money, and a pack can be offered either
-           way. Cleared unless it is actually for sale. */
-        price_amount: canCurate && premium && priceAmount ? Number(priceAmount) : null,
-        price_credits: canCurate && premium && priceCredits ? Number(priceCredits) : null,
-        // Position on the shelf. Gaps of ten so a collection can be slotted
-        // between two others without renumbering the row.
+        visibility: isPremium ? "premium" : visibility,
+        status,
+        price_amount: isPremium && priceAmount ? Number(priceAmount) : null,
+        price_credits: isPremium && priceCredits ? Number(priceCredits) : null,
         sort_order: Number(sortOrder) || 0,
       };
       return collection
@@ -171,148 +121,346 @@ export default function CollectionFormModal({
     <Modal
       open={open}
       onCancel={onClose}
-      title={editing ? "Edit collection" : "New collection"}
-      width={720}
-      className="pb-gen pbf-modal"
-      footer={[
-        <Button key="cancel" onClick={onClose}>
-          Cancel
-        </Button>,
-        <Button
-          key="save"
-          type="primary"
-          loading={save.isPending}
-          disabled={!name.trim() || clash}
-          onClick={() => save.mutate()}
-        >
-          {editing ? "Save" : "Create collection"}
-        </Button>,
-      ]}
+      title={
+        <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 16, fontWeight: 700 }}>
+          <span
+            style={{
+              width: 28,
+              height: 28,
+              borderRadius: 8,
+              background: "rgba(59, 130, 246, 0.1)",
+              color: "#2563eb",
+              display: "inline-flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <Layers size={16} />
+          </span>
+          {editing ? "Edit Collection" : "Create Collection"}
+        </div>
+      }
+      width={640}
+      centered
+      className="pbf-modal-compact"
+      styles={{
+        body: {
+          maxHeight: "calc(78vh - 120px)",
+          overflowY: "auto",
+          overflowX: "hidden",
+          paddingRight: "6px",
+          paddingTop: "4px",
+          paddingBottom: "8px",
+        },
+      }}
+      footer={
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 8 }}>
+          <Button onClick={onClose} style={{ borderRadius: 8 }}>
+            Cancel
+          </Button>
+          <Button
+            type="primary"
+            loading={save.isPending}
+            disabled={!name.trim() || clash}
+            onClick={() => save.mutate()}
+            style={{ borderRadius: 8, minWidth: 100 }}
+          >
+            {editing ? "Save Changes" : "Create Collection"}
+          </Button>
+        </div>
+      }
     >
-      {/* What the card will look like on the shelf, live. It is also the only
-          place the derived icon shows itself, now that the picker is gone. */}
-      <div className="pbf-preview">
-        <span className="pbf-preview__av">
-          <CollectionIcon name={icon} size={19} />
+      <style jsx global>{`
+        .pbf-modal-compact .ant-modal-content {
+          border-radius: 14px;
+          overflow: hidden;
+          padding: 20px 24px 16px 24px;
+        }
+        .pbf-modal-compact .ant-modal-header {
+          margin-bottom: 14px;
+        }
+        .pbf-modal-compact .ant-modal-footer {
+          margin-top: 14px;
+          padding-top: 12px;
+          border-top: 1px solid var(--border-slate-200, #e2e8f0);
+        }
+
+        /* ── Compact Preview Box ── */
+        .pbf-preview-compact {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          padding: 10px 14px;
+          border-radius: 10px;
+          background: linear-gradient(90deg, rgba(59, 130, 246, 0.05), rgba(59, 130, 246, 0.01));
+          border: 1px solid rgba(59, 130, 246, 0.18);
+          margin-bottom: 14px;
+        }
+        .pbf-preview-compact__av {
+          width: 36px;
+          height: 36px;
+          border-radius: 9px;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          background: #eff6ff;
+          color: #2563eb;
+          border: 1px solid #dbeafe;
+          flex-shrink: 0;
+        }
+        .pbf-preview-compact__body {
+          flex: 1;
+          min-width: 0;
+        }
+        .pbf-preview-compact__name {
+          font-size: 13.5px;
+          font-weight: 700;
+          color: var(--text-slate-900, #0f172a);
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+        .pbf-preview-compact__meta {
+          font-size: 11.5px;
+          color: var(--text-slate-500, #64748b);
+          margin-top: 1px;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+
+        /* ── Compact Grid Layout ── */
+        .pbf-compact-form {
+          display: flex;
+          flex-direction: column;
+          gap: 12px;
+        }
+        .pbf-grid-2 {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 12px;
+        }
+        @media (max-width: 580px) {
+          .pbf-grid-2 {
+            grid-template-columns: 1fr;
+          }
+        }
+        .pbf-cfield {
+          display: flex;
+          flex-direction: column;
+          gap: 4px;
+        }
+        .pbf-clabel {
+          font-size: 12px;
+          font-weight: 700;
+          color: var(--text-slate-800, #1e293b);
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+        }
+        .pbf-chint {
+          font-size: 11px;
+          line-height: 1.4;
+          color: var(--text-slate-400, #94a3b8);
+          margin-top: 2px;
+        }
+        .pbf-chint.is-warn {
+          color: #dc2626;
+        }
+      `}</style>
+
+      {/* ── Live Preview Card ── */}
+      <div className="pbf-preview-compact">
+        <span className="pbf-preview-compact__av">
+          <CollectionIcon name={icon} size={18} />
         </span>
-        <div className="pbf-preview__body">
-          <div className="pbf-preview__name">
-            {name.trim() || <span className="pbf-preview__ghost">Untitled collection</span>}
+        <div className="pbf-preview-compact__body">
+          <div className="pbf-preview-compact__name">
+            {name.trim() || <span style={{ color: "#94a3b8", fontWeight: 500 }}>Untitled collection</span>}
           </div>
-          <div className="pbf-preview__meta">
-            {industry.trim() || "No industry set"}
+          <div className="pbf-preview-compact__meta">
+            {industry.trim() || "General"}
             {summary.trim() ? ` · ${summary.trim()}` : ""}
           </div>
         </div>
       </div>
 
-      <div className="pbf-form">
-        <div className="pbf-field">
-          <div className="pbf-label">
-            Name <span className="pbf-req">Required</span>
-          </div>
-          <Input
-            value={name}
-            maxLength={120}
-            placeholder="Fintech Essentials"
-            onChange={(e) => setName(e.target.value)}
-          />
-          <div className={`pbf-hint ${clash ? "is-warn" : ""}`}>
-            {clash
-              ? `“${name.trim()}” is already on the shelf — pick another name or edit that one.`
-              : "What this pack is called. One industry can have several."}
-          </div>
-        </div>
-
-        <div className="pbf-field">
-          <div className="pbf-label">Industry</div>
-          <SearchableDropdown
-            value={industry || null}
-            onChange={(value: string) => setIndustry(value || "")}
-            options={industryOptions}
-            freeText
-            allowClear
-            hideAvatar
-            placeholder="Who is this pack for?"
-            searchPlaceholder="Search, or type a new industry…"
-            itemNoun="industries"
-            width="100%"
-            style={{ width: "100%" }}
-          />
-          <div className="pbf-hint">
-            Pick one, or type an industry the list does not cover — it joins the list
-            for everyone after you.
-          </div>
-        </div>
-
-        <div className="pbf-field">
-          <div className="pbf-label">Summary</div>
-          <Input
-            value={summary}
-            maxLength={400}
-            placeholder="Money movement, ledgers, KYC and the failure modes that cost real money."
-            onChange={(e) => setSummary(e.target.value)}
-          />
-          <div className="pbf-hint">
-            One line. It is the whole card, so make it say who this is for.
-          </div>
-        </div>
-
-        <div className="pbf-field">
-          <div className="pbf-label">Description</div>
-          <Input.TextArea
-            value={description}
-            rows={4}
-            maxLength={20000}
-            placeholder="What this pack covers, and how to work through it."
-            onChange={(e) => setDescription(e.target.value)}
-          />
-        </div>
-
-        {canCurate && (
-          <div className={`pbf-sell ${premium ? "is-on" : ""}`}>
-            <div className="pbf-sell__top">
-              <Checkbox checked={premium} onChange={(e) => setPremium(e.target.checked)}>
-                <span className="pbf-sell__label">Sell this as a pack</span>
-              </Checkbox>
-              {premium && (
-                <span className="pbf-sell__prices">
-                  <Input
-                    value={priceAmount}
-                    style={{ width: 118 }}
-                    placeholder="Price"
-                    prefix="$"
-                    inputMode="decimal"
-                    onChange={(e) => setPriceAmount(e.target.value.replace(/[^0-9.]/g, ""))}
-                  />
-                  <Input
-                    value={priceCredits}
-                    style={{ width: 118 }}
-                    placeholder="Credits"
-                    inputMode="numeric"
-                    onChange={(e) => setPriceCredits(e.target.value.replace(/[^0-9]/g, ""))}
-                  />
-                </span>
-              )}
-            </div>
-            {premium && (
-              <div className="pbf-hint">
-                The pack still opens for everyone — unlocking it is what gives a workspace
-                the full recommendations in the playbooks inside, including any added
-                later. Leave both prices empty to list it as “On request”.
+      {/* ── Compact Scrollable Form ── */}
+      <div className="pbf-compact-form">
+        {/* Row 1: Name & Industry */}
+        <div className="pbf-grid-2">
+          <div className="pbf-cfield">
+            <label className="pbf-clabel">
+              <span>Collection Name</span>
+              <span style={{ fontSize: 10, color: "#2563eb", fontWeight: 600 }}>Required</span>
+            </label>
+            <Input
+              value={name}
+              maxLength={120}
+              placeholder="e.g., Fintech & Payments"
+              onChange={(e) => setName(e.target.value)}
+              style={{ borderRadius: 8, height: 36 }}
+            />
+            {clash && (
+              <div className="pbf-chint is-warn">
+                “{name.trim()}” is already taken on the shelf.
               </div>
             )}
           </div>
+
+          <div className="pbf-cfield">
+            <label className="pbf-clabel">Industry / Domain</label>
+            <SearchableDropdown
+              value={industry || null}
+              onChange={(value: string) => setIndustry(value || "")}
+              options={industryOptions}
+              freeText
+              allowClear
+              hideAvatar
+              placeholder="Select or type domain…"
+              searchPlaceholder="Search or type industry…"
+              itemNoun="industries"
+              width="100%"
+              style={{ width: "100%", borderRadius: 8 }}
+            />
+          </div>
+        </div>
+
+        {/* Row 2: Summary */}
+        <div className="pbf-cfield">
+          <label className="pbf-clabel">Summary</label>
+          <Input
+            value={summary}
+            maxLength={400}
+            placeholder="One-line summary for shelf card preview"
+            onChange={(e) => setSummary(e.target.value)}
+            style={{ borderRadius: 8, height: 36 }}
+          />
+        </div>
+
+        {/* Row 3: Description */}
+        <div className="pbf-cfield">
+          <label className="pbf-clabel">Description</label>
+          <Input.TextArea
+            value={description}
+            rows={2}
+            maxLength={20000}
+            placeholder="Detailed overview of what this collection covers…"
+            onChange={(e) => setDescription(e.target.value)}
+            style={{ borderRadius: 8, resize: "none" }}
+          />
+        </div>
+
+        {/* Row 4: Status & Visibility */}
+        <div className={status === "published" ? "pbf-grid-2" : "pbf-cfield"}>
+          <div className="pbf-cfield">
+            <label className="pbf-clabel">Status</label>
+            <SearchableDropdown
+              value={status}
+              onChange={(value: string) => setStatus(value as PlaybookStatus)}
+              options={[
+                {
+                  value: "draft",
+                  label: "Draft",
+                  description: "Work in progress (visible only to you)",
+                },
+                {
+                  value: "published",
+                  label: "Published",
+                  description: "Live on shelf",
+                },
+              ]}
+              placeholder="Select status"
+              hideAvatar
+              width="100%"
+              style={{ width: "100%", borderRadius: 8 }}
+            />
+          </div>
+
+          {status === "published" && (
+            <div className="pbf-cfield">
+              <label className="pbf-clabel">Visibility</label>
+              <SearchableDropdown
+                value={visibility}
+                onChange={(value: string) => setVisibility(value as PlaybookVisibility)}
+                options={[
+                  {
+                    value: "workspace",
+                    label: "Private (My Workspace)",
+                    description: "Visible only within your workspace tenant",
+                  },
+                  {
+                    value: "public",
+                    label: "Public",
+                    description: "Visible to all workspaces and tenants",
+                  },
+                  ...(canCurate
+                    ? [
+                        {
+                          value: "premium",
+                          label: "Premium",
+                          description: "Listed everywhere, unlocked on purchase",
+                        },
+                      ]
+                    : []),
+                ]}
+                placeholder="Select visibility"
+                hideAvatar
+                width="100%"
+                style={{ width: "100%", borderRadius: 8 }}
+              />
+            </div>
+          )}
+        </div>
+
+        {/* Curator Pricing row if Premium */}
+        {canCurate && status === "published" && visibility === "premium" && (
+          <div
+            style={{
+              padding: "10px 12px",
+              borderRadius: 8,
+              background: "#faf5ff",
+              border: "1px solid #f3e8ff",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              gap: 12,
+            }}
+          >
+            <span style={{ fontSize: 12, fontWeight: 600, color: "#7e22ce" }}>
+              Premium Pricing
+            </span>
+            <div style={{ display: "flex", gap: 8 }}>
+              <Input
+                value={priceAmount}
+                style={{ width: 100, borderRadius: 6 }}
+                placeholder="Price"
+                prefix="$"
+                inputMode="decimal"
+                onChange={(e) => setPriceAmount(e.target.value.replace(/[^0-9.]/g, ""))}
+              />
+              <Input
+                value={priceCredits}
+                style={{ width: 100, borderRadius: 6 }}
+                placeholder="Credits"
+                inputMode="numeric"
+                onChange={(e) => setPriceCredits(e.target.value.replace(/[^0-9]/g, ""))}
+              />
+            </div>
+          </div>
         )}
 
-        <div className="pbf-field pbf-field--narrow">
-          <div className="pbf-label">Shelf position</div>
+        {/* Row 5: Shelf Position */}
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", paddingTop: 4 }}>
+          <span style={{ fontSize: 11.5, color: "#64748b" }}>
+            Shelf sort order (lower appears first):
+          </span>
           <Input
             value={sortOrder}
             inputMode="numeric"
+            style={{ width: 80, textAlign: "center", borderRadius: 6, height: 30 }}
             onChange={(e) => setSortOrder(e.target.value.replace(/[^0-9]/g, ""))}
           />
-          <div className="pbf-hint">Lower is earlier. Leave gaps of ten.</div>
         </div>
       </div>
     </Modal>

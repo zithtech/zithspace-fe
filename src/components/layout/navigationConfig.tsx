@@ -371,7 +371,6 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
         requiredSubscriptionFeature: ["work_playbooks"],
         requiredAnyPermission: [
           Permissions.PLAYBOOK_READ,
-          Permissions.QA_CASE_READ,
           Permissions.PLAYBOOK_TRASH_READ,
         ],
         children: [

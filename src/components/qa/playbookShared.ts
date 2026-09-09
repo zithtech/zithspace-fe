@@ -283,7 +283,7 @@ export const RISK_LABELS: Record<PlaybookRisk, string> = {
 export const VISIBILITY_LABELS: Record<PlaybookVisibility, string> = {
   public: "Public",
   premium: "Premium",
-  workspace: "My workspace",
+  workspace: "Private",
 };
 
 /** How a price reads on a card. Credits win when both are set. */
@@ -355,7 +355,7 @@ export const PLAYBOOK_STYLES = `
 /* ── Filter pills ───────────────────────────────────────────────────────── */
 .pb-pills { display: inline-flex; align-items: center; gap: 6px; flex-wrap: wrap; }
 .pb-pill {
-  height: 26px; padding: 0 11px; border-radius: 999px; cursor: pointer;
+  height: 26px; padding: 0 11px; border-radius: 6px; cursor: pointer;
   font-size: 11.5px; font-weight: 600; letter-spacing: -.005em;
   color: var(--text-slate-500); background: transparent;
   border: 1px solid var(--border-slate-200);
@@ -528,8 +528,8 @@ export const PLAYBOOK_STYLES = `
 /* Paste JSON, or hand Zai a PRD. */
 .pb-import__tabs { align-self: flex-start; }
 .pb-import__drop {
-  display: flex; flex-direction: column; align-items: center; gap: 4px;
-  position: relative; padding: 22px 16px; border-radius: 12px; cursor: pointer;
+  display: flex; flex-direction: column; align-items: center; gap: 3px;
+  position: relative; padding: 14px 14px; border-radius: 10px; cursor: pointer;
   text-align: center;
   background: var(--bg-slate-50); border: 1px dashed var(--border-slate-200);
   transition: border-color .15s ease, background .15s ease;
@@ -538,15 +538,15 @@ export const PLAYBOOK_STYLES = `
 .pb-import__drop:hover { border-color: rgba(59,130,246,.45); background: rgba(59,130,246,.04); }
 .pb-import__drop.is-set { border-style: solid; border-color: rgba(59,130,246,.35); background: rgba(59,130,246,.05); }
 .pb-import__dropicon {
-  width: 40px; height: 40px; border-radius: 12px; margin-bottom: 4px;
+  width: 32px; height: 32px; border-radius: 9px; margin-bottom: 2px;
   display: inline-flex; align-items: center; justify-content: center;
   color: #2563eb; background: rgba(59,130,246,.1); border: 1px solid rgba(59,130,246,.2);
 }
-.pb-import__drop b { font-size: 12.5px; font-weight: 800; color: var(--text-slate-900); }
+.pb-import__drop b { font-size: 12px; font-weight: 700; color: var(--text-slate-900); }
 [data-theme='dark'] .pb-import__drop b { color: #e2e8f0; }
-.pb-import__drop em { font-style: normal; font-size: 11px; color: var(--text-slate-400); }
+.pb-import__drop em { font-style: normal; font-size: 10.5px; color: var(--text-slate-400); }
 .pb-import__dropclear {
-  position: absolute; top: 8px; right: 8px; width: 24px; height: 24px; border-radius: 7px;
+  position: absolute; top: 6px; right: 6px; width: 22px; height: 22px; border-radius: 6px;
   display: inline-flex; align-items: center; justify-content: center; cursor: pointer;
   color: var(--text-slate-400); background: transparent; border: none;
 }
@@ -566,21 +566,78 @@ export const PLAYBOOK_STYLES = `
 
 /* Said once, at the top of the block, instead of hedging every field. */
 .pb-import__optional {
-  display: flex; flex-direction: column; gap: 14px;
-  padding: 12px 13px; border-radius: 11px;
+  display: flex; flex-direction: column; gap: 8px;
+  padding: 10px 12px; border-radius: 9px;
   background: var(--bg-slate-50); border: 1px solid var(--border-slate-200);
 }
 [data-theme='dark'] .pb-import__optional { background: #0b0f14; border-color: #1f2937; }
 .pb-import__optionalhead {
-  display: flex; align-items: center; gap: 6px;
-  font-size: 9.5px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase;
+  display: flex; align-items: center; gap: 5px;
+  font-size: 9px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase;
   color: var(--text-slate-500);
 }
 .pb-import__optionalhead svg { color: #93a5bd; }
 .pb-import__optionalhead span {
-  margin-left: 2px; padding: 2px 6px; border-radius: 4px; letter-spacing: .04em;
-  font-size: 9px; color: var(--text-slate-400); background: rgba(100,116,139,.12);
+  margin-left: 2px; padding: 1px 5px; border-radius: 3px; letter-spacing: .04em;
+  font-size: 8.5px; color: var(--text-slate-400); background: rgba(100,116,139,.12);
 }
+
+/* Compact focus box inside import modal */
+.pb-focusbox {
+  display: flex; flex-direction: column; gap: 5px;
+}
+.pb-focusbox__top {
+  display: flex; align-items: center; justify-content: space-between;
+}
+.pb-focusbox__count {
+  font-size: 10px; font-weight: 700; color: var(--text-slate-400); font-variant-numeric: tabular-nums;
+}
+.pb-focusbox__input.ant-input-affix-wrapper {
+  height: 32px; border-radius: 7px; font-size: 12px; padding: 0 9px;
+  background: var(--bg-pure-white); border: 1px solid var(--border-slate-200);
+  transition: all .15s ease;
+}
+.pb-focusbox__input.ant-input-affix-wrapper:hover,
+.pb-focusbox__input.ant-input-affix-wrapper-focused {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 2px rgba(59,130,246,.12);
+}
+[data-theme='dark'] .pb-focusbox__input.ant-input-affix-wrapper {
+  background: #0f1419; border-color: #1f2937; color: #e2e8f0;
+}
+[data-theme='dark'] .pb-focusbox__input.ant-input-affix-wrapper input {
+  background: transparent; color: #e2e8f0;
+}
+.pb-focusbox__suggest {
+  display: flex; align-items: center; flex-wrap: wrap; gap: 4px;
+}
+.pb-focusbox__suggestlabel {
+  font-size: 9px; font-weight: 800; letter-spacing: .05em; text-transform: uppercase;
+  color: var(--text-slate-400); margin-right: 1px;
+}
+.pb-focusbox__chip {
+  height: 20px; padding: 0 7px; border-radius: 4px; cursor: pointer;
+  font-size: 10.5px; font-weight: 600; color: var(--text-slate-600);
+  background: var(--bg-slate-100); border: 1px solid var(--border-slate-200);
+  transition: all .15s ease;
+}
+.pb-focusbox__chip:hover {
+  color: #2563eb; border-color: rgba(59,130,246,.4); background: rgba(59,130,246,.08);
+}
+.pb-focusbox__chip.is-on {
+  color: #2563eb; background: rgba(59,130,246,.12); border-color: rgba(59,130,246,.35);
+  font-weight: 700;
+}
+[data-theme='dark'] .pb-focusbox__chip {
+  background: #161f2c; border-color: #1f2937; color: #94a3b8;
+}
+[data-theme='dark'] .pb-focusbox__chip:hover {
+  color: #60a5fa; background: rgba(59,130,246,.15);
+}
+[data-theme='dark'] .pb-focusbox__chip.is-on {
+  color: #60a5fa; background: rgba(59,130,246,.2); border-color: rgba(59,130,246,.4);
+}
+
 .pb-import__countwrap { display: flex; flex-direction: column; gap: 6px; }
 .pb-import__count { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 .pb-import__count .pb-ask__label { margin-bottom: 0; }
@@ -945,7 +1002,7 @@ button.pb-import__row:hover { border-color: rgba(59,130,246,.4); background: rgb
   color: var(--text-slate-400); margin-right: 2px;
 }
 .pb-ask__chip {
-  height: 24px; padding: 0 9px; border-radius: 999px; cursor: pointer;
+  height: 24px; padding: 0 9px; border-radius: 6px; cursor: pointer;
   font-size: 11px; font-weight: 600; color: var(--text-slate-500);
   background: var(--bg-slate-50); border: 1px solid var(--border-slate-200);
   transition: color .15s ease, background .15s ease, border-color .15s ease;
@@ -2298,7 +2355,7 @@ button.pb-import__row:hover { border-color: rgba(59,130,246,.4); background: rgb
   text-transform: uppercase; color: var(--text-slate-400);
 }
 .pbc-strip__item {
-  flex-shrink: 0; height: 26px; padding: 0 11px; border-radius: 999px; cursor: pointer;
+  flex-shrink: 0; height: 26px; padding: 0 11px; border-radius: 6px; cursor: pointer;
   display: inline-flex; align-items: center; gap: 6px;
   font-size: 11.5px; font-weight: 600; color: var(--text-slate-500);
   background: transparent; border: 1px solid var(--border-slate-200);

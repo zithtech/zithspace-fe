@@ -37,6 +37,7 @@ import { CollectionIcon } from "@/components/qa/CollectionIcon";
 import {
   COLLECTION_KIND_LABELS,
   PLAYBOOK_STYLES,
+  VISIBILITY_LABELS,
   type CollectionDetail,
 } from "@/components/qa/playbookShared";
 
@@ -135,7 +136,7 @@ export default function CollectionDetailPage() {
     );
   }
 
-  const canCurate = data.canCurate;
+  const canCurate = Boolean(data.isOwn);
 
   return (
     <MainLayout noPadding>
@@ -152,6 +153,13 @@ export default function CollectionDetailPage() {
               Collections
             </Button>
             <div className="sc-header-right">
+              {data.status === "draft" ? (
+                <span className="pb-tier pb-tier--draft">Draft</span>
+              ) : (
+                <span className={`pb-tier pb-tier--${data.visibility}`}>
+                  {VISIBILITY_LABELS[data.visibility]}
+                </span>
+              )}
               {/* Premium and not bought. The pack still reads — this is the way
                   to ask for the playbooks inside it. */}
               {data.locked &&

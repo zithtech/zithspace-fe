@@ -443,22 +443,23 @@ export default function PlaybookReaderPage() {
             <div className="sc-header-right">
               {playbook && (
                 <>
-                  <span className={`pb-tier pb-tier--${playbook.visibility}`}>
-                    {VISIBILITY_LABELS[playbook.visibility]}
-                  </span>
+                  {playbook.status === "draft" ? (
+                    <span className="pb-tier pb-tier--draft">Draft</span>
+                  ) : (
+                    <span className={`pb-tier pb-tier--${playbook.visibility}`}>
+                      {VISIBILITY_LABELS[playbook.visibility]}
+                    </span>
+                  )}
                   <span className="pb-tag">
                     v{playbook.version}
                     {playbook.lastUpdatedAt
                       ? ` · ${dayjs(playbook.lastUpdatedAt).format("D MMM YYYY")}`
                       : ""}
                   </span>
-                  {/* Same rule the API enforces: your workspace's own playbooks,
-                      and the maintained library for a super_admin — who would
-                      otherwise have no way back into a library playbook they
-                      just wrote. */}
+                  {/* Only the creator of the playbook can edit it. */}
                   {(canUpdatePlaybook || canCreatePlaybook) &&
                     hasNewPlaybookFeature &&
-                    (playbook.isOwn || meta?.canPublish) && (
+                    Boolean(playbook.isOwn) && (
                       <Button
                         className="pb-btn is-sm"
                         icon={<Pencil size={14} />}

@@ -80,6 +80,18 @@ export default function EditPlaybookPage() {
     );
   }
 
+  /* Only the creator of this playbook may edit it. */
+  if (!playbook.isOwn) {
+    return (
+      <MainLayout>
+        <NoData
+          title="No access"
+          description="Only the creator of this playbook can edit it."
+        />
+      </MainLayout>
+    );
+  }
+
   /* A locked premium playbook comes back without its items, so saving from here
      would wipe the body. The reader offers the request-access path instead. */
   if (playbook.locked) {

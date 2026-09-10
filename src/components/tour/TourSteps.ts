@@ -608,7 +608,7 @@ export const manualProjectTourSteps: RouteStep[] = [
     placement: 'bottom',
   },
   {
-    target: '[data-tour="project-row-actions"]',
+    target: '[data-tour="project-row-actions"], [data-tour="project-filters-btn"]',
     route: '/projects/manage',
     title: 'Project Actions (3-Dot Menu)',
     content: 'Click the 3-dot menu on any project to View the project overview board, Edit/Configure team settings, or safely Delete.',

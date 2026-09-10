@@ -3,6 +3,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useRouter, usePathname } from 'next/navigation';
+import { message } from 'antd';
 import { apiClient } from '@/lib/axios';
 import {
   qaWorkflowSteps,
@@ -194,7 +195,7 @@ export const TourProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const hasAutoStarted = React.useRef(false);
 
-  // Resume the active tour on refresh or auto-start for new users
+  // Resume the active tour on refresh or auto-start for in-progress tours
   useEffect(() => {
     if (isSuccess && tourData && !hasAutoStarted.current) {
       if (!run && !currentTourKey) {
@@ -216,16 +217,6 @@ export const TourProvider: React.FC<{ children: React.ReactNode }> = ({ children
           startTour(inProgressTour.tourKey);
           return;
         }
-
-        // 3. First time user: auto-start QA workflow tour only if no tour has ever been completed or skipped
-        const hasLocalCompleted = typeof window !== 'undefined' && localStorage.getItem('initial_tour_completed') === 'true';
-        const hasAnyFinishedTour = tourData.some(t => t.status === 'COMPLETED' || t.status === 'SKIPPED');
-        if (!hasLocalCompleted && !hasAnyFinishedTour) {
-          const qaTour = tourData.find(t => t.tourKey === 'testiez-qa-workflow');
-          if (!qaTour || qaTour.status === 'NOT_STARTED') {
-            startTour('testiez-qa-workflow');
-          }
-        }
       }
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -234,8 +225,9 @@ export const TourProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Contextual first-time tour auto-start when user visits /projects/manage or /integrations
   useEffect(() => {
     if (!isSuccess || !tourData || run || currentTourKey) return;
+    if (pathname === '/welcome') return;
 
-    if (pathname === '/projects/manage') {
+    if (pathname === '/projects/manage' || pathname === '/projects') {
       const manualTour = tourData.find(t => t.tourKey === 'testiez-project-manual');
       const hasLocalDone = typeof window !== 'undefined' && localStorage.getItem('tour_manual_project_done') === 'true';
       if (!hasLocalDone && (!manualTour || manualTour.status === 'NOT_STARTED')) {
@@ -294,6 +286,10 @@ export const TourProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
 
     setCurrentTourKey(null);
+    message.info({
+      content: 'Tour closed. You can replay or switch tours anytime from the ▶ icon in the top navigation bar.',
+      duration: 4.5,
+    });
   }, [currentTourKey, stepIndex, updateTourMutation, returnTour, startTour]);
 
   const completeTour = useCallback(() => {

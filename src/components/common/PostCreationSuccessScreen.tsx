@@ -85,7 +85,7 @@ export default function PostCreationSuccessScreen({
             {!imgError ? (
               <img
                 src="/images/robot-guide.jpg"
-                alt="Buddy"
+                alt="Guide"
                 onError={() => setImgError(true)}
                 style={{ width: "100%", height: "100%", objectFit: "cover" }}
               />

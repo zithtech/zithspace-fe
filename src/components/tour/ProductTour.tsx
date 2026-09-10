@@ -10,6 +10,7 @@ import { usePathname, useRouter } from 'next/navigation';
 
 import { apiClient } from '@/lib/axios';
 import { X, ChevronLeft, ChevronRight, Check, Sparkles } from 'lucide-react';
+import { useAuth } from '@/context/AuthContext';
 import { adminSettingsTourSteps } from './TourSteps';
 
 function CustomTooltip({
@@ -23,6 +24,7 @@ function CustomTooltip({
   size,
 }: TooltipRenderProps) {
   const { theme } = useTheme();
+  const { user } = useAuth();
   const { skipTour, startTour, completeTour, returnTour, currentTourKey, stepIndex: activeStepIndex } = useTour();
   const isDark = theme === 'dark';
 
@@ -130,7 +132,7 @@ function CustomTooltip({
         }}>
           <img
             src="/images/robot-guide.jpg"
-            alt="Buddy"
+            alt="Guide"
             style={{ width: '100%', height: '100%', objectFit: 'cover' }}
             onError={(e) => {
               // Graceful fallback to hide broken image icon
@@ -140,7 +142,7 @@ function CustomTooltip({
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', paddingTop: '4px', paddingRight: '28px' }}>
           <span style={{ fontSize: '11px', fontWeight: 700, color: '#4F46E5', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-            Buddy
+            {user?.name ? `Hi, ${user.name}` : 'Hi'}
           </span>
           <div style={{
             background: isDark ? '#1f2937' : '#f3f4f6',
@@ -546,10 +548,10 @@ export const ProductTour: React.FC = () => {
         }
       } else if (
         currentTourKey === 'testiez-project-manual' &&
-        stepIndex >= 5
+        (stepIndex >= 5 || stepIndex < 2)
       ) {
         const drawerCloseBtn = document.querySelector('.customer-drawer-header button, .ant-drawer-close') as HTMLElement | null;
-        if (drawerCloseBtn) {
+        if (drawerCloseBtn && document.querySelector('.leave-drawer-root.ant-drawer-open')) {
           drawerCloseBtn.click();
         }
       } else if (
@@ -638,7 +640,10 @@ export const ProductTour: React.FC = () => {
       // Check for DOM element
       const el = document.querySelector(currentStepDef.target as string);
       if (el) {
-        if (currentTourKey === 'testiez-members' && stepIndex >= 2 && stepIndex <= 6) {
+        if (
+          (currentTourKey === 'testiez-members' && stepIndex >= 2 && stepIndex <= 6) ||
+          (currentTourKey === 'testiez-project-manual' && stepIndex >= 2 && stepIndex <= 4)
+        ) {
           el.scrollIntoView({ behavior: 'smooth', block: 'center' });
         }
         setReadyStepIndex(stepIndex);
@@ -651,6 +656,17 @@ export const ProductTour: React.FC = () => {
       let attempts = 0;
       intervalId = setInterval(() => {
         attempts++;
+
+        // If in project drawer steps, ensure drawer is opened
+        if (currentTourKey === 'testiez-project-manual' && stepIndex >= 2 && stepIndex <= 4) {
+          const drawerEl = document.querySelector('[data-tour="project-form-details"]');
+          if (!drawerEl) {
+            const createBtn = document.querySelector('[data-tour="project-create-btn"]') as HTMLElement | null;
+            if (createBtn) {
+              createBtn.click();
+            }
+          }
+        }
 
         // If in members drawer steps, ensure drawer is opened
         if (currentTourKey === 'testiez-members' && stepIndex >= 2 && stepIndex <= 6) {
@@ -665,7 +681,10 @@ export const ProductTour: React.FC = () => {
 
         const found = document.querySelector(currentStepDef.target as string);
         if (found) {
-          if (currentTourKey === 'testiez-members' && stepIndex >= 2 && stepIndex <= 6) {
+          if (
+            (currentTourKey === 'testiez-members' && stepIndex >= 2 && stepIndex <= 6) ||
+            (currentTourKey === 'testiez-project-manual' && stepIndex >= 2 && stepIndex <= 4)
+          ) {
             found.scrollIntoView({ behavior: 'smooth', block: 'center' });
           }
           setReadyStepIndex(stepIndex);

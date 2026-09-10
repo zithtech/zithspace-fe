@@ -16,7 +16,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { useQuery } from "@tanstack/react-query";
 import { useParams, useRouter } from "next/navigation";
 import { Button, Input, Tooltip, message } from "antd";
-import { ArrowLeft, BookOpen, CheckCheck, Layers, Search, Sparkles, Lock, Pencil } from "lucide-react";
+import { ArrowLeft, BookOpen, CheckCheck, Layers, Lock, Menu, Pencil, Search, Sparkles, X } from "lucide-react";
 import dayjs from "dayjs";
 
 import MainLayout from "@/components/layout/MainLayout";
@@ -128,6 +128,7 @@ export default function PlaybookReaderPage() {
   const debouncedSearch = useDebounce(search, 250);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [requesting, setRequesting] = useState(false);
   const [requested, setRequested] = useState(false);
 
@@ -370,6 +371,13 @@ export default function PlaybookReaderPage() {
           <div className="saas-header-container sc-header">
             <div className="sc-header-controls">
               <Button
+                className="dh-mobile-menu-btn"
+                type="text"
+                icon={<Menu size={18} />}
+                onClick={() => setMobileSidebarOpen(true)}
+                aria-label="Open section outline"
+              />
+              <Button
                 type="text"
                 icon={<ArrowLeft size={17} />}
                 onClick={() => router.push("/playbooks")}
@@ -518,7 +526,23 @@ export default function PlaybookReaderPage() {
               </div>
 
               <div className="pb-reader">
-                <nav className="pb-nav">
+                <div
+                  className={`dh-sidebar-backdrop ${mobileSidebarOpen ? "is-open" : ""}`}
+                  onClick={() => setMobileSidebarOpen(false)}
+                  aria-hidden
+                />
+                <nav className={`pb-nav ${mobileSidebarOpen ? "is-mobile-open" : ""}`} aria-label="Section outline">
+                  <div className="pb-nav__mobile-head">
+                    <span className="pb-nav__mobile-title">Sections</span>
+                    <button
+                      type="button"
+                      className="pb-nav__mobile-close"
+                      onClick={() => setMobileSidebarOpen(false)}
+                      aria-label="Close outline"
+                    >
+                      <X size={16} />
+                    </button>
+                  </div>
                   {sections.map((section) => (
                     <div className="pb-nav__group" key={section.id}>
                       <button
@@ -535,6 +559,7 @@ export default function PlaybookReaderPage() {
                         }`}
                         onClick={() => {
                           setActiveSection(section.id);
+                          setMobileSidebarOpen(false);
                           document
                             .getElementById(`pb-section-${section.id}`)
                             ?.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -557,6 +582,7 @@ export default function PlaybookReaderPage() {
                               }`}
                               onClick={() => {
                                 setActiveSection(child.id);
+                                setMobileSidebarOpen(false);
                                 document
                                   .getElementById(`pb-section-${child.id}`)
                                   ?.scrollIntoView({ behavior: "smooth", block: "start" });

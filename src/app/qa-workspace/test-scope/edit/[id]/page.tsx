@@ -1078,7 +1078,7 @@ useActivitySource({ section: "WORK", module: "QA", page: "EditTestScope" });
     const att = d.attachments || {};
     const refs = d.reqReferences || {};
     return {
-      "sec-basics": !!formData.name?.trim() && !!formData.status,
+      "sec-basics": !!formData.name?.trim() && formData.name.trim().length <= 255 && !!formData.status,
       "sec-product": !!d.product && (d.modules?.length > 0),
       "sec-requirements": !!(refs.prd || refs.figma || refs.apiDoc || refs.userStory || refs.epic || (Array.isArray(refs.devTicket) ? refs.devTicket.length : refs.devTicket) || refs.additionalDocs?.length),
       "sec-scope": hasHtml(d.inScope),
@@ -1656,6 +1656,13 @@ useActivitySource({ section: "WORK", module: "QA", page: "EditTestScope" });
       setTimeout(() => nameInputRef.current?.focus?.(), 350);
       return;
     }
+    if (formData.name.trim().length > 255) {
+      setNameError("Test Scope Name cannot exceed 255 characters");
+      message.error("Test Scope Name cannot exceed 255 characters");
+      scrollToSection('sec-basics');
+      setTimeout(() => nameInputRef.current?.focus?.(), 350);
+      return;
+    }
     if (!formData.status) {
       message.error("Status is required");
       scrollToSection('sec-basics');
@@ -1667,6 +1674,7 @@ useActivitySource({ section: "WORK", module: "QA", page: "EditTestScope" });
       setSubmitting(true);
       const payload = {
         ...formData,
+        name: formData.name.trim(),
         start_date: formData.start_date ? dayjs(formData.start_date).format('YYYY-MM-DD') : null,
         end_date: formData.end_date ? dayjs(formData.end_date).format('YYYY-MM-DD') : null,
       };
@@ -1675,9 +1683,10 @@ useActivitySource({ section: "WORK", module: "QA", page: "EditTestScope" });
       setIsDirty(false);
       message.success(`Scope updated successfully`);
       router.push("/qa-workspace/test-scope");
-    } catch (error) {
+    } catch (error: any) {
       console.error(error);
-      message.error("Failed to update Test Scope");
+      const errMsg = error?.response?.data?.error || error?.response?.data?.message || error?.message || "Failed to update Test Scope";
+      message.error(errMsg);
     } finally {
       setSubmitting(false);
     }
@@ -1693,12 +1702,20 @@ useActivitySource({ section: "WORK", module: "QA", page: "EditTestScope" });
       setTimeout(() => nameInputRef.current?.focus?.(), 350);
       return;
     }
+    if (formData.name.trim().length > 255) {
+      setNameError("Test Scope Name cannot exceed 255 characters");
+      message.error("Test Scope Name cannot exceed 255 characters");
+      scrollToSection('sec-basics');
+      setTimeout(() => nameInputRef.current?.focus?.(), 350);
+      return;
+    }
     setNameError(null);
 
     try {
       setSubmitting(true);
       const payload = {
         ...formData,
+        name: formData.name.trim(),
         status: 'In Review',
         details: {
           ...(formData.details || {}),
@@ -1715,9 +1732,10 @@ useActivitySource({ section: "WORK", module: "QA", page: "EditTestScope" });
       setIsDirty(false);
       message.success(`Scope updated and approval requested successfully`);
       router.push("/qa-workspace/test-scope");
-    } catch (error) {
+    } catch (error: any) {
       console.error(error);
-      message.error("Failed to request approval for Test Scope");
+      const errMsg = error?.response?.data?.error || error?.response?.data?.message || error?.message || "Failed to request approval for Test Scope";
+      message.error(errMsg);
     } finally {
       setSubmitting(false);
     }
@@ -2396,8 +2414,31 @@ useActivitySource({ section: "WORK", module: "QA", page: "EditTestScope" });
                       ref={nameInputRef}
                       placeholder="e.g. Checkout revamp — release 2.4 regression"
                       value={formData.name}
-                      status={nameError ? 'error' : undefined}
-                      onChange={(e) => { setNameError(null); updateRoot('name', e.target.value); }}
+                      count={{
+                        show: ({ count }) => (
+                          <span
+                            style={{
+                              color: count > 255 ? "#ef4444" : "var(--ts-text-3, #94a3b8)",
+                              fontWeight: count > 255 ? 600 : 400,
+                              fontSize: 12,
+                            }}
+                          >
+                            {count} / 255
+                          </span>
+                        ),
+                      }}
+                      status={nameError || (formData.name?.trim()?.length || 0) > 255 ? 'error' : undefined}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        if (val.trim().length > 255) {
+                          setNameError("Test Scope Name cannot exceed 255 characters");
+                        } else if (!val.trim()) {
+                          setNameError("Test Scope Name is required");
+                        } else {
+                          setNameError(null);
+                        }
+                        updateRoot('name', val);
+                      }}
                     />
                   </Field>
                   <Field label="Scope Type" className="md:col-span-3">

@@ -46,7 +46,13 @@ export interface ProductNavigation {
  */
 function satisfies(granted: readonly string[], required: readonly string[]): boolean {
   return required.some((r) =>
-    granted.some((f) => f === r || f.startsWith(`${r}_`)),
+    granted.some((f) => {
+      if (f === r) return true;
+      if (r === "work_playbooks_requested_playbooks" && f.includes("request_playbook")) {
+        return false;
+      }
+      return f.startsWith(`${r}_`);
+    }),
   );
 }
 

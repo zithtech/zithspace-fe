@@ -285,7 +285,7 @@ export function ModulesTable({
             style={{ width: 200 }}
             allowClear
           />
-          {projectOptions.length > 2 && (
+          {projectOptions.length > 1 && (
             <SearchableDropdown
               options={projectOptions}
               value={projectFilter}

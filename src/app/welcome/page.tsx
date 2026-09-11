@@ -107,15 +107,15 @@ function ProductPreviewMockup({ accent }: { accent: string }) {
   ];
 
   const statusStyle: Record<string, { color: string; bg: string }> = {
-    Pass:    { color: '#10b981', bg: 'rgba(16,185,129,0.12)' },
-    Fail:    { color: '#ef4444', bg: 'rgba(239,68,68,0.12)' },
+    Pass: { color: '#10b981', bg: 'rgba(16,185,129,0.12)' },
+    Fail: { color: '#ef4444', bg: 'rgba(239,68,68,0.12)' },
     Pending: { color: '#f59e0b', bg: 'rgba(245,158,11,0.12)' },
   };
 
   const priorityColor: Record<string, string> = {
     Critical: '#ef4444',
-    High:     '#f97316',
-    Medium:   '#f59e0b',
+    High: '#f97316',
+    Medium: '#f59e0b',
   };
 
   return (
@@ -190,7 +190,7 @@ function ProductPreviewMockup({ accent }: { accent: string }) {
             {/* Search bar */}
             <div style={{ padding: '10px 14px', borderBottom: '1px solid rgba(0,0,0,0.04)' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '7px 12px', background: '#f1f5f9', border: '1px solid rgba(0,0,0,0.05)', borderRadius: 9 }}>
-                <SearchOutlined style={{ fontSize: 11, color: 'rgba(0,0,0,0.4)' }}/>
+                <SearchOutlined style={{ fontSize: 11, color: 'rgba(0,0,0,0.4)' }} />
                 <span style={{ fontSize: 11.5, color: 'rgba(0,0,0,0.4)' }}>Search test cases...</span>
               </div>
             </div>
@@ -244,11 +244,11 @@ function ProductPreviewMockup({ accent }: { accent: string }) {
         animation: 'shapeFloat 4s ease-in-out infinite alternate',
       }}>
         <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-          <path d="M7 0.5L8.3 5.2L13 7L8.3 8.8L7 13.5L5.7 8.8L1 7L5.7 5.2Z" fill="url(#tcAiGrad)"/>
+          <path d="M7 0.5L8.3 5.2L13 7L8.3 8.8L7 13.5L5.7 8.8L1 7L5.7 5.2Z" fill="url(#tcAiGrad)" />
           <defs>
             <linearGradient id="tcAiGrad" x1="0" y1="0" x2="14" y2="14" gradientUnits="userSpaceOnUse">
-              <stop stopColor="#8b5cf6"/>
-              <stop offset="1" stopColor="#6d28d9"/>
+              <stop stopColor="#8b5cf6" />
+              <stop offset="1" stopColor="#6d28d9" />
             </linearGradient>
           </defs>
         </svg>
@@ -326,8 +326,8 @@ function TourStepVisual({ stepIndex, accent }: { stepIndex: number; accent: stri
       <div style={{ fontSize: 11, fontWeight: 700, color: 'rgba(0,0,0,0.35)', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 4 }}>Test Suites</div>
       {[
         { name: 'Authentication Suite', count: 12, passed: 10, color: '#2a78d6' },
-        { name: 'Payment Suite',        count: 8,  passed: 6,  color: '#8b5cf6' },
-        { name: 'UI Regression Suite',  count: 24, passed: 22, color: '#10b981' },
+        { name: 'Payment Suite', count: 8, passed: 6, color: '#8b5cf6' },
+        { name: 'UI Regression Suite', count: 24, passed: 22, color: '#10b981' },
       ].map((suite, i) => {
         const pct = Math.round((suite.passed / suite.count) * 100);
         return (
@@ -355,8 +355,8 @@ function TourStepVisual({ stepIndex, accent }: { stepIndex: number; accent: stri
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
         {[
           { name: 'Sprint 3 - Full Regression', date: 'Today 09:00', status: 'Running', color: '#3b82f6', passed: 34, total: 47 },
-          { name: 'Auth Module - Smoke Test',   date: 'Yesterday',   status: 'Passed',  color: '#10b981', passed: 12, total: 12 },
-          { name: 'Checkout API - Integration', date: '2 days ago',  status: 'Failed',  color: '#ef4444', passed: 5,  total: 9  },
+          { name: 'Auth Module - Smoke Test', date: 'Yesterday', status: 'Passed', color: '#10b981', passed: 12, total: 12 },
+          { name: 'Checkout API - Integration', date: '2 days ago', status: 'Failed', color: '#ef4444', passed: 5, total: 9 },
         ].map((run, i) => {
           const pct = Math.round((run.passed / run.total) * 100);
           return (
@@ -567,7 +567,7 @@ function DemoTourModal({ onClose, accent }: { onClose: () => void; accent: strin
     { id: 1, title: 'Create Project', subtitle: 'Start your QA journey', description: 'Set up a dedicated QA project in seconds. Give it a name, choose your methodology, and invite your team. All your modules, test cases, and runs will live inside this project.', icon: <RocketOutlined />, gradient: 'linear-gradient(135deg, #2a78d6, #1a5cbf)', accentColor: '#2a78d6', highlights: ['Custom project templates', 'Agile & Waterfall support', 'Team role assignment'], faqs: [{ q: 'Can I create multiple projects for different products?', a: 'Yes. Testiez supports unlimited projects, so you can have separate projects for each product, client, or sprint cycle. Each project is fully isolated with its own modules, test cases, runs, and team members — nothing bleeds across projects.' }, { q: 'What happens to my data if I archive a project?', a: 'Archiving a project hides it from your active workspace but preserves all data permanently. Test cases, runs, submissions, and bug reports are all retained and can be accessed or restored at any time from the Archived Projects section in your account settings.' }] },
     { id: 2, title: 'Settings', subtitle: 'Configure your workspace', description: "Control every aspect of your project — from member roles and notification preferences to workflow rules and third-party integrations. Settings ensure your team works within a consistent, well-governed process.", icon: <SettingOutlined />, gradient: 'linear-gradient(135deg, #8b5cf6, #6d28d9)', accentColor: '#8b5cf6', highlights: ['Granular role & permission control', 'Slack & Jira integrations', 'Custom workflow status rules'], faqs: [{ q: 'What roles are available and what can each role do?', a: 'Testiez has four roles: Owner (full access), Manager (manage members and approve submissions), QA Engineer (create and execute test cases), and Viewer (read-only access for developers or stakeholders). You can change a member role at any time from the Team Settings tab without losing any of their historical data.' }, { q: 'Can I control which events trigger Slack or email notifications?', a: 'Yes. In the Notifications section of Settings, you can precisely choose which events send alerts — such as bug logged, submission created, approval granted, or run completed — and configure whether they go to email, Slack, or both. Each team member can also personalise their own notification preferences independently.' }] },
     { id: 3, title: 'Scope', subtitle: 'Define what gets tested', description: 'Before writing a single test case, define the boundaries of your testing. The Scope module lets you list the modules and features active in this sprint, ensuring nothing is accidentally missed or over-tested.', icon: <DeploymentUnitOutlined />, gradient: 'linear-gradient(135deg, #0ea5e9, #0284c7)', accentColor: '#0ea5e9', highlights: ['Sprint-specific scope definition', 'Clone scope from previous sprints', 'Coverage gap highlighting'], faqs: [{ q: 'How is Scope different from just organising modules?', a: 'Modules are permanent structural containers for your test cases. Scope is sprint-specific — it defines which of those modules are actively being tested in the current cycle. This means you reuse the same module structure across sprints while scoping only what is relevant each time, keeping your reporting clean and accurate.' }, { q: 'Can I reuse the scope definition from a previous sprint?', a: 'Yes. When creating a new scope, you can clone it directly from any past sprint within the same project. This saves significant setup time and ensures consistency, especially for regression cycles where the scope changes minimally between sprints. Cloned scopes can then be adjusted before finalising.' }] },
-    { id: 4, title: 'Test Cases', subtitle: 'Write, group, and reuse test cases', description: 'Create step-by-step test cases with preconditions, numbered steps, expected results, and priority levels. Group related cases together within a module for better organisation, and tag them for fast filtering during execution.', icon: <FileTextOutlined />, gradient: 'linear-gradient(135deg, #10b981, #059669)', accentColor: '#10b981', highlights: ['Group related cases within modules', 'Step-by-step editor with expected results', 'Priority, severity & tag filtering'], faqs: [{ q: 'Can I import existing test cases from Excel or another tool?', a: 'Yes. Testiez supports bulk import via CSV. Download the import template, fill in your test case details (title, preconditions, steps, expected results, priority), and upload it directly. For teams migrating from Jira Zephyr or TestRail, we support structured imports from those formats as well.' }, { q: 'How does grouping test cases work, and when should I use it?', a: 'Within any module, you can create named groups to cluster related test cases together \u2014 for example, grouping all login-related cases under an \u201cAuthentication\u201d group inside your Auth Module. This is especially useful when a module is large and covers multiple distinct flows. Groups help QA engineers navigate quickly during execution and make reports easier to read by breaking results down at the group level.' }] },
+    { id: 4, title: 'Test Cases', subtitle: 'Write, group, and reuse test cases', description: 'Create step-by-step test cases with preconditions, numbered steps, expected results, and priority levels. Group related cases together within a module for better organisation, and tag them for fast filtering during execution.', icon: <FileTextOutlined />, gradient: 'linear-gradient(135deg, #10b981, #059669)', accentColor: '#10b981', highlights: ['Group related cases within modules', 'Step-by-step editor with expected results', 'Priority, severity & tag filtering'], faqs: [{ q: 'How do priority and severity levels work in test cases?', a: 'Each test case can be tagged with a priority (Critical, High, Medium, Low) and a severity level to indicate its impact on the product. Priority controls which cases are executed first during a run, while severity reflects the potential damage if that scenario fails. Together, they help your team focus execution effort on the most important areas and filter results quickly during triage.' }, { q: 'How does grouping test cases work, and when should I use it?', a: 'Within any module, you can create named groups to cluster related test cases together — for example, grouping all login-related cases under an "Authentication" group inside your Auth Module. This is especially useful when a module is large and covers multiple distinct flows. Groups help QA engineers navigate quickly during execution and make reports easier to read by breaking results down at the group level.' }] },
     { id: 5, title: 'Test Suites', subtitle: 'Group test cases for efficient execution', description: 'Organise related test cases into suites — smoke tests, regression packs, or feature-specific groups. Suites let you launch targeted runs without selecting cases one by one every time.', icon: <ExperimentOutlined />, gradient: 'linear-gradient(135deg, #f59e0b, #d97706)', accentColor: '#f59e0b', highlights: ['Drag-and-drop case organisation', 'Suite-level pass rate tracking', 'Reusable across multiple sprints'], faqs: [{ q: 'Can the same test case appear in more than one suite?', a: 'Yes. Test cases are linked, not duplicated. A single test case can belong to multiple suites — for example, a login test case might be in both a Smoke Test suite and a Full Regression suite. Any update to the test case reflects across all suites it belongs to automatically.' }, { q: 'Can I build a re-test suite from the failures of the last run?', a: 'Yes. After a test run is complete, filter the results by Failed status and add those cases directly to a new or existing suite. This makes it easy to run a targeted re-test after a bug fix without re-executing your full test pack, saving significant time in fast-paced sprint cycles.' }] },
     { id: 6, title: 'Test Runs', subtitle: 'Execute and track tests in real time', description: 'Launch a test run from any suite. Assign cases to specific engineers, track execution progress live on the dashboard, and record pass/fail results with notes and screenshots directly inside the run.', icon: <PlayCircleOutlined />, gradient: 'linear-gradient(135deg, #3b82f6, #2563eb)', accentColor: '#3b82f6', highlights: ['Live execution progress dashboard', 'Per-case tester assignment', 'Step-level result logging with evidence'], faqs: [{ q: 'Can multiple engineers work on the same test run at the same time?', a: 'Yes. Test runs support concurrent execution. Different cases within the same run can be assigned to different engineers, and each person works their assigned cases independently. The run dashboard updates in real time as results come in, giving the QA lead a live view of overall progress without any page refresh.' }, { q: 'When a step is marked failed, does it automatically create a bug?', a: 'When you mark a step as failed, Testiez immediately prompts you to log a bug from that step. The bug report is pre-populated with the test case ID, the failing step description, and any screenshots you attach — so you never have to manually recreate the context. Every bug is fully traceable back to the exact run and step that triggered it.' }] },
     { id: 7, title: 'Bug List', subtitle: 'Capture and manage every defect', description: 'Every bug logged during a test run lands in the Bug List automatically. Review severity, assign it to the responsible developer, link it back to the failing test case, and track its resolution status through to closure.', icon: <BugOutlined />, gradient: 'linear-gradient(135deg, #ef4444, #dc2626)', accentColor: '#ef4444', highlights: ['Auto-populated from failed test steps', 'Severity, priority & assignee fields', 'Two-way Jira & Linear sync'], faqs: [{ q: 'Does the Bug List sync automatically with Jira or Linear?', a: 'Yes. If you connect your Jira or Linear workspace in Settings, every bug created in Testiez is automatically pushed as an issue to your connected board. Status updates made in Jira (e.g. marking it as Done) also sync back to Testiez, keeping both tools in perfect alignment without any manual effort from your team.' }, { q: 'Can I filter the Bug List by severity, module, or sprint?', a: 'Yes. The Bug List supports multi-dimensional filtering. You can filter by severity (Critical, High, Medium, Low), the module the bug belongs to, the tester who logged it, the sprint it was found in, and the current resolution status. You can also save frequently used filter combinations as named views for one-click access in future sprints.' }] },
@@ -633,19 +633,19 @@ function DemoTourModal({ onClose, accent }: { onClose: () => void; accent: strin
           pointerEvents: 'none',
         }}
       >
-        <div 
+        <div
           className="hide-scrollbar"
           style={{
-          width: '100%', maxWidth: 980, minHeight: 560, maxHeight: '90vh',
-          background: '#ffffff',
-          border: '1px solid rgba(0,0,0,0.06)',
-          borderRadius: 28,
-          boxShadow: `0 32px 80px rgba(0,0,0,0.15), 0 0 0 1px rgba(0,0,0,0.04)`,
-          overflowY: 'auto', overflowX: 'hidden',
-          display: 'flex', flexDirection: 'column',
-          pointerEvents: 'all',
-          position: 'relative',
-        }}>
+            width: '100%', maxWidth: 980, minHeight: 560, maxHeight: '90vh',
+            background: '#ffffff',
+            border: '1px solid rgba(0,0,0,0.06)',
+            borderRadius: 28,
+            boxShadow: `0 32px 80px rgba(0,0,0,0.15), 0 0 0 1px rgba(0,0,0,0.04)`,
+            overflowY: 'auto', overflowX: 'hidden',
+            display: 'flex', flexDirection: 'column',
+            pointerEvents: 'all',
+            position: 'relative',
+          }}>
           {/* Top gradient accent bar */}
           <div style={{ height: 3, background: currentStep.gradient, transition: 'background 0.4s ease' }} />
 

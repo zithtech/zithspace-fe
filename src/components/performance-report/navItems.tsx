@@ -25,7 +25,7 @@ export const PR_NAV_ITEMS: PRNavItem[] = [
     icon: <Gauge size={16} />,
     color: '#3B82F6',
     anyPerm: ['canReadPerformanceReport'],
-    requiredSubscriptionFeature: ['hrms_performance_reports', 'hrms_performance'],
+    requiredSubscriptionFeature: ['hrms_performance_report_reports'],
   },
   {
     key: 'settings',
@@ -34,7 +34,7 @@ export const PR_NAV_ITEMS: PRNavItem[] = [
     icon: <SlidersHorizontal size={16} />,
     color: '#64748B',
     anyPerm: ['canReadPerformanceReportSetting'],
-    requiredSubscriptionFeature: ['hrms_performance_settings', 'hrms_performance'],
+    requiredSubscriptionFeature: ['hrms_performance_report_settings'],
   },
   {
     key: 'generated',
@@ -43,7 +43,7 @@ export const PR_NAV_ITEMS: PRNavItem[] = [
     icon: <Archive size={16} />,
     color: '#8B5CF6',
     anyPerm: ['canReadGeneratedPerformanceReport'],
-    requiredSubscriptionFeature: ['hrms_performance_generated', 'hrms_performance'],
+    requiredSubscriptionFeature: ['hrms_performance_report_generated'],
   },
   {
     key: 'my-reports',
@@ -55,7 +55,10 @@ export const PR_NAV_ITEMS: PRNavItem[] = [
     // users granted my_hub.performance.read (without full performance-report
     // module access) can still reach this page via My Hub.
     anyPerm: ['canReadMyPerformanceReport', 'canReadMyHubPerformance'],
-    requiredSubscriptionFeature: ['hrms_performance_my_reports', 'hrms_performance', 'my_hub'],
+    requiredSubscriptionFeature: [
+      'hrms_performance_report_my_reports',
+      'my_hub_my_hub_general_performance',
+    ],
   },
 ];
 

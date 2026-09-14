@@ -41,6 +41,7 @@ import {
   AzureMark,
   TrelloMark,
 } from "@/components/projects/bug-list/ticket-flow";
+import { useProduct } from "@/context/ProductContext";
 import {
   GoogleMark,
   MicrosoftMark,
@@ -60,20 +61,22 @@ interface ProviderConfig {
   description: string;
 }
 
-const PROVIDERS: ProviderConfig[] = [
+const CALENDAR_PROVIDERS: CalendarProvider[] = ["GOOGLE", "ZOHO", "MICROSOFT"];
+
+const getProviders = (brandName: string): ProviderConfig[] => [
   {
     key: "GOOGLE",
     name: "Google Workspace",
     mark: <GoogleMark />,
     category: "Mail & calendar",
-    description: "Sync Gmail threads and Google Calendar meetings straight into your Zukvo workspace.",
+    description: `Sync Gmail threads and Google Calendar meetings straight into your ${brandName} workspace.`,
   },
   {
     key: "ZOHO",
     name: "Zoho Workspace",
     mark: <ZohoMark />,
     category: "Mail & calendar",
-    description: "Read Zoho Mail and manage Zoho Calendar events without leaving Zukvo.",
+    description: `Read Zoho Mail and manage Zoho Calendar events without leaving ${brandName}.`,
   },
   {
     key: "MICROSOFT",
@@ -110,6 +113,10 @@ function lastSyncLabel(iso?: string | null) {
 function IntegrationContent() {
   useActivitySource({ section: "HOME", module: "Integrations", page: "IntegrationPage" });
 
+  const { manifest } = useProduct();
+  const brandName = manifest?.name || "Zukvo";
+  const providers = useMemo(() => getProviders(brandName), [brandName]);
+
   const { message: messageApi } = App.useApp();
   const { theme } = useTheme();
   const { canReadMail, canReadCalendar } = usePermission();
@@ -141,11 +148,11 @@ function IntegrationContent() {
 
   const fetchStatuses = useCallback(async () => {
     const newStatuses: Record<string, CalendarStatus | null> = {};
-    for (const provider of PROVIDERS) {
+    for (const providerKey of CALENDAR_PROVIDERS) {
       try {
-        newStatuses[provider.key] = await CalendarService.getStatus(provider.key);
+        newStatuses[providerKey] = await CalendarService.getStatus(providerKey);
       } catch {
-        newStatuses[provider.key] = { connected: false, provider: provider.key, lastSync: null };
+        newStatuses[providerKey] = { connected: false, provider: providerKey, lastSync: null };
       }
     }
     setStatuses(newStatuses);
@@ -373,9 +380,9 @@ function IntegrationContent() {
 
   const q = searchText.trim().toLowerCase();
   const anyProviderConnected = Object.values(statuses).some((s) => s?.connected);
-  const activeProvider = PROVIDERS.find((p) => statuses[p.key]?.connected) || null;
+  const activeProvider = providers.find((p) => statuses[p.key]?.connected) || null;
 
-  const totalCount = PROVIDERS.length + 3; // +2 for Jira & Linear, +1 for Notion
+  const totalCount = providers.length + 3; // +2 for Jira & Linear, +1 for Notion
   const connectedCount =
     Object.values(statuses).filter((s) => s?.connected).length +
     (linearConnected ? 1 : 0) +
@@ -392,16 +399,16 @@ function IntegrationContent() {
   };
 
   const mailProviders = useMemo(
-    () => PROVIDERS.filter((p) => matches(p.name, p.description, !!statuses[p.key]?.connected)),
+    () => providers.filter((p) => matches(p.name, p.description, !!statuses[p.key]?.connected)),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [q, activeTab, statuses]
+    [providers, q, activeTab, statuses]
   );
 
-  const LINEAR_DESC = "Import your existing Linear projects, tickets, into Zukvo and Push bugs into Linear as issues.";
+  const LINEAR_DESC = `Import your existing Linear projects, issues, and cycles into ${brandName} and Push bugs into Linear as issues.`;
   const showLinear = matches("Linear", LINEAR_DESC, linearConnected);
 
-  const JIRA_DESC = "Import your existing Jira projects, tickets, into Zukvo and Push bugs into Jira as issues.";
-  const showJira = matches("Jira", JIRA_DESC, false);
+  const JIRA_DESC = `Import your existing Jira projects, tickets, into ${brandName} and Push bugs into Jira as issues.`;
+  const showJira = matches("Jira", JIRA_DESC, jiraConnected);
 
   const NOTION_DESC = "Import Notion pages and databases into a Document Hub, keeping the original structure.";
   const showNotion = matches("Notion", NOTION_DESC, notion.connected);
@@ -638,7 +645,7 @@ function IntegrationContent() {
                     </span>
                     <span className="intg-section-title">Issue tracking &amp; Migration</span>
                     <span className="intg-section-count">{[showLinear, showJira].filter(Boolean).length}</span>
-                    <span className="intg-section-hint">Connect and migrate your issues into Zukvo</span>
+                    <span className="intg-section-hint">Connect and migrate your issues into {brandName}</span>
                   </div>
 
                   <div className="intg-grid">
@@ -647,7 +654,7 @@ function IntegrationContent() {
                         mark={<JiraMark size={20} />}
                         name="Jira"
                         category="Issue tracking · Migration"
-                        description="Import your existing Jira projects, tickets,into Zukvo and Push bugs into Jira as issues.."
+                        description={JIRA_DESC}
                         state={jiraConnected ? "connected" : "available"}
                         detail="Projects, tickets & bugs"
                         accountName={jiraConnected ? userName : null}
@@ -662,7 +669,7 @@ function IntegrationContent() {
                         mark={<LinearMark size={20} />}
                         name="Linear"
                         category="Issue tracking · Migration"
-                        description="Import your existing Linear projects, issues, and cycles into Zukvo and Push bugs into Linear as issues."
+                        description={LINEAR_DESC}
                         state={linearConnected ? "connected" : "available"}
                         detail="Projects, issues & cycles"
                         accountName={linearConnected ? userName : null}

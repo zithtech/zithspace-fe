@@ -117,9 +117,10 @@ export default function PlaybookReaderPage() {
   const { user } = useAuth();
   const { canReadPlaybook, canCreatePlaybook, canUpdatePlaybook, canCreateCase } = usePermission();
 
-  const hasNewPlaybookFeature =
-    !user?.subscriptionFeatures ||
-    user.subscriptionFeatures.includes("work_playbooks_qa_playbooks_new_playbook");
+  const hasNewPlaybookFeature = Boolean(
+    user?.subscriptionFeatures &&
+    user.subscriptionFeatures.includes("work_playbooks_qa_playbooks_new_playbook")
+  );
 
   const [levels, setLevels] = useState<string[]>([]);
   const [categories, setCategories] = useState<string[]>([]);

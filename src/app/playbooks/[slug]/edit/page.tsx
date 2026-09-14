@@ -30,9 +30,10 @@ export default function EditPlaybookPage() {
   const { user } = useAuth();
   const { canCreatePlaybook, canUpdatePlaybook, canManagePlaybook } = usePermission();
 
-  const hasNewPlaybookFeature =
-    !user?.subscriptionFeatures ||
-    user.subscriptionFeatures.includes("work_playbooks_qa_playbooks_new_playbook");
+  const hasNewPlaybookFeature = Boolean(
+    user?.subscriptionFeatures &&
+    user.subscriptionFeatures.includes("work_playbooks_qa_playbooks_new_playbook")
+  );
 
   const canEdit = (canUpdatePlaybook || canCreatePlaybook || canManagePlaybook) && hasNewPlaybookFeature;
 

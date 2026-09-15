@@ -1089,7 +1089,7 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
         key: "/performance-report/reports",
         icon: I(TrendingUp),
         label: "Performance Report",
-        requiredSubscriptionFeature: ["hrms_performance"],
+        requiredSubscriptionFeature: ["hrms_performance_report"],
         path: "/performance-report/reports",
         requiredAnyPermission: [
           Permissions.PERFORMANCE_REPORT_READ,

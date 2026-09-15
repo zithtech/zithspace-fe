@@ -1218,7 +1218,7 @@ export default function ParentTestCaseDetailsPage() {
           </p>
           {activeFilterCount > 0
             ? <Button size="small" onClick={clearFilters}>Clear filters</Button>
-            : canCreateCase && <Button type="primary" size="small" icon={<PlusOutlined />} onClick={handleOpenCreateDrawer}>Create module case</Button>}
+            : canCreateCase && <Button type="primary" size="small" icon={<PlusOutlined />} onClick={handleOpenCreateDrawer} data-tour="create-module-case-btn">Create module case</Button>}
         </div>
       }
     />
@@ -2046,6 +2046,7 @@ export default function ParentTestCaseDetailsPage() {
                     icon={<PlusOutlined />}
                     onClick={handleOpenCreateDrawer}
                     style={{ height: 36, borderRadius: 8, fontWeight: 700 }}
+                    data-tour="create-module-case-btn"
                   >
                     Create Module Case
                   </Button>

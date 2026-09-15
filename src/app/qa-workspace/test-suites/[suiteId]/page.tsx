@@ -22,6 +22,7 @@ import { SearchableDropdown } from "@/components/common/SearchableDropdown";
 import { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
 import { useDebounce } from "@/hooks/useDebounce";
 import { useQaOptions } from "@/hooks/useQaOptions";
+import { useQaProject } from "@/components/qa/QaProjectGate";
 
 const { Text } = Typography;
 
@@ -79,12 +80,16 @@ export default function TestSuiteDetailsPage() {
   const suiteId = params?.suiteId as string;
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
 
+  const { projectId: selectedProjectId } = useQaProject();
+
   const [suite, setSuite] = useState<any>(null);
   const [parents, setParents] = useState<any[]>([]);
   const [modules, setModules] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [linkedCasesPaginated, setLinkedCasesPaginated] = useState<any[]>([]);
   const [totalItems, setTotalItems] = useState(0);
+
+  const effectiveProjectId = suite?.project_id || selectedProjectId || undefined;
 
   // Modal States for Add / Manage Test Cases in Suite
   const [modalOpen, setModalOpen] = useState(false);
@@ -111,7 +116,7 @@ export default function TestSuiteDetailsPage() {
     const searchParents = async () => {
       try {
         const res = await axios.get("/api/v2/qa/parents", {
-          params: { search: debouncedParentSearch, limit: 50 }
+          params: { search: debouncedParentSearch, limit: 50, project_id: effectiveProjectId }
         });
         const fetched = Array.isArray(res.data) ? res.data : (res.data?.data || []);
         setParents((prev: any[]) => {
@@ -122,7 +127,7 @@ export default function TestSuiteDetailsPage() {
       } catch (e) {}
     };
     searchParents();
-  }, [debouncedParentSearch]);
+  }, [debouncedParentSearch, effectiveProjectId]);
 
   useEffect(() => {
     setPage(1);
@@ -136,9 +141,8 @@ export default function TestSuiteDetailsPage() {
     if (!suiteId) return;
     try {
       setLoading(true);
-      const [suiteRes, parentsRes, modRes, casesRes] = await Promise.all([
+      const [suiteRes, modRes, casesRes] = await Promise.all([
         axios.get(`/api/v2/qa/suites/${suiteId}`),
-        axios.get("/api/v2/qa/parents?limit=1000"),
         axios.get("/api/v2/qa/modules?limit=1000"),
         apiClient.get(`/api/v2/qa/suites/${suiteId}/cases`, {
           params: {
@@ -154,6 +158,11 @@ export default function TestSuiteDetailsPage() {
 
       const suiteData = suiteRes?.data || suiteRes || null;
       setSuite(suiteData);
+
+      const projId = suiteData?.project_id || selectedProjectId || undefined;
+      const parentsRes: any = await axios.get("/api/v2/qa/parents", {
+        params: { limit: 1000, project_id: projId }
+      });
 
       setParents(Array.isArray(parentsRes) ? parentsRes : (parentsRes?.data?.data || parentsRes?.data || []));
       setModules(Array.isArray(modRes) ? modRes : (modRes?.data?.data || modRes?.data || []));
@@ -172,7 +181,7 @@ export default function TestSuiteDetailsPage() {
     if (canReadSuite && suiteId) {
       fetchSuiteData();
     }
-  }, [canReadSuite, suiteId, page, pageSize, debouncedSearch, typeFilter, priorityFilter, statusFilter]);
+  }, [canReadSuite, suiteId, page, pageSize, debouncedSearch, typeFilter, priorityFilter, statusFilter, selectedProjectId]);
 
   // Fetch child test cases when parent_test_case_id or module_id is selected inside modal
   useEffect(() => {

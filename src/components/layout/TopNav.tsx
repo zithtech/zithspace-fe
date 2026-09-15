@@ -27,6 +27,7 @@ import {
   X,
   Timer,
   Flame,
+  PlayCircle,
 } from 'lucide-react';
 
 const MODULE_ICONS: Record<string, React.ComponentType<any>> = {
@@ -64,7 +65,8 @@ import { TimeTrackerPopover } from '@/components/time-tracking/TimeTrackerPopove
 import { useTimeTrackerStore } from '@/store/useTimeTrackerStore';
 import ThemeToggle from "./ThemeToggle";
 import { useTheme } from "@/context/ThemeContext";
-import { HistoryOutlined } from '@ant-design/icons';
+import { useTour } from "@/context/TourContext";
+import { HistoryOutlined, PlayCircleOutlined } from '@ant-design/icons';
 
 const { Header } = Layout;
 const { Text } = Typography;
@@ -87,6 +89,7 @@ export default function TopNav({
 }: TopNavProps) {
   const router = useRouter();
   const pathname = usePathname();
+  const { startTour } = useTour();
   const isRouteActive = (path: string) =>
     pathname === path || pathname?.startsWith(path + '/');
   const { hasPermission, hasAnyPermission, hasAnySubscriptionFeature } = useAuth();
@@ -584,7 +587,7 @@ export default function TopNav({
         top: 0,
         right: 0,
         left: 0,
-        zIndex: 1000,
+        zIndex: 890,
       }}
     >
       {/* Left Side: Logo & Module Selector */}
@@ -693,6 +696,86 @@ export default function TopNav({
       <Space size={isSmallMobile ? 4 : 8} align="center" style={{ flexShrink: 0 }}>
         {!isCustomBreakpoint ? (
           <>
+            <Tooltip
+              title={
+                <div className="navbar-tooltip">
+                  <span className="navbar-tooltip-title">Tour</span>
+                  <span className="navbar-tooltip-sub">Replay QA Tour</span>
+                </div>
+              }
+              placement="bottom"
+              classNames={{ root: "navbar-icon-tooltip" }}
+              mouseEnterDelay={0.1}
+              zIndex={1100}
+            >
+              <Dropdown
+                menu={{
+                  items: [
+                    {
+                      key: "replay-qa-tour",
+                      label: "Replay QA Tour",
+                      icon: <PlayCircleOutlined />,
+                      onClick: () => startTour('testiez-qa-workflow', true)
+                    },
+                    {
+                      key: "replay-project-manual-tour",
+                      label: "Replay Project Creation Tour",
+                      icon: <PlayCircleOutlined />,
+                      onClick: () => startTour('testiez-project-manual', true)
+                    },
+                    {
+                      key: "replay-project-import-tour",
+                      label: "Replay Migration & Integrations Tour",
+                      icon: <PlayCircleOutlined />,
+                      onClick: () => startTour('testiez-project-import', true)
+                    },
+                    {
+                      key: "replay-sprints-tour",
+                      label: "Replay Tickets Tour",
+                      icon: <PlayCircleOutlined />,
+                      onClick: () => startTour('testiez-sprints', true)
+                    },
+                    {
+                      key: "replay-dochub-tour",
+                      label: "Replay Document Hub Tour",
+                      icon: <PlayCircleOutlined />,
+                      onClick: () => startTour('testiez-document-hub', true)
+                    },
+                    {
+                      key: "replay-admin-settings-tour",
+                      label: "Replay Admin & Settings Tour",
+                      icon: <PlayCircleOutlined />,
+                      onClick: () => startTour('testiez-admin-settings', true)
+                    },
+                    {
+                      key: "replay-roles-tour",
+                      label: "Replay Roles & RBAC Tour",
+                      icon: <PlayCircleOutlined />,
+                      onClick: () => startTour('testiez-roles', true)
+                    },
+                    {
+                      key: "replay-org-structure-tour",
+                      label: "Replay Org Structure Tour",
+                      icon: <PlayCircleOutlined />,
+                      onClick: () => startTour('testiez-org-structure', true)
+                    },
+                    {
+                      key: "replay-members-tour",
+                      label: "Replay Members Tour",
+                      icon: <PlayCircleOutlined />,
+                      onClick: () => startTour('testiez-members', true)
+                    },
+                  ]
+                }}
+                trigger={['click']}
+              >
+                <Button
+                  type="text"
+                  className="nav-action-btn"
+                  icon={<PlayCircle size={17} strokeWidth={1.75} />}
+                />
+              </Dropdown>
+            </Tooltip>
             <ThemeToggle />
             {canReadTimeTracking && canCreateTimeTracking && hasAnySubscriptionFeature("work_time_tracking") && <TimeTrackerPopover />}
 

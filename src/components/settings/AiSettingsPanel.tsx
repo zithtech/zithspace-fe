@@ -370,6 +370,7 @@ export default function AiSettingsPanel({ canManage = true }: Props) {
     chip?: string,
   ) => (
     <div
+      data-tour={value === 'byo' ? 'ai-mode-byo' : 'ai-mode-platform'}
       role="radio"
       aria-checked={mode === value}
       tabIndex={canManage ? 0 : -1}
@@ -482,7 +483,7 @@ export default function AiSettingsPanel({ canManage = true }: Props) {
           <div className="aip-grid">
             {/* ── Configuration column ─────────────────────────────────── */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 26, minWidth: 0 }}>
-              <div>
+              <div data-tour="ai-settings-config-mode">
                 <div className="aip-step">
                   <span className="aip-step-num">01</span>
                   <span className="aip-step-title">Configuration mode</span>
@@ -506,7 +507,7 @@ export default function AiSettingsPanel({ canManage = true }: Props) {
               </div>
 
               {mode === 'platform' ? (
-                <div>
+                <div data-tour="ai-settings-bundled-model">
                   <div className="aip-step">
                     <span className="aip-step-num">02</span>
                     <span className="aip-step-title">Bundled model</span>
@@ -531,7 +532,7 @@ export default function AiSettingsPanel({ canManage = true }: Props) {
                 </div>
               ) : (
                 <>
-                  <div>
+                  <div data-tour="ai-settings-provider-credentials">
                     <div className="aip-step">
                       <span className="aip-step-num">02</span>
                       <span className="aip-step-title">Provider &amp; credentials</span>
@@ -714,6 +715,7 @@ export default function AiSettingsPanel({ canManage = true }: Props) {
               {mode === 'platform' ? 'Managed by the platform' : 'Runs on your own credentials'}
             </span>
             <Button
+              data-tour="ai-settings-save-btn"
               type="primary"
               icon={<ThunderboltFilled />}
               loading={saving}

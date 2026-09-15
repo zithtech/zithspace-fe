@@ -14,9 +14,9 @@ import TicketFilterPill from "@/components/projects/TicketFilterPill";
 const { Text } = Typography;
 
 export interface TestRunFiltersState {
-  suiteFilter?: string;
-  moduleFilter?: string;
-  progressFilter?: string;
+  suiteFilter?: string[];
+  moduleFilter?: string[];
+  progressFilter?: string[];
 }
 
 interface TestRunFiltersProps {
@@ -44,9 +44,9 @@ const TestRunFilters: React.FC<TestRunFiltersProps> = ({
   onSuiteSearch,
 }) => {
   const activeCount =
-    (filters.suiteFilter ? 1 : 0) +
-    (filters.moduleFilter ? 1 : 0) +
-    (filters.progressFilter ? 1 : 0);
+    (filters.suiteFilter?.length || 0) +
+    (filters.moduleFilter?.length || 0) +
+    (filters.progressFilter?.length || 0);
 
   return (
     <div className="tf-panel">
@@ -76,13 +76,11 @@ const TestRunFilters: React.FC<TestRunFiltersProps> = ({
           </div>
           <TicketFilterPill
             label="Suite"
-            value={filters.suiteFilter || ""}
+            values={filters.suiteFilter || []}
             options={suiteOptions}
             onChange={(val) => onFilterChange("suiteFilter", val)}
-            placeholder="Any"
             itemNoun="suites"
-            width={240}
-            multiple={false}
+            width={260}
             searchPlaceholder="Search suites..."
             onSearch={onSuiteSearch}
           />
@@ -95,13 +93,11 @@ const TestRunFilters: React.FC<TestRunFiltersProps> = ({
           </div>
           <TicketFilterPill
             label="Module"
-            value={filters.moduleFilter || ""}
+            values={filters.moduleFilter || []}
             options={moduleOptions}
             onChange={(val) => onFilterChange("moduleFilter", val)}
-            placeholder="Any"
             itemNoun="modules"
-            width={220}
-            multiple={false}
+            width={260}
             searchPlaceholder="Search modules..."
           />
         </div>
@@ -113,13 +109,11 @@ const TestRunFilters: React.FC<TestRunFiltersProps> = ({
           </div>
           <TicketFilterPill
             label="Progress"
-            value={filters.progressFilter || ""}
+            values={filters.progressFilter || []}
             options={progressOptions}
             onChange={(val) => onFilterChange("progressFilter", val)}
-            placeholder="Any"
             itemNoun="states"
-            width={220}
-            multiple={false}
+            width={260}
           />
         </div>
       </div>

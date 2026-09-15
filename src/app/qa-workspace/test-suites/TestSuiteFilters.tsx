@@ -14,9 +14,9 @@ import TicketFilterPill from "@/components/projects/TicketFilterPill";
 const { Text } = Typography;
 
 export interface TestSuiteFiltersState {
-  scenarioFilter?: string;
-  moduleFilter?: string;
-  coverageFilter?: string;
+  scenarioFilter?: string[];
+  moduleFilter?: string[];
+  coverageFilter?: string[];
 }
 
 interface TestSuiteFiltersProps {
@@ -44,9 +44,9 @@ const TestSuiteFilters: React.FC<TestSuiteFiltersProps> = ({
   onScenarioSearch,
 }) => {
   const activeCount =
-    (filters.scenarioFilter ? 1 : 0) +
-    (filters.moduleFilter ? 1 : 0) +
-    (filters.coverageFilter ? 1 : 0);
+    (filters.scenarioFilter?.length || 0) +
+    (filters.moduleFilter?.length || 0) +
+    (filters.coverageFilter?.length || 0);
 
   return (
     <div className="tf-panel">
@@ -76,13 +76,11 @@ const TestSuiteFilters: React.FC<TestSuiteFiltersProps> = ({
           </div>
           <TicketFilterPill
             label="Scenario"
-            value={filters.scenarioFilter || ""}
+            values={filters.scenarioFilter || []}
             options={scenarioOptions}
             onChange={(val) => onFilterChange("scenarioFilter", val)}
-            placeholder="Any"
             itemNoun="scenarios"
-            width={240}
-            multiple={false}
+            width={260}
             searchPlaceholder="Search scenarios..."
             onSearch={onScenarioSearch}
           />
@@ -95,13 +93,11 @@ const TestSuiteFilters: React.FC<TestSuiteFiltersProps> = ({
           </div>
           <TicketFilterPill
             label="Module"
-            value={filters.moduleFilter || ""}
+            values={filters.moduleFilter || []}
             options={moduleOptions}
             onChange={(val) => onFilterChange("moduleFilter", val)}
-            placeholder="Any"
             itemNoun="modules"
-            width={220}
-            multiple={false}
+            width={260}
             searchPlaceholder="Search modules..."
           />
         </div>
@@ -113,13 +109,11 @@ const TestSuiteFilters: React.FC<TestSuiteFiltersProps> = ({
           </div>
           <TicketFilterPill
             label="Coverage"
-            value={filters.coverageFilter || ""}
+            values={filters.coverageFilter || []}
             options={coverageOptions}
             onChange={(val) => onFilterChange("coverageFilter", val)}
-            placeholder="Any"
             itemNoun="options"
-            width={220}
-            multiple={false}
+            width={260}
           />
         </div>
       </div>

@@ -59,11 +59,10 @@ export default function TestCasesPage() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const debouncedSearch = useDebounce(searchTerm, 500);
-  // Any filter change resets to the first page
-  const [moduleFilter, setModuleFilter] = useState<string | undefined>();
-  const [statusFilter, setStatusFilter] = useState<string | undefined>();
-  const [automationFilter, setAutomationFilter] = useState<string | undefined>();
-  const [ownerFilter, setOwnerFilter] = useState<string | undefined>();
+  const [moduleFilter, setModuleFilter] = useState<string[]>([]);
+  const [statusFilter, setStatusFilter] = useState<string[]>([]);
+  const [automationFilter, setAutomationFilter] = useState<string[]>([]);
+  const [ownerFilter, setOwnerFilter] = useState<string[]>([]);
   /* Cases are read inside one project, the way the Bug List works — the choice
      is remembered and shared with the other QA Space lists. */
   const {
@@ -111,12 +110,12 @@ export default function TestCasesPage() {
             page,
             pageSize,
             search: debouncedSearch || undefined,
-            module_id: moduleFilter || undefined,
+            module_id: moduleFilter.length > 0 ? moduleFilter.join(',') : undefined,
             // Additional filters will need to be supported by the backend, 
             // but we'll pass them in case the backend uses them.
-            status: statusFilter || undefined,
-            automation: automationFilter || undefined,
-            owner: ownerFilter || undefined,
+            status: statusFilter.length > 0 ? statusFilter.join(',') : undefined,
+            automation: automationFilter.length > 0 ? automationFilter.join(',') : undefined,
+            owner: ownerFilter.length > 0 ? ownerFilter.join(',') : undefined,
             project_id: projectFilter || undefined,
             allowed_projects: projectOptions.length > 0 ? projectOptions.map(p => p.value).join(',') : undefined
           }
@@ -178,10 +177,10 @@ export default function TestCasesPage() {
   /** Switching project drops filters that name things from the old one. */
   const chooseProject = (id: string | null) => {
     setProjectId(id);
-    setModuleFilter(undefined);
-    setStatusFilter(undefined);
-    setAutomationFilter(undefined);
-    setOwnerFilter(undefined);
+    setModuleFilter([]);
+    setStatusFilter([]);
+    setAutomationFilter([]);
+    setOwnerFilter([]);
     setSearchTerm('');
     setPage(1);
   };
@@ -424,6 +423,10 @@ export default function TestCasesPage() {
       message.error("Please enter a Test Case Title");
       return;
     }
+    if (formData.title.trim().length > 255) {
+      message.error("Test Case Title cannot exceed 255 characters");
+      return;
+    }
     if (!formData.project_id) {
       message.error("Please select a Project — bugs raised from this case are filed against it");
       return;
@@ -499,7 +502,7 @@ export default function TestCasesPage() {
 
   /* The header switch offers mine-vs-all; the filter panel still narrows to
      any other owner. */
-  const isMyCases = !!user?.name && ownerFilter === user.name;
+  const isMyCases = !!user?.name && ownerFilter.length === 1 && ownerFilter[0] === user.name;
 
   /* ── Overview banner figures ───────────────────────────────────────────
      The Ticket List's sprint head reads a sprint's completion; here the same
@@ -507,17 +510,23 @@ export default function TestCasesPage() {
   const projectName = projectOptions.find(p => p.value === selectedProjectId)?.label;
   const readyPct = totalItems > 0 ? Math.round((readyCount / totalItems) * 100) : 0;
   const bannerAccent = readyPct >= 60 ? '#10b981' : readyPct > 0 ? '#3b82f6' : '#64748b';
-  const bannerScopeLabel = isMyCases ? 'My Cases' : !ownerFilter ? 'All Cases' : `${ownerFilter}'s Cases`;
+  const bannerScopeLabel = isMyCases
+    ? 'My Cases'
+    : ownerFilter.length === 0
+      ? 'All Cases'
+      : ownerFilter.length === 1
+        ? `${ownerFilter[0]}'s Cases`
+        : `${ownerFilter.length} Owners' Cases`;
 
-  const activeFilterCount = (searchTerm.trim() ? 1 : 0) + (moduleFilter ? 1 : 0) + (statusFilter ? 1 : 0) +
-    (automationFilter ? 1 : 0) + (ownerFilter ? 1 : 0);
+  const activeFilterCount = (searchTerm.trim() ? 1 : 0) + moduleFilter.length + statusFilter.length +
+    automationFilter.length + ownerFilter.length;
 
   const clearFilters = () => {
     setSearchTerm('');
-    setModuleFilter(undefined);
-    setStatusFilter(undefined);
-    setAutomationFilter(undefined);
-    setOwnerFilter(undefined);
+    setModuleFilter([]);
+    setStatusFilter([]);
+    setAutomationFilter([]);
+    setOwnerFilter([]);
   };
 
   // Client-side pagination variables are now derived from totalItems for the footer
@@ -840,10 +849,10 @@ export default function TestCasesPage() {
                       <TestCaseFilters
                         filters={{ moduleFilter, statusFilter, automationFilter, ownerFilter }}
                         onFilterChange={(key, val) => {
-                          if (key === 'moduleFilter') setModuleFilter(val || undefined);
-                          if (key === 'statusFilter') setStatusFilter(val || undefined);
-                          if (key === 'automationFilter') setAutomationFilter(val || undefined);
-                          if (key === 'ownerFilter') setOwnerFilter(val || undefined);
+                          if (key === 'moduleFilter') setModuleFilter(val || []);
+                          if (key === 'statusFilter') setStatusFilter(val || []);
+                          if (key === 'automationFilter') setAutomationFilter(val || []);
+                          if (key === 'ownerFilter') setOwnerFilter(val || []);
                         }}
                         onReset={clearFilters}
                         moduleOptions={moduleFilterOptions}
@@ -883,10 +892,10 @@ export default function TestCasesPage() {
               <Space size={10} className="sc-header-right">
                 <Segmented
                   className="saas-segmented-premium sc-owner-seg"
-                  value={isMyCases ? 'mine' : !ownerFilter ? 'all' : 'other'}
+                  value={isMyCases ? 'mine' : ownerFilter.length === 0 ? 'all' : 'other'}
                   onChange={(v) => {
-                    if (v === 'mine') setOwnerFilter(user?.name);
-                    else if (v === 'all') setOwnerFilter(undefined);
+                    if (v === 'mine') setOwnerFilter(user?.name ? [user.name] : []);
+                    else if (v === 'all') setOwnerFilter([]);
                   }}
                   options={[
                     {
@@ -910,13 +919,15 @@ export default function TestCasesPage() {
                     },
                     /* An owner picked from the filter panel is neither "mine"
                        nor "all" — surfaced here so the switch never lies. */
-                    ...(!isMyCases && ownerFilter
+                    ...(!isMyCases && ownerFilter.length > 0
                       ? [{
                           value: 'other',
                           label: (
                             <span className="sc-owner-opt">
                               <UserOutlined style={{ fontSize: 12 }} />
-                              <span className="sc-owner-opt__label">{ownerFilter}</span>
+                              <span className="sc-owner-opt__label">
+                                {ownerFilter.length === 1 ? ownerFilter[0] : `${ownerFilter.length} owners`}
+                              </span>
                             </span>
                           ),
                         }]
@@ -986,38 +997,34 @@ export default function TestCasesPage() {
                   <TicketFilterPill
                     icon={<ApartmentOutlined style={{ fontSize: 11 }} />}
                     label="Module"
-                    value={moduleFilter || ""}
+                    values={moduleFilter}
                     options={moduleFilterOptions}
-                    onChange={(val) => setModuleFilter(val || undefined)}
+                    onChange={(val) => setModuleFilter(val || [])}
                     itemNoun="modules"
-                    multiple={false}
                   />
                   <TicketFilterPill
                     icon={<CheckCircleOutlined style={{ fontSize: 11 }} />}
                     label="Status"
-                    value={statusFilter || ""}
+                    values={statusFilter}
                     options={statusFilterOptions}
-                    onChange={(val) => setStatusFilter(val || undefined)}
+                    onChange={(val) => setStatusFilter(val || [])}
                     itemNoun="statuses"
-                    multiple={false}
                   />
                   <TicketFilterPill
                     icon={<ThunderboltOutlined style={{ fontSize: 11 }} />}
                     label="Automation"
-                    value={automationFilter || ""}
+                    values={automationFilter}
                     options={automationFilterOptions}
-                    onChange={(val) => setAutomationFilter(val || undefined)}
+                    onChange={(val) => setAutomationFilter(val || [])}
                     itemNoun="types"
-                    multiple={false}
                   />
                   <TicketFilterPill
                     icon={<UserOutlined style={{ fontSize: 11 }} />}
                     label="Owner"
-                    value={ownerFilter || ""}
+                    values={ownerFilter}
                     options={ownerFilterOptions}
-                    onChange={(val) => setOwnerFilter(val || undefined)}
+                    onChange={(val) => setOwnerFilter(val || [])}
                     itemNoun="owners"
-                    multiple={false}
                     showAvatar
                   />
                 </div>
@@ -1290,13 +1297,28 @@ export default function TestCasesPage() {
                   label="Title (Test Case)"
                   required
                   style={{ marginBottom: 16 }}
+                  validateStatus={formData.title && formData.title.trim().length > 255 ? 'error' : undefined}
+                  help={formData.title && formData.title.trim().length > 255 ? 'Test Case Title cannot exceed 255 characters' : undefined}
                 >
                   <Input
                     placeholder="e.g., Todo Management, Authentication Flow, Billing Setup"
                     value={formData.title}
+                    count={{
+                      show: ({ count }) => (
+                        <span
+                          style={{
+                            color: count > 255 ? "#ef4444" : "var(--text-secondary, #94a3b8)",
+                            fontWeight: count > 255 ? 600 : 400,
+                            fontSize: 12,
+                          }}
+                        >
+                          {count} / 255
+                        </span>
+                      ),
+                    }}
+                    status={formData.title && formData.title.trim().length > 255 ? 'error' : undefined}
                     onChange={(e) => setFormData({ ...formData, title: e.target.value })}
                     size="large"
-                    style={{ borderRadius: 0 }}
                   />
                 </Form.Item>
 

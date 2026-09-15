@@ -13,15 +13,15 @@ import TicketFilterPill from "@/components/projects/TicketFilterPill";
 
 const { Text } = Typography;
 
-export interface ModuleCaseFiltersState {
+export interface SuiteCaseFiltersState {
   typeFilter?: string[];
   priorityFilter?: string[];
   statusFilter?: string[];
 }
 
-interface ModuleCaseFiltersProps {
-  filters: ModuleCaseFiltersState;
-  onFilterChange: (key: keyof ModuleCaseFiltersState, value: any) => void;
+interface SuiteCaseFiltersProps {
+  filters: SuiteCaseFiltersState;
+  onFilterChange: (key: keyof SuiteCaseFiltersState, value: any) => void;
   onReset?: () => void;
   typeOptions: { value: string; label: string }[];
   priorityOptions: { value: string; label: string }[];
@@ -29,10 +29,10 @@ interface ModuleCaseFiltersProps {
 }
 
 /**
- * The Filters popover for a scenario's module cases — the same panel shape the
- * Ticket List and the other QA lists use, so every list filters alike.
+ * The Filters popover for a suite's linked test cases — matching the Ticket List
+ * and Scenario filters layout.
  */
-const ModuleCaseFilters: React.FC<ModuleCaseFiltersProps> = ({
+const SuiteCaseFilters: React.FC<SuiteCaseFiltersProps> = ({
   filters,
   onFilterChange,
   onReset,
@@ -47,7 +47,7 @@ const ModuleCaseFilters: React.FC<ModuleCaseFiltersProps> = ({
 
   return (
     <div className="tf-panel">
-      <style dangerouslySetInnerHTML={{ __html: MODULE_CASE_FILTERS_CSS }} />
+      <style dangerouslySetInnerHTML={{ __html: SUITE_CASE_FILTERS_CSS }} />
 
       {/* Header */}
       <div className="tf-head">
@@ -115,7 +115,7 @@ const ModuleCaseFilters: React.FC<ModuleCaseFiltersProps> = ({
       <div className="tf-foot">
         <Text className="tf-foot-hint">
           {activeCount === 0
-            ? "No filters applied — showing every module case."
+            ? "No filters applied — showing all linked cases."
             : `${activeCount} filter${activeCount === 1 ? "" : "s"} active.`}
         </Text>
       </div>
@@ -123,9 +123,9 @@ const ModuleCaseFilters: React.FC<ModuleCaseFiltersProps> = ({
   );
 };
 
-export default ModuleCaseFilters;
+export default SuiteCaseFilters;
 
-const MODULE_CASE_FILTERS_CSS = `
+const SUITE_CASE_FILTERS_CSS = `
 /* Make Ant's Popover wrapper invisible — the panel draws its own border */
 .tf-popover-overlay .ant-popover-inner {
   padding: 0 !important;
@@ -146,131 +146,111 @@ const MODULE_CASE_FILTERS_CSS = `
   flex-direction: column;
 }
 [data-theme='dark'] .tf-panel {
-  background: #0f1419;
-  border-color: #2d3748;
+  background: var(--bg-surface-slate-850);
+  border-color: var(--border-slate-700);
 }
 
-/* Head */
 .tf-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
-  padding: 10px 14px;
-  background: var(--bg-slate-50);
+  padding: 8px 12px;
   border-bottom: 1px solid var(--border-slate-200);
+  background: var(--bg-surface-slate-50);
 }
 [data-theme='dark'] .tf-head {
-  background: #111720;
-  border-bottom-color: #1f2937;
+  background: var(--bg-surface-slate-900);
+  border-color: var(--border-slate-700);
 }
+
 .tf-head-title {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   font-size: 11px;
-  font-weight: 800;
-  color: var(--text-slate-500);
+  font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.04em;
+  color: var(--text-slate-600);
 }
-[data-theme='dark'] .tf-head-title { color: #94a3b8; }
+[data-theme='dark'] .tf-head-title { color: var(--text-slate-300); }
+
 .tf-head-count {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 18px;
-  height: 18px;
-  padding: 0 6px;
-  background: var(--bg-pure-white);
-  border: 1px solid var(--border-slate-200);
-  color: var(--text-slate-500);
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
   border-radius: 999px;
   font-size: 10px;
-  font-weight: 800;
-  letter-spacing: 0;
-  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  background: #3b82f6;
+  color: #fff;
 }
-[data-theme='dark'] .tf-head-count {
-  background: #1c232e;
-  border-color: #2d3748;
-  color: #cbd5e1;
-}
+
 .tf-reset {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  height: 24px;
-  padding: 0 9px;
-  background: transparent;
-  border: 1px dashed var(--border-slate-200);
-  border-radius: 999px;
-  font-family: inherit;
-  font-size: 10.5px;
-  font-weight: 800;
+  font-size: 11px;
+  font-weight: 600;
   color: var(--text-slate-500);
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
+  background: transparent;
+  border: 0;
+  padding: 2px 6px;
+  border-radius: 4px;
   cursor: pointer;
-  transition: background 0.12s ease, border-color 0.12s ease, color 0.12s ease;
+  transition: all 0.15s ease;
 }
 .tf-reset:hover {
-  color: #1d4ed8;
-  border-color: rgba(59,130,246,0.4);
-  background: rgba(59,130,246,0.06);
-  border-style: solid;
-}
-[data-theme='dark'] .tf-reset {
-  border-color: #2d3748;
-  color: #94a3b8;
+  color: #ef4444;
+  background: rgba(239, 68, 68, 0.08);
 }
 
-/* Body */
 .tf-body {
-  padding: 10px 14px 12px;
+  padding: 8px 10px;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
 }
+
 .tf-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
-  min-width: 0;
+  gap: 8px;
+  padding: 2px 2px;
 }
+
 .tf-row-label {
   display: inline-flex;
   align-items: center;
-  gap: 7px;
-  font-size: 12px;
-  font-weight: 700;
-  color: var(--text-slate-700);
-  letter-spacing: -0.005em;
-  min-width: 0;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-slate-600);
+  min-width: 70px;
 }
-[data-theme='dark'] .tf-row-label { color: #cbd5e1; }
-.tf-row-icon {
-  color: var(--text-slate-400);
-  font-size: 12px;
-}
-[data-theme='dark'] .tf-row-icon { color: #64748b; }
+[data-theme='dark'] .tf-row-label { color: var(--text-slate-300); }
 
-/* Foot */
+.tf-row-icon {
+  font-size: 11px;
+  color: var(--text-slate-400);
+}
+
 .tf-foot {
-  padding: 8px 14px;
+  padding: 6px 12px;
   border-top: 1px solid var(--border-slate-200);
-  background: var(--bg-slate-50);
+  background: var(--bg-surface-slate-50);
 }
 [data-theme='dark'] .tf-foot {
-  border-top-color: #1f2937;
-  background: #111720;
+  background: var(--bg-surface-slate-900);
+  border-color: var(--border-slate-700);
 }
+
 .tf-foot-hint {
-  font-size: 10.5px !important;
-  font-weight: 600;
-  color: var(--text-slate-500) !important;
-  letter-spacing: 0;
+  font-size: 10px !important;
+  color: var(--text-slate-400) !important;
 }
-[data-theme='dark'] .tf-foot-hint { color: #94a3b8 !important; }
 `;

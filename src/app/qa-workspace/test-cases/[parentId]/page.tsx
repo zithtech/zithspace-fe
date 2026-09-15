@@ -6,7 +6,7 @@ import NoData from "@/components/common/NoData";
 import ZukvoLoader from "@/components/common/ZukvoLoader";
 
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import MainLayout from "@/components/layout/MainLayout";
 import { Button, Table, Tag, Dropdown, Drawer, Input, Select, Row, Col, Typography, Form, Tooltip, Popover, Space, Divider  } from "antd";
 import { PlusOutlined, EllipsisOutlined, ArrowLeftOutlined, SaveOutlined, InfoCircleOutlined, FileTextOutlined, BugOutlined, CheckCircleOutlined, LinkOutlined, SnippetsOutlined, CloseOutlined, SearchOutlined, SortAscendingOutlined, SortDescendingOutlined, FilterOutlined, ExpandAltOutlined, ReloadOutlined, ThunderboltOutlined, AppstoreOutlined, EditOutlined, CheckOutlined } from "@ant-design/icons";
@@ -169,9 +169,9 @@ export default function ParentTestCaseDetailsPage() {
   // Filters + pagination for the module case list
   const [searchTerm, setSearchTerm] = useState("");
   const debouncedSearch = useDebounce(searchTerm, 500);
-  const [typeFilter, setTypeFilter] = useState<string | undefined>();
-  const [priorityFilter, setPriorityFilter] = useState<string | undefined>();
-  const [statusFilter, setStatusFilter] = useState<string | undefined>();
+  const [typeFilter, setTypeFilter] = useState<string[]>([]);
+  const [priorityFilter, setPriorityFilter] = useState<string[]>([]);
+  const [statusFilter, setStatusFilter] = useState<string[]>([]);
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(15);
@@ -328,9 +328,9 @@ export default function ParentTestCaseDetailsPage() {
             page, 
             pageSize,
             search: debouncedSearch || undefined,
-            test_type: typeFilter || undefined,
-            priority: priorityFilter || undefined,
-            status: statusFilter || undefined,
+            test_type: typeFilter.length > 0 ? typeFilter.join(',') : undefined,
+            priority: priorityFilter.length > 0 ? priorityFilter.join(',') : undefined,
+            status: statusFilter.length > 0 ? statusFilter.join(',') : undefined,
             sort: sortOrder || 'position_asc'
           }
         })
@@ -902,6 +902,10 @@ export default function ParentTestCaseDetailsPage() {
       message.error("Please enter a Test Case Name");
       return;
     }
+    if (formData.name.trim().length > 255) {
+      message.error("Test Case Name cannot exceed 255 characters");
+      return;
+    }
     try {
       setSubmitting(true);
       let finalSteps = [...(formData.steps_to_reproduce || [])];
@@ -1173,21 +1177,27 @@ export default function ParentTestCaseDetailsPage() {
 
   const filteredCases = childCases;
 
-  const uniqueSorted = (values: any[]) =>
-    Array.from(new Set(values.filter(Boolean)))
-      .sort((a, b) => String(a).localeCompare(String(b)))
-      .map(v => ({ value: String(v), label: String(v) }));
+  const typeFilterOptions = useMemo(() => {
+    const configured = (testTypeOptions || []).map(o => o.value);
+    const defaults = ["Functional", "UI", "API", "Regression", "Security", "Performance", "Usability", "Integration", "Smoke", "Sanity"];
+    const all = Array.from(new Set([...configured, ...defaults]));
+    return all.sort((a, b) => a.localeCompare(b)).map(v => ({ value: v, label: v }));
+  }, [testTypeOptions]);
 
-  const typeFilterOptions = uniqueSorted(childCases.map(c => c.test_type || 'Functional'));
-  const statusFilterOptions = uniqueSorted(childCases.map(c => c.status || 'Active'));
+  const statusFilterOptions = [
+    { value: 'Draft', label: 'Draft' },
+    { value: 'Ready', label: 'Ready' },
+    { value: 'Active', label: 'Active' },
+    { value: 'Deprecated', label: 'Deprecated' },
+  ];
 
-  const activeFilterCount = (searchTerm.trim() ? 1 : 0) + (typeFilter ? 1 : 0) + (priorityFilter ? 1 : 0) +
-    (statusFilter ? 1 : 0);
+  const activeFilterCount = (searchTerm.trim() ? 1 : 0) + typeFilter.length + priorityFilter.length +
+    statusFilter.length;
   const clearFilters = () => {
     setSearchTerm('');
-    setTypeFilter(undefined);
-    setPriorityFilter(undefined);
-    setStatusFilter(undefined);
+    setTypeFilter([]);
+    setPriorityFilter([]);
+    setStatusFilter([]);
     setSortOrder("asc");
   };
 
@@ -1950,9 +1960,9 @@ export default function ParentTestCaseDetailsPage() {
                       <ModuleCaseFilters
                         filters={{ typeFilter, priorityFilter, statusFilter }}
                         onFilterChange={(key, val) => {
-                          if (key === 'typeFilter') setTypeFilter(val || undefined);
-                          if (key === 'priorityFilter') setPriorityFilter(val || undefined);
-                          if (key === 'statusFilter') setStatusFilter(val || undefined);
+                          if (key === 'typeFilter') setTypeFilter(val || []);
+                          if (key === 'priorityFilter') setPriorityFilter(val || []);
+                          if (key === 'statusFilter') setStatusFilter(val || []);
                         }}
                         onReset={clearFilters}
                         typeOptions={typeFilterOptions}
@@ -2065,29 +2075,26 @@ export default function ParentTestCaseDetailsPage() {
                   <TicketFilterPill
                     icon={<AppstoreOutlined style={{ fontSize: 11 }} />}
                     label="Type"
-                    value={typeFilter || ""}
+                    values={typeFilter}
                     options={typeFilterOptions}
-                    onChange={(val) => setTypeFilter(val || undefined)}
+                    onChange={(val) => setTypeFilter(val || [])}
                     itemNoun="types"
-                    multiple={false}
                   />
                   <TicketFilterPill
                     icon={<ThunderboltOutlined style={{ fontSize: 11 }} />}
                     label="Priority"
-                    value={priorityFilter || ""}
+                    values={priorityFilter}
                     options={priorityOptions}
-                    onChange={(val) => setPriorityFilter(val || undefined)}
+                    onChange={(val) => setPriorityFilter(val || [])}
                     itemNoun="levels"
-                    multiple={false}
                   />
                   <TicketFilterPill
                     icon={<CheckCircleOutlined style={{ fontSize: 11 }} />}
                     label="Status"
-                    value={statusFilter || ""}
+                    values={statusFilter}
                     options={statusFilterOptions}
-                    onChange={(val) => setStatusFilter(val || undefined)}
+                    onChange={(val) => setStatusFilter(val || [])}
                     itemNoun="statuses"
-                    multiple={false}
                   />
                 </div>
                 <div className="tl-filter-row-actions">
@@ -2992,10 +2999,30 @@ export default function ParentTestCaseDetailsPage() {
                   />
                 </Form.Item>
 
-                <Form.Item label="Test Case Name" required style={{ marginBottom: 16 }}>
+                <Form.Item
+                  label="Test Case Name"
+                  required
+                  style={{ marginBottom: 16 }}
+                  validateStatus={formData.name && formData.name.trim().length > 255 ? 'error' : undefined}
+                  help={formData.name && formData.name.trim().length > 255 ? 'Test Case Name cannot exceed 255 characters' : undefined}
+                >
                   <Input
                     placeholder="e.g., Verify successful login with valid credentials"
                     value={formData.name}
+                    count={{
+                      show: ({ count }) => (
+                        <span
+                          style={{
+                            color: count > 255 ? "#ef4444" : "var(--text-secondary, #94a3b8)",
+                            fontWeight: count > 255 ? 600 : 400,
+                            fontSize: 12,
+                          }}
+                        >
+                          {count} / 255
+                        </span>
+                      ),
+                    }}
+                    status={formData.name && formData.name.trim().length > 255 ? 'error' : undefined}
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                     size="large"
                     style={{ borderRadius: 6 }}

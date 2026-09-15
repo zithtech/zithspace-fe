@@ -64,6 +64,37 @@ export const drawerFormStyles = `
     box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1) !important;
   }
   
+  /* Fix input affix wrappers (show-count, prefix, suffix, password) to prevent double borders */
+  .customer-drawer-form .ant-input-affix-wrapper {
+    border-radius: 8px !important;
+    background: var(--bg-pure-white, #ffffff) !important;
+    border: 1px solid var(--border-slate-300, #cbd5e1) !important;
+  }
+  .customer-drawer-form .ant-input-affix-wrapper input.ant-input,
+  .customer-drawer-form .ant-input-affix-wrapper .ant-input {
+    border: none !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    background: transparent !important;
+    padding: 0 !important;
+  }
+  .customer-drawer-form .ant-input-affix-wrapper:focus,
+  .customer-drawer-form .ant-input-affix-wrapper-focused,
+  .customer-drawer-form .ant-input-affix-wrapper:focus-within {
+    border-color: #3b82f6 !important;
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1) !important;
+  }
+  [data-theme='dark'] .customer-drawer-form .ant-input-affix-wrapper {
+    background: transparent !important;
+    border-color: #334155 !important;
+    color: #f3f4f6 !important;
+  }
+  [data-theme='dark'] .customer-drawer-form .ant-input-affix-wrapper input.ant-input,
+  [data-theme='dark'] .customer-drawer-form .ant-input-affix-wrapper .ant-input {
+    color: #f3f4f6 !important;
+    background: transparent !important;
+  }
+
   /* Fix textarea wrappers to prevent double borders */
   .customer-drawer-form .ant-input-textarea-show-count,
   .customer-drawer-form .ant-input-textarea-affix-wrapper {

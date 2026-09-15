@@ -220,10 +220,10 @@ function TestScopeContent() {
     return () => clearTimeout(timer);
   }, [searchTerm]);
 
-  const [statusFilter, setStatusFilter] = useState<string | undefined>();
-  const [priorityFilter, setPriorityFilter] = useState<string | undefined>();
-  const [ownerFilter, setOwnerFilter] = useState<string | undefined>();
-  const [timelineFilter, setTimelineFilter] = useState<string | undefined>();
+  const [statusFilter, setStatusFilter] = useState<string[]>([]);
+  const [priorityFilter, setPriorityFilter] = useState<string[]>([]);
+  const [ownerFilter, setOwnerFilter] = useState<string[]>([]);
+  const [timelineFilter, setTimelineFilter] = useState<string[]>([]);
   /* Scopes are read inside one project, the way the Bug List works — the
      choice is remembered and shared with the other QA Space lists. Scopes
      store the project's *name* as `details.product`, so that is what the
@@ -254,9 +254,9 @@ function TestScopeContent() {
     if (!isLoading && user?.name && !hasInitializedOwner) {
       const stored = sessionStorage.getItem('testScopeOwnerFilter');
       if (stored !== null) {
-        setOwnerFilter(stored || undefined);
+        setOwnerFilter(stored ? stored.split(',').filter(Boolean) : []);
       } else {
-        setOwnerFilter(user.name);
+        setOwnerFilter([user.name]);
       }
       setHasInitializedOwner(true);
     }
@@ -264,7 +264,7 @@ function TestScopeContent() {
 
   useEffect(() => {
     if (hasInitializedOwner) {
-      sessionStorage.setItem('testScopeOwnerFilter', ownerFilter || '');
+      sessionStorage.setItem('testScopeOwnerFilter', ownerFilter.join(','));
     }
   }, [ownerFilter, hasInitializedOwner]);
 
@@ -280,7 +280,7 @@ function TestScopeContent() {
       const res: any = await axios.get("/api/v2/qa/test-scopes/stats", {
         params: {
           product: projectFilter || undefined,
-          qa_owner: ownerFilter || undefined
+          qa_owner: ownerFilter.length > 0 ? ownerFilter.join(',') : undefined
         },
       });
       if (res && res.totalScopes !== undefined) {
@@ -300,9 +300,10 @@ function TestScopeContent() {
           page,
           pageSize,
           search: debouncedSearch || undefined,
-          status: statusFilter || undefined,
-          priority: priorityFilter || undefined,
-          qa_owner: ownerFilter || undefined,
+          status: statusFilter.length > 0 ? statusFilter.join(',') : undefined,
+          priority: priorityFilter.length > 0 ? priorityFilter.join(',') : undefined,
+          qa_owner: ownerFilter.length > 0 ? ownerFilter.join(',') : undefined,
+          timeline: timelineFilter.length > 0 ? timelineFilter.join(',') : undefined,
           ...(projectFilter ? { product: projectFilter } : {}),
           // Pass the user's accessible project names so the backend restricts visibility
           ...(userProjects.length > 0 ? { allowed_products: userProjects.map(p => p.label).join(',') } : {}),
@@ -323,19 +324,19 @@ function TestScopeContent() {
 
   useEffect(() => {
     /* Nothing is worth fetching until a project is chosen — an unscoped list
-       is exactly what this page moved away from. */
+     is exactly what this page moved away from. */
     if (!isLoading && canReadScope && projectFilter) {
       fetchScopes();
       fetchStats();
     }
-  }, [isLoading, canReadScope, page, pageSize, debouncedSearch, statusFilter, priorityFilter, ownerFilter, projectFilter, userProjects, sortKey]);
+  }, [isLoading, canReadScope, page, pageSize, debouncedSearch, statusFilter, priorityFilter, ownerFilter, timelineFilter, projectFilter, userProjects, sortKey]);
 
   /** Switching project drops filters that name things from the old one. */
   const chooseProject = (id: string | null) => {
     setProjectId(id);
-    setStatusFilter(undefined);
-    setPriorityFilter(undefined);
-    setTimelineFilter(undefined);
+    setStatusFilter([]);
+    setPriorityFilter([]);
+    setTimelineFilter([]);
     setSearchTerm('');
     setPage(1);
   };
@@ -428,8 +429,8 @@ function TestScopeContent() {
   }, [isLoading, canReadScope]);
 
   /* "My Scopes" vs "All Scopes" both drive the same qa_owner filter. */
-  const isMyScopes = !!user?.name && ownerFilter === user.name;
-  const isAllScopes = !ownerFilter;
+  const isMyScopes = !!user?.name && ownerFilter.length === 1 && ownerFilter[0] === user.name;
+  const isAllScopes = ownerFilter.length === 0;
 
   if (isLoading) return null;
 
@@ -627,15 +628,15 @@ function TestScopeContent() {
   ];
 
   const activeFilterCount =
-    (statusFilter ? 1 : 0) + (priorityFilter ? 1 : 0) + (ownerFilter ? 1 : 0) +
-    (timelineFilter ? 1 : 0) + (searchTerm.trim() ? 1 : 0);
+    statusFilter.length + priorityFilter.length + ownerFilter.length +
+    timelineFilter.length + (searchTerm.trim() ? 1 : 0);
 
   const clearFilters = () => {
     setSearchTerm('');
-    setStatusFilter(undefined);
-    setPriorityFilter(undefined);
-    setOwnerFilter(undefined);
-    setTimelineFilter(undefined);
+    setStatusFilter([]);
+    setPriorityFilter([]);
+    setOwnerFilter([]);
+    setTimelineFilter([]);
   };
 
   const ownerOptions = Array.from(new Set(scopes.map(s => s.qa_owner).filter(Boolean)))
@@ -777,7 +778,13 @@ function TestScopeContent() {
      scope pipeline instead: what is where, and how much of it is signed off. */
   const approvedPct = stats.totalScopes > 0 ? Math.round((stats.approved / stats.totalScopes) * 100) : 0;
   const bannerAccent = stats.overdueCount > 0 ? '#ef4444' : stats.inReview > 0 ? '#3b82f6' : '#10b981';
-  const bannerScopeLabel = isMyScopes ? 'My Scopes' : isAllScopes ? 'All Scopes' : `${ownerFilter}'s Scopes`;
+  const bannerScopeLabel = isMyScopes
+    ? 'My Scopes'
+    : isAllScopes
+      ? 'All Scopes'
+      : ownerFilter.length === 1
+        ? `${ownerFilter[0]}'s Scopes`
+        : `${ownerFilter.length} Owners' Scopes`;
 
   const renderScopeBanner = () => (
     <div className="tl-section-head tl-sprint-head-v2 tl-section-head--static">
@@ -904,10 +911,10 @@ function TestScopeContent() {
                       <TestScopeFilters
                         filters={{ statusFilter, priorityFilter, ownerFilter, timelineFilter }}
                         onFilterChange={(key, val) => {
-                          if (key === 'statusFilter') setStatusFilter(val || undefined);
-                          if (key === 'priorityFilter') setPriorityFilter(val || undefined);
-                          if (key === 'ownerFilter') setOwnerFilter(val || undefined);
-                          if (key === 'timelineFilter') setTimelineFilter(val || undefined);
+                          if (key === 'statusFilter') setStatusFilter(val || []);
+                          if (key === 'priorityFilter') setPriorityFilter(val || []);
+                          if (key === 'ownerFilter') setOwnerFilter(val || []);
+                          if (key === 'timelineFilter') setTimelineFilter(val || []);
                         }}
                         onReset={clearFilters}
                         statusOptions={statusOptions}
@@ -949,8 +956,8 @@ function TestScopeContent() {
                   className="saas-segmented-premium sc-owner-seg"
                   value={isMyScopes ? 'mine' : isAllScopes ? 'all' : 'other'}
                   onChange={(v) => {
-                    if (v === 'mine') setOwnerFilter(user?.name);
-                    else if (v === 'all') setOwnerFilter(undefined);
+                    if (v === 'mine') setOwnerFilter(user?.name ? [user.name] : []);
+                    else if (v === 'all') setOwnerFilter([]);
                   }}
                   options={[
                     {
@@ -976,13 +983,15 @@ function TestScopeContent() {
                     },
                     /* A QA owner picked from the filter panel is neither "mine"
                        nor "all" — surfaced here so the switch never lies. */
-                    ...(!isMyScopes && !isAllScopes
+                    ...(!isMyScopes && !isAllScopes && ownerFilter.length > 0
                       ? [{
                           value: 'other',
                           label: (
                             <span className="sc-owner-opt">
                               <UserOutlined style={{ fontSize: 12 }} />
-                              <span className="sc-owner-opt__label">{ownerFilter}</span>
+                              <span className="sc-owner-opt__label">
+                                {ownerFilter.length === 1 ? ownerFilter[0] : `${ownerFilter.length} Owners`}
+                              </span>
                             </span>
                           ),
                         }]
@@ -1052,39 +1061,36 @@ function TestScopeContent() {
                   <TicketFilterPill
                     icon={<CheckCircleOutlined style={{ fontSize: 11 }} />}
                     label="Status"
-                    value={statusFilter || ""}
+                    values={statusFilter}
                     options={statusOptions}
-                    onChange={(val) => setStatusFilter(val || undefined)}
+                    onChange={(val) => setStatusFilter(val)}
                     itemNoun="statuses"
-                    multiple={false}
                   />
                   <TicketFilterPill
                     icon={<ThunderboltOutlined style={{ fontSize: 11 }} />}
                     label="Priority"
-                    value={priorityFilter || ""}
+                    values={priorityFilter}
                     options={priorityOptions}
-                    onChange={(val) => setPriorityFilter(val || undefined)}
+                    onChange={(val) => setPriorityFilter(val)}
                     itemNoun="priorities"
-                    multiple={false}
                   />
                   <TicketFilterPill
                     icon={<UserOutlined style={{ fontSize: 11 }} />}
                     label="QA Owner"
-                    value={ownerFilter || ""}
+                    values={ownerFilter}
                     options={ownerOptions}
-                    onChange={(val) => setOwnerFilter(val || undefined)}
+                    onChange={(val) => setOwnerFilter(val)}
                     itemNoun="owners"
-                    multiple={false}
                     showAvatar
+                    searchPlaceholder="Search people..."
                   />
                   <TicketFilterPill
                     icon={<CalendarOutlined style={{ fontSize: 11 }} />}
                     label="Timeline"
-                    value={timelineFilter || ""}
+                    values={timelineFilter}
                     options={TIMELINE_FILTERS}
-                    onChange={(val) => setTimelineFilter(val || undefined)}
+                    onChange={(val) => setTimelineFilter(val)}
                     itemNoun="ranges"
-                    multiple={false}
                   />
                 </div>
                 <div className="tl-filter-row-actions">

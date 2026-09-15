@@ -15,10 +15,10 @@ import TicketFilterPill from "@/components/projects/TicketFilterPill";
 const { Text } = Typography;
 
 export interface TestScopeFiltersState {
-  statusFilter?: string;
-  priorityFilter?: string;
-  ownerFilter?: string;
-  timelineFilter?: string;
+  statusFilter?: string[];
+  priorityFilter?: string[];
+  ownerFilter?: string[];
+  timelineFilter?: string[];
 }
 
 interface TestScopeFiltersProps {
@@ -45,10 +45,10 @@ const TestScopeFilters: React.FC<TestScopeFiltersProps> = ({
   timelineOptions,
 }) => {
   const activeCount =
-    (filters.statusFilter ? 1 : 0) +
-    (filters.priorityFilter ? 1 : 0) +
-    (filters.ownerFilter ? 1 : 0) +
-    (filters.timelineFilter ? 1 : 0);
+    (filters.statusFilter?.length || 0) +
+    (filters.priorityFilter?.length || 0) +
+    (filters.ownerFilter?.length || 0) +
+    (filters.timelineFilter?.length || 0);
 
   return (
     <div className="tf-panel">
@@ -78,13 +78,11 @@ const TestScopeFilters: React.FC<TestScopeFiltersProps> = ({
           </div>
           <TicketFilterPill
             label="Status"
-            value={filters.statusFilter || ""}
+            values={filters.statusFilter || []}
             options={statusOptions}
             onChange={(val) => onFilterChange("statusFilter", val)}
-            placeholder="Any"
             itemNoun="statuses"
-            width={220}
-            multiple={false}
+            width={260}
           />
         </div>
 
@@ -95,13 +93,11 @@ const TestScopeFilters: React.FC<TestScopeFiltersProps> = ({
           </div>
           <TicketFilterPill
             label="Priority"
-            value={filters.priorityFilter || ""}
+            values={filters.priorityFilter || []}
             options={priorityOptions}
             onChange={(val) => onFilterChange("priorityFilter", val)}
-            placeholder="Any"
             itemNoun="priorities"
-            width={220}
-            multiple={false}
+            width={260}
           />
         </div>
 
@@ -112,14 +108,12 @@ const TestScopeFilters: React.FC<TestScopeFiltersProps> = ({
           </div>
           <TicketFilterPill
             label="QA Owner"
-            value={filters.ownerFilter || ""}
+            values={filters.ownerFilter || []}
             options={ownerOptions}
             onChange={(val) => onFilterChange("ownerFilter", val)}
-            placeholder="Any member"
             itemNoun="owners"
-            width={220}
+            width={290}
             showAvatar
-            multiple={false}
             searchPlaceholder="Search people..."
           />
         </div>
@@ -131,13 +125,11 @@ const TestScopeFilters: React.FC<TestScopeFiltersProps> = ({
           </div>
           <TicketFilterPill
             label="Timeline"
-            value={filters.timelineFilter || ""}
+            values={filters.timelineFilter || []}
             options={timelineOptions}
             onChange={(val) => onFilterChange("timelineFilter", val)}
-            placeholder="Any"
             itemNoun="ranges"
-            width={220}
-            multiple={false}
+            width={260}
           />
         </div>
       </div>

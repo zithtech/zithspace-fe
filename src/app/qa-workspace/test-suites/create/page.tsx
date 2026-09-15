@@ -794,6 +794,11 @@ function CreateTestSuiteContent() {
       scrollToSection("sec-suite");
       return message.error("Suite Name is required");
     }
+    if (formData.suite_name.trim().length > 255) {
+      setNameError("Suite Name cannot exceed 255 characters");
+      scrollToSection("sec-suite");
+      return message.error("Suite Name cannot exceed 255 characters");
+    }
     if (!hasScope) {
       setScopeError("Pick the test case this suite belongs to");
       scrollToSection("sec-suite");
@@ -1437,8 +1442,31 @@ function CreateTestSuiteContent() {
                     <Input
                       placeholder="e.g. Smoke Test Suite, Regression Sprint 14"
                       value={formData.suite_name || ""}
-                      status={nameError ? "error" : undefined}
-                      onChange={(e) => { setNameError(null); patch({ suite_name: e.target.value }); }}
+                      count={{
+                        show: ({ count }) => (
+                          <span
+                            style={{
+                              color: count > 255 ? "#ef4444" : "var(--ts-text-3, #94a3b8)",
+                              fontWeight: count > 255 ? 600 : 400,
+                              fontSize: 12,
+                            }}
+                          >
+                            {count} / 255
+                          </span>
+                        ),
+                      }}
+                      status={nameError || ((formData.suite_name || "").trim().length > 255) ? "error" : undefined}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        if (val.trim().length > 255) {
+                          setNameError("Suite Name cannot exceed 255 characters");
+                        } else if (!val.trim()) {
+                          setNameError("Suite Name is required");
+                        } else {
+                          setNameError(null);
+                        }
+                        patch({ suite_name: val });
+                      }}
                     />
                   </Field>
                   <Field

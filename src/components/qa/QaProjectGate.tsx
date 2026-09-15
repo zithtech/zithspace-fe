@@ -330,7 +330,7 @@ export function QaProjectSwitcher({
         )}
         overlayClassName="qps-pop"
       >
-        <div className="qps-trigger" role="button" tabIndex={0}>
+        <div className="qps-trigger" role="button" tabIndex={0} data-tour="qa-project-select">
           <div className="qps-trigger__main">
             <Briefcase size={14} className="qps-trigger__icon" />
             <span className="qps-trigger__name">{selected?.label || placeholder}</span>

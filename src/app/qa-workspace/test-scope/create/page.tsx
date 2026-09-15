@@ -27,6 +27,7 @@ import "@blocknote/mantine/style.css";
 import { SearchableDropdown } from "@/components/common/SearchableDropdown";
 import { NO_MODULES_STYLES, NoModulesEmpty } from "@/components/qa/ModuleSettingsSection";
 import ZukvoLoader from "@/components/common/ZukvoLoader";
+import PostCreationSuccessScreen from "@/components/common/PostCreationSuccessScreen";
 import { MembersService } from "@/services/membersService";
 import { ProjectService } from "@/services/projectService";
 import { commonDrawerProps } from "@/components/common/DrawerSection";
@@ -677,6 +678,7 @@ useActivitySource({ section: "WORK", module: "QA", page: "CreateTestScope" });
   const [positionsList, setPositionsList] = useState<any[]>([]);
   const [usersList, setUsersList] = useState<any[]>([]);
   const [submitting, setSubmitting] = useState(false);
+  const [successData, setSuccessData] = useState<{ name: string } | null>(null);
   const [newDepName, setNewDepName] = useState('');
   const [newDepStatus, setNewDepStatus] = useState('pending');
   const [newAcInput, setNewAcInput] = useState('');
@@ -2350,6 +2352,19 @@ useActivitySource({ section: "WORK", module: "QA", page: "CreateTestScope" });
         .ts-create .ts-minibtn:disabled { opacity: .6; cursor: not-allowed; }
       `}} />
 
+      {successData ? (
+        <div style={{ height: "calc(100vh - 56px)", display: "flex", alignItems: "center", justifyContent: "center", background: "var(--bg-primary)" }}>
+          <PostCreationSuccessScreen
+            itemType="Test Scope"
+            itemName={successData.name}
+            onCreateAnother={() => {
+              setSuccessData(null);
+              window.location.reload();
+            }}
+            onContinue={() => router.push("/qa-workspace/test-scope")}
+          />
+        </div>
+      ) : (
       <div className="ts-create">
         {/* ── Sticky header ─────────────────────────────────────────── */}
         <div ref={stickyRef} className="ts-topbar sticky top-0 z-30">
@@ -3799,6 +3814,7 @@ useActivitySource({ section: "WORK", module: "QA", page: "CreateTestScope" });
           </div>
         </div>
       </div>
+      )}
 
       <Drawer
         {...commonDrawerProps}

@@ -56,6 +56,7 @@ export default function LinkedDocumentHubsList({
         }}
       >
         <Typography.Title
+          data-tour="tickets-create-doc"
           level={5}
           style={{
             fontSize: 13,

@@ -588,6 +588,7 @@ export default function TestRunExecutionPage() {
 
           <div className="ex-actions">
             <button
+              data-tour="qa-run-details-btn"
               className={`ex-btn ex-btn--details${isOpen ? " is-open" : ""}`}
               onClick={() => toggleDetails(result.id)}
               aria-expanded={isOpen}
@@ -596,6 +597,7 @@ export default function TestRunExecutionPage() {
             </button>
             <span className="ex-divider" />
             <button
+              data-tour="qa-run-pass-btn"
               className={`ex-btn${result.status === "Pass" ? " is-on--pass" : ""}`}
               onClick={() => handleStatus(result, "Pass")}
               disabled={isSaving}
@@ -603,6 +605,7 @@ export default function TestRunExecutionPage() {
               <CheckCircleOutlined /> Pass
             </button>
             <button
+              data-tour="qa-run-fail-btn"
               className={`ex-btn${result.status === "Fail" ? " is-on--fail" : ""}`}
               onClick={() => handleStatus(result, "Fail")}
               disabled={isSaving}
@@ -610,6 +613,7 @@ export default function TestRunExecutionPage() {
               <CloseCircleOutlined /> Fail
             </button>
             <button
+              data-tour="qa-run-blocked-btn"
               className={`ex-btn${result.status === "Blocked" ? " is-on--blocked" : ""}`}
               onClick={() => handleStatus(result, "Blocked")}
               disabled={isSaving}
@@ -2148,6 +2152,7 @@ export default function TestRunExecutionPage() {
                   }
                 >
                   <Button
+                   data-tour="qa-run-fail-buglist"
                     icon={<BugOutlined />}
                     onClick={openBugModal}
                     disabled={counts.fail === 0}

@@ -15,6 +15,7 @@ import {
   DownOutlined,
   MoreOutlined,
   ProjectOutlined,
+  SettingOutlined,
 } from "@ant-design/icons";
 import { Avatar } from "antd";
 import dayjs from "dayjs";
@@ -181,12 +182,17 @@ export default function TicketSidebar({
       <style dangerouslySetInnerHTML={{ __html: TL_SIDEBAR_CSS }} />
 
       {/* ── Sidebar Head ────────────────────────── */}
-      <div className="tl-side-head">
-        <div className="tl-side-logo"><ProjectOutlined /></div>
-        <div className="tl-side-head-text">
-          <div className="tl-side-title">Tickets</div>
-          <div className="tl-side-subtitle">Sprint · backlog · insights</div>
+      <div className="tl-side-head" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <div className="tl-side-logo"><ProjectOutlined /></div>
+          <div className="tl-side-head-text">
+            <div className="tl-side-title">Tickets</div>
+            <div className="tl-side-subtitle">Sprint · backlog · insights</div>
+          </div>
         </div>
+        <a href="/tickets/settings" data-tour="tickets-settings" style={{ color: 'var(--text-secondary)' }}>
+          <SettingOutlined style={{ fontSize: 16 }} />
+        </a>
       </div>
 
       {/* ── All Tickets section label ────────────────────────── */}

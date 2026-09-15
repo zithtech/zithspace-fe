@@ -1,10 +1,20 @@
 import React, { forwardRef } from 'react';
 import dayjs, { Dayjs } from 'dayjs';
-import { TimelineTree } from '@/components/projects/overview/TimelineTree';
 import { ReportMember } from '@/services/performanceReportService';
 import { StatusMarks } from './ticketPoints';
 import { ReportModel, ticketRowPoints, performanceBand } from './reportPdfData';
-import { AppstoreOutlined, TagsOutlined, ClockCircleOutlined, TableOutlined, MessageOutlined, UserOutlined, CoffeeOutlined } from '@ant-design/icons';
+import {
+  AppstoreOutlined,
+  TagsOutlined,
+  ClockCircleOutlined,
+  TableOutlined,
+  MessageOutlined,
+  UserOutlined,
+  CoffeeOutlined,
+  CheckCircleFilled,
+  SyncOutlined,
+  StopOutlined,
+} from '@ant-design/icons';
 
 // ── formatters ───────────────────────────────────────────────────────────────
 const hmFromSec = (sec: number) => {
@@ -25,14 +35,26 @@ const fmtDate = (d: any) => (d ? dayjs(d).format('MMM D, YYYY') : '—');
 const fmtTime = (d: any) => (d ? dayjs(d).format('h:mm A') : '—');
 
 const scoreColor = (p: number | null) =>
-  p === null ? '#64748b' : p >= 90 ? '#059669' : p >= 75 ? '#b45309' : '#dc2626';
+  p === null ? '#64748b' : p >= 90 ? '#10b981' : p >= 75 ? '#f59e0b' : '#dc2626';
 
 function delayOf(estHours: number, trackedSecs: number) {
-  const diffSecs = trackedSecs - estHours * 3600;
   if (!estHours || !trackedSecs) return { text: '—', color: '#94a3b8' };
-  if (diffSecs <= 60) return { text: 'On time', color: '#16a34a' };
-  return { text: `+${hmFromSec(diffSecs)}`, color: '#dc2626' };
+  const diffSecs = trackedSecs - estHours * 3600;
+  if (diffSecs > 60) return { text: `+${hmFromSec(diffSecs)}`, color: '#dc2626' };
+  if (diffSecs < -60) return { text: `−${hmFromSec(-diffSecs)}`, color: '#10b981' };
+  return { text: 'On time', color: '#10b981' };
 }
+
+const ticketStatusMeta = (status: string) => {
+  const s = (status || '').toLowerCase().trim();
+  if (['completed', 'done', 'live', 'live (deployed)'].includes(s))
+    return { label: 'Done', color: '#10b981', bg: '#ecfdf5', icon: <CheckCircleFilled /> };
+  if (['in_progress', 'in_testing', 'started', 'active'].includes(s))
+    return { label: 'In progress', color: '#3b82f6', bg: '#eff6ff', icon: <SyncOutlined /> };
+  if (['blocked', 'on_hold', 'on-hold'].includes(s))
+    return { label: 'Blocked', color: '#dc2626', bg: '#fef2f2', icon: <StopOutlined /> };
+  return { label: (status || 'not started').replace(/_/g, ' '), color: '#64748b', bg: '#f1f5f9', icon: <ClockCircleOutlined /> };
+};
 
 const C = { border: '#e2e8f0', headBg: '#f8fafc', ink: '#0f172a', muted: '#64748b', faint: '#94a3b8' };
 
@@ -157,14 +179,12 @@ const ReportPrintable = forwardRef<HTMLDivElement, Props>(
           </div>
         </div>
 
-        <div className="html2pdf__page-break" />
-
-        <div className="px-8 py-4 space-y-6">
+        <div className="px-8 py-2 space-y-4">
           {/* ── Overview ───────────────────────────────────────────────────────── */}
-          <section className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/60 p-6 break-inside-avoid">
+          <section className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/60 p-5">
             <SectionTitle icon={<AppstoreOutlined />}>Overview</SectionTitle>
             <div className="flex gap-4 mb-4">
-              <div className="flex-1 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900/30 p-6 flex items-center gap-6">
+              <div className="flex-1 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900/30 p-5 flex items-center gap-6">
                 <div>
                   <div className="flex items-baseline gap-1.5">
                     <span className="text-5xl font-bold leading-none tracking-tight" style={{ color: scoreColor(model.overall) }}>{model.overall ?? '—'}</span>
@@ -200,10 +220,9 @@ const ReportPrintable = forwardRef<HTMLDivElement, Props>(
               })}
             </div>
           </section>
-          <hr className="border-t-2 border-dashed border-zinc-200 dark:border-zinc-800 my-8" />
 
           {/* ── Tickets ────────────────────────────────────────────────────────── */}
-          <section className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/60 p-6 break-inside-avoid">
+          <section className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/60 p-5">
             <SectionTitle icon={<TagsOutlined />}>Tickets</SectionTitle>
             <StatCards
               points={{ value: model.tickets.score, color: scoreColor(model.tickets.score) }}
@@ -216,15 +235,93 @@ const ReportPrintable = forwardRef<HTMLDivElement, Props>(
             {model.tickets.rows.length === 0 ? (
               empty('No tickets worked in this window.')
             ) : (
-              <div className="bg-white dark:bg-zinc-900 rounded-xl border border-zinc-200 dark:border-zinc-800 p-1">
-                <TimelineTree tickets={model.tickets.rows as any} hideToolbar hideAvatar flatView pointsOf={(t: any) => ticketRowPoints(t, statusMarks)} />
+              <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 mt-4 bg-white dark:bg-zinc-900 shadow-sm">
+                <table className="w-full text-left border-collapse table-fixed">
+                  <thead>
+                    <tr className="bg-zinc-50/70 dark:bg-zinc-900/50 border-b border-zinc-200 dark:border-zinc-800">
+                      <th className="w-[27%] px-3 py-2.5 text-[10px] uppercase font-bold text-zinc-400 tracking-wider text-left">Ticket</th>
+                      <th className="w-[12%] px-1 py-2.5 text-[10px] uppercase font-bold text-zinc-400 tracking-wider text-center border-l border-zinc-100 dark:border-zinc-800">Type</th>
+                      <th className="w-[8%] px-1 py-2.5 text-[10px] uppercase font-bold text-zinc-400 tracking-wider text-center border-l border-zinc-100 dark:border-zinc-800">Start</th>
+                      <th className="w-[8%] px-1 py-2.5 text-[10px] uppercase font-bold text-zinc-400 tracking-wider text-center border-l border-zinc-100 dark:border-zinc-800">End</th>
+                      <th className="w-[6%] px-1 py-2.5 text-[10px] uppercase font-bold text-zinc-400 tracking-wider text-center border-l border-zinc-100 dark:border-zinc-800">Est</th>
+                      <th className="w-[9.5%] px-1 py-2.5 text-[10px] uppercase font-bold text-zinc-400 tracking-wider text-center border-l border-zinc-100 dark:border-zinc-800">Tracked</th>
+                      <th className="w-[11%] px-1 py-2.5 text-[10px] uppercase font-bold text-zinc-400 tracking-wider text-center border-l border-zinc-100 dark:border-zinc-800">Delay</th>
+                      <th className="w-[7.5%] px-1 py-2.5 text-[10px] uppercase font-bold text-zinc-400 tracking-wider text-center border-l border-zinc-100 dark:border-zinc-800">Points</th>
+                      <th className="w-[11%] px-1 py-2.5 text-[10px] uppercase font-bold text-zinc-400 tracking-wider text-center border-l border-zinc-100 dark:border-zinc-800" style={{ textAlign: 'center' }}>Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {model.tickets.rows.map((t: any) => {
+                      const st = ticketStatusMeta(t.status);
+                      const del = delayOf(t.estimateHours || 0, t.trackedSeconds || 0);
+                      const pts = ticketRowPoints(t, statusMarks);
+                      const ptsColor = scoreColor(pts);
+                      return (
+                        <tr key={t.id} className="border-b last:border-0 border-zinc-100 dark:border-zinc-800/60 hover:bg-zinc-50/50">
+                          <td className="px-3 py-3 align-middle">
+                            <div className="flex items-start gap-2">
+                              <span className="w-1.5 h-1.5 rounded-full mt-1.5 flex-shrink-0" style={{ background: st.color }} />
+                              <div className="min-w-0 flex-1">
+                                <div className="font-bold text-[#2563eb] text-[11.5px] leading-tight">
+                                  {t.ticketNumber}
+                                  {t.sprintName && (
+                                    <span className="ml-1.5 font-normal text-[9px] text-zinc-400 bg-zinc-100 dark:bg-zinc-800 px-1 py-0.5 rounded">
+                                      {t.sprintName}
+                                    </span>
+                                  )}
+                                </div>
+                                <div className="text-[11px] text-zinc-700 dark:text-zinc-300 leading-snug mt-0.5 break-words">
+                                  {t.title}
+                                </div>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="px-1 py-3 text-[10.5px] text-center text-zinc-600 dark:text-zinc-400 capitalize border-l border-zinc-100 dark:border-zinc-800 align-middle" style={{ textAlign: 'center' }}>
+                            {t.type || '—'}
+                          </td>
+                          <td className="px-1 py-3 text-[10.5px] text-center text-zinc-600 dark:text-zinc-400 border-l border-zinc-100 dark:border-zinc-800 align-middle whitespace-nowrap" style={{ textAlign: 'center' }}>
+                            {t.startDate ? dayjs(t.startDate).format('MMM D') : '—'}
+                          </td>
+                          <td className="px-1 py-3 text-[10.5px] text-center text-zinc-600 dark:text-zinc-400 border-l border-zinc-100 dark:border-zinc-800 align-middle whitespace-nowrap" style={{ textAlign: 'center' }}>
+                            {t.endDate || t.dueDate ? dayjs(t.endDate || t.dueDate).format('MMM D') : '—'}
+                          </td>
+                          <td className="px-1 py-3 text-[10.5px] text-center text-zinc-600 dark:text-zinc-400 border-l border-zinc-100 dark:border-zinc-800 align-middle whitespace-nowrap" style={{ textAlign: 'center' }}>
+                            {t.estimateHours > 0 ? `${t.estimateHours}h` : '—'}
+                          </td>
+                          <td className="px-1 py-3 text-[11px] text-center font-bold text-zinc-900 dark:text-zinc-100 border-l border-zinc-100 dark:border-zinc-800 align-middle whitespace-nowrap" style={{ textAlign: 'center' }}>
+                            {t.trackedSeconds > 0 ? hmFromSec(t.trackedSeconds) : '—'}
+                          </td>
+                          <td className="px-1 py-3 text-[11px] text-center font-bold border-l border-zinc-100 dark:border-zinc-800 align-middle whitespace-nowrap" style={{ color: del.color, textAlign: 'center' }}>
+                            {del.text}
+                          </td>
+                          <td className="px-1 py-3 text-[11px] text-center font-bold border-l border-zinc-100 dark:border-zinc-800 align-middle whitespace-nowrap" style={{ color: ptsColor, textAlign: 'center' }}>
+                            {pts !== null ? `${pts}%` : '—'}
+                          </td>
+                          <td className="px-1 py-3 text-center border-l border-zinc-100 dark:border-zinc-800 align-middle" style={{ textAlign: 'center' }}>
+                            <span
+                              style={{
+                                display: 'inline-block',
+                                fontSize: '11px',
+                                fontWeight: 600,
+                                whiteSpace: 'nowrap',
+                                color: st.color,
+                                textAlign: 'center',
+                              }}
+                            >
+                              {st.label}
+                            </span>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
               </div>
             )}
           </section>
-          <hr className="border-t-2 border-dashed border-zinc-200 dark:border-zinc-800 my-8" />
 
           {/* ── Time Tracking ──────────────────────────────────────────────────── */}
-          <section className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/60 p-6 break-inside-avoid">
+          <section className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/60 p-5">
             <SectionTitle icon={<ClockCircleOutlined />}>Time Tracking</SectionTitle>
             <StatCards
               points={{ value: model.timeTracking.score, color: scoreColor(model.timeTracking.score) }}
@@ -248,14 +345,13 @@ const ReportPrintable = forwardRef<HTMLDivElement, Props>(
               </div>
             )}
           </section>
-          <hr className="border-t-2 border-dashed border-zinc-200 dark:border-zinc-800 my-8" />
 
-          <section className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/60 p-6 break-inside-avoid">
+          <section className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/60 p-5">
             <SectionTitle icon={<TableOutlined />}>Time Tracking · Detailed</SectionTitle>
             {model.timeTracking.detailed.length === 0 ? (
               empty('No tracking records.')
             ) : (
-              <div className="rounded-lg border border-zinc-200 dark:border-zinc-800 overflow-hidden">
+              <div className="rounded-lg border border-zinc-200 dark:border-zinc-800">
                 <table className="w-full text-left border-collapse">
                   <thead>
                     <tr className="bg-zinc-50 dark:bg-zinc-900/30 border-b border-zinc-200 dark:border-zinc-800">
@@ -283,10 +379,9 @@ const ReportPrintable = forwardRef<HTMLDivElement, Props>(
               </div>
             )}
           </section>
-          <hr className="border-t-2 border-dashed border-zinc-200 dark:border-zinc-800 my-8" />
 
           {/* ── Daily Updates ──────────────────────────────────────────────────── */}
-          <section className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/60 p-6 break-inside-avoid">
+          <section className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/60 p-5">
             <SectionTitle icon={<MessageOutlined />}>Daily Updates</SectionTitle>
             <StatCards
               points={{ value: model.dailyUpdates.score, color: scoreColor(model.dailyUpdates.score) }}
@@ -299,7 +394,7 @@ const ReportPrintable = forwardRef<HTMLDivElement, Props>(
             {model.dailyUpdates.rows.length === 0 ? (
               empty('No daily updates posted in this window.')
             ) : (
-              <div className="rounded-lg border border-zinc-200 dark:border-zinc-800 overflow-hidden mt-4">
+              <div className="rounded-lg border border-zinc-200 dark:border-zinc-800 mt-4">
                 <table className="w-full text-left border-collapse">
                   <thead>
                     <tr className="bg-zinc-50 dark:bg-zinc-900/30 border-b border-zinc-200 dark:border-zinc-800">
@@ -329,10 +424,9 @@ const ReportPrintable = forwardRef<HTMLDivElement, Props>(
               </div>
             )}
           </section>
-          <hr className="border-t-2 border-dashed border-zinc-200 dark:border-zinc-800 my-8" />
 
           {/* ── Attendance ───────────────────────────────────────────────────── */}
-          <section className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/60 p-6 break-inside-avoid">
+          <section className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/60 p-5">
             <SectionTitle icon={<UserOutlined />}>Attendance</SectionTitle>
             <StatCards
               points={{ value: model.attendance.score, color: scoreColor(model.attendance.score) }}
@@ -345,7 +439,7 @@ const ReportPrintable = forwardRef<HTMLDivElement, Props>(
             {model.attendance.rows.length === 0 ? (
               empty('No attendance records in this window.')
             ) : (
-              <div className="rounded-lg border border-zinc-200 dark:border-zinc-800 overflow-hidden mt-4">
+              <div className="rounded-lg border border-zinc-200 dark:border-zinc-800 mt-4">
                 <table className="w-full text-left border-collapse">
                   <thead>
                     <tr className="bg-zinc-50 dark:bg-zinc-900/30 border-b border-zinc-200 dark:border-zinc-800">
@@ -375,10 +469,9 @@ const ReportPrintable = forwardRef<HTMLDivElement, Props>(
               </div>
             )}
           </section>
-          <hr className="border-t-2 border-dashed border-zinc-200 dark:border-zinc-800 my-8" />
 
           {/* ── Leaves ───────────────────────────────────────────────────────── */}
-          <section className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/60 p-6 break-inside-avoid">
+          <section className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/60 p-5">
             <SectionTitle icon={<CoffeeOutlined />}>Leaves</SectionTitle>
             <StatCards
               points={{ value: model.leaves.score, color: scoreColor(model.leaves.score) }}
@@ -393,7 +486,7 @@ const ReportPrintable = forwardRef<HTMLDivElement, Props>(
             {model.leaves.rows.length === 0 ? (
               empty('No leaves in this window.')
             ) : (
-              <div className="rounded-lg border border-zinc-200 dark:border-zinc-800 overflow-hidden mt-4">
+              <div className="rounded-lg border border-zinc-200 dark:border-zinc-800 mt-4">
                 <table className="w-full text-left border-collapse">
                   <thead>
                     <tr className="bg-zinc-50 dark:bg-zinc-900/30 border-b border-zinc-200 dark:border-zinc-800">
@@ -423,9 +516,8 @@ const ReportPrintable = forwardRef<HTMLDivElement, Props>(
               </div>
             )}
           </section>
-          <hr className="border-t-2 border-dashed border-zinc-200 dark:border-zinc-800 my-8" />
 
-          <div className="pt-8 pb-4 text-center text-sm font-medium text-zinc-500 dark:text-zinc-400">
+          <div className="pt-4 pb-4 text-center text-sm font-medium text-zinc-500 dark:text-zinc-400">
             Generated from <span className="text-[#3b82f6]">Zukvo</span>
           </div>
         </div>
@@ -436,6 +528,34 @@ const ReportPrintable = forwardRef<HTMLDivElement, Props>(
           .rpt-printable img { max-width: 100%; height: auto; }
           .rpt-printable .ant-avatar img { width: 100%; height: 100%; object-fit: cover; }
           .rpt-printable .ant-avatar { display: inline-flex; align-items: center; justify-content: center; overflow: hidden; }
+
+          /* Allow clean page-break flow without huge gaps before sections */
+          .rpt-printable section {
+            break-inside: auto !important;
+            page-break-inside: auto !important;
+          }
+          .rpt-printable table {
+            break-inside: auto !important;
+            page-break-inside: auto !important;
+          }
+          .rpt-printable tr {
+            break-inside: avoid !important;
+            page-break-inside: avoid !important;
+          }
+          .rpt-printable thead {
+            display: table-header-group;
+          }
+
+          @media print {
+            .rpt-printable section {
+              break-inside: auto !important;
+              page-break-inside: auto !important;
+            }
+            .rpt-printable tr {
+              break-inside: avoid !important;
+              page-break-inside: avoid !important;
+            }
+          }
 
           /* CSS custom properties scoped under the printable root */
           .rpt-printable {
@@ -452,254 +572,6 @@ const ReportPrintable = forwardRef<HTMLDivElement, Props>(
             --bg-slate-50: #f8fafc;
             --bg-slate-100: #f1f5f9;
             --bg-blue-50: #eff6ff;
-          }
-
-          .rpt-printable .tl-card {
-            background: var(--bg-pure-white);
-            border: 1px solid var(--border-color);
-            border-radius: 10px;
-            overflow: hidden;
-            display: flex;
-            flex-direction: column;
-            flex: 1;
-            min-height: 0;
-          }
-          .rpt-printable .tl-colhead {
-            display: flex;
-            align-items: stretch;
-            padding: 0 16px 0 0;
-            background: var(--bg-slate-50);
-            border-bottom: 1px solid var(--border-color);
-            flex-shrink: 0;
-          }
-          .rpt-printable .tl-h-main {
-            flex: 1;
-            min-width: 0;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            padding: 9px 12px 9px 16px;
-            font-size: 10px;
-            font-weight: 700;
-            letter-spacing: 0.05em;
-            text-transform: uppercase;
-            color: var(--text-slate-400);
-          }
-          .rpt-printable .tl-col {
-            width: 70px;
-            flex-shrink: 0;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 0 6px;
-            font-size: 12px;
-            color: var(--text-slate-600);
-            font-variant-numeric: tabular-nums;
-            white-space: nowrap;
-            border-left: 1px solid var(--border-slate-100);
-          }
-          .rpt-printable .tl-colhead .tl-col,
-          .rpt-printable .tl-colhead .tl-status-col {
-            font-size: 10px;
-            font-weight: 700;
-            letter-spacing: 0.05em;
-            text-transform: uppercase;
-            color: var(--text-slate-400);
-          }
-          .rpt-printable .tl-status-col {
-            width: 132px;
-            flex-shrink: 0;
-            display: flex;
-            align-items: center;
-            justify-content: flex-start;
-            padding: 0 6px 0 12px;
-            border-left: 1px solid var(--border-slate-100);
-          }
-          .rpt-printable .tl-body {
-            display: flex;
-            flex-direction: column;
-            flex: 1;
-            min-height: 0;
-            overflow-y: auto;
-          }
-          .rpt-printable .tl-month {
-            border-bottom: 1px solid var(--border-slate-100);
-          }
-          .rpt-printable .tl-month:last-child {
-            border-bottom: none;
-          }
-          .rpt-printable .tl-month-head {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            width: 100%;
-            padding: 11px 16px;
-            border: none;
-            background: transparent;
-            text-align: left;
-          }
-          .rpt-printable .tl-month-title {
-            font-size: 13.5px;
-            font-weight: 800;
-            color: var(--text-slate-900);
-            letter-spacing: -0.01em;
-          }
-          .rpt-printable .tl-badge {
-            font-size: 10.5px;
-            font-weight: 700;
-            color: #3b82f6;
-            background: var(--bg-blue-50);
-            border-radius: 999px;
-            padding: 1px 9px;
-          }
-          .rpt-printable .tl-badge--soft {
-            color: var(--text-slate-500);
-            background: var(--bg-slate-100);
-          }
-          .rpt-printable .tl-month-body {
-            padding: 0 0 6px 0;
-          }
-          .rpt-printable .tl-member {
-            margin: 0 12px 2px 30px;
-            border-left: 1.5px solid var(--border-slate-200);
-            padding-left: 4px;
-          }
-          .rpt-printable .tl-member-head {
-            display: flex;
-            align-items: center;
-            gap: 9px;
-            width: 100%;
-            padding: 7px 10px;
-            border: none;
-            background: transparent;
-            text-align: left;
-            border-radius: 7px;
-          }
-          .rpt-printable .tl-member-name {
-            font-size: 12.5px;
-            font-weight: 700;
-            color: var(--text-slate-800);
-          }
-          .rpt-printable .tl-mini {
-            font-size: 10px;
-            font-weight: 700;
-            color: var(--text-slate-500);
-            background: var(--bg-slate-100);
-            border-radius: 999px;
-            padding: 0 7px;
-            min-width: 18px;
-            text-align: center;
-          }
-          .rpt-printable .tl-progress-mini {
-            width: 60px;
-            height: 4px;
-            border-radius: 999px;
-            background: var(--border-slate-200);
-            overflow: hidden;
-            margin-left: auto;
-          }
-          .rpt-printable .tl-progress-mini > span {
-            display: block;
-            height: 100%;
-            background: #10b981;
-            border-radius: 999px;
-          }
-          .rpt-printable .tl-done-txt {
-            font-size: 10.5px;
-            font-weight: 600;
-            color: var(--text-slate-400);
-            min-width: 64px;
-            text-align: right;
-          }
-          .rpt-printable .tl-tickets {
-            display: flex;
-            flex-direction: column;
-          }
-          .rpt-printable .tl-ticket {
-            position: relative;
-            display: flex;
-            align-items: stretch;
-            padding: 0 16px 0 0;
-            border-top: 1px solid var(--border-slate-100);
-          }
-          .rpt-printable .tl-tickets > .tl-ticket:first-child {
-            border-top: none;
-          }
-          .rpt-printable .tl-guide {
-            position: absolute;
-            left: 4px;
-            top: 50%;
-            width: 12px;
-            height: 1.5px;
-            background: var(--border-slate-200);
-          }
-          .rpt-printable .tl-ticket-main {
-            flex: 1;
-            min-width: 0;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            padding: 8px 12px 8px 22px;
-          }
-          .rpt-printable .tl-dot {
-            width: 7px;
-            height: 7px;
-            border-radius: 50%;
-            flex-shrink: 0;
-          }
-          .rpt-printable .tl-num {
-            font-size: 11px;
-            font-weight: 700;
-            color: #3b82f6;
-            flex-shrink: 0;
-            border: none;
-            background: transparent;
-            padding: 0;
-          }
-          .rpt-printable .tl-title {
-            font-size: 12.5px;
-            color: var(--text-slate-700);
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            border: none;
-            background: transparent;
-            padding: 0;
-            text-align: left;
-            min-width: 0;
-          }
-          .rpt-printable .tl-sprint {
-            font-size: 10px;
-            font-weight: 600;
-            color: var(--text-slate-400);
-            background: var(--bg-slate-100);
-            border-radius: 5px;
-            padding: 1px 7px;
-            flex-shrink: 0;
-          }
-          .rpt-printable .tl-status {
-            display: inline-flex;
-            align-items: center;
-            gap: 5px;
-            font-size: 10.5px;
-            font-weight: 700;
-            padding: 2px 9px;
-            border-radius: 999px;
-            white-space: nowrap;
-          }
-          .rpt-printable .tl-status .anticon {
-            font-size: 9px;
-          }
-          .rpt-printable .tl-chev {
-            font-size: 11px;
-            color: var(--text-slate-400);
-            flex-shrink: 0;
-          }
-          .rpt-printable .tl-chev.sm {
-            font-size: 10px;
-          }
-          .rpt-printable .tl-chev.open {
-            transform: rotate(90deg);
           }
         ` }} />
       </div>

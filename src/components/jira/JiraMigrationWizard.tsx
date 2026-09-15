@@ -3,6 +3,7 @@ import { Drawer, Steps, Button, Typography, Space, Progress, Table, Tag } from "
 import { api } from "@/lib/axios";
 import { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
 import SearchableDropdown from "@/components/common/SearchableDropdown";
+import { useProduct } from "@/context/ProductContext";
 
 const { Title, Text } = Typography;
 
@@ -12,6 +13,9 @@ interface Props {
 }
 
 export default function JiraMigrationWizard({ visible, onClose }: Props) {
+  const { manifest } = useProduct();
+  const brandName = manifest?.name || "Zukvo";
+
   const [currentStep, setCurrentStep] = useState(0);
   const [migrating, setMigrating] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -364,7 +368,7 @@ export default function JiraMigrationWizard({ visible, onClose }: Props) {
         return (
           <div style={{ maxWidth: 800, margin: '0 auto' }}>
             <Title level={4}>Map Statuses</Title>
-            <p style={{ marginBottom: 24, color: 'var(--text-secondary)' }}>Map your Jira workflow statuses to Zukvo statuses.</p>
+            <p style={{ marginBottom: 24, color: 'var(--text-secondary)' }}>Map your Jira workflow statuses to {brandName} statuses.</p>
             <div style={{ background: 'var(--bg-elevated)', borderRadius: 12, border: '1px solid var(--border-color)', padding: 24, boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)' }}>
               <Space direction="vertical" style={{ width: '100%', maxHeight: 450, overflow: 'auto' }} size="middle">
                 {jiraStatuses.map(js => (
@@ -375,7 +379,7 @@ export default function JiraMigrationWizard({ visible, onClose }: Props) {
                     </div>
                     <SearchableDropdown 
                       allowClear
-                      placeholder="Select Zukvo Status"
+                      placeholder={`Select ${brandName} Status`}
                       style={{ width: 300 }}
                       width={300}
                       value={statusMapping[js.id]}
@@ -392,7 +396,7 @@ export default function JiraMigrationWizard({ visible, onClose }: Props) {
         return (
           <div style={{ maxWidth: 800, margin: '0 auto' }}>
             <Title level={4}>Map Users</Title>
-            <p style={{ marginBottom: 24, color: 'var(--text-secondary)' }}>Map Jira users to Zukvo employees to preserve assignees.</p>
+            <p style={{ marginBottom: 24, color: 'var(--text-secondary)' }}>Map Jira users to {brandName} users to preserve assignees.</p>
             <div style={{ background: 'var(--bg-elevated)', borderRadius: 12, border: '1px solid var(--border-color)', padding: 24, boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)' }}>
               <Space direction="vertical" style={{ width: '100%', maxHeight: 450, overflow: 'auto' }} size="middle">
                 {jiraUsers.map(ju => (
@@ -406,7 +410,7 @@ export default function JiraMigrationWizard({ visible, onClose }: Props) {
                     </div>
                     <SearchableDropdown 
                       allowClear
-                      placeholder="Select Zukvo Employee"
+                      placeholder={`Select ${brandName} User`}
                       style={{ width: 300, flexShrink: 0 }}
                       width={300}
                       value={userMapping[ju.accountId]}
@@ -456,8 +460,8 @@ export default function JiraMigrationWizard({ visible, onClose }: Props) {
 
   const drawerFooter = !migrating ? (
     <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 12, padding: '8px 16px' }}>
-      {currentStep > 0 && <Button size="large" onClick={() => setCurrentStep(currentStep - 1)}>Back</Button>}
-      <Button size="large" type="primary" onClick={handleNext} disabled={currentStep === 0 && selectedProjects.length === 0} style={{ minWidth: 120 }}>
+      {currentStep > 0 && <Button size="large" onClick={() => setCurrentStep(currentStep - 1)} disabled={migrating}>Back</Button>}
+      <Button size="large" type="primary" onClick={handleNext} disabled={(currentStep === 0 && selectedProjects.length === 0) || migrating} style={{ minWidth: 120 }}>
         {currentStep === 5 ? "Start Migration" : "Continue"}
       </Button>
     </div>
@@ -478,7 +482,7 @@ export default function JiraMigrationWizard({ visible, onClose }: Props) {
       {migrating ? (
         <div style={{ textAlign: "center", padding: "100px 0", height: '100%', background: 'var(--bg-base)' }}>
           <Progress type="circle" percent={progress} strokeColor="var(--primary-color)" />
-          <Title level={4} style={{ marginTop: 32, color: 'var(--text-primary)' }}>Importing Jira data into Zukvo...</Title>
+          <Title level={4} style={{ marginTop: 32, color: 'var(--text-primary)' }}>Importing Jira data into {brandName}...</Title>
           <Text type="secondary">This may take a few minutes depending on the volume of tickets.</Text>
         </div>
       ) : (

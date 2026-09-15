@@ -15,10 +15,10 @@ import TicketFilterPill from "@/components/projects/TicketFilterPill";
 const { Text } = Typography;
 
 export interface TestCaseFiltersState {
-  moduleFilter?: string;
-  statusFilter?: string;
-  automationFilter?: string;
-  ownerFilter?: string;
+  moduleFilter?: string[];
+  statusFilter?: string[];
+  automationFilter?: string[];
+  ownerFilter?: string[];
 }
 
 interface TestCaseFiltersProps {
@@ -45,10 +45,10 @@ const TestCaseFilters: React.FC<TestCaseFiltersProps> = ({
   ownerOptions,
 }) => {
   const activeCount =
-    (filters.moduleFilter ? 1 : 0) +
-    (filters.statusFilter ? 1 : 0) +
-    (filters.automationFilter ? 1 : 0) +
-    (filters.ownerFilter ? 1 : 0);
+    (filters.moduleFilter?.length || 0) +
+    (filters.statusFilter?.length || 0) +
+    (filters.automationFilter?.length || 0) +
+    (filters.ownerFilter?.length || 0);
 
   return (
     <div className="tf-panel">
@@ -78,13 +78,11 @@ const TestCaseFilters: React.FC<TestCaseFiltersProps> = ({
           </div>
           <TicketFilterPill
             label="Module"
-            value={filters.moduleFilter || ""}
+            values={filters.moduleFilter || []}
             options={moduleOptions}
             onChange={(val) => onFilterChange("moduleFilter", val)}
-            placeholder="Any"
             itemNoun="modules"
-            width={220}
-            multiple={false}
+            width={260}
             searchPlaceholder="Search modules..."
           />
         </div>
@@ -96,13 +94,11 @@ const TestCaseFilters: React.FC<TestCaseFiltersProps> = ({
           </div>
           <TicketFilterPill
             label="Status"
-            value={filters.statusFilter || ""}
+            values={filters.statusFilter || []}
             options={statusOptions}
             onChange={(val) => onFilterChange("statusFilter", val)}
-            placeholder="Any"
             itemNoun="statuses"
-            width={220}
-            multiple={false}
+            width={260}
           />
         </div>
 
@@ -113,13 +109,11 @@ const TestCaseFilters: React.FC<TestCaseFiltersProps> = ({
           </div>
           <TicketFilterPill
             label="Automation"
-            value={filters.automationFilter || ""}
+            values={filters.automationFilter || []}
             options={automationOptions}
             onChange={(val) => onFilterChange("automationFilter", val)}
-            placeholder="Any"
             itemNoun="types"
-            width={220}
-            multiple={false}
+            width={260}
           />
         </div>
 
@@ -130,14 +124,12 @@ const TestCaseFilters: React.FC<TestCaseFiltersProps> = ({
           </div>
           <TicketFilterPill
             label="Owner"
-            value={filters.ownerFilter || ""}
+            values={filters.ownerFilter || []}
             options={ownerOptions}
             onChange={(val) => onFilterChange("ownerFilter", val)}
-            placeholder="Any member"
             itemNoun="owners"
-            width={220}
+            width={290}
             showAvatar
-            multiple={false}
             searchPlaceholder="Search people..."
           />
         </div>

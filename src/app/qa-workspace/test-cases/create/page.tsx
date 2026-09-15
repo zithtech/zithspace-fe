@@ -127,10 +127,14 @@ export default function CreateTestCasePage() {
   const handleSaveAll = async () => {
     if (!moduleId) return message.error("Module is required");
     
-    // Validate all test cases have a name
+    // Validate all test cases have a valid name
     for (let i = 0; i < testCases.length; i++) {
-      if (!testCases[i].name.trim()) {
+      const name = (testCases[i].name || '').trim();
+      if (!name) {
         return message.error(`Test Case ${i + 1} is missing a name.`);
+      }
+      if (name.length > 255) {
+        return message.error(`Test Case ${i + 1} name cannot exceed 255 characters.`);
       }
     }
 
@@ -260,12 +264,17 @@ export default function CreateTestCasePage() {
           margin-bottom: 24px;
         }
         .create-scope-container input.ant-input:not(.ant-input-sm),
+        .create-scope-container .ant-input-affix-wrapper,
         .create-scope-container .ant-picker,
         .create-scope-container .sd-trigger {
           min-height: 40px !important;
           height: 40px !important;
           display: flex;
           align-items: center;
+        }
+        .create-scope-container .ant-input-affix-wrapper input.ant-input {
+          min-height: auto !important;
+          height: auto !important;
         }
         .create-scope-container textarea.ant-input {
           min-height: 80px;
@@ -322,8 +331,31 @@ export default function CreateTestCasePage() {
               <Row gutter={[24, 24]}>
                 
                 <Col span={24}>
-                  <span className="form-label">Test Case Name <span style={{ color: 'red' }}>*</span></span>
-                  <Input placeholder="Example: Create Todo with valid data" value={tc.name} onChange={(e) => updateTestCase(tcIndex, 'name', e.target.value)} />
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                    <span className="form-label" style={{ marginBottom: 0 }}>Test Case Name <span style={{ color: 'red' }}>*</span></span>
+                  </div>
+                  <Input
+                    placeholder="Example: Create Todo with valid data"
+                    value={tc.name}
+                    count={{
+                      show: ({ count }) => (
+                        <span
+                          style={{
+                            color: count > 255 ? "#ef4444" : "var(--text-secondary, #94a3b8)",
+                            fontWeight: count > 255 ? 600 : 400,
+                            fontSize: 12,
+                          }}
+                        >
+                          {count} / 255
+                        </span>
+                      ),
+                    }}
+                    status={tc.name && tc.name.trim().length > 255 ? 'error' : undefined}
+                    onChange={(e) => updateTestCase(tcIndex, 'name', e.target.value)}
+                  />
+                  {tc.name && tc.name.trim().length > 255 && (
+                    <div style={{ color: '#ef4444', fontSize: 12, marginTop: 4 }}>Test Case Name cannot exceed 255 characters</div>
+                  )}
                 </Col>
 
                 <Col span={24}>

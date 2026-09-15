@@ -61,7 +61,7 @@ import dayjs from "dayjs";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTicketComments, useTicketAttachments, useTicketLinks, useAddComment, useUpdateComment, useDeleteComment, useUploadAttachment, useDeleteAttachment, useRenameAttachment, useAddRelatedLink, useUpdateRelatedLink, useDeleteRelatedLink, useTicketDocumentHubs, useTicketQaLinks, useAddTicketQaLink, useDeleteTicketQaLink } from "@/hooks/useTicketDetails";
 import { useTicket, useUpdateTicket, useAllTicketTags, ticketKeys } from "@/hooks/useTickets";
-import { useMembers, useTicketConfig, useUserProjects } from "@/hooks/useGlobalData";
+import { useProjectMembers, useTicketConfig, useUserProjects } from "@/hooks/useGlobalData";
 import { useAvailableSprints } from "@/hooks/useAvailableSprints";
 import { useTimeTrackerStore } from "@/store/useTimeTrackerStore";
 import { useAuth } from "@/context/AuthContext";
@@ -276,7 +276,6 @@ export const TicketDetailDrawer: React.FC<TicketDetailDrawerProps> = ({
   };
 
   // Config Hooks
-  const { data: members = [] } = useMembers();
   const { data: ticketConfig } = useTicketConfig();
   const { data: projects = [] } = useUserProjects();
 
@@ -285,6 +284,8 @@ export const TicketDetailDrawer: React.FC<TicketDetailDrawerProps> = ({
     typeof (ticket as any)?.project === "string"
       ? ((ticket as any).project as string)
       : (ticket as any)?.project?.id;
+  // Fetch only members of the current ticket's project (not all workspace members)
+  const { data: members = [] } = useProjectMembers(ticketProjectId);
   const { data: availableSprints = [] } = useAvailableSprints(ticketProjectId);
   const activeSprint = availableSprints.find((s: any) => s.status === "active");
   const ticketSprintId =

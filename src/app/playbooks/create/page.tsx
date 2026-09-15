@@ -27,9 +27,10 @@ function CreatePlaybook() {
      it once the playbook actually exists and has an id. */
   const collectionId = params.get("collection") ?? "";
 
-  const hasNewPlaybookFeature =
-    !user?.subscriptionFeatures ||
-    user.subscriptionFeatures.includes("work_playbooks_qa_playbooks_new_playbook");
+  const hasNewPlaybookFeature = Boolean(
+    user?.subscriptionFeatures &&
+    user.subscriptionFeatures.includes("work_playbooks_qa_playbooks_new_playbook")
+  );
 
   const { data: meta } = useQuery<any>({
     queryKey: ["qa", "playbooks", "meta"],

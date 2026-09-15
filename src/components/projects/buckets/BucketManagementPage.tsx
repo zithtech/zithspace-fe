@@ -822,6 +822,7 @@ export default function BucketManagementPage() {
 
                 {canCreateTicketBucket && (
                   <Button
+                    data-tour="tickets-buckets-create"
                     type="primary"
                     icon={<PlusOutlined />}
                     onClick={handleCreate}
@@ -966,6 +967,7 @@ export default function BucketManagementPage() {
                       </Text>
                       {allBuckets.length === 0 && canCreateTicketBucket ? (
                         <Button
+                          data-tour="tickets-buckets-create"
                           type="primary"
                           icon={<PlusOutlined />}
                           onClick={handleCreate}

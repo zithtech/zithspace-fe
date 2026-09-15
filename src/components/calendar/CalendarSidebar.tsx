@@ -215,6 +215,7 @@ export default function CalendarSidebar({
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                 {canSync && (
                     <Button
+                        data-tour="calendar-sync-btn"
                         block
                         icon={<SyncOutlined spin={syncing} />}
                         onClick={() => onSync()}

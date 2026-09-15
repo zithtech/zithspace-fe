@@ -17,10 +17,11 @@ import { usePermission } from "@/hooks/usePermission";
 import { useActivitySource } from "@/hooks/useActivitySource";
 import { api as axios } from "@/lib/axios";
 import { SearchableDropdown } from "@/components/common/SearchableDropdown";
-import ZukvoLoader from "@/components/common/ZukvoLoader";
-import { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
+import PostCreationSuccessScreen from "@/components/common/PostCreationSuccessScreen";
+import ZukvoLoader, { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
 import { useDebounce } from "@/hooks/useDebounce";
 import { QaScenarioService, type TestScenario } from "@/services/qaScenarioService";
+import { useQaProject, QaProjectSwitcher } from "@/components/qa/QaProjectGate";
 
 /**
  * The standard testing types, kept identical to the Test Scope page so both
@@ -192,6 +193,14 @@ function CreateTestSuiteContent() {
   const editingId = searchParams.get("id");
 
   const { canReadSuite, canCreateSuite, canUpdateSuite } = usePermission();
+  const {
+    projects: projectOptions,
+    loading: loadingProjects,
+    ready: projectReady,
+    projectId: selectedProjectId,
+    setProjectId,
+  } = useQaProject();
+  const projectFilter = selectedProjectId || undefined;
 
   const [formData, setFormData] = useState<any>({ test_case_ids: [], parent_test_case_id: undefined });
   const [parents, setParents] = useState<any[]>([]);
@@ -273,6 +282,7 @@ function CreateTestSuiteContent() {
   const [aiBusy, setAiBusy] = useState<"generate" | "grammar" | null>(null);
   const [zaiOpen, setZaiOpen] = useState(false);
   const [zaiView, setZaiView] = useState<"prompt" | "preview">("prompt");
+  const [successData, setSuccessData] = useState<{ name: string } | null>(null);
   const [zaiPrompt, setZaiPrompt] = useState("");
   const [zaiDraft, setZaiDraft] = useState("");
 
@@ -285,7 +295,7 @@ function CreateTestSuiteContent() {
     const searchParents = async () => {
       try {
         const res = await axios.get("/api/v2/qa/parents", {
-          params: { search: debouncedParentSearch, limit: 50 }
+          params: { search: debouncedParentSearch, limit: 50, project_id: projectFilter }
         });
         const fetched = Array.isArray(res.data) ? res.data : (res.data?.data || []);
         setParents((prev: any[]) => {
@@ -296,11 +306,16 @@ function CreateTestSuiteContent() {
       } catch (e) {}
     };
     searchParents();
-  }, [debouncedParentSearch]);
+  }, [debouncedParentSearch, projectFilter]);
 
   const patch = (next: Record<string, any>) => {
     setIsDirty(true);
     setFormData((prev: any) => ({ ...prev, ...next }));
+  };
+
+  const chooseProject = (id: string | null) => {
+    setProjectId(id);
+    patch({ parent_test_case_id: undefined, module_id: undefined, test_case_ids: [] });
   };
 
   /* ── Reference data ─────────────────────────────────────────────────────── */
@@ -309,8 +324,8 @@ function CreateTestSuiteContent() {
     (async () => {
       try {
         const [parentsRes, suitesRes]: any[] = await Promise.all([
-          axios.get("/api/v2/qa/parents?limit=1000"),
-          axios.get("/api/v2/qa/suites/all?limit=1000"),
+          axios.get("/api/v2/qa/parents", { params: { limit: 1000, project_id: projectFilter } }),
+          axios.get("/api/v2/qa/suites/all", { params: { limit: 1000, project_id: projectFilter } }),
         ]);
         const unwrap = (r: any) => (Array.isArray(r) ? r : (r?.data?.data || r?.data || []));
         setParents(unwrap(parentsRes));
@@ -319,7 +334,7 @@ function CreateTestSuiteContent() {
         message.error("Failed to load test scenarios");
       }
     })();
-  }, [canReadSuite]);
+  }, [canReadSuite, projectFilter]);
 
   /* Editing — pull the suite and the cases already linked to it. */
   useEffect(() => {
@@ -800,13 +815,11 @@ function CreateTestSuiteContent() {
       console.log("PAYLOAD BEING SENT TO BACKEND:", payload);
       if (editingId) {
         await axios.put(`/api/v2/qa/suites/${editingId}`, payload);
-        message.success("Test Suite updated successfully");
       } else {
         await axios.post("/api/v2/qa/suites", payload);
-        message.success("Test Suite created successfully");
       }
       setIsDirty(false);
-      router.push("/qa-workspace/test-suites");
+      setSuccessData({ name: formData.suite_name.trim() });
     } catch (error: any) {
       message.error(error?.response?.data?.error || "Failed to save suite");
     } finally {
@@ -1309,6 +1322,19 @@ function CreateTestSuiteContent() {
         .ts-create .lk-empty__desc { margin: 4px 0 0; font-size: 12px; color: var(--ts-text-3); }
       `}} />
 
+      {successData ? (
+        <div style={{ height: "calc(100vh - 56px)", display: "flex", alignItems: "center", justifyContent: "center", background: "var(--bg-primary)" }}>
+          <PostCreationSuccessScreen
+            itemType="Test Suite"
+            itemName={successData.name}
+            onCreateAnother={() => {
+              setSuccessData(null);
+              window.location.reload();
+            }}
+            onContinue={() => router.push("/qa-workspace/test-suites")}
+          />
+        </div>
+      ) : (
       <div className="ts-create" ref={rootRef}>
         {/* ── Sticky header ─────────────────────────────────────────── */}
         <div ref={stickyRef} className="ts-topbar sticky top-0 z-30">
@@ -1336,6 +1362,13 @@ function CreateTestSuiteContent() {
               </div>
 
               <div className="flex items-center gap-2.5 flex-shrink-0">
+                <QaProjectSwitcher
+                  projects={projectOptions}
+                  value={selectedProjectId}
+                  onChange={chooseProject}
+                  loading={loadingProjects}
+                  placeholder="All projects"
+                />
                 {isDirty && (
                   <span className="ts-dirty hidden sm:inline-flex">
                     <span className="ts-dirty__dot" />Unsaved changes
@@ -1859,6 +1892,7 @@ function CreateTestSuiteContent() {
           </div>
         </div>
       </div>
+      )}
 
       {/* Create with Zai — prompt, preview, then apply to the description */}
       <Modal

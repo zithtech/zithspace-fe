@@ -3,6 +3,7 @@ import { Drawer, Steps, Button, Typography, Space, Progress, Tag, Table } from "
 import { api } from "@/lib/axios";
 import { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
 import SearchableDropdown from "@/components/common/SearchableDropdown";
+import { useProduct } from "@/context/ProductContext";
 
 const { Title, Text } = Typography;
 
@@ -12,6 +13,9 @@ interface Props {
 }
 
 export default function LinearMigrationWizard({ visible, onClose }: Props) {
+  const { manifest } = useProduct();
+  const brandName = manifest?.name || "Zukvo";
+
   const [currentStep, setCurrentStep] = useState(0);
   const [migrating, setMigrating] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -295,7 +299,7 @@ export default function LinearMigrationWizard({ visible, onClose }: Props) {
         return (
           <div style={{ maxWidth: 800, margin: '0 auto' }}>
             <Title level={4}>Map Statuses</Title>
-            <p style={{ marginBottom: 24, color: 'var(--text-secondary)' }}>Map your Linear workflow states to Zukvo statuses.</p>
+            <p style={{ marginBottom: 24, color: 'var(--text-secondary)' }}>Map your Linear workflow states to {brandName} statuses.</p>
             <div style={{ background: 'var(--bg-elevated)', borderRadius: 12, border: '1px solid var(--border-color)', padding: 24, boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)' }}>
               <Space direction="vertical" style={{ width: '100%', maxHeight: 450, overflow: 'auto' }} size="middle">
                 {linearStatuses.map(ls => (
@@ -306,12 +310,12 @@ export default function LinearMigrationWizard({ visible, onClose }: Props) {
                     </div>
                     {(ls.type === 'backlog' || ls.name.toLowerCase() === 'backlog') ? (
                       <div style={{ width: 350, textAlign: 'right', paddingRight: 12 }}>
-                        <Text type="secondary" style={{ fontSize: '13px' }}>These tickets will be automatically added to the Zukvo Backlog.</Text>
+                        <Text type="secondary" style={{ fontSize: '13px' }}>These tickets will be automatically added to the {brandName} Backlog.</Text>
                       </div>
                     ) : (
                       <SearchableDropdown 
                         allowClear
-                        placeholder="Select Zukvo Status"
+                        placeholder={`Select ${brandName} Status`}
                         style={{ width: 300 }}
                         width={300}
                         value={statusMapping[ls.id]}
@@ -329,7 +333,7 @@ export default function LinearMigrationWizard({ visible, onClose }: Props) {
         return (
           <div style={{ maxWidth: 800, margin: '0 auto' }}>
             <Title level={4}>Map Users</Title>
-            <p style={{ marginBottom: 24, color: 'var(--text-secondary)' }}>Map Linear users to Zukvo users to preserve assignees and reporters.</p>
+            <p style={{ marginBottom: 24, color: 'var(--text-secondary)' }}>Map Linear users to {brandName} users to preserve assignees and reporters.</p>
             <div style={{ background: 'var(--bg-elevated)', borderRadius: 12, border: '1px solid var(--border-color)', padding: 24, boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)' }}>
               <Space direction="vertical" style={{ width: '100%', maxHeight: 450, overflow: 'auto' }} size="middle">
                 {linearUsers.map(lu => (
@@ -340,7 +344,7 @@ export default function LinearMigrationWizard({ visible, onClose }: Props) {
                     </div>
                     <SearchableDropdown 
                       allowClear
-                      placeholder="Select Zukvo User"
+                      placeholder={`Select ${brandName} User`}
                       style={{ width: 300 }}
                       width={300}
                       value={userMapping[lu.id]}
@@ -408,7 +412,7 @@ export default function LinearMigrationWizard({ visible, onClose }: Props) {
       {migrating ? (
         <div style={{ textAlign: "center", padding: "100px 0", height: '100%', background: 'var(--bg-base)' }}>
           <Progress type="circle" percent={progress} strokeColor="var(--primary-color)" />
-          <Title level={4} style={{ marginTop: 32, color: 'var(--text-primary)' }}>Importing Linear data into Zukvo...</Title>
+          <Title level={4} style={{ marginTop: 32, color: 'var(--text-primary)' }}>Importing Linear data into {brandName}...</Title>
           <Text type="secondary">This may take a few minutes depending on the volume of tickets.</Text>
         </div>
       ) : (

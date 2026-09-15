@@ -356,6 +356,7 @@ export default function SubDepartmentsPage() {
                 )}
                 {canManageOrg && (
                   <Button
+                    data-tour="org-sub-departments-create-btn"
                     type="primary"
                     icon={<Plus size={15} />}
                     onClick={handleAdd}

@@ -53,7 +53,9 @@ import { SettingsService, DropdownOption, CreateDropdownOptionData, UpdateDropdo
 import { useSocket } from "@/providers/SocketProvider";
 import { usePermission } from "@/hooks/usePermission";
 import { useTheme } from "@/context/ThemeContext";
+import { useTour } from "@/context/TourContext";
 import { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
+import PostCreationSuccessScreen from "@/components/common/PostCreationSuccessScreen";
 
 const { Title, Text } = Typography;
 const { TextArea } = Input;
@@ -64,18 +66,50 @@ interface DropdownManagerProps {
 
 export default function DropdownManager({ onDataChange }: DropdownManagerProps) {
   const { theme } = useTheme();
+  const { run, stepIndex, setStepIndex, currentTourKey } = useTour();
   const [form] = Form.useForm();
   const { message: messageApi } = App.useApp();
   const [loading, setLoading] = useState(false);
   const [dataLoading, setDataLoading] = useState(true);
   const [modalVisible, setModalVisible] = useState(false);
   const [editingOption, setEditingOption] = useState<DropdownOption | null>(null);
+  const [successData, setSuccessData] = useState<{ name: string } | null>(null);
   const [activeTab, setActiveTab] = useState('platform');
   const [searchQuery, setSearchQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState<'all' | 'active' | 'hidden'>('all');
   const { socket, connected } = useSocket();
   const { canCreateTicketSetting, canUpdateTicketSetting, canDeleteTicketSetting } = usePermission();
   const screens = Grid.useBreakpoint();
+
+  const handleTabClick = (key: string) => {
+    setActiveTab(key);
+    if (run && currentTourKey === "testiez-sprints") {
+      if (key === "platform" && stepIndex === 2) setStepIndex(3);
+      else if (key === "stack" && stepIndex === 4) setStepIndex(5);
+      else if (key === "priority" && stepIndex === 6) setStepIndex(7);
+      else if (key === "taskLevel" && stepIndex === 8) setStepIndex(9);
+      else if (key === "taskType" && stepIndex === 10) setStepIndex(11);
+      else if (key === "status" && stepIndex === 12) setStepIndex(13);
+    }
+  };
+
+  // Auto-switch tabs when Tickets Tour is running
+  useEffect(() => {
+    if (!run || currentTourKey !== "testiez-sprints") return;
+    if (stepIndex === 2 || stepIndex === 3) {
+      setActiveTab("platform");
+    } else if (stepIndex === 4 || stepIndex === 5) {
+      setActiveTab("stack");
+    } else if (stepIndex === 6 || stepIndex === 7) {
+      setActiveTab("priority");
+    } else if (stepIndex === 8 || stepIndex === 9) {
+      setActiveTab("taskLevel");
+    } else if (stepIndex === 10 || stepIndex === 11) {
+      setActiveTab("taskType");
+    } else if (stepIndex === 12 || stepIndex === 13) {
+      setActiveTab("status");
+    }
+  }, [run, currentTourKey, stepIndex]);
 
   // State for dropdown options grouped by type
   const [dropdownOptions, setDropdownOptions] = useState<Record<string, DropdownOption[]>>({});
@@ -136,6 +170,7 @@ export default function DropdownManager({ onDataChange }: DropdownManagerProps) 
       return;
     }
     setEditingOption(null);
+    setSuccessData(null);
     form.resetFields();
     form.setFieldsValue({ type: activeTab, isActive: true, order: getNextOrder(activeTab) });
     setModalVisible(true);
@@ -147,6 +182,7 @@ export default function DropdownManager({ onDataChange }: DropdownManagerProps) 
       return;
     }
     setEditingOption(option);
+    setSuccessData(null);
     form.setFieldsValue({
       ...option,
       color: option.color || undefined
@@ -295,12 +331,13 @@ export default function DropdownManager({ onDataChange }: DropdownManagerProps) 
       if (editingOption) {
         await SettingsService.updateDropdownOption(editingOption.id, data);
         messageApi.success('Configuration updated');
+        setModalVisible(false);
       } else {
         await SettingsService.createDropdownOption(data as CreateDropdownOptionData);
         messageApi.success('New configuration added');
+        setSuccessData({ name: values.label });
       }
 
-      setModalVisible(false);
       await loadDropdownOptions();
       onDataChange?.();
     } catch (error) {
@@ -504,14 +541,20 @@ export default function DropdownManager({ onDataChange }: DropdownManagerProps) 
     <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
       <Tabs
         activeKey={activeTab}
-        onChange={setActiveTab}
+        onChange={handleTabClick}
+        onTabClick={handleTabClick}
         tabPosition={!screens.lg ? 'top' : 'left'}
         className="manager-tabs"
         style={{ flex: 1, height: '100%' }}
         items={dropdownTypes.map(type => ({
           key: type.key,
           label: (
-            <div className="tab-label-container dm-tab-item">
+            <div
+              className="tab-label-container dm-tab-item"
+              data-tour={`tickets-setting-${type.key}`}
+              onClick={() => handleTabClick(type.key)}
+              style={{ cursor: 'pointer' }}
+            >
               <div className={`tab-icon-box ${activeTab === type.key ? 'active' : ''}`} style={{ color: type.color }}>
                 {type.icon}
               </div>
@@ -639,6 +682,7 @@ export default function DropdownManager({ onDataChange }: DropdownManagerProps) 
                         )}
                         {canCreateTicketSetting && (
                           <Button
+                            data-tour={`tickets-setting-create-${type.key}-btn`}
                             type="primary"
                             icon={<PlusOutlined />}
                             onClick={handleCreate}
@@ -648,7 +692,13 @@ export default function DropdownManager({ onDataChange }: DropdownManagerProps) 
                               boxShadow: "none",
                             }}
                           >
-                            New Definition
+                            {type.key === 'platform' ? 'New Platform' :
+                             type.key === 'stack' ? 'New Stack' :
+                             type.key === 'priority' ? 'New Priority' :
+                             type.key === 'taskLevel' ? 'New Complexity' :
+                             type.key === 'taskType' ? 'New Work Type' :
+                             type.key === 'status' ? 'New Lifecycle' :
+                             `New ${type.label}`}
                           </Button>
                         )}
                       </Space>
@@ -763,13 +813,13 @@ export default function DropdownManager({ onDataChange }: DropdownManagerProps) 
 
       <Drawer
         open={modalVisible}
-        onClose={() => setModalVisible(false)}
+        onClose={() => { setModalVisible(false); setSuccessData(null); }}
         width={680}
         placement="right"
         destroyOnHidden
         maskClosable={!loading}
         title={
-          (() => {
+          successData ? "Configuration Created" : (() => {
             const drawerType =
               dropdownTypes.find(t => t.key === (editingOption?.type || activeTab)) ||
               dropdownTypes[0];
@@ -805,29 +855,46 @@ export default function DropdownManager({ onDataChange }: DropdownManagerProps) 
           mask: { backdropFilter: 'blur(4px)', background: 'rgba(15, 23, 42, 0.1)' }
         }}
         extra={
-          <Space size={8}>
-            <Button onClick={() => setModalVisible(false)} style={{ borderRadius: 8, fontWeight: 600, fontSize: 12, height: 32 }}>Discard</Button>
-            <Button
-              type="primary"
-              loading={loading}
-              onClick={() => form.submit()}
-              icon={editingOption ? <EditOutlined style={{ fontSize: 13 }} /> : <PlusOutlined style={{ fontSize: 13 }} />}
-              style={{
-                borderRadius: 8,
-                fontSize: 12,
-                fontWeight: 700,
-                background: '#2563eb',
-                border: 'none',
-                height: 32,
-                boxShadow: '0 4px 12px rgba(37, 99, 235, 0.15)'
-              }}
-            >
-              {editingOption ? 'Update Definition' : 'Deploy Definition'}
-            </Button>
-          </Space>
+          !successData && (
+            <Space size={8}>
+              <Button onClick={() => { setModalVisible(false); setSuccessData(null); }} style={{ borderRadius: 8, fontWeight: 600, fontSize: 12, height: 32 }}>Discard</Button>
+              <Button
+                type="primary"
+                loading={loading}
+                onClick={() => form.submit()}
+                icon={editingOption ? <EditOutlined style={{ fontSize: 13 }} /> : <PlusOutlined style={{ fontSize: 13 }} />}
+                style={{
+                  borderRadius: 8,
+                  fontSize: 12,
+                  fontWeight: 700,
+                  background: '#2563eb',
+                  border: 'none',
+                  height: 32,
+                  boxShadow: '0 4px 12px rgba(37, 99, 235, 0.15)'
+                }}
+              >
+                {editingOption ? 'Update Definition' : 'Deploy Definition'}
+              </Button>
+            </Space>
+          )
         }
       >
         <div style={{ position: 'relative', height: '100%' }}>
+          {successData ? (
+            <PostCreationSuccessScreen
+              itemName={successData.name}
+              itemType={dropdownTypes.find(t => t.key === activeTab)?.label.slice(0, -1) || "Configuration Option"}
+              onCreateAnother={() => {
+                form.resetFields();
+                form.setFieldsValue({ type: activeTab, isActive: true, order: getNextOrder(activeTab) });
+                setSuccessData(null);
+              }}
+              onContinue={() => {
+                setSuccessData(null);
+                setModalVisible(false);
+              }}
+            />
+          ) : (
           <ConfigProvider
             theme={{
               token: {
@@ -953,6 +1020,7 @@ export default function DropdownManager({ onDataChange }: DropdownManagerProps) 
               </SectionCard>
             </Form>
           </ConfigProvider>
+          )}
         </div>
       </Drawer>
       <style jsx global>{`

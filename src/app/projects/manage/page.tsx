@@ -708,6 +708,7 @@ const ProjectsManageContent: React.FC = () => {
           placement="bottomRight"
         >
           <Button
+            data-tour="project-row-actions"
             type="text"
             icon={<MoreHorizontal size={16} style={{ color: "#94a3b8" }} />}
             style={{ padding: '4px', height: 'auto', minWidth: 'auto' }}
@@ -880,6 +881,7 @@ const ProjectsManageContent: React.FC = () => {
                       styles={{ body: { padding: 0 } }}
                     >
                       <Button
+                        data-tour="project-filters-btn"
                         icon={<FilterOutlined />}
                         className={activeFilterCount > 0 ? 'saas-tag-blue' : ''}
                         style={{ height: 30, fontWeight: 600, fontSize: 12 }}
@@ -941,6 +943,7 @@ const ProjectsManageContent: React.FC = () => {
 
                   {canCreateProject && (
                     <Button
+                      data-tour="project-create-btn"
                       type="primary"
                       icon={<PlusOutlined />}
                       onClick={handleAdd}
@@ -1165,6 +1168,7 @@ const ProjectsManageContent: React.FC = () => {
                                       placement="bottomRight"
                                     >
                                       <Button
+                                        data-tour="project-row-actions"
                                         type="text"
                                         size="small"
                                         icon={<MoreHorizontal size={15} style={{ color: "#94a3b8" }} />}

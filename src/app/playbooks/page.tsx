@@ -29,10 +29,12 @@ import {
   Layers,
   ListOrdered,
   Lock,
+  Menu,
   Plus,
   Search,
   Sparkles,
   Trash2,
+  X,
 } from "lucide-react";
 
 import MainLayout from "@/components/layout/MainLayout";
@@ -109,34 +111,41 @@ export default function PlaybooksPage() {
   const [search, setSearch] = useState("");
   const [browseBy, setBrowseBy] = useState<BrowseBy>("collections");
   const [category, setCategory] = useState<string>(ALL_GROUP);
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
 
-  const hasRequestPlaybookFeature =
-    !user?.subscriptionFeatures ||
-    user.subscriptionFeatures.includes("work_playbooks_requested_playbooks_request_playbook") ||
-    user.subscriptionFeatures.includes("work_playbooks_qa_playbooks_request_playbook");
-  const hasRequestedFeature =
-    !user?.subscriptionFeatures ||
-    user.subscriptionFeatures.includes("work_playbooks_requested_playbooks_requested") ||
-    user.subscriptionFeatures.includes("work_playbooks_qa_playbooks_requested") ||
-    user.subscriptionFeatures.includes("work_playbooks_requested_playbooks");
+  const hasRequestPlaybookFeature = Boolean(
+    user?.subscriptionFeatures &&
+    (user.subscriptionFeatures.includes("work_playbooks_requested_playbooks_request_playbook") ||
+     user.subscriptionFeatures.includes("work_playbooks_qa_playbooks_request_playbook"))
+  );
+  const hasRequestedFeature = Boolean(
+    user?.subscriptionFeatures &&
+    (user.subscriptionFeatures.includes("work_playbooks_requested_playbooks_requested") ||
+     user.subscriptionFeatures.includes("work_playbooks_qa_playbooks_requested") ||
+     user.subscriptionFeatures.includes("work_playbooks_requested_playbooks"))
+  );
 
-  const hasTemplateFeature =
-    !user?.subscriptionFeatures ||
-    user.subscriptionFeatures.includes("work_playbooks_qa_playbooks_template");
-  const hasUploadFeature =
-    !user?.subscriptionFeatures ||
-    user.subscriptionFeatures.includes("work_playbooks_qa_playbooks_upload");
-  const hasAccessFeature =
-    !user?.subscriptionFeatures ||
-    user.subscriptionFeatures.includes("work_playbooks_qa_playbooks_access");
-  const hasNewCollectionFeature =
-    !user?.subscriptionFeatures ||
-    user.subscriptionFeatures.includes("work_playbooks_collections_new_collections") ||
-    user.subscriptionFeatures.includes("work_playbooks_qa_playbooks_new_collections");
-  const hasNewPlaybookFeature =
-    !user?.subscriptionFeatures ||
-    user.subscriptionFeatures.includes("work_playbooks_qa_playbooks_new_playbook");
-  const hasTrashFeature = useSubscriptionFeature("work_playbooks_playbook_trash");
+  const hasTemplateFeature = Boolean(
+    user?.subscriptionFeatures &&
+    user.subscriptionFeatures.includes("work_playbooks_qa_playbooks_template")
+  );
+  const hasUploadFeature = Boolean(
+    user?.subscriptionFeatures &&
+    user.subscriptionFeatures.includes("work_playbooks_qa_playbooks_upload")
+  );
+  const hasAccessFeature = Boolean(
+    user?.subscriptionFeatures &&
+    user.subscriptionFeatures.includes("work_playbooks_qa_playbooks_access")
+  );
+  const hasNewCollectionFeature = Boolean(
+    user?.subscriptionFeatures &&
+    (user.subscriptionFeatures.includes("work_playbooks_collections_new_collections") ||
+     user.subscriptionFeatures.includes("work_playbooks_qa_playbooks_new_collections"))
+  );
+  const hasNewPlaybookFeature = Boolean(
+    user?.subscriptionFeatures &&
+    user.subscriptionFeatures.includes("work_playbooks_qa_playbooks_new_playbook")
+  );
   /**
    * The second step INSIDE a collection.
    *
@@ -538,6 +547,13 @@ export default function PlaybooksPage() {
       <div className="dh-shell">
         <main className="dh-main">
           <div className="pb-hero">
+            <Button
+              className="dh-mobile-menu-btn"
+              type="text"
+              icon={<Menu size={18} />}
+              onClick={() => setMobileSidebarOpen(true)}
+              aria-label="Open sidebar"
+            />
             <span className="pb-hero__badge">
               <BookOpen size={18} />
             </span>
@@ -620,7 +636,7 @@ export default function PlaybooksPage() {
 
             {((hasRequestPlaybookFeature && canRequestPlaybook) ||
               (hasRequestedFeature && canReadPlaybook) ||
-              (hasTrashFeature && canReadPlaybookTrash)) && (
+              canReadPlaybookTrash) && (
               <div className="pb-toolbar__actions">
                 {hasRequestPlaybookFeature && canRequestPlaybook && (
                   <Tooltip title="Nothing in the library for the feature you are testing? Ask for it.">
@@ -644,7 +660,7 @@ export default function PlaybooksPage() {
                   </Button>
                 )}
 
-                {hasTrashFeature && canReadPlaybookTrash && (
+                {canReadPlaybookTrash && (
                   <Tooltip title="View and restore deleted playbooks, collections, and categories">
                     <Button
                       className="pb-btn"
@@ -808,10 +824,26 @@ export default function PlaybooksPage() {
             </div>
           ) : (
             <div className="pb-reader">
+              <div
+                className={`dh-sidebar-backdrop ${mobileSidebarOpen ? "is-open" : ""}`}
+                onClick={() => setMobileSidebarOpen(false)}
+                aria-hidden
+              />
               <nav
-                className="pb-nav"
+                className={`pb-nav ${mobileSidebarOpen ? "is-mobile-open" : ""}`}
                 aria-label={browseBy === "collections" ? "Collections" : "Playbook categories"}
               >
+                <div className="pb-nav__mobile-head">
+                  <span className="pb-nav__mobile-title">{browseBy === "collections" ? "Collections" : "Categories"}</span>
+                  <button
+                    type="button"
+                    className="pb-nav__mobile-close"
+                    onClick={() => setMobileSidebarOpen(false)}
+                    aria-label="Close sidebar"
+                  >
+                    <X size={16} />
+                  </button>
+                </div>
                 {groups
                   .filter((g) => g.kind === "lead")
                   .map((group) => (
@@ -819,7 +851,10 @@ export default function PlaybooksPage() {
                       key={group.key}
                       type="button"
                       className={`pb-nav__link ${group.key === activeGroup.key ? "is-on" : ""}`}
-                      onClick={() => setCategory(group.key)}
+                      onClick={() => {
+                        setCategory(group.key);
+                        setMobileSidebarOpen(false);
+                      }}
                     >
                       <span className="pb-nav__label">{group.label}</span>
                       <span className="pb-nav__count">{group.items.length}</span>
@@ -842,7 +877,10 @@ export default function PlaybooksPage() {
                         className={`pb-nav__link is-sub ${
                           group.key === activeGroup.key ? "is-on" : ""
                         }`}
-                        onClick={() => setCategory(group.key)}
+                        onClick={() => {
+                          setCategory(group.key);
+                          setMobileSidebarOpen(false);
+                        }}
                       >
                         <span className="pb-nav__label">{group.label}</span>
                         <span className="pb-nav__count">{group.items.length}</span>
@@ -1000,7 +1038,7 @@ export default function PlaybooksPage() {
                         /* mutateAsync, so the confirmation card keeps spinning
                            until the row is actually gone. */
                         onDelete={
-                          canManage(playbook) && hasTrashFeature
+                          canManage(playbook) && canDeletePlaybook
                             ? () => remove.mutateAsync(playbook.id).catch(() => {})
                             : undefined
                         }

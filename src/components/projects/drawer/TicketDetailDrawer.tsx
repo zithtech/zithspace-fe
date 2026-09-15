@@ -695,10 +695,10 @@ export const TicketDetailDrawer: React.FC<TicketDetailDrawerProps> = ({
                   placement="bottomRight"
                 >
                   <Button
+                    data-tour="tickets-drawer-add-sprint"
                     type="default"
                     size="middle"
                     icon={<PlusCircleOutlined style={{ color: "#52c41a" }} />}
-                    onClick={(e) => e.stopPropagation()}
                     style={{
                       height: 32,
                       borderRadius: 6,
@@ -724,11 +724,11 @@ export const TicketDetailDrawer: React.FC<TicketDetailDrawerProps> = ({
                   placement="bottomRight"
                 >
                   <Button
+                    data-tour="tickets-drawer-remove-sprint"
                     danger
                     type="default"
                     size="middle"
                     icon={<MinusCircleOutlined />}
-                    onClick={(e) => e.stopPropagation()}
                     style={{
                       height: 32,
                       borderRadius: 6,
@@ -855,6 +855,7 @@ export const TicketDetailDrawer: React.FC<TicketDetailDrawerProps> = ({
                 }}
               >
                 <Button
+                  data-tour="tickets-drawer-create-doc"
                   size="middle"
                   icon={<FileTextOutlined />}
                   style={{
@@ -876,6 +877,7 @@ export const TicketDetailDrawer: React.FC<TicketDetailDrawerProps> = ({
 
               <Tooltip title="Copy Public Link">
                 <Button
+                  data-tour="tickets-drawer-share"
                   type="text"
                   icon={<ShareAltOutlined style={{ fontSize: 16, color: '#8c8c8c' }} />}
                   onClick={() => {
@@ -891,6 +893,7 @@ export const TicketDetailDrawer: React.FC<TicketDetailDrawerProps> = ({
               </Tooltip>
               <Divider type="vertical" style={{ margin: '0 4px', height: 20 }} />
               <Button
+                data-tour="tickets-drawer-close"
                 type="text"
                 icon={<CloseOutlined style={{ fontSize: 16, color: '#8c8c8c' }} />}
                 onClick={onClose}
@@ -902,6 +905,7 @@ export const TicketDetailDrawer: React.FC<TicketDetailDrawerProps> = ({
         placement="right"
         onClose={onClose}
         open={open}
+        maskClosable={false}
         width={1100} // Increased slightly for better column balance and header single-row fitting
         styles={{
           header: { padding: '12px 20px', borderBottom: '1px solid var(--border-color)', backgroundColor: 'var(--bg-pure-white)' },
@@ -912,7 +916,7 @@ export const TicketDetailDrawer: React.FC<TicketDetailDrawerProps> = ({
         {!ticket ? (
           <div style={{ padding: 40, textAlign: "center", background: "var(--bg-pure-white)" }}><Text>Loading</Text></div>
         ) : (
-          <Row style={{ height: '100%', backgroundColor: 'var(--bg-pure-white)' }}>
+          <Row data-tour="tickets-drawer-details" style={{ height: '100%', backgroundColor: 'var(--bg-pure-white)' }}>
             {/* LEFT COLUMN: Main Content (Title, Description, Activity) */}
             <Col
               xs={24}

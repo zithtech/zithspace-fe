@@ -20,6 +20,8 @@ import ConfirmDialog from "@/components/common/ConfirmDialog";
 import EntityCard from "@/components/common/EntityCard";
 import { commonDrawerProps, SectionCard, drawerFormStyles as formStyles } from "@/components/common/DrawerSection";
 import { MembersService } from "@/services/membersService";
+import PostCreationSuccessScreen from "@/components/common/PostCreationSuccessScreen";
+import { ProjectService } from "@/services/projectService";
 import { SearchableDropdown } from "@/components/common/SearchableDropdown";
 import { NO_MODULES_STYLES, NoModulesEmpty, MODULES_SETTINGS_HREF } from "@/components/qa/ModuleSettingsSection";
 import { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
@@ -79,8 +81,8 @@ export default function TestCasesPage() {
   const [suitesModalVisible, setSuitesModalVisible] = useState(false);
   const [selectedCaseForSuites, setSelectedCaseForSuites] = useState<any>(null);
 
-  // Drawer State for Create/Edit Parent Case
   const [drawerVisible, setDrawerVisible] = useState(false);
+  const [successData, setSuccessData] = useState<{ name: string; id?: string } | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingRecord, setEditingRecord] = useState<any>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -437,11 +439,12 @@ export default function TestCasesPage() {
       if (editingId) {
         await axios.put(`/api/v2/qa/parents/${editingId}`, formData);
         message.success("Test Case updated successfully!");
+        setDrawerVisible(false);
       } else {
-        await axios.post(`/api/v2/qa/parents`, formData);
-        message.success("Test Case created successfully!");
+        const res: any = await axios.post(`/api/v2/qa/parents`, formData);
+        const createdId = res?.data?.data?.id || res?.data?.id;
+        setSuccessData({ name: formData.title.trim(), id: createdId });
       }
-      setDrawerVisible(false);
       fetchData();
     } catch (err: any) {
       message.error(err?.response?.data?.error || "Failed to save Test Case");
@@ -967,6 +970,7 @@ export default function TestCasesPage() {
                     icon={<PlusOutlined />}
                     onClick={handleOpenCreateModal}
                     style={{ height: 36, borderRadius: 8, fontWeight: 700 }}
+                    data-tour="test-cases"
                   >
                     Create Test Case
                   </Button>
@@ -1207,7 +1211,10 @@ export default function TestCasesPage() {
       <Drawer
         {...commonDrawerProps}
         open={drawerVisible}
-        onClose={() => setDrawerVisible(false)}
+        onClose={() => {
+          setDrawerVisible(false);
+          setSuccessData(null);
+        }}
         maskClosable={!submitting}
       >
         <style>{formStyles}</style>
@@ -1273,12 +1280,41 @@ export default function TestCasesPage() {
             />
           </div>
 
-          {/* Drawer Body */}
-          <div style={{ padding: "20px 24px", flex: 1, overflowY: "auto" }}>
-            <Form
-              layout="vertical"
-              className="customer-drawer-form"
-            >
+          {/* Drawer Body & Footer */}
+          {successData ? (
+            <div style={{ padding: "20px 24px", flex: 1, display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <PostCreationSuccessScreen
+                itemType="Test Case"
+                itemName={successData.name}
+                onCreateAnother={() => {
+                  setSuccessData(null);
+                  setFormData({
+                    title: "",
+                    module_id: undefined,
+                    project_id: selectedProjectId || undefined,
+                    feature: "",
+                    automation: "Manual",
+                    status: "Draft",
+                    owner: undefined
+                  });
+                }}
+                onContinue={() => {
+                  setDrawerVisible(false);
+                  const nextId = successData?.id;
+                  setSuccessData(null);
+                  if (nextId) {
+                    router.push(`/qa-workspace/test-cases/${nextId}`);
+                  }
+                }}
+              />
+            </div>
+          ) : (
+            <>
+              <div style={{ padding: "20px 24px", flex: 1, overflowY: "auto" }}>
+                <Form
+                  layout="vertical"
+                  className="customer-drawer-form"
+                >
               {/* STEP 1: Scenario Information */}
               <SectionCard
                 step="STEP 1"
@@ -1520,6 +1556,8 @@ export default function TestCasesPage() {
               </Button>
             </div>
           </div>
+          </>
+          )}
         </div>
       </Drawer>
 

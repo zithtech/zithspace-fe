@@ -1264,7 +1264,7 @@ export default function BugListPage() {
 
 
         {viewMode === "list" && selectedSheetId && (scope === "all" || scope === "mine") && (
-          <div className="hb-quickadd">
+          <div className="hb-quickadd" data-tour="bug-quick-add">
             <Plus size={14} />
             <input
               value={quickTitle}
@@ -1352,6 +1352,7 @@ export default function BugListPage() {
                     }
                   />
                   <button
+                    data-tour="bug-list-ticket"
                     className="hb-btn hb-btn-primary"
                     onClick={() => setCreationTargetOpen(true)}
                   >

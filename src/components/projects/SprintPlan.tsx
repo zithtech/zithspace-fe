@@ -4,6 +4,7 @@ import ZukvoLoader from "@/components/common/ZukvoLoader";
 
 
 import { SectionCard, drawerFormStyles } from "@/components/common/DrawerSection";
+import PostCreationSuccessScreen from "@/components/common/PostCreationSuccessScreen";
 import React, { useState, useEffect, useCallback, useMemo } from "react";
 import {
   Typography,
@@ -121,6 +122,7 @@ export default function SprintPlanComponent() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [createdSuccessData, setCreatedSuccessData] = useState<{ name: string } | null>(null);
   const [editingPlan, setEditingPlan] = useState<ReleasePlan | null>(null);
   const [projects, setProjects] = useState<
     Array<{ value: string; label: string; code: string }>
@@ -447,12 +449,13 @@ export default function SprintPlanComponent() {
       if (editingPlan) {
         await ReleasePlanService.updateReleasePlan(editingPlan.id, formData);
         message.success(`Sprint Plan "${values.name}" updated successfully`);
+        handleCloseModal();
       } else {
         await ReleasePlanService.createReleasePlan(formData);
         message.success(`Sprint Plan "${values.name}" created successfully`);
+        setCreatedSuccessData({ name: values.name });
       }
 
-      handleCloseModal();
       loadData();
       loadTableData();
     } catch (error: any) {
@@ -564,6 +567,7 @@ export default function SprintPlanComponent() {
       setSearchTimer(null);
     }
     setShowCreateModal(false);
+    setCreatedSuccessData(null);
     setEditingPlan(null);
     setSelectedProject("");
     setTicketSearch("");
@@ -907,7 +911,7 @@ export default function SprintPlanComponent() {
       <div className="sp-shell-wrap">
         <div className="sp-shell">
           {/* ── Main Content ─────────────────────────────────────── */}
-          <main className="sp-main">
+          <main className="sp-main" data-tour="tickets-sprint-plan">
             {/* ── Header row — search, filters, view controls ─────── */}
             <div className="saas-header-container sc-header">
               <QaProjectSwitcher
@@ -1028,6 +1032,7 @@ export default function SprintPlanComponent() {
 
                 {canCreateTicketPlan && (
                   <Button
+                    data-tour="tickets-create-sprint"
                     type="primary"
                     icon={<PlusOutlined />}
                     onClick={() => setShowCreateModal(true)}
@@ -1856,6 +1861,7 @@ export default function SprintPlanComponent() {
                                 >
                                   <Tooltip title="Start Sprint">
                                     <Button
+                                      data-tour="tickets-activate-sprint"
                                       type="text"
                                       size="small"
                                       icon={<RocketOutlined style={{ fontSize: 14, color: '#3b82f6' }} />}
@@ -1869,6 +1875,7 @@ export default function SprintPlanComponent() {
                               {record.status === 'active' && canUpdateTicketPlan && (
                                 <Tooltip title="Complete sprint">
                                   <Button
+                                    data-tour="tickets-complete-sprint"
                                     type="text"
                                     size="small"
                                     icon={<CheckCircleOutlined style={{ fontSize: 14, color: '#10b981' }} />}
@@ -2079,12 +2086,27 @@ export default function SprintPlanComponent() {
                                     onConfirm={() => handleStartSprint(record)}
                                   >
                                     <Tooltip title="Start Sprint">
-                                      <Button type="text" size="small" icon={<RocketOutlined style={{ fontSize: 13, color: '#10b981' }} />} className="sp-plist-action-btn" />
+                                      <Button
+                                        data-tour="tickets-activate-sprint"
+                                        type="text"
+                                        size="small"
+                                        icon={<RocketOutlined style={{ fontSize: 13, color: '#10b981' }} />}
+                                        className="sp-plist-action-btn"
+                                      />
                                     </Tooltip>
                                   </ConfirmDialog>
                                 ),
                                 record.status === 'active' && canUpdateTicketPlan && (
-                                  <Tooltip key="complete" title="Complete sprint"><Button type="text" size="small" icon={<CheckCircleOutlined style={{ fontSize: 13, color: '#3b82f6' }} />} onClick={() => handleCompleteSprint(record)} className="sp-plist-action-btn" /></Tooltip>
+                                  <Tooltip key="complete" title="Complete sprint">
+                                    <Button
+                                      data-tour="tickets-complete-sprint"
+                                      type="text"
+                                      size="small"
+                                      icon={<CheckCircleOutlined style={{ fontSize: 13, color: '#3b82f6' }} />}
+                                      onClick={() => handleCompleteSprint(record)}
+                                      className="sp-plist-action-btn"
+                                    />
+                                  </Tooltip>
                                 ),
                                 <Tooltip key="view" title="View details"><Button type="text" size="small" icon={<EyeOutlined style={{ fontSize: 12, color: '#3b82f6' }} />} onClick={() => handleViewTickets(record)} className="sp-plist-action-btn" /></Tooltip>,
                                 (record.status === 'active' || record.status === 'completed') && (
@@ -2214,19 +2236,21 @@ export default function SprintPlanComponent() {
         {/* Create/Edit Drawer */}
         <Drawer
           title={
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-              <div className="sp-drawer-icon-box">
-                <RocketOutlined style={{ color: '#0369a1', fontSize: 20 }} />
+            createdSuccessData ? "Sprint Plan Created" : (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <div className="sp-drawer-icon-box">
+                  <RocketOutlined style={{ color: '#0369a1', fontSize: 20 }} />
+                </div>
+                <div>
+                  <Title level={4} style={{ margin: 0, fontWeight: 800, letterSpacing: '-0.01em' }}>
+                    {editingPlan ? "Refine Sprint Parameters" : "Initiate New Sprint"}
+                  </Title>
+                  <Text style={{ fontSize: 11, fontWeight: 500, color: 'var(--text-slate-600)' }}>
+                    Configure the Plan
+                  </Text>
+                </div>
               </div>
-              <div>
-                <Title level={4} style={{ margin: 0, fontWeight: 800, letterSpacing: '-0.01em' }}>
-                  {editingPlan ? "Refine Sprint Parameters" : "Initiate New Sprint"}
-                </Title>
-                <Text style={{ fontSize: 11, fontWeight: 500, color: 'var(--text-slate-600)' }}>
-                  Configure the Plan
-                </Text>
-              </div>
-            </div>
+            )
           }
           open={showCreateModal}
           onClose={handleCloseModal}
@@ -2234,17 +2258,19 @@ export default function SprintPlanComponent() {
           maskClosable={true}
           destroyOnClose
           extra={
-            <Space size="middle">
-              <Button onClick={handleCloseModal} style={{ borderRadius: 0, fontWeight: 600 }}>Cancel</Button>
-              <Button
-                type="primary"
-                loading={saving}
-                onClick={handleCreateOrUpdate}
-                style={{ fontWeight: 700, borderRadius: 0, background: '#2563eb', boxShadow: '0 4px 12px rgba(37, 99, 235, 0.2)' }}
-              >
-                {editingPlan ? "Update Sprint" : "Kick-off Sprint"}
-              </Button>
-            </Space>
+            !createdSuccessData && (
+              <Space size="middle">
+                <Button onClick={handleCloseModal} style={{ borderRadius: 0, fontWeight: 600 }}>Cancel</Button>
+                <Button
+                  type="primary"
+                  loading={saving}
+                  onClick={handleCreateOrUpdate}
+                  style={{ fontWeight: 700, borderRadius: 0, background: '#2563eb', boxShadow: '0 4px 12px rgba(37, 99, 235, 0.2)' }}
+                >
+                  {editingPlan ? "Update Sprint" : "Kick-off Sprint"}
+                </Button>
+              </Space>
+            )
           }
           styles={{
             header: { borderBottom: '1px solid var(--border-slate-200)', padding: '20px 24px', background: 'var(--bg-pure-white)' },
@@ -2252,9 +2278,24 @@ export default function SprintPlanComponent() {
             mask: { backdropFilter: 'blur(4px)', background: 'rgba(15, 23, 42, 0.1)' }
           }}
         >
-          <style>{drawerFormStyles}</style>
-          <Form form={form} layout="horizontal" labelCol={{ span: 8 }} wrapperCol={{ span: 16 }} labelAlign="left" colon={false} requiredMark={false} className="lead-drawer-form customer-drawer-form">
-            <ConfigProvider
+          {createdSuccessData ? (
+            <PostCreationSuccessScreen
+              itemName={createdSuccessData.name}
+              itemType="Sprint"
+              onCreateAnother={() => {
+                form.resetFields();
+                setCreatedSuccessData(null);
+              }}
+              onContinue={() => {
+                setCreatedSuccessData(null);
+                handleCloseModal();
+              }}
+            />
+          ) : (
+            <>
+              <style>{drawerFormStyles}</style>
+              <Form form={form} layout="horizontal" labelCol={{ span: 8 }} wrapperCol={{ span: 16 }} labelAlign="left" colon={false} requiredMark={false} className="lead-drawer-form customer-drawer-form">
+                <ConfigProvider
               theme={{
                 algorithm: theme === "dark" ? antdTheme.darkAlgorithm : antdTheme.defaultAlgorithm,
                 token: {
@@ -2370,7 +2411,9 @@ export default function SprintPlanComponent() {
             </ConfigProvider>
             <Form.Item name="deadline" hidden><Input /></Form.Item>
           </Form>
-        </Drawer>
+        </>
+      )}
+    </Drawer>
 
         {/* Ticket Details Drawer */}
         <Drawer
@@ -2471,7 +2514,12 @@ export default function SprintPlanComponent() {
                   placement="bottomRight"
                   onConfirm={async () => { await handleStartSprint(drawerSprintPlan); setDrawerVisible(false); }}
                 >
-                  <Button type="primary" style={{ background: '#10b981', borderColor: '#10b981' }} icon={<RocketOutlined />}>
+                  <Button
+                    data-tour="tickets-activate-sprint"
+                    type="primary"
+                    style={{ background: '#10b981', borderColor: '#10b981' }}
+                    icon={<RocketOutlined />}
+                  >
                     Start Sprint
                   </Button>
                 </ConfirmDialog>
@@ -2490,6 +2538,7 @@ export default function SprintPlanComponent() {
               )}
               {drawerSprintPlan?.status === 'active' && (
                 <Button
+                  data-tour="tickets-complete-sprint"
                   type="primary"
                   icon={<CheckCircleOutlined />}
                   onClick={() => {

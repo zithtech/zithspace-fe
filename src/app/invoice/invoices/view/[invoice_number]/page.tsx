@@ -93,8 +93,8 @@ function numberToWords(num: number): string {
 // Helper function to safely format currency
 const formatCurrency = (value: any, symbol: string): string => {
   const num = Number(value);
-  if (isNaN(num)) return `${symbol} 0.00`;
-  return `${symbol} ${num.toFixed(2)}`;
+  if (isNaN(num)) return `${symbol}\u00A00.00`;
+  return `${symbol}\u00A0${num.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 };
 
 export default function ViewInvoicePage() {
@@ -207,15 +207,15 @@ export default function ViewInvoicePage() {
 
   const columnDefinitions: Record<string, any> = {
     itemName: {
-      title: columnLabels.itemName || "Item",
+      title: <span style={{ whiteSpace: 'nowrap' }}>{columnLabels.itemName || "Item"}</span>,
       dataIndex: "itemName",
       key: "itemName",
       render: (text: string, record: any) => (
-        <div>
+        <div style={{ wordBreak: 'break-word', overflowWrap: 'break-word' }}>
           <Text strong>{text || record.item}</Text>
           {record.description && (
             <div>
-              <Text type="secondary" style={{ fontSize: "12px" }}>
+              <Text type="secondary" style={{ fontSize: "12px", whiteSpace: 'pre-wrap', wordBreak: 'break-word', overflowWrap: 'break-word' }}>
                 {record.description}
               </Text>
             </div>
@@ -224,37 +224,37 @@ export default function ViewInvoicePage() {
       ),
     },
     projectId: {
-      title: columnLabels.projectId || "Project",
+      title: <span style={{ whiteSpace: 'nowrap' }}>{columnLabels.projectId || "Project"}</span>,
       dataIndex: "projectId",
       key: "projectId",
       render: (val: any, record: any) => {
         // Prioritize record.projectName, then extraFields.projectName, then val.label, then val itself
         const projectName = record.projectName || record.extraFields?.projectName || val?.label || (typeof val === 'string' ? val : null);
-        return projectName ? <Tag color="blue">{projectName.replace(/_/g, ' ').toUpperCase()}</Tag> : "-";
+        return projectName ? <span style={{ whiteSpace: 'nowrap' }}><Tag color="blue">{projectName.replace(/_/g, ' ').toUpperCase()}</Tag></span> : <span style={{ whiteSpace: 'nowrap' }}>-</span>;
       }
     },
     quantity: {
-      title: columnLabels.quantity || "Qty",
+      title: <span style={{ whiteSpace: 'nowrap' }}>{columnLabels.quantity || "Qty"}</span>,
       dataIndex: "quantity",
       key: "quantity",
       align: "center" as const,
-      render: (val: any, record: any) => val || record.qty
+      render: (val: any, record: any) => <span style={{ whiteSpace: 'nowrap' }}>{val || record.qty || 0}</span>
     },
     rate: {
-      title: columnLabels.rate || "Price",
+      title: <span style={{ whiteSpace: 'nowrap' }}>{columnLabels.rate || "Price"}</span>,
       dataIndex: "rate",
       key: "rate",
       align: "right" as const,
-      render: (value: number, record: any) => formatCurrency(value || record.price, currencySymbol),
+      render: (value: number, record: any) => <span style={{ whiteSpace: 'nowrap' }}>{formatCurrency(value || record.price, currencySymbol)}</span>,
     },
     taxRate: {
-      title: columnLabels.taxRate || "Tax %",
+      title: <span style={{ whiteSpace: 'nowrap' }}>{columnLabels.taxRate || "Tax %"}</span>,
       dataIndex: "taxRate",
       key: "taxRate",
       align: "center" as const,
       render: (val: any, record: any) => {
         const rate = Number(val || record.tax || 0);
-        return rate > 0 ? `${rate}%` : "-";
+        return <span style={{ whiteSpace: 'nowrap' }}>{rate > 0 ? `${rate}%` : "-"}</span>;
       }
     }
   };
@@ -262,10 +262,10 @@ export default function ViewInvoicePage() {
   // Add extra fields to definitions
   extraFieldKeys.forEach(key => {
     columnDefinitions[key] = {
-      title: columnLabels[key] || key.replace(/_/g, ' '),
+      title: <span style={{ whiteSpace: 'nowrap' }}>{columnLabels[key] || key.replace(/_/g, ' ')}</span>,
       key: key,
       dataIndex: ['extraFields', key],
-      render: (val: any) => val || "-"
+      render: (val: any) => <span style={{ whiteSpace: 'nowrap' }}>{val || "-"}</span>
     };
   });
 
@@ -313,17 +313,17 @@ export default function ViewInvoicePage() {
 
   const columns = [
     {
-      title: "S.NO",
+      title: <span style={{ whiteSpace: 'nowrap' }}>S.NO</span>,
       key: "sno",
       align: "center" as const,
-      render: (_: any, __: any, index: number) => index + 1,
+      render: (_: any, __: any, index: number) => <span style={{ whiteSpace: 'nowrap' }}>{index + 1}</span>,
     },
     ...orderedColumns,
     {
-      title: "Total",
+      title: <span style={{ whiteSpace: 'nowrap' }}>Total</span>,
       key: "total",
       align: "right" as const,
-      render: (_: any, record: any) => formatCurrency(record.total, currencySymbol),
+      render: (_: any, record: any) => <span style={{ whiteSpace: 'nowrap' }}>{formatCurrency(record.total, currencySymbol)}</span>,
     },
   ];
 

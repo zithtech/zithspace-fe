@@ -229,14 +229,14 @@ export function InvoiceDocument({
                     if (idx === ITEM_COL) {
                       return (
                         <Table.Summary.Cell key={idx} index={idx} align="right">
-                          <Text>Subtotal</Text>
+                          <Text style={{ whiteSpace: "nowrap" }}>Subtotal</Text>
                         </Table.Summary.Cell>
                       );
                     }
                     if (idx === TOTAL_COL) {
                       return (
                         <Table.Summary.Cell key={idx} index={idx} align="right">
-                          <Text>{formatCurrency(subtotal, currencySymbol)}</Text>
+                          <Text style={{ whiteSpace: "nowrap" }}>{formatCurrency(subtotal, currencySymbol)}</Text>
                         </Table.Summary.Cell>
                       );
                     }
@@ -255,14 +255,14 @@ export function InvoiceDocument({
                         if (idx === ITEM_COL) {
                           return (
                             <Table.Summary.Cell key={idx} index={idx} align="right">
-                              <Text>CGST{rateLabel}</Text>
+                              <Text style={{ whiteSpace: "nowrap" }}>CGST{rateLabel}</Text>
                             </Table.Summary.Cell>
                           );
                         }
                         if (idx === TOTAL_COL) {
                           return (
                             <Table.Summary.Cell key={idx} index={idx} align="right">
-                              <Text>{formatCurrency(taxTotal / 2, currencySymbol)}</Text>
+                              <Text style={{ whiteSpace: "nowrap" }}>{formatCurrency(taxTotal / 2, currencySymbol)}</Text>
                             </Table.Summary.Cell>
                           );
                         }
@@ -277,14 +277,14 @@ export function InvoiceDocument({
                         if (idx === ITEM_COL) {
                           return (
                             <Table.Summary.Cell key={idx} index={idx} align="right">
-                              <Text>SGST{rateLabel}</Text>
+                              <Text style={{ whiteSpace: "nowrap" }}>SGST{rateLabel}</Text>
                             </Table.Summary.Cell>
                           );
                         }
                         if (idx === TOTAL_COL) {
                           return (
                             <Table.Summary.Cell key={idx} index={idx} align="right">
-                              <Text>{formatCurrency(taxTotal / 2, currencySymbol)}</Text>
+                              <Text style={{ whiteSpace: "nowrap" }}>{formatCurrency(taxTotal / 2, currencySymbol)}</Text>
                             </Table.Summary.Cell>
                           );
                         }
@@ -301,14 +301,14 @@ export function InvoiceDocument({
                       if (idx === ITEM_COL) {
                         return (
                           <Table.Summary.Cell key={idx} index={idx} align="right">
-                            <Text>Discount</Text>
+                            <Text style={{ whiteSpace: "nowrap" }}>Discount</Text>
                           </Table.Summary.Cell>
                         );
                       }
                       if (idx === TOTAL_COL) {
                         return (
                           <Table.Summary.Cell key={idx} index={idx} align="right">
-                            <Text>-{formatCurrency(discount, currencySymbol)}</Text>
+                            <Text style={{ whiteSpace: "nowrap" }}>-{formatCurrency(discount, currencySymbol)}</Text>
                           </Table.Summary.Cell>
                         );
                       }
@@ -328,21 +328,21 @@ export function InvoiceDocument({
                     if (idx === ITEM_COL) {
                       return (
                         <Table.Summary.Cell key={idx} index={idx} align="right">
-                          <Text strong>Total</Text>
+                          <Text strong style={{ whiteSpace: "nowrap" }}>Total</Text>
                         </Table.Summary.Cell>
                       );
                     }
                     if (idx === QTY_COL) {
                       return (
                         <Table.Summary.Cell key={idx} index={idx} align="center">
-                          <Text strong>{totalQty}</Text>
+                          <Text strong style={{ whiteSpace: "nowrap" }}>{totalQty}</Text>
                         </Table.Summary.Cell>
                       );
                     }
                     if (idx === TOTAL_COL) {
                       return (
                         <Table.Summary.Cell key={idx} index={idx} align="right">
-                          <Text strong style={{ fontSize: 16, color: settings?.general?.primaryColor || "#1890ff" }}>
+                          <Text strong style={{ fontSize: 16, color: settings?.general?.primaryColor || "#1890ff", whiteSpace: "nowrap" }}>
                             {formatCurrency(grandTotal, currencySymbol)}
                           </Text>
                         </Table.Summary.Cell>
@@ -634,9 +634,7 @@ export function InvoiceDocument({
             >
               Visit{" "}
               <a
-                href={`https://${(
-                  settings?.general?.companyName || "zithtech"
-                ).toLowerCase()}.com/invoice`}
+                href="https://www.zukvo.com/products/invoice"
                 target="_blank"
                 rel="noopener noreferrer"
                 style={{
@@ -645,7 +643,7 @@ export function InvoiceDocument({
                   textDecoration: "none",
                 }}
               >
-                zukvo.com/invoice
+                zukvo.com/products/invoice
               </a>{" "}
               to create truly professional invoices
             </div>

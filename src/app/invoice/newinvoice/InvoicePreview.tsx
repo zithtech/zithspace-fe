@@ -31,8 +31,8 @@ interface InvoicePreviewProps {
 
 const formatCurrency = (value: any, symbol: string): string => {
   const num = Number(value);
-  if (isNaN(num)) return `${symbol} 0.00`;
-  return `${symbol} ${num.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  if (isNaN(num)) return `${symbol}\u00A00.00`;
+  return `${symbol}\u00A0${num.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 };
 
 const numberToWords = (num: number): string => {
@@ -90,17 +90,17 @@ const InvoicePreview: React.FC<InvoicePreviewProps> = ({
   // Construction of columns exactly like ViewInvoicePage
   const columns = [
     {
-      title: "S.NO",
+      title: <span style={{ whiteSpace: 'nowrap' }}>S.NO</span>,
       key: "sno",
       width: 60,
       align: "center" as const,
-      render: (_: any, __: any, index: number) => index + 1,
+      render: (_: any, __: any, index: number) => <span style={{ whiteSpace: 'nowrap' }}>{index + 1}</span>,
     },
     ...activeColumns
       .filter(col => col.key !== 'description')
       .map(col => {
       const baseCol: any = {
-        title: col.label,
+        title: <span style={{ whiteSpace: 'nowrap' }}>{col.label}</span>,
         dataIndex: col.key,
         key: col.key,
         width: col.width,
@@ -108,37 +108,39 @@ const InvoicePreview: React.FC<InvoicePreviewProps> = ({
       
       if (col.key === 'itemName') {
         baseCol.render = (text: string, record: any) => (
-          <div>
+          <div style={{ wordBreak: 'break-word', overflowWrap: 'break-word' }}>
             <Text strong style={{ color: 'var(--text-primary)' }}>{text}</Text>
             {record.description && (
-              <div style={{ fontSize: "12px", color: "var(--text-secondary)" }}>{record.description}</div>
+              <div style={{ fontSize: "12px", color: "var(--text-secondary)", whiteSpace: 'pre-wrap', wordBreak: 'break-word', overflowWrap: 'break-word' }}>{record.description}</div>
             )}
           </div>
         );
       } else if (col.key === 'rate') {
         baseCol.align = 'right';
-        baseCol.render = (val: any) => formatCurrency(val, currencySymbol);
+        baseCol.render = (val: any) => <span style={{ whiteSpace: 'nowrap' }}>{formatCurrency(val, currencySymbol)}</span>;
       } else if (col.key === 'taxRate') {
         baseCol.align = 'center';
         baseCol.render = (_: any, record: any) => {
           const t = getItemTaxRate(record);
-          return t ? `${t}%` : '-';
+          return <span style={{ whiteSpace: 'nowrap' }}>{t ? `${t}%` : '-'}</span>;
         };
       } else if (col.key === 'projectId') {
         baseCol.render = (val: any, record: any) => {
           // Prioritize record.projectName, then extraFields.projectName, then val.label, then val itself
           const projectName = record.projectName || record.extraFields?.projectName || val?.label || (typeof val === 'string' ? val : null);
-          return projectName || '-';
+          return <span style={{ whiteSpace: 'nowrap' }}>{projectName || '-'}</span>;
         };
       } else if (col.key === 'quantity') {
         baseCol.align = 'center';
+        baseCol.render = (val: any, record: any) => <span style={{ whiteSpace: 'nowrap' }}>{val || record.quantity || record.qty || 0}</span>;
       } else if (!col.isSystem) {
         baseCol.dataIndex = ['extraFields', col.key];
+        baseCol.render = (val: any) => <span style={{ whiteSpace: 'nowrap' }}>{val || '-'}</span>;
       }
       return baseCol;
     }),
     {
-      title: "Total",
+      title: <span style={{ whiteSpace: 'nowrap' }}>Total</span>,
       key: "total",
       align: "right" as const,
       width: 120,
@@ -159,7 +161,7 @@ const InvoicePreview: React.FC<InvoicePreviewProps> = ({
           const tax = discountedBase * (t / 100);
           total = sub + tax;
         }
-        return formatCurrency(total, currencySymbol);
+        return <span style={{ whiteSpace: 'nowrap' }}>{formatCurrency(total, currencySymbol)}</span>;
       },
     },
   ];
@@ -349,8 +351,8 @@ const InvoicePreview: React.FC<InvoicePreviewProps> = ({
             <>
               <Table.Summary.Row>
                 {columns.map((_, idx) => {
-                  if (idx === ITEM_COL_IDX) return <Table.Summary.Cell key={idx} index={idx} align="right"><Text>Subtotal</Text></Table.Summary.Cell>;
-                  if (idx === TOTAL_COL_IDX) return <Table.Summary.Cell key={idx} index={idx} align="right"><Text>{formatCurrency(totals.subtotal, currencySymbol)}</Text></Table.Summary.Cell>;
+                  if (idx === ITEM_COL_IDX) return <Table.Summary.Cell key={idx} index={idx} align="right"><Text style={{ whiteSpace: "nowrap" }}>Subtotal</Text></Table.Summary.Cell>;
+                  if (idx === TOTAL_COL_IDX) return <Table.Summary.Cell key={idx} index={idx} align="right"><Text style={{ whiteSpace: "nowrap" }}>{formatCurrency(totals.subtotal, currencySymbol)}</Text></Table.Summary.Cell>;
                   return <Table.Summary.Cell key={idx} index={idx} />;
                 })}
               </Table.Summary.Row>
@@ -362,8 +364,8 @@ const InvoicePreview: React.FC<InvoicePreviewProps> = ({
                       const effectivePct = totals.subtotal > 0 ? ((totals.totalTax / 2) / totals.subtotal) * 100 : 0;
                       const rateLabel = ` (${effectivePct.toFixed(2)}%)`;
                       
-                      if (idx === ITEM_COL_IDX) return <Table.Summary.Cell key={idx} index={idx} align="right"><Text>CGST{rateLabel}</Text></Table.Summary.Cell>;
-                      if (idx === TOTAL_COL_IDX) return <Table.Summary.Cell key={idx} index={idx} align="right"><Text>{formatCurrency(totals.totalTax / 2, currencySymbol)}</Text></Table.Summary.Cell>;
+                      if (idx === ITEM_COL_IDX) return <Table.Summary.Cell key={idx} index={idx} align="right"><Text style={{ whiteSpace: "nowrap" }}>CGST{rateLabel}</Text></Table.Summary.Cell>;
+                      if (idx === TOTAL_COL_IDX) return <Table.Summary.Cell key={idx} index={idx} align="right"><Text style={{ whiteSpace: "nowrap" }}>{formatCurrency(totals.totalTax / 2, currencySymbol)}</Text></Table.Summary.Cell>;
                       return <Table.Summary.Cell key={idx} index={idx} />;
                     })}
                   </Table.Summary.Row>
@@ -372,8 +374,8 @@ const InvoicePreview: React.FC<InvoicePreviewProps> = ({
                       const effectivePct = totals.subtotal > 0 ? ((totals.totalTax / 2) / totals.subtotal) * 100 : 0;
                       const rateLabel = ` (${effectivePct.toFixed(2)}%)`;
 
-                      if (idx === ITEM_COL_IDX) return <Table.Summary.Cell key={idx} index={idx} align="right"><Text>SGST{rateLabel}</Text></Table.Summary.Cell>;
-                      if (idx === TOTAL_COL_IDX) return <Table.Summary.Cell key={idx} index={idx} align="right"><Text>{formatCurrency(totals.totalTax / 2, currencySymbol)}</Text></Table.Summary.Cell>;
+                      if (idx === ITEM_COL_IDX) return <Table.Summary.Cell key={idx} index={idx} align="right"><Text style={{ whiteSpace: "nowrap" }}>SGST{rateLabel}</Text></Table.Summary.Cell>;
+                      if (idx === TOTAL_COL_IDX) return <Table.Summary.Cell key={idx} index={idx} align="right"><Text style={{ whiteSpace: "nowrap" }}>{formatCurrency(totals.totalTax / 2, currencySymbol)}</Text></Table.Summary.Cell>;
                       return <Table.Summary.Cell key={idx} index={idx} />;
                     })}
                   </Table.Summary.Row>
@@ -383,8 +385,8 @@ const InvoicePreview: React.FC<InvoicePreviewProps> = ({
               {totals.discountAmount > 0 && (
                 <Table.Summary.Row>
                   {columns.map((_, idx) => {
-                    if (idx === ITEM_COL_IDX) return <Table.Summary.Cell key={idx} index={idx} align="right"><Text>Discount</Text></Table.Summary.Cell>;
-                    if (idx === TOTAL_COL_IDX) return <Table.Summary.Cell key={idx} index={idx} align="right"><Text>-{formatCurrency(totals.discountAmount, currencySymbol)}</Text></Table.Summary.Cell>;
+                    if (idx === ITEM_COL_IDX) return <Table.Summary.Cell key={idx} index={idx} align="right"><Text style={{ whiteSpace: "nowrap" }}>Discount</Text></Table.Summary.Cell>;
+                    if (idx === TOTAL_COL_IDX) return <Table.Summary.Cell key={idx} index={idx} align="right"><Text style={{ whiteSpace: "nowrap" }}>-{formatCurrency(totals.discountAmount, currencySymbol)}</Text></Table.Summary.Cell>;
                     return <Table.Summary.Cell key={idx} index={idx} />;
                   })}
                 </Table.Summary.Row>
@@ -392,9 +394,9 @@ const InvoicePreview: React.FC<InvoicePreviewProps> = ({
 
               <Table.Summary.Row style={{ backgroundColor: "var(--bg-slate-50)", borderTop: "2px solid var(--border-color)" }}>
                 {columns.map((_, idx) => {
-                  if (idx === ITEM_COL_IDX) return <Table.Summary.Cell key={idx} index={idx} align="right"><Text strong style={{ color: "var(--text-primary)" }}>Total</Text></Table.Summary.Cell>;
-                  if (idx === QTY_COL_IDX) return <Table.Summary.Cell key={idx} index={idx} align="center"><Text strong>{items.reduce((sum: number, i: any) => sum + (Number(i.quantity) || 0), 0)}</Text></Table.Summary.Cell>;
-                  if (idx === TOTAL_COL_IDX) return <Table.Summary.Cell key={idx} index={idx} align="right"><Text strong style={{ fontSize: 16, color: primaryColor }}>{formatCurrency(totals.finalTotal, currencySymbol)}</Text></Table.Summary.Cell>;
+                  if (idx === ITEM_COL_IDX) return <Table.Summary.Cell key={idx} index={idx} align="right"><Text strong style={{ color: "var(--text-primary)", whiteSpace: "nowrap" }}>Total</Text></Table.Summary.Cell>;
+                  if (idx === QTY_COL_IDX) return <Table.Summary.Cell key={idx} index={idx} align="center"><Text strong style={{ whiteSpace: "nowrap" }}>{items.reduce((sum: number, i: any) => sum + (Number(i.quantity) || 0), 0)}</Text></Table.Summary.Cell>;
+                  if (idx === TOTAL_COL_IDX) return <Table.Summary.Cell key={idx} index={idx} align="right"><Text strong style={{ fontSize: 16, color: primaryColor, whiteSpace: "nowrap" }}>{formatCurrency(totals.finalTotal, currencySymbol)}</Text></Table.Summary.Cell>;
                   return <Table.Summary.Cell key={idx} index={idx} />;
                 })}
               </Table.Summary.Row>
@@ -587,6 +589,108 @@ const InvoicePreview: React.FC<InvoicePreviewProps> = ({
             )}
           </div>
         )}
+
+        {/* Footer branding */}
+        <div
+          style={{
+            marginTop: 40,
+            paddingTop: 16,
+            borderTop: "1px solid var(--border-color)",
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: 4,
+          }}
+        >
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 8,
+            }}
+          >
+            <span
+              style={{
+                fontSize: 13,
+                color: "var(--text-secondary)",
+              }}
+            >
+              Crafted with ease using
+            </span>
+
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                flexShrink: 0,
+              }}
+            >
+              {settings?.general?.companyLogo && (
+                <img
+                  src={settings.general.companyLogo}
+                  alt="Company Logo"
+                  style={{
+                    width: 40,
+                    height: 30,
+                    objectFit: "contain",
+                    marginRight: 2,
+                  }}
+                />
+              )}
+
+              <div
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  lineHeight: 1.05,
+                }}
+              >
+                <span
+                  style={{
+                    fontSize: 11,
+                    fontWeight: 700,
+                    color: "#1a73e8",
+                  }}
+                >
+                  Zukvo
+                </span>
+                <span
+                  style={{
+                    fontSize: 11,
+                    fontWeight: 700,
+                    color: "var(--text-primary)",
+                  }}
+                >
+                  Invoice
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div
+            style={{
+              marginTop: 2,
+              fontSize: 12,
+              color: "var(--text-secondary)",
+            }}
+          >
+            Visit{" "}
+            <a
+              href="https://www.zukvo.com/products/invoice"
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{
+                color: "#1a73e8",
+                fontWeight: 600,
+                textDecoration: "none",
+              }}
+            >
+              zukvo.com/products/invoice
+            </a>{" "}
+            to create truly professional invoices
+          </div>
+        </div>
 
       </Card>
     </div>

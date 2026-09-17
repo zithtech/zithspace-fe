@@ -165,7 +165,7 @@ export default function ComposeEmailDrawer({
 
   const formattedAmount = useMemo(() => {
     const raw = Number(invoice?.grandTotal ?? invoice?.total ?? 0);
-    return `${currencySymbol}\u00A0${raw.toLocaleString(undefined, {
+    return `${currencySymbol} ${raw.toLocaleString(undefined, {
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
     })}`;
@@ -267,24 +267,31 @@ export default function ComposeEmailDrawer({
     message: "",
   });
 
+  const initializedInvoiceIdRef = useRef<string | null>(null);
+
   useEffect(() => {
     if (open && invoice) {
-      const initialTpl = templates.standard;
-      form.setFieldsValue({
-        to: customerEmail,
-        subject: initialTpl.subject,
-        message: initialTpl.message,
-      });
-      setBodyContent(initialTpl.message);
-      setFormValues({
-        to: customerEmail,
-        subject: initialTpl.subject,
-        message: initialTpl.message,
-      });
-      setSelectedTemplate("standard");
-      setActiveTab("compose");
+      if (initializedInvoiceIdRef.current !== invoice.id) {
+        initializedInvoiceIdRef.current = invoice.id;
+        const initialTpl = templates.standard;
+        form.setFieldsValue({
+          to: customerEmail,
+          subject: initialTpl.subject,
+          message: initialTpl.message,
+        });
+        setBodyContent(initialTpl.message);
+        setFormValues({
+          to: customerEmail,
+          subject: initialTpl.subject,
+          message: initialTpl.message,
+        });
+        setSelectedTemplate("standard");
+        setActiveTab("compose");
+      }
+    } else if (!open) {
+      initializedInvoiceIdRef.current = null;
     }
-  }, [open, invoice, customerEmail, templates, form]);
+  }, [open, invoice?.id, customerEmail, templates, form]);
 
   const handleValuesChange = (_: any, allValues: any) => {
     setFormValues(allValues);

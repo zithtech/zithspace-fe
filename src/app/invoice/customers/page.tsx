@@ -186,6 +186,7 @@ export default function InvoiceproCustomerPage() {
       gstin: values.gstin || "",
       pan: values.pan || "",
       isActive: values.isActive ?? true,
+      projectIds: values.projectIds || [],
     };
 
     try {
@@ -206,8 +207,9 @@ export default function InvoiceproCustomerPage() {
   };
 
   const handleEdit = (customer: ServiceCustomer) => {
+    setViewDrawerVisible(false);
+    setSelectedCustomerForView(null);
     setEditingCustomer(customer);
-    form.setFieldsValue(customer);
     setIsModalOpen(true);
   };
 
@@ -295,7 +297,8 @@ export default function InvoiceproCustomerPage() {
     {
       key: "view",
       label: menuLabel("View profile", "Open customer details", <Eye size={14} />, '#3b82f6', 'rgba(59,130,246,0.12)'),
-      onClick: () => {
+      onClick: (info: any) => {
+        info?.domEvent?.stopPropagation?.();
         setSelectedCustomerForView(customer);
         setViewDrawerVisible(true);
       },
@@ -306,7 +309,8 @@ export default function InvoiceproCustomerPage() {
       label: customer.isActive
         ? menuLabel("Deactivate", "Disable this customer", <Ban size={14} />, '#f59e0b', 'rgba(245,158,11,0.12)')
         : menuLabel("Activate", "Enable this customer", <ShieldCheck size={14} />, '#10b981', 'rgba(16,185,129,0.12)'),
-      onClick: async () => {
+      onClick: async (info: any) => {
+        info?.domEvent?.stopPropagation?.();
         try {
           await updateCustomer.mutateAsync({
             id: customer.id,
@@ -321,7 +325,10 @@ export default function InvoiceproCustomerPage() {
     canUpdateInvoiceCustomer && {
       key: "edit",
       label: menuLabel("Edit", "Modify customer details", <Edit2 size={14} />, '#64748b', 'rgba(100,116,139,0.12)'),
-      onClick: () => handleEdit(customer),
+      onClick: (info: any) => {
+        info?.domEvent?.stopPropagation?.();
+        handleEdit(customer);
+      },
     },
     canDeleteInvoiceCustomer && { type: "divider" as const },
     canDeleteInvoiceCustomer && {
@@ -889,7 +896,10 @@ export default function InvoiceproCustomerPage() {
                   pagination={false}
                   size="middle"
                   onRow={(record) => ({
-                    onClick: () => {
+                    onClick: (e: any) => {
+                      if (e?.target?.closest?.('.ant-dropdown, .ant-btn, .ant-dropdown-menu, .pp-action-pop, button')) {
+                        return;
+                      }
                       setSelectedCustomerForView(record);
                       setViewDrawerVisible(true);
                     },
@@ -976,6 +986,7 @@ export default function InvoiceproCustomerPage() {
           setSelectedCustomerForView(null);
         }}
         customer={selectedCustomerForView}
+        onEdit={canUpdateInvoiceCustomer ? (cust) => handleEdit(cust) : undefined}
       />
 
       <ClientImportModal

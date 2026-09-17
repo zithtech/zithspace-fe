@@ -84,6 +84,7 @@ import {
 } from "@/services/invoiceService";
 import { currencySymbol } from "@/utils/currencies";
 import ComposeEmailDrawer from "@/components/customer/ComposeEmailDrawer";
+import { useActiveSettingsProfiles } from "@/hooks/useInvoiceSettings";
 import { useActivitySource } from "@/hooks/useActivitySource";
 import ConfirmDialog from "@/components/common/ConfirmDialog";
 import { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
@@ -314,10 +315,22 @@ export default function InvoiceInvoicesPage() {
     }
   }, [authLoading, canReadInvoice, canReadInvoiceHistory, router]);
 
+  // Listen for close preview message from embedded preview iframe
+  useEffect(() => {
+    const handleMessage = (e: MessageEvent) => {
+      if (e.data?.type === "CLOSE_INVOICE_PREVIEW") {
+        setPreviewInvoiceNumber(null);
+      }
+    };
+    window.addEventListener("message", handleMessage);
+    return () => window.removeEventListener("message", handleMessage);
+  }, []);
+
   // Email state
   const [emailDrawerOpen, setEmailDrawerOpen] = useState(false);
   const [selectedInvoiceForEmail, setSelectedInvoiceForEmail] = useState<any>(null);
   const { mutate: sendEmail, isPending: isSendingEmail } = useSendInvoiceEmail();
+  const { data: activeProfilesData } = useActiveSettingsProfiles();
 
   const handleQuickSend = (record: any) => {
     const snapshot = record.customerSnapshot as any;
@@ -328,18 +341,55 @@ export default function InvoiceInvoicesPage() {
       return;
     }
 
+    let companyName =
+      record.settingsSnapshot?.general?.companyName ||
+      record.settingsSnapshot?.name ||
+      record.settings?.general?.companyName ||
+      record.settings?.name ||
+      record.general?.companyName;
+
+    if (!companyName && Array.isArray(activeProfilesData) && activeProfilesData.length > 0) {
+      const active = activeProfilesData.find((p: any) => p.isActive) || activeProfilesData[0];
+      companyName = active?.general?.companyName || active?.name;
+    } else if (!companyName && activeProfilesData && (activeProfilesData as any)?.general?.companyName) {
+      companyName = (activeProfilesData as any).general.companyName;
+    }
+
+    if (!companyName) {
+      companyName = "Company";
+    }
+
+    const customerName =
+      snapshot?.companyName ||
+      snapshot?.name ||
+      record.customer?.companyName ||
+      record.customer?.name ||
+      "Valued Client";
+
+    const symbol = currencySymbol(record.currency || "USD");
+    const formattedTotal = `${symbol}\u00A0${Number(
+      record.grandTotal ?? record.total ?? 0
+    ).toLocaleString(undefined, {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    })}`;
+
+    const formattedDueDate = record.dueDate
+      ? dayjs(record.dueDate).format("MMM DD, YYYY")
+      : "Due on receipt";
+
     const hide = messageApi.loading(`Sending invoice ${record.invoiceNumber}...`, 0);
 
     sendEmail({
       id: record.id,
       data: {
         to: targetEmail,
-        subject: `Invoice ${record.invoiceNumber} from Your Company`,
-        message: `Dear ${snapshot?.name || 'Customer'},\n\nPlease find your invoice ${record.invoiceNumber} attached.`
+        subject: `Invoice #${record.invoiceNumber} from ${companyName} [${formattedTotal}]`,
+        message: `Dear ${customerName},\n\nWe hope this email finds you well.\n\nPlease find attached invoice #${record.invoiceNumber} for ${formattedTotal}, due on ${formattedDueDate}.\n\nInvoice Summary:\n• Invoice Number: #${record.invoiceNumber}\n• Amount Due: ${formattedTotal}\n• Payment Due Date: ${formattedDueDate}\n\nPlease review the attached document and initiate payment according to the agreed terms. Feel free to reply directly to this email if you have any questions.\n\nThank you for your business!\n\nBest regards,\n${companyName} Accounts Team`
       }
     }, {
       onSettled: () => hide(),
-      onSuccess: () => messageApi.success("Email sent successfully!")
+      onSuccess: () => messageApi.success(`Invoice #${record.invoiceNumber} sent to ${targetEmail}`)
     });
   };
 
@@ -426,7 +476,7 @@ export default function InvoiceInvoicesPage() {
         router.push(`/invoice/invoices/view/${record.invoiceNumber}`);
       },
     },
-    canUpdateInvoice && canUseNewInvoice && ["DRAFT", "PENDING", "APPROVED", "APPROVAL"].includes(record.status) && {
+    canUpdateInvoice && canUseNewInvoice && ["DRAFT", "PENDING", "APPROVED", "APPROVAL", "SENT", "OVERDUE", "PARTIALLY_PAID", "PAID"].includes(record.status) && {
       key: "edit",
       label: menuLabel("Edit Invoice", "Modify invoice information", <Edit2 size={14} />, '#64748b', 'rgba(100,116,139,0.12)'),
       onClick: () => {
@@ -447,11 +497,11 @@ export default function InvoiceInvoicesPage() {
         downloadInvoice(record.id);
       },
     },
-    canSendInvoiceMail && !['DRAFT', 'PENDING'].includes(record.status) && {
+    /* canSendInvoiceMail && !['DRAFT', 'PENDING'].includes(record.status) && {
       key: "send_quick",
       label: menuLabel("Quick Send Email", "Send email directly", <Mail size={14} />, '#10b981', 'rgba(16,185,129,0.12)'),
       onClick: () => handleQuickSend(record),
-    },
+    }, */
     canSendInvoiceMail && !['DRAFT', 'PENDING'].includes(record.status) && {
       key: "compose_email",
       label: menuLabel("Compose & Send", "Customize and send mail", <Edit2 size={14} />, '#64748b', 'rgba(100,116,139,0.12)'),

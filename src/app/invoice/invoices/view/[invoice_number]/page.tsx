@@ -148,6 +148,15 @@ export default function ViewInvoicePage() {
   const currencySymbol =
     currencyOptions.find((c) => c.value === currencyCode)?.symbol || "$";
 
+  const handleBackToInvoices = () => {
+    // If inside an iframe (like the preview drawer), notify parent to close the preview
+    if (typeof window !== "undefined" && window.self !== window.top) {
+      window.parent.postMessage({ type: "CLOSE_INVOICE_PREVIEW" }, "*");
+    } else {
+      router.push("/invoice/invoices");
+    }
+  };
+
   // Loading state
   if (authLoading || isLoading || settingsLoading) {
     return <Card><ZukvoLoader size="md" message="Loading invoice..." /></Card>;
@@ -379,7 +388,7 @@ export default function ViewInvoicePage() {
           style={{ maxWidth: 1100 }}
         >
           <Button
-            onClick={() => router.back()}
+            onClick={handleBackToInvoices}
             icon={<ArrowLeft size={14} />}
             className="w-full sm:w-auto flex items-center justify-center"
             style={{

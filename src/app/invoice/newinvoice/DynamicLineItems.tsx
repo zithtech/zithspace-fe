@@ -729,8 +729,8 @@ export default function DynamicLineItems({
     const currentTemplateId = templateId || form.getFieldValue('templateId');
     const lineItems = form.getFieldValue("lineItems") || [];
 
-    // Avoid redundant updates
-    if (hasHydrated && currentTemplateId === prevAppliedTemplateId) return;
+    // Avoid redundant updates if columns are already populated
+    if (hasHydrated && currentTemplateId === prevAppliedTemplateId && activeColumns.length > 0) return;
 
     console.log('🔄 APPLYING TEMPLATE OR HYDRATING:', { 
       currentTemplateId, 

@@ -594,7 +594,7 @@ export default function DashboardPage() {
             </div>
 
             <div className="flex items-center gap-2 w-full md:w-auto">
-              {canReadInvoiceHistory && (
+              {/* {canReadInvoiceHistory && (
                 <Button
                   icon={<History size={13} />}
                   onClick={() => setHistoryDrawerVisible(true)}
@@ -603,7 +603,7 @@ export default function DashboardPage() {
                 >
                   <span>Email history</span>
                 </Button>
-              )}
+              )} */}
               {canCreateInvoice && canUseNewInvoice && (
                 <Button
                   type="primary"
@@ -951,10 +951,10 @@ export default function DashboardPage() {
         }}
       />
 
-      <EmailHistoryDrawer
+      {/* <EmailHistoryDrawer
         open={historyDrawerVisible}
         onClose={() => setHistoryDrawerVisible(false)}
-      />
+      /> */}
     </MainLayout>
   );
 }

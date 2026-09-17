@@ -62,7 +62,8 @@ export const useInvoice = (invoiceId: string, enabled: boolean = true) => {
   return useQuery({
     queryKey: invoiceKeys.detail(invoiceId),
     queryFn: () => InvoiceService.getInvoiceById(invoiceId),
-    staleTime: 5 * 60 * 1000,
+    staleTime: 0,
+    refetchOnMount: "always",
     enabled: enabled && !!invoiceId,
   });
 };
@@ -171,7 +172,7 @@ export const useCreateInvoice = () => {
           };
         }
       );
-
+      queryClient.invalidateQueries({ queryKey: invoiceKeys.all });
       message.success("Invoice created successfully");
     },
   });
@@ -214,9 +215,17 @@ export const useUpdateInvoice = () => {
       );
 
       if (previousDetail) {
+        const optimisticLineItems = (data.items || (data as any).lineItems || []).map((item: any) => ({
+          ...item,
+          itemName: item.itemName || item.item || "",
+          quantity: item.quantity || item.qty || 1,
+          rate: item.rate || item.price || 0,
+          taxRate: item.taxRate || item.tax || 0,
+        }));
         queryClient.setQueryData(invoiceKeys.detail(id), {
           ...previousDetail,
           ...data,
+          lineItems: optimisticLineItems.length > 0 ? optimisticLineItems : previousDetail.lineItems,
           updatedAt: new Date().toISOString(),
         });
       }
@@ -240,11 +249,15 @@ export const useUpdateInvoice = () => {
     },
 
     onSuccess: (savedInvoice) => {
-      queryClient.setQueryData(
-        invoiceKeys.detail(savedInvoice.id),
-        savedInvoice
-      );
+      if (savedInvoice?.id) {
+        queryClient.setQueryData(
+          invoiceKeys.detail(savedInvoice.id),
+          savedInvoice
+        );
+        queryClient.invalidateQueries({ queryKey: invoiceKeys.detail(savedInvoice.id) });
+      }
       queryClient.invalidateQueries({ queryKey: invoiceKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: invoiceKeys.details() });
       message.success("Invoice updated successfully");
     },
   });

@@ -26,7 +26,6 @@ import {
   LayoutGrid,
   List,
   MoreVertical,
-  Copy,
   ChevronRight,
   ChevronLeft,
   Star,
@@ -161,12 +160,18 @@ export default function InvoiceTemplatePage() {
     canUpdateInvoiceTemplate && {
       key: "edit",
       label: menuLabel("Edit template", "Modify template settings", <Edit3 size={14} />, '#3b82f6', 'rgba(59,130,246,0.12)'),
-      onClick: () => handleEdit(template),
+      onClick: (info: any) => {
+        info?.domEvent?.stopPropagation?.();
+        handleEdit(template);
+      },
     },
-    {
-      key: "copy",
-      disabled: true,
-      label: menuLabel("Duplicate", "Clone this template", <Copy size={14} />, '#64748b', 'rgba(100,116,139,0.12)'),
+    canUseNewInvoice && {
+      key: "use",
+      label: menuLabel("Use template", "Create invoice with this template", <FileText size={14} />, '#10b981', 'rgba(16,185,129,0.12)'),
+      onClick: (info: any) => {
+        info?.domEvent?.stopPropagation?.();
+        router.push(`/invoice/newinvoice?templateId=${template.id}`);
+      },
     },
     (canUpdateInvoiceTemplate || canDeleteInvoiceTemplate) && { type: "divider" as const },
     canDeleteInvoiceTemplate && {

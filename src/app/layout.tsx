@@ -57,6 +57,9 @@ export async function generateMetadata(): Promise<Metadata> {
   };
 }
 
+import { TourProvider } from "@/context/TourContext";
+import { ProductTour } from "@/components/tour/ProductTour";
+
 export default async function RootLayout({
   children,
 }: {
@@ -129,7 +132,12 @@ export default async function RootLayout({
                           <SocketProvider>
                             <LayoutProvider>
                               <TicketDrawerProvider>
-                                <AppSetupGuard>{children}</AppSetupGuard>
+                                <TourProvider>
+                                  <AppSetupGuard>
+                                    {children}
+                                    <ProductTour />
+                                  </AppSetupGuard>
+                                </TourProvider>
                               </TicketDrawerProvider>
                             </LayoutProvider>
                           </SocketProvider>

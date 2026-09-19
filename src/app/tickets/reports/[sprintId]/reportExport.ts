@@ -31,7 +31,7 @@ function baseOptions(el: HTMLElement, filename: string) {
       windowWidth: el.scrollWidth,
     },
     jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
-    pagebreak: { mode: ["css"], avoid: ['tr', '.break-inside-avoid', 'section', 'li'] },
+    pagebreak: { mode: ["css"], avoid: ['tr', '.break-inside-avoid', 'li'] },
   };
 }
 

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Layout, Menu, Button, Space, Typography, Dropdown, Avatar, Divider, Badge, Grid, Input, Tooltip, Empty, Modal, theme } from 'antd';
 import { App } from 'antd';
 import {
@@ -27,6 +27,7 @@ import {
   X,
   Timer,
   Flame,
+  PlayCircle,
 } from 'lucide-react';
 
 const MODULE_ICONS: Record<string, React.ComponentType<any>> = {
@@ -64,7 +65,8 @@ import { TimeTrackerPopover } from '@/components/time-tracking/TimeTrackerPopove
 import { useTimeTrackerStore } from '@/store/useTimeTrackerStore';
 import ThemeToggle from "./ThemeToggle";
 import { useTheme } from "@/context/ThemeContext";
-import { HistoryOutlined } from '@ant-design/icons';
+import { useTour } from "@/context/TourContext";
+import { HistoryOutlined, PlayCircleOutlined } from '@ant-design/icons';
 
 const { Header } = Layout;
 const { Text } = Typography;
@@ -87,6 +89,7 @@ export default function TopNav({
 }: TopNavProps) {
   const router = useRouter();
   const pathname = usePathname();
+  const { startTour } = useTour();
   const isRouteActive = (path: string) =>
     pathname === path || pathname?.startsWith(path + '/');
   const { hasPermission, hasAnyPermission, hasAnySubscriptionFeature } = useAuth();
@@ -102,8 +105,217 @@ export default function TopNav({
     canReadTimeTracking,
     canCreateTimeTracking,
     canReadActivityLogAll,
-    canReadHotspot
+    canReadHotspot,
+    canReadProject,
+    canCreateProject,
+    canReadTicket,
+    canCreateTicket,
+    canReadScope,
+    canCreateScope,
+    canReadCase,
+    canCreateCase,
+    canReadDocument,
+    canCreateDocument,
+    canReadSettings,
+    canUpdateSettings,
+    canManageSettings,
+    canReadRole,
+    canCreateRole,
+    canUpdateRole,
+    canManageRoles,
+    canReadOrg,
+    canManageOrg,
+    canCreateOrgDepartment,
+    canCreateOrgGrade,
+    canCreateOrgPosition,
+    canCreateOrgEmploymentType,
+    canUpdateOrgDepartment,
+    canReadUser,
+    canCreateUser,
   } = usePermission();
+
+  const tourMenuItems = useMemo(() => {
+    const items: Array<{
+      key: string;
+      label: string;
+      icon: React.ReactNode;
+      onClick: () => void;
+    }> = [];
+
+    // 1. QA Tour
+    const canAccessQaTour =
+      (canReadScope || canReadCase || hasPermission(Permissions.BUG_READ)) &&
+      (canCreateScope || canCreateCase || hasPermission(Permissions.BUG_CREATE)) &&
+      hasAnySubscriptionFeature("work_qa_space", "work_qa_workspace", "work");
+
+    if (canAccessQaTour) {
+      items.push({
+        key: "replay-qa-tour",
+        label: "Replay QA Tour",
+        icon: <PlayCircleOutlined />,
+        onClick: () => startTour('testiez-qa-workflow', true),
+      });
+    }
+
+    // 2. Project Creation Tour
+    const canAccessProjectManualTour =
+      canReadProject &&
+      canCreateProject &&
+      hasAnySubscriptionFeature("work_projects", "work_projects_manage", "work");
+
+    if (canAccessProjectManualTour) {
+      items.push({
+        key: "replay-project-manual-tour",
+        label: "Replay Project Creation Tour",
+        icon: <PlayCircleOutlined />,
+        onClick: () => startTour('testiez-project-manual', true),
+      });
+    }
+
+    // 3. Migration & Integrations Tour
+    const canAccessProjectImportTour =
+      (hasPermission(Permissions.INTEGRATION_READ) || canReadProject) &&
+      (hasPermission(Permissions.INTEGRATION_MANAGE) || canCreateProject || canReadMail || canReadCalendar) &&
+      hasAnySubscriptionFeature("home_home_general_integrations", "work_projects", "home", "work");
+
+    if (canAccessProjectImportTour) {
+      items.push({
+        key: "replay-project-import-tour",
+        label: "Replay Migration & Integrations Tour",
+        icon: <PlayCircleOutlined />,
+        onClick: () => startTour('testiez-project-import', true),
+      });
+    }
+
+    // 4. Tickets Tour
+    const canAccessSprintsTour =
+      canReadTicket &&
+      canCreateTicket &&
+      hasAnySubscriptionFeature("work_tickets", "work_tickets_select", "work");
+
+    if (canAccessSprintsTour) {
+      items.push({
+        key: "replay-sprints-tour",
+        label: "Replay Tickets Tour",
+        icon: <PlayCircleOutlined />,
+        onClick: () => startTour('testiez-sprints', true),
+      });
+    }
+
+    // 5. Document Hub Tour
+    const canAccessDocHubTour =
+      canReadDocument &&
+      canCreateDocument &&
+      hasAnySubscriptionFeature("work_document_hub", "work");
+
+    if (canAccessDocHubTour) {
+      items.push({
+        key: "replay-dochub-tour",
+        label: "Replay Document Hub Tour",
+        icon: <PlayCircleOutlined />,
+        onClick: () => startTour('testiez-document-hub', true),
+      });
+    }
+
+    // 6. Admin & Settings Tour
+    const canAccessAdminSettingsTour =
+      canReadSettings &&
+      (canUpdateSettings || canManageSettings) &&
+      hasAnySubscriptionFeature("admin_settings", "admin");
+
+    if (canAccessAdminSettingsTour) {
+      items.push({
+        key: "replay-admin-settings-tour",
+        label: "Replay Admin & Settings Tour",
+        icon: <PlayCircleOutlined />,
+        onClick: () => startTour('testiez-admin-settings', true),
+      });
+    }
+
+    // 7. Roles & RBAC Tour
+    const canAccessRolesTour =
+      canReadRole &&
+      (canCreateRole || canUpdateRole || canManageRoles) &&
+      hasAnySubscriptionFeature("admin_roles", "admin");
+
+    if (canAccessRolesTour) {
+      items.push({
+        key: "replay-roles-tour",
+        label: "Replay Roles & RBAC Tour",
+        icon: <PlayCircleOutlined />,
+        onClick: () => startTour('testiez-roles', true),
+      });
+    }
+
+    // 8. Org Structure Tour
+    const canAccessOrgStructureTour =
+      canReadOrg &&
+      (canManageOrg ||
+        canCreateOrgDepartment ||
+        canCreateOrgGrade ||
+        canCreateOrgPosition ||
+        canCreateOrgEmploymentType ||
+        canUpdateOrgDepartment) &&
+      hasAnySubscriptionFeature("admin_org_structure", "admin");
+
+    if (canAccessOrgStructureTour) {
+      items.push({
+        key: "replay-org-structure-tour",
+        label: "Replay Org Structure Tour",
+        icon: <PlayCircleOutlined />,
+        onClick: () => startTour('testiez-org-structure', true),
+      });
+    }
+
+    // 9. Members Tour
+    const canAccessMembersTour =
+      canReadUser &&
+      canCreateUser &&
+      hasAnySubscriptionFeature("admin_members", "admin");
+
+    if (canAccessMembersTour) {
+      items.push({
+        key: "replay-members-tour",
+        label: "Replay Members Tour",
+        icon: <PlayCircleOutlined />,
+        onClick: () => startTour('testiez-members', true),
+      });
+    }
+
+    return items;
+  }, [
+    canReadScope,
+    canReadCase,
+    canCreateScope,
+    canCreateCase,
+    canReadProject,
+    canCreateProject,
+    canReadMail,
+    canReadCalendar,
+    canReadTicket,
+    canCreateTicket,
+    canReadDocument,
+    canCreateDocument,
+    canReadSettings,
+    canUpdateSettings,
+    canManageSettings,
+    canReadRole,
+    canCreateRole,
+    canUpdateRole,
+    canManageRoles,
+    canReadOrg,
+    canManageOrg,
+    canCreateOrgDepartment,
+    canCreateOrgGrade,
+    canCreateOrgPosition,
+    canCreateOrgEmploymentType,
+    canUpdateOrgDepartment,
+    canReadUser,
+    canCreateUser,
+    hasPermission,
+    hasAnySubscriptionFeature,
+    startTour,
+  ]);
   const { token } = theme.useToken();
   const { theme: appTheme } = useTheme();
   const isDark = appTheme === "dark";
@@ -584,7 +796,7 @@ export default function TopNav({
         top: 0,
         right: 0,
         left: 0,
-        zIndex: 1000,
+        zIndex: 890,
       }}
     >
       {/* Left Side: Logo & Module Selector */}
@@ -693,6 +905,33 @@ export default function TopNav({
       <Space size={isSmallMobile ? 4 : 8} align="center" style={{ flexShrink: 0 }}>
         {!isCustomBreakpoint ? (
           <>
+            {tourMenuItems.length > 0 && (
+              <Tooltip
+                title={
+                  <div className="navbar-tooltip">
+                    <span className="navbar-tooltip-title">Tour</span>
+                    <span className="navbar-tooltip-sub">Replay Tour</span>
+                  </div>
+                }
+                placement="bottom"
+                classNames={{ root: "navbar-icon-tooltip" }}
+                mouseEnterDelay={0.1}
+                zIndex={1100}
+              >
+                <Dropdown
+                  menu={{
+                    items: tourMenuItems,
+                  }}
+                  trigger={['click']}
+                >
+                  <Button
+                    type="text"
+                    className="nav-action-btn"
+                    icon={<PlayCircle size={17} strokeWidth={1.75} />}
+                  />
+                </Dropdown>
+              </Tooltip>
+            )}
             <ThemeToggle />
             {canReadTimeTracking && canCreateTimeTracking && hasAnySubscriptionFeature("work_time_tracking") && <TimeTrackerPopover />}
 

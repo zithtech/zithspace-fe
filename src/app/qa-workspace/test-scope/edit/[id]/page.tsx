@@ -30,6 +30,7 @@ import ZukvoLoader from "@/components/common/ZukvoLoader";
 import { MembersService } from "@/services/membersService";
 import { ProjectService } from "@/services/projectService";
 import { commonDrawerProps } from "@/components/common/DrawerSection";
+import { NO_MODULES_STYLES, NoModulesEmpty } from "@/components/qa/ModuleSettingsSection";
 import debounce from "lodash/debounce";
 
 const { Dragger } = Upload;
@@ -279,14 +280,27 @@ function InlineAdd({
 }
 
 /** Selected values of a multi-select, shown as removable tokens under the trigger. */
-function TokenList({ values, onRemove }: { values: string[]; onRemove: (val: string) => void }) {
-  if (!values.length) return null;
+function TokenList({
+  values,
+  items,
+  onRemove,
+}: {
+  values?: string[];
+  items?: { id: string; label: string; badge?: React.ReactNode }[];
+  onRemove: (val: string) => void;
+}) {
+  const tokenItems: { id: string; label: string; badge?: React.ReactNode }[] = items
+    ? items
+    : (values || []).map((v) => ({ id: v, label: v }));
+
+  if (!tokenItems.length) return null;
   return (
     <div className="ts-tokens">
-      {values.map((val) => (
-        <span key={val} className="ts-token">
-          <span className="truncate">{val}</span>
-          <button type="button" onClick={() => onRemove(val)} aria-label={`Remove ${val}`}>
+      {tokenItems.map((item) => (
+        <span key={item.id} className="ts-token">
+          {item.badge && <span className="inline-flex items-center mr-0.5">{item.badge}</span>}
+          <span className="truncate" title={item.label}>{item.label}</span>
+          <button type="button" onClick={() => onRemove(item.id)} aria-label={`Remove ${item.label}`}>
             <X size={11} strokeWidth={2.8} />
           </button>
         </span>
@@ -679,7 +693,7 @@ useActivitySource({ section: "WORK", module: "QA", page: "EditTestScope" });
   const [customAttachmentFields, setCustomAttachmentFields] = useState<{ key: string; label: string; hint: string }[]>([]);
   const [addingKind, setAddingKind] = useState<'testing' | 'exit' | 'attachment' | null>(null);
   const [customDraft, setCustomDraft] = useState('');
-  const [projectOptions, setProjectOptions] = useState<{ value: string; label: string; description?: string }[]>([]);
+  const [projectOptions, setProjectOptions] = useState<{ id?: string; value: string; label: string; description?: string }[]>([]);
   const [loadingProjects, setLoadingProjects] = useState(false);
   const [nameError, setNameError] = useState<string | null>(null);
 
@@ -882,10 +896,11 @@ useActivitySource({ section: "WORK", module: "QA", page: "EditTestScope" });
   const fetchUserProjects = async () => {
     try {
       setLoadingProjects(true);
-      const res: any = await ProjectService.getUserProjects();
+      const res: any = await ProjectService.getUserProjects(true);
       const list: any[] = Array.isArray(res) ? res : (res?.data ?? []);
       const opts = list
         .map((p: any) => ({
+          id: p.value || p.id,
           value: String(p.label ?? p.name ?? ''),
           label: String(p.label ?? p.name ?? ''),
           description: p.code || undefined,
@@ -976,14 +991,22 @@ useActivitySource({ section: "WORK", module: "QA", page: "EditTestScope" });
 
   // The tenant's module list, offered on the Product & Modules step.
   const [qaModules, setQaModules] = useState<any[]>([]);
-  useEffect(() => {
-    axios.get('/api/v2/qa/modules')
+  const fetchQaModules = React.useCallback(() => {
+    const selectedProject = projectOptions.find(p => p.value === formData.details.product);
+    const projectId = selectedProject?.id;
+    const productName = formData.details.product;
+    const params: any = {};
+    if (projectId) params.project_id = projectId;
+    if (productName) params.product = productName;
+
+    axios.get('/api/v2/qa/modules', { params })
       .then((res: any) => {
         const list = Array.isArray(res) ? res : (res?.data?.data || res?.data || []);
         setQaModules(Array.isArray(list) ? list : []);
       })
       .catch(() => { /* typing a module still works without the list */ });
-  }, []);
+  }, [formData.details.product, projectOptions]);
+  useEffect(() => { fetchQaModules(); }, [fetchQaModules]);
 
   useEffect(() => {
     (async () => {
@@ -1078,7 +1101,7 @@ useActivitySource({ section: "WORK", module: "QA", page: "EditTestScope" });
     const att = d.attachments || {};
     const refs = d.reqReferences || {};
     return {
-      "sec-basics": !!formData.name?.trim() && !!formData.status,
+      "sec-basics": !!formData.name?.trim() && formData.name.trim().length <= 255 && !!formData.status,
       "sec-product": !!d.product && (d.modules?.length > 0),
       "sec-requirements": !!(refs.prd || refs.figma || refs.apiDoc || refs.userStory || refs.epic || (Array.isArray(refs.devTicket) ? refs.devTicket.length : refs.devTicket) || refs.additionalDocs?.length),
       "sec-scope": hasHtml(d.inScope),
@@ -1477,13 +1500,16 @@ useActivitySource({ section: "WORK", module: "QA", page: "EditTestScope" });
   };
 
   /**
-   * Linked suites/runs are stored as an array of { name, link }. Scopes saved
-   * before they became multi-select hold a single object, so both shapes are
-   * read here rather than migrating the stored JSON.
+   * Linked suites/runs/cases/sprints are stored as an array of { name, link }.
+   * Scopes saved before they became multi-select hold a single object, so both
+   * shapes are normalized here.
    */
-  const asLinkedIds = (v: any): string[] | undefined => {
-    if (Array.isArray(v)) return v.map((i: any) => String(i.link)).filter(Boolean);
-    return v?.link ? [String(v.link)] : undefined;
+  const asLinkedIds = (v: any): string[] => {
+    if (!v) return [];
+    if (Array.isArray(v)) return v.map((i: any) => String(i?.link ?? i?.id ?? i?.name ?? i)).filter(Boolean);
+    if (typeof v === 'object' && v.link) return [String(v.link)];
+    if (typeof v === 'string' && v.trim()) return [v.trim()];
+    return [];
   };
 
   const updateLinkedItemArray = (field: string, val: any[]) => {
@@ -1656,6 +1682,13 @@ useActivitySource({ section: "WORK", module: "QA", page: "EditTestScope" });
       setTimeout(() => nameInputRef.current?.focus?.(), 350);
       return;
     }
+    if (formData.name.trim().length > 255) {
+      setNameError("Test Scope Name cannot exceed 255 characters");
+      message.error("Test Scope Name cannot exceed 255 characters");
+      scrollToSection('sec-basics');
+      setTimeout(() => nameInputRef.current?.focus?.(), 350);
+      return;
+    }
     if (!formData.status) {
       message.error("Status is required");
       scrollToSection('sec-basics');
@@ -1667,6 +1700,7 @@ useActivitySource({ section: "WORK", module: "QA", page: "EditTestScope" });
       setSubmitting(true);
       const payload = {
         ...formData,
+        name: formData.name.trim(),
         start_date: formData.start_date ? dayjs(formData.start_date).format('YYYY-MM-DD') : null,
         end_date: formData.end_date ? dayjs(formData.end_date).format('YYYY-MM-DD') : null,
       };
@@ -1675,9 +1709,10 @@ useActivitySource({ section: "WORK", module: "QA", page: "EditTestScope" });
       setIsDirty(false);
       message.success(`Scope updated successfully`);
       router.push("/qa-workspace/test-scope");
-    } catch (error) {
+    } catch (error: any) {
       console.error(error);
-      message.error("Failed to update Test Scope");
+      const errMsg = error?.response?.data?.error || error?.response?.data?.message || error?.message || "Failed to update Test Scope";
+      message.error(errMsg);
     } finally {
       setSubmitting(false);
     }
@@ -1693,12 +1728,20 @@ useActivitySource({ section: "WORK", module: "QA", page: "EditTestScope" });
       setTimeout(() => nameInputRef.current?.focus?.(), 350);
       return;
     }
+    if (formData.name.trim().length > 255) {
+      setNameError("Test Scope Name cannot exceed 255 characters");
+      message.error("Test Scope Name cannot exceed 255 characters");
+      scrollToSection('sec-basics');
+      setTimeout(() => nameInputRef.current?.focus?.(), 350);
+      return;
+    }
     setNameError(null);
 
     try {
       setSubmitting(true);
       const payload = {
         ...formData,
+        name: formData.name.trim(),
         status: 'In Review',
         details: {
           ...(formData.details || {}),
@@ -1715,9 +1758,10 @@ useActivitySource({ section: "WORK", module: "QA", page: "EditTestScope" });
       setIsDirty(false);
       message.success(`Scope updated and approval requested successfully`);
       router.push("/qa-workspace/test-scope");
-    } catch (error) {
+    } catch (error: any) {
       console.error(error);
-      message.error("Failed to request approval for Test Scope");
+      const errMsg = error?.response?.data?.error || error?.response?.data?.message || error?.message || "Failed to request approval for Test Scope";
+      message.error(errMsg);
     } finally {
       setSubmitting(false);
     }
@@ -1756,8 +1800,20 @@ useActivitySource({ section: "WORK", module: "QA", page: "EditTestScope" });
   const sprintOptions = sprints.map(s => ({ value: s.id || s.name, label: s.name }));
 
   /* The workspace's own module list — the same one QA Space → Settings curates.
+     Filter by selected project so modules from other projects are not shown.
      Anything typed here that isn't on it is registered on save. */
-  const moduleOpts = qaModules.map((m: any) => ({
+  const selectedProject = projectOptions.find(p => p.value === formData.details.product);
+  const selectedProjectId = selectedProject?.id;
+  const selectedProductName = (formData.details.product || '').trim().toLowerCase();
+
+  const filteredQaModules = qaModules.filter((m: any) => {
+    if (!selectedProductName && !selectedProjectId) return false;
+    if (selectedProjectId && m.project_id && String(m.project_id) === String(selectedProjectId)) return true;
+    if (selectedProductName && m.project_name && String(m.project_name).trim().toLowerCase() === selectedProductName) return true;
+    return false;
+  });
+
+  const moduleOpts = filteredQaModules.map((m: any) => ({
     value: String(m.module_name),
     label: String(m.module_name),
   }));
@@ -1829,6 +1885,7 @@ useActivitySource({ section: "WORK", module: "QA", page: "EditTestScope" });
       {previewImg && (
         <ImageModal src={previewImg.src} name={previewImg.name} onClose={() => setPreviewImg(null)} />
       )}
+      <style dangerouslySetInnerHTML={{ __html: NO_MODULES_STYLES }} />
       <style dangerouslySetInnerHTML={{
         __html: `
         .ts-create {
@@ -2396,8 +2453,31 @@ useActivitySource({ section: "WORK", module: "QA", page: "EditTestScope" });
                       ref={nameInputRef}
                       placeholder="e.g. Checkout revamp — release 2.4 regression"
                       value={formData.name}
-                      status={nameError ? 'error' : undefined}
-                      onChange={(e) => { setNameError(null); updateRoot('name', e.target.value); }}
+                      count={{
+                        show: ({ count }) => (
+                          <span
+                            style={{
+                              color: count > 255 ? "#ef4444" : "var(--ts-text-3, #94a3b8)",
+                              fontWeight: count > 255 ? 600 : 400,
+                              fontSize: 12,
+                            }}
+                          >
+                            {count} / 255
+                          </span>
+                        ),
+                      }}
+                      status={nameError || (formData.name?.trim()?.length || 0) > 255 ? 'error' : undefined}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        if (val.trim().length > 255) {
+                          setNameError("Test Scope Name cannot exceed 255 characters");
+                        } else if (!val.trim()) {
+                          setNameError("Test Scope Name is required");
+                        } else {
+                          setNameError(null);
+                        }
+                        updateRoot('name', val);
+                      }}
                     />
                   </Field>
                   <Field label="Scope Type" className="md:col-span-3">
@@ -2538,6 +2618,12 @@ useActivitySource({ section: "WORK", module: "QA", page: "EditTestScope" });
                       searchPlaceholder="Search or type a new module…"
                       itemNoun="modules"
                       freeText={true}
+                      emptyComponent={
+                        <NoModulesEmpty
+                          projectName={formData.details.product}
+                          onRefresh={fetchQaModules}
+                        />
+                      }
                       style={{ width: '100%' }}
                     />
                     <TokenList
@@ -3322,39 +3408,61 @@ useActivitySource({ section: "WORK", module: "QA", page: "EditTestScope" });
                     </Field>
                   )}
 
-                  <Field label="Linked Sprints">
+                  <Field
+                    label={`Linked Sprints${(asLinkedIds(formData.details.linkedItems?.sprints) || []).length ? ` (${(asLinkedIds(formData.details.linkedItems?.sprints) || []).length})` : ''}`}
+                  >
                     <SearchableDropdown
+                      mode="multiple"
                       options={sprints.map(s => ({
                         label: s.name,
                         value: String(s.id || s.name),
                         description: s.description || '',
                         badge: <span style={{ background: '#3b82f6', color: '#fff', borderRadius: '50%', width: 24, height: 24, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10 }}>S</span>
                       }))}
-                      value={formData.details.linkedItems?.sprints?.link ? String(formData.details.linkedItems.sprints.link) : undefined}
-                      onChange={v => {
-                        if (!v) {
-                          updateLinkedItem('sprints', 'name', '');
-                          updateLinkedItem('sprints', 'link', '');
-                        } else {
-                          const selected = sprints.find(s => String(s.id || s.name) === v);
-                          if (selected) {
-                            updateLinkedItem('sprints', 'name', selected.name);
-                            updateLinkedItem('sprints', 'link', String(selected.id || selected.name));
-                          }
-                        }
+                      value={asLinkedIds(formData.details.linkedItems?.sprints)}
+                      onChange={(v: string[]) => {
+                        updateLinkedItemArray(
+                          'sprints',
+                          (v || []).map(id => {
+                            const hit = sprints.find(s => String(s.id || s.name) === id);
+                            return { name: hit?.name || id, link: id };
+                          })
+                        );
                       }}
                       onSearch={fetchSprintsSearch}
                       loading={loadingSprints}
-                      placeholder="Search Sprints…"
+                      placeholder={sprints.length ? "Search Sprints…" : "No sprints found"}
+                      itemNoun="sprints"
                       style={{ width: '100%' }}
+                    />
+                    <TokenList
+                      items={(asLinkedIds(formData.details.linkedItems?.sprints) || []).map(id => {
+                        const hit = sprints.find(s => String(s.id || s.name) === id);
+                        const stored = Array.isArray(formData.details.linkedItems?.sprints)
+                          ? formData.details.linkedItems.sprints.find((i: any) => String(i.link || i.id || i.name) === id)?.name
+                          : formData.details.linkedItems?.sprints?.name;
+                        return {
+                          id,
+                          label: hit?.name || stored || id,
+                        };
+                      })}
+                      onRemove={(id) => {
+                        const current = Array.isArray(formData.details.linkedItems?.sprints)
+                          ? formData.details.linkedItems.sprints
+                          : formData.details.linkedItems?.sprints ? [formData.details.linkedItems.sprints] : [];
+                        updateLinkedItemArray('sprints', current.filter((i: any) => String(i.link || i.id || i.name) !== id));
+                      }}
                     />
                   </Field>
 
                   {/* Parent cases only. A parent stands for every child case
                       beneath it, so listing the children here would just be
                       noise the QA already covered by picking the parent. */}
-                  <Field label="Linked Test Cases">
+                  <Field
+                    label={`Linked Test Cases${(asLinkedIds(formData.details.linkedItems?.testCases) || []).length ? ` (${(asLinkedIds(formData.details.linkedItems?.testCases) || []).length})` : ''}`}
+                  >
                     <SearchableDropdown
+                      mode="multiple"
                       options={testCases.map((tc: any) => ({
                         label: tc.title || tc.name || tc.id,
                         value: String(tc.id),
@@ -3366,23 +3474,39 @@ useActivitySource({ section: "WORK", module: "QA", page: "EditTestScope" });
                         ].filter(Boolean).join(' · '),
                         badge: <span style={{ background: '#10b981', color: '#fff', borderRadius: '50%', width: 24, height: 24, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10 }}>TC</span>
                       }))}
-                      value={formData.details.linkedItems?.testCases?.link ? String(formData.details.linkedItems.testCases.link) : undefined}
-                      onChange={v => {
-                        if (!v) {
-                          updateLinkedItem('testCases', 'name', '');
-                          updateLinkedItem('testCases', 'link', '');
-                        } else {
-                          const selected = testCases.find((tc: any) => String(tc.id) === v);
-                          if (selected) {
-                            updateLinkedItem('testCases', 'name', selected.title || selected.name || selected.id);
-                            updateLinkedItem('testCases', 'link', String(selected.id));
-                          }
-                        }
+                      value={asLinkedIds(formData.details.linkedItems?.testCases)}
+                      onChange={(v: string[]) => {
+                        updateLinkedItemArray(
+                          'testCases',
+                          (v || []).map(id => {
+                            const hit = testCases.find(tc => String(tc.id) === id);
+                            return { name: hit?.title || hit?.name || hit?.id || id, link: id };
+                          })
+                        );
                       }}
                       onSearch={fetchTestCasesSearch}
                       loading={loadingTestCases}
-                      placeholder="Search parent test cases…"
+                      placeholder={testCases.length ? "Search parent test cases…" : "No test cases found"}
+                      itemNoun="cases"
                       style={{ width: '100%' }}
+                    />
+                    <TokenList
+                      items={(asLinkedIds(formData.details.linkedItems?.testCases) || []).map(id => {
+                        const hit = testCases.find(tc => String(tc.id) === id);
+                        const stored = Array.isArray(formData.details.linkedItems?.testCases)
+                          ? formData.details.linkedItems.testCases.find((i: any) => String(i.link || i.id || i.name) === id)?.name
+                          : formData.details.linkedItems?.testCases?.name;
+                        return {
+                          id,
+                          label: hit?.title || hit?.name || stored || id,
+                        };
+                      })}
+                      onRemove={(id) => {
+                        const current = Array.isArray(formData.details.linkedItems?.testCases)
+                          ? formData.details.linkedItems.testCases
+                          : formData.details.linkedItems?.testCases ? [formData.details.linkedItems.testCases] : [];
+                        updateLinkedItemArray('testCases', current.filter((i: any) => String(i.link || i.id || i.name) !== id));
+                      }}
                     />
                   </Field>
 
@@ -3392,12 +3516,10 @@ useActivitySource({ section: "WORK", module: "QA", page: "EditTestScope" });
                       scopes saved under the old single-value shape still load. */}
                   <Field
                     label={`Linked Test Suites${(asLinkedIds(formData.details.linkedItems?.testSuites) || []).length ? ` (${(asLinkedIds(formData.details.linkedItems?.testSuites) || []).length})` : ''}`}
-                    className="md:col-span-2"
                     hint="Pick every suite that validates this scope — the rest stay in the dropdown."
                   >
                     <SearchableDropdown
                       mode="multiple"
-                      renderTags
                       options={testSuites.map((s: any) => ({
                         label: s.suite_name || 'Untitled suite',
                         value: String(s.id),
@@ -3405,7 +3527,7 @@ useActivitySource({ section: "WORK", module: "QA", page: "EditTestScope" });
                           s.parent_title,
                           s.module_name && s.module_name !== 'Unassigned' ? s.module_name : null,
                           `${s.case_count ?? 0} case${Number(s.case_count) === 1 ? '' : 's'}`,
-                        ].filter(Boolean).join(' \u00b7 '),
+                        ].filter(Boolean).join(' · '),
                         badge: (
                           <span style={{ background: '#3b82f6', color: '#fff', borderRadius: '50%', width: 24, height: 24, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10 }}>TS</span>
                         ),
@@ -3422,43 +3544,36 @@ useActivitySource({ section: "WORK", module: "QA", page: "EditTestScope" });
                       }
                       onSearch={fetchTestSuitesSearch}
                       loading={loadingTestSuites}
-                      placeholder={testSuites.length ? 'Search test suites\u2026' : 'No test suites created yet'}
+                      placeholder={testSuites.length ? 'Search test suites…' : 'No test suites created yet'}
                       itemNoun="suites"
-                      maxTagCount={6}
-                      /* The overlay takes this width verbatim \u2014 names plus their
-                         scenario and case count need the room. */
-                      width={560}
                       style={{ width: '100%' }}
-                      onMoreClick={() => {
-                        const allIds = asLinkedIds(formData.details.linkedItems?.testSuites) || [];
-                        const hiddenIds = allIds.slice(6);
-                        const hiddenItems = hiddenIds.map(id => {
-                          const hit = testSuites.find((s: any) => String(s.id) === id);
-                          return {
-                            name: hit?.suite_name || 'Untitled suite',
-                            description: [
-                              hit?.parent_title,
-                              hit?.module_name && hit?.module_name !== 'Unassigned' ? hit?.module_name : null,
-                              `${hit?.case_count ?? 0} case${Number(hit?.case_count) === 1 ? '' : 's'}`,
-                            ].filter(Boolean).join(' · '),
-                            badge: (
-                              <span style={{ background: '#3b82f6', color: '#fff', borderRadius: '50%', width: 24, height: 24, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10 }}>TS</span>
-                            ),
-                          };
-                        });
-                        setMoreModalState({ visible: true, title: "Additional Linked Test Suites", items: hiddenItems });
+                    />
+                    <TokenList
+                      items={(asLinkedIds(formData.details.linkedItems?.testSuites) || []).map(id => {
+                        const hit = testSuites.find((s: any) => String(s.id) === id);
+                        const stored = Array.isArray(formData.details.linkedItems?.testSuites)
+                          ? formData.details.linkedItems.testSuites.find((i: any) => String(i.link || i.id || i.name) === id)?.name
+                          : formData.details.linkedItems?.testSuites?.name;
+                        return {
+                          id,
+                          label: hit?.suite_name || stored || 'Untitled suite',
+                        };
+                      })}
+                      onRemove={(id) => {
+                        const current = Array.isArray(formData.details.linkedItems?.testSuites)
+                          ? formData.details.linkedItems.testSuites
+                          : formData.details.linkedItems?.testSuites ? [formData.details.linkedItems.testSuites] : [];
+                        updateLinkedItemArray('testSuites', current.filter((i: any) => String(i.link || i.id || i.name) !== id));
                       }}
                     />
                   </Field>
 
                   <Field
                     label={`Linked Test Runs${(asLinkedIds(formData.details.linkedItems?.testRuns) || []).length ? ` (${(asLinkedIds(formData.details.linkedItems?.testRuns) || []).length})` : ''}`}
-                    className="md:col-span-2"
                     hint="Runs executed against this scope."
                   >
                     <SearchableDropdown
                       mode="multiple"
-                      renderTags
                       options={testRuns.map((r: any) => ({
                         label: r.run_name || 'Untitled run',
                         value: String(r.id),
@@ -3468,7 +3583,7 @@ useActivitySource({ section: "WORK", module: "QA", page: "EditTestScope" });
                           r.total_cases !== undefined
                             ? `${r.passed_count ?? 0}/${r.total_cases ?? 0} passed`
                             : null,
-                        ].filter(Boolean).join(' \u00b7 '),
+                        ].filter(Boolean).join(' · '),
                         badge: (
                           <span style={{ background: '#10b981', color: '#fff', borderRadius: '50%', width: 24, height: 24, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10 }}>TR</span>
                         ),
@@ -3485,31 +3600,26 @@ useActivitySource({ section: "WORK", module: "QA", page: "EditTestScope" });
                       }
                       onSearch={fetchTestRunsSearch}
                       loading={loadingTestRuns}
-                      placeholder={testRuns.length ? 'Search test runs\u2026' : 'No test runs recorded yet'}
+                      placeholder={testRuns.length ? 'Search test runs…' : 'No test runs recorded yet'}
                       itemNoun="runs"
-                      maxTagCount={6}
-                      width={560}
                       style={{ width: '100%' }}
-                      onMoreClick={() => {
-                        const allIds = asLinkedIds(formData.details.linkedItems?.testRuns) || [];
-                        const hiddenIds = allIds.slice(6);
-                        const hiddenItems = hiddenIds.map(id => {
-                          const r = testRuns.find((r: any) => String(r.id) === id);
-                          return {
-                            name: r?.run_name || 'Untitled run',
-                            description: [
-                              r?.suite_name,
-                              r?.execution_type,
-                              r?.total_cases !== undefined
-                                ? `${r?.passed_count ?? 0}/${r?.total_cases ?? 0} passed`
-                                : null,
-                            ].filter(Boolean).join(' · '),
-                            badge: (
-                              <span style={{ background: '#10b981', color: '#fff', borderRadius: '50%', width: 24, height: 24, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10 }}>TR</span>
-                            ),
-                          };
-                        });
-                        setMoreModalState({ visible: true, title: "Additional Linked Test Runs", items: hiddenItems });
+                    />
+                    <TokenList
+                      items={(asLinkedIds(formData.details.linkedItems?.testRuns) || []).map(id => {
+                        const hit = testRuns.find((r: any) => String(r.id) === id);
+                        const stored = Array.isArray(formData.details.linkedItems?.testRuns)
+                          ? formData.details.linkedItems.testRuns.find((i: any) => String(i.link || i.id || i.name) === id)?.name
+                          : formData.details.linkedItems?.testRuns?.name;
+                        return {
+                          id,
+                          label: hit?.run_name || stored || 'Untitled run',
+                        };
+                      })}
+                      onRemove={(id) => {
+                        const current = Array.isArray(formData.details.linkedItems?.testRuns)
+                          ? formData.details.linkedItems.testRuns
+                          : formData.details.linkedItems?.testRuns ? [formData.details.linkedItems.testRuns] : [];
+                        updateLinkedItemArray('testRuns', current.filter((i: any) => String(i.link || i.id || i.name) !== id));
                       }}
                     />
                   </Field>

@@ -120,7 +120,7 @@ export default function ProjectsPage() {
       }}>
         <div style={{ maxWidth: 1400, margin: '0 auto' }}>
           {/* Premium Header */}
-          <div style={{ marginBottom: 40 }}>
+          <div data-tour="tickets-project-setup" style={{ marginBottom: 40 }}>
             <Space align="center" size={16}>
               <div style={{
                 background: 'linear-gradient(135deg, #1677ff 0%, #003eb3 100%)',

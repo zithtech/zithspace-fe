@@ -489,7 +489,13 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
     // nav containers; treating them as grants defeated every item-level
     // exclusion. Mirrors satisfies() in useProductNavigation and on the API.
     return features.some(k =>
-      user.subscriptionFeatures!.some(feature => feature === k || feature.startsWith(k + "_"))
+      user.subscriptionFeatures!.some(feature => {
+        if (feature === k) return true;
+        if (k === "work_playbooks_requested_playbooks" && feature.includes("request_playbook")) {
+          return false;
+        }
+        return feature.startsWith(k + "_");
+      })
     );
   };
 

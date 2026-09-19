@@ -302,6 +302,7 @@ const InlineTicketSelector = ({ record, updateHub, user }: any) => {
         }}
       >
         <div
+          data-tour="dochub-link-ticket"
           className="dh-inline-cell flex items-center gap-1 py-1 px-2 rounded-md transition-colors group"
           style={{ width: 'fit-content', maxWidth: '100%' }}
         >
@@ -331,7 +332,7 @@ const InlineTicketSelector = ({ record, updateHub, user }: any) => {
 
   if (!record.ticketId && !isEditing) {
     return (
-      <div onClick={(e) => { e.stopPropagation(); setIsEditing(true); }}>
+      <div data-tour="dochub-link-ticket" onClick={(e) => { e.stopPropagation(); setIsEditing(true); }}>
         <Button
           type="text"
           size="small"
@@ -393,6 +394,7 @@ const InlineProjectSelector = ({ record, projects, projectsLoading, updateHub, u
   if (record.projectId && !isEditing) {
     return (
       <div
+        data-tour="dochub-link-project"
         onClick={(e) => { e.stopPropagation(); setIsEditing(true); }}
         className="dh-inline-cell flex items-center gap-1.5 py-1 px-2 rounded-md cursor-pointer transition-colors group"
         style={{ width: 'fit-content', maxWidth: '100%' }}
@@ -407,7 +409,7 @@ const InlineProjectSelector = ({ record, projects, projectsLoading, updateHub, u
 
   if (!record.projectId && !isEditing) {
     return (
-      <div onClick={(e) => { e.stopPropagation(); setIsEditing(true); }}>
+      <div data-tour="dochub-link-project" onClick={(e) => { e.stopPropagation(); setIsEditing(true); }}>
         <Button
           type="text"
           size="small"
@@ -664,6 +666,7 @@ const HubCard: React.FC<{
     >
       {/* Corner ribbon — Public/Private */}
       <span
+        data-tour="dochub-visibility-btn"
         className={`dh-ribbon ${isPublic ? 'dh-ribbon-public' : 'dh-ribbon-private'}`}
         aria-label={isPublic ? 'Public' : 'Private'}
       >
@@ -698,9 +701,10 @@ const HubCard: React.FC<{
             >
               {hub.name}
             </h4>
-            {hub.project?.name && (
+            {hub.project?.name ? (
               <Tooltip title={hub.project.name}>
                 <span
+                  data-tour="dochub-link-project"
                   className="inline-flex items-center gap-1 px-1.5 py-[1px] rounded text-[10px] font-medium truncate mt-1"
                   style={{ background: accent.tint, color: accent.from, maxWidth: 140 }}
                 >
@@ -708,6 +712,15 @@ const HubCard: React.FC<{
                   <span className="truncate">{hub.project.name}</span>
                 </span>
               </Tooltip>
+            ) : (
+              <span
+                data-tour="dochub-link-project"
+                className="inline-flex items-center gap-1 px-1.5 py-[1px] rounded text-[10px] font-medium truncate mt-1 text-slate-400 dark:text-slate-500"
+                style={{ background: 'transparent', maxWidth: 140 }}
+              >
+                <ProjectOutlined style={{ fontSize: 9 }} />
+                <span>No project</span>
+              </span>
             )}
           </div>
         </div>
@@ -732,6 +745,7 @@ const HubCard: React.FC<{
           <div className="flex items-center gap-0.5">
             <Tooltip title={starred ? 'Unstar' : 'Star'}>
               <button
+                data-tour="dochub-star-btn"
                 type="button"
                 onClick={(e) => onToggleStar(e, hub)}
                 aria-label={starred ? 'Unstar' : 'Star'}
@@ -743,6 +757,7 @@ const HubCard: React.FC<{
             </Tooltip>
             <Tooltip title="Share">
               <button
+                data-tour="dochub-share-btn"
                 type="button"
                 onClick={(e) => onShare(e, hub)}
                 className="dh-card-action-btn"
@@ -1396,6 +1411,7 @@ const DocumentHubPage = () => {
           <div className="flex items-center gap-2 w-full">
             <Tooltip title={starred ? 'Remove from starred' : 'Add to starred'}>
               <button
+                data-tour="dochub-star-btn"
                 type="button"
                 onClick={(e) => handleToggleStar(e, record)}
                 aria-label={starred ? 'Unstar' : 'Star'}
@@ -1628,6 +1644,7 @@ const DocumentHubPage = () => {
         <div className="dh-row-actions" onClick={(e) => e.stopPropagation()}>
           <Tooltip title="Share">
             <button
+              data-tour="dochub-share-btn"
               type="button"
               onClick={(e) => handleShareHub(e, record)}
               className="dh-row-action-btn"
@@ -2010,6 +2027,7 @@ const DocumentHubPage = () => {
 
     const pill = (
       <span
+        data-tour="dochub-visibility-btn"
         className={`dh-vis-pill ${isOwner ? 'is-clickable' : ''}`}
         onClick={(e) => e.stopPropagation()}
       >
@@ -2387,7 +2405,7 @@ const DocumentHubPage = () => {
             </div>
 
             {canCreateDocument && (
-              <div className="dh-side-cta">
+              <div className="dh-side-cta" data-tour="dochub-create-hub-btn">
               <Popover
                 open={createMenuOpen}
                 onOpenChange={setCreateMenuOpen}
@@ -2684,7 +2702,7 @@ const DocumentHubPage = () => {
                   </div>
                 )}
               >
-                <Button icon={<CloudUploadOutlined />} style={{ color: 'var(--text-slate-500)', height: 32, borderRadius: 8, border: '1px solid var(--border-slate-200)', background: 'var(--bg-pure-white)' }}>
+                <Button data-tour="dochub-upload-import" icon={<CloudUploadOutlined />} style={{ color: 'var(--text-slate-500)', height: 32, borderRadius: 8, border: '1px solid var(--border-slate-200)', background: 'var(--bg-pure-white)' }}>
                   Upload
                 </Button>
               </Dropdown>

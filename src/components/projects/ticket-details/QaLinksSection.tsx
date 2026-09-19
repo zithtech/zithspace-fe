@@ -101,13 +101,18 @@ interface QaLinksSectionProps {
 }
 
 /** Picker options for one QA list; skipped entirely when the user can't add. */
-const useQaOptionsFor = (group: QaGroup, enabled: boolean) => {
+const useQaOptionsFor = (group: QaGroup, search: string, enabled: boolean) => {
   return useQuery({
-    queryKey: ["qa-picker", group.type],
+    queryKey: ["qa-picker", group.type, search],
     queryFn: async () => {
-      // The api helper unwraps { success, data } for us, but QA endpoints are
-      // also hit through the raw client elsewhere — stay tolerant of both.
-      const res: any = await axios.get(group.endpoint);
+      const sep = group.endpoint.includes('?') ? '&' : '?';
+      // Load 10 initially, or a large limit if the user is searching
+      let url = `${group.endpoint}${sep}pageSize=${search ? 100 : 10}`;
+      if (search) {
+        url += `&search=${encodeURIComponent(search)}`;
+      }
+      
+      const res: any = await axios.get(url);
       return (Array.isArray(res) ? res : res?.data?.data || res?.data || []) as any[];
     },
     enabled,
@@ -128,6 +133,22 @@ export default function QaLinksSection({
   const { canReadScope, canReadCase, canReadRun, canManageQa } = usePermission();
   const [pendingType, setPendingType] = useState<QaEntityType | null>(null);
   const [removingId, setRemovingId] = useState<string | null>(null);
+  
+  const [searchQuery, setSearchQuery] = useState<Record<QaEntityType, string>>({
+    scope: "",
+    case: "",
+    run: "",
+  });
+  const [debouncedQuery, setDebouncedQuery] = useState<Record<QaEntityType, string>>({
+    scope: "",
+    case: "",
+    run: "",
+  });
+
+  React.useEffect(() => {
+    const timer = setTimeout(() => setDebouncedQuery(searchQuery), 300);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
 
   const canPick: Record<QaEntityType, boolean> = {
     scope: canEdit && (canReadScope || canManageQa),
@@ -136,9 +157,9 @@ export default function QaLinksSection({
   };
   const showPickers = canPick.scope || canPick.case || canPick.run;
 
-  const scopeOptions = useQaOptionsFor(QA_GROUPS[0], canPick.scope);
-  const caseOptions = useQaOptionsFor(QA_GROUPS[1], canPick.case);
-  const runOptions = useQaOptionsFor(QA_GROUPS[2], canPick.run);
+  const scopeOptions = useQaOptionsFor(QA_GROUPS[0], debouncedQuery.scope, canPick.scope);
+  const caseOptions = useQaOptionsFor(QA_GROUPS[1], debouncedQuery.case, canPick.case);
+  const runOptions = useQaOptionsFor(QA_GROUPS[2], debouncedQuery.run, canPick.run);
   const optionQueries = {
     scope: scopeOptions,
     case: caseOptions,
@@ -221,6 +242,7 @@ export default function QaLinksSection({
                 <SearchableDropdown
                   value={null}
                   onChange={(val: string) => handleLink(group, val)}
+                  onSearch={(val: string) => setSearchQuery(prev => ({ ...prev, [group.type]: val }))}
                   options={buildOptions(group, query.data)}
                   triggerLabel={group.label}
                   placeholder={`Link ${group.noun}`}

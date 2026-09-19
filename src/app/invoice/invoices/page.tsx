@@ -76,13 +76,15 @@ import {
   useInvoicePaymentHistory
 } from "@/hooks/useInvoices";
 
-import type {
+import {
   PaymentTransaction,
   PaymentHistoryData,
   PaymentStatus,
   PaymentMethod
 } from "@/services/invoiceService";
+import { currencySymbol } from "@/utils/currencies";
 import ComposeEmailDrawer from "@/components/customer/ComposeEmailDrawer";
+import { useActiveSettingsProfiles } from "@/hooks/useInvoiceSettings";
 import { useActivitySource } from "@/hooks/useActivitySource";
 import ConfirmDialog from "@/components/common/ConfirmDialog";
 import { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
@@ -313,10 +315,22 @@ export default function InvoiceInvoicesPage() {
     }
   }, [authLoading, canReadInvoice, canReadInvoiceHistory, router]);
 
+  // Listen for close preview message from embedded preview iframe
+  useEffect(() => {
+    const handleMessage = (e: MessageEvent) => {
+      if (e.data?.type === "CLOSE_INVOICE_PREVIEW") {
+        setPreviewInvoiceNumber(null);
+      }
+    };
+    window.addEventListener("message", handleMessage);
+    return () => window.removeEventListener("message", handleMessage);
+  }, []);
+
   // Email state
   const [emailDrawerOpen, setEmailDrawerOpen] = useState(false);
   const [selectedInvoiceForEmail, setSelectedInvoiceForEmail] = useState<any>(null);
   const { mutate: sendEmail, isPending: isSendingEmail } = useSendInvoiceEmail();
+  const { data: activeProfilesData } = useActiveSettingsProfiles();
 
   const handleQuickSend = (record: any) => {
     const snapshot = record.customerSnapshot as any;
@@ -327,18 +341,55 @@ export default function InvoiceInvoicesPage() {
       return;
     }
 
+    let companyName =
+      record.settingsSnapshot?.general?.companyName ||
+      record.settingsSnapshot?.name ||
+      record.settings?.general?.companyName ||
+      record.settings?.name ||
+      record.general?.companyName;
+
+    if (!companyName && Array.isArray(activeProfilesData) && activeProfilesData.length > 0) {
+      const active = activeProfilesData.find((p: any) => p.isActive) || activeProfilesData[0];
+      companyName = active?.general?.companyName || active?.name;
+    } else if (!companyName && activeProfilesData && (activeProfilesData as any)?.general?.companyName) {
+      companyName = (activeProfilesData as any).general.companyName;
+    }
+
+    if (!companyName) {
+      companyName = "Company";
+    }
+
+    const customerName =
+      snapshot?.companyName ||
+      snapshot?.name ||
+      record.customer?.companyName ||
+      record.customer?.name ||
+      "Valued Client";
+
+    const symbol = currencySymbol(record.currency || "USD");
+    const formattedTotal = `${symbol}\u00A0${Number(
+      record.grandTotal ?? record.total ?? 0
+    ).toLocaleString(undefined, {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    })}`;
+
+    const formattedDueDate = record.dueDate
+      ? dayjs(record.dueDate).format("MMM DD, YYYY")
+      : "Due on receipt";
+
     const hide = messageApi.loading(`Sending invoice ${record.invoiceNumber}...`, 0);
 
     sendEmail({
       id: record.id,
       data: {
         to: targetEmail,
-        subject: `Invoice ${record.invoiceNumber} from Your Company`,
-        message: `Dear ${snapshot?.name || 'Customer'},\n\nPlease find your invoice ${record.invoiceNumber} attached.`
+        subject: `Invoice #${record.invoiceNumber} from ${companyName} [${formattedTotal}]`,
+        message: `Dear ${customerName},\n\nWe hope this email finds you well.\n\nPlease find attached invoice #${record.invoiceNumber} for ${formattedTotal}, due on ${formattedDueDate}.\n\nInvoice Summary:\n• Invoice Number: #${record.invoiceNumber}\n• Amount Due: ${formattedTotal}\n• Payment Due Date: ${formattedDueDate}\n\nPlease review the attached document and initiate payment according to the agreed terms. Feel free to reply directly to this email if you have any questions.\n\nThank you for your business!\n\nBest regards,\n${companyName} Accounts Team`
       }
     }, {
       onSettled: () => hide(),
-      onSuccess: () => messageApi.success("Email sent successfully!")
+      onSuccess: () => messageApi.success(`Invoice #${record.invoiceNumber} sent to ${targetEmail}`)
     });
   };
 
@@ -425,7 +476,7 @@ export default function InvoiceInvoicesPage() {
         router.push(`/invoice/invoices/view/${record.invoiceNumber}`);
       },
     },
-    canUpdateInvoice && canUseNewInvoice && ["DRAFT", "PENDING", "APPROVED", "APPROVAL"].includes(record.status) && {
+    canUpdateInvoice && canUseNewInvoice && ["DRAFT", "PENDING", "APPROVED", "APPROVAL", "SENT", "OVERDUE", "PARTIALLY_PAID", "PAID"].includes(record.status) && {
       key: "edit",
       label: menuLabel("Edit Invoice", "Modify invoice information", <Edit2 size={14} />, '#64748b', 'rgba(100,116,139,0.12)'),
       onClick: () => {
@@ -446,11 +497,11 @@ export default function InvoiceInvoicesPage() {
         downloadInvoice(record.id);
       },
     },
-    canSendInvoiceMail && !['DRAFT', 'PENDING'].includes(record.status) && {
+    /* canSendInvoiceMail && !['DRAFT', 'PENDING'].includes(record.status) && {
       key: "send_quick",
       label: menuLabel("Quick Send Email", "Send email directly", <Mail size={14} />, '#10b981', 'rgba(16,185,129,0.12)'),
       onClick: () => handleQuickSend(record),
-    },
+    }, */
     canSendInvoiceMail && !['DRAFT', 'PENDING'].includes(record.status) && {
       key: "compose_email",
       label: menuLabel("Compose & Send", "Customize and send mail", <Edit2 size={14} />, '#64748b', 'rgba(100,116,139,0.12)'),
@@ -729,6 +780,10 @@ export default function InvoiceInvoicesPage() {
     return invoices.reduce((sum, inv) => sum + Number(inv.grandTotal || (inv as any).total || 0), 0);
   }, [invoices]);
 
+  const primaryCurrency = useMemo(() => {
+    return invoices.find((inv) => inv?.currency)?.currency || "INR";
+  }, [invoices]);
+
   const paidCount = invoices.filter(
     (i) => fromBackendStatus(i.status) === "PAID"
   ).length;
@@ -827,12 +882,15 @@ export default function InvoiceInvoicesPage() {
     {
       title: "AMOUNT",
       dataIndex: "grandTotal",
-      width: 110,
-      render: (v, record) => (
-        <div className="font-bold" style={{ color: 'var(--text-slate-900)', fontSize: 12.5, whiteSpace: 'nowrap' }}>
-          ${Number(v || record.total || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-        </div>
-      ),
+      width: 165,
+      render: (v, record) => {
+        const symbol = currencySymbol(record?.currency);
+        return (
+          <div className="font-bold" style={{ color: 'var(--text-slate-900)', fontSize: 12.5, whiteSpace: 'nowrap' }}>
+            {symbol}{Number(v || record.total || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+          </div>
+        );
+      },
     },
     {
       title: "CLIENT STATUS",
@@ -923,12 +981,13 @@ export default function InvoiceInvoicesPage() {
     {
       title: "BALANCE DUE",
       dataIndex: "balanceDue",
-      width: 110,
-      render: (v) => {
+      width: 165,
+      render: (v, record) => {
         const balance = Number(v || 0);
+        const symbol = currencySymbol(record?.currency);
         return (
           <div className={balance === 0 ? "text-green-600 font-medium" : "font-semibold"} style={{ color: balance === 0 ? '#10b981' : 'var(--text-slate-900)', fontSize: 12.5, whiteSpace: 'nowrap' }}>
-            ${balance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            {symbol}{balance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </div>
         );
       },
@@ -1202,7 +1261,7 @@ export default function InvoiceInvoicesPage() {
                 </div>
                 <div className="pp-stat-bottom">
                   <div className="pp-stat-value-wrap">
-                    <span className="pp-stat-value">${totalRevenue.toLocaleString(undefined, { maximumFractionDigits: 0 })}</span>
+                    <span className="pp-stat-value">{currencySymbol(primaryCurrency)}{totalRevenue.toLocaleString(undefined, { maximumFractionDigits: 0 })}</span>
                   </div>
                   <span className="pp-stat-period">All-time billed</span>
                 </div>
@@ -1435,7 +1494,7 @@ export default function InvoiceInvoicesPage() {
                           <span className="pc-foot-item">
                             <span className="pc-foot-key">Amount:</span>
                             <span className="pc-foot-val" style={{ fontWeight: 700 }}>
-                              ${Number(record.grandTotal || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                              {currencySymbol(record?.currency)}{Number(record.grandTotal || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                             </span>
                           </span>
                         </div>
@@ -1491,7 +1550,7 @@ export default function InvoiceInvoicesPage() {
                     key: inv.id,
                   }))}
                   pagination={false}
-                  scroll={{ x: 1100, y: selectedRowKeys.length > 0 ? 'calc(100vh - 390px)' : 'calc(100vh - 325px)' }}
+                  scroll={{ x: 1300, y: selectedRowKeys.length > 0 ? 'calc(100vh - 390px)' : 'calc(100vh - 325px)' }}
                   className="pp-table"
                   onRow={(record) => ({
                     onClick: (e) => {
@@ -1554,7 +1613,7 @@ export default function InvoiceInvoicesPage() {
                 <li key={inv.id} className="text-sm mb-1">
                   <Text strong>{inv.invoiceNumber}</Text>
                   <Text type="secondary" className="ml-2">
-                    - ${Number(inv.grandTotal || inv.total || 0).toFixed(2)}
+                    - {currencySymbol(inv?.currency)}{Number(inv.grandTotal || inv.total || 0).toFixed(2)}
                     {inv.customerSnapshot && ` - ${(inv.customerSnapshot as any)?.companyName}`}
                   </Text>
                 </li>
@@ -1670,26 +1729,26 @@ export default function InvoiceInvoicesPage() {
             <div className="p-3 rounded-none border shadow-sm" style={{ backgroundColor: 'var(--customers-card-bg)', borderColor: 'var(--border-color)' }}>
               <Text type="secondary" className="text-[10px] uppercase font-bold tracking-wider block mb-1">Total</Text>
               <Text strong className="text-sm">
-                ${Number(statusInvoice?.grandTotal || statusInvoice?.total || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                {currencySymbol(statusInvoice?.currency)}{Number(statusInvoice?.grandTotal || statusInvoice?.total || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
               </Text>
             </div>
             <div className="p-3 rounded-none border shadow-sm" style={{ backgroundColor: 'var(--bg-slate-50)', borderColor: 'var(--border-color)' }}>
               <Text type="secondary" className="text-[10px] uppercase font-bold tracking-wider block mb-1">Paid</Text>
               <Text strong className="text-sm" style={{ color: 'var(--accounts-emerald-text)' }}>
-                ${Number(statusInvoice?.paidAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                {currencySymbol(statusInvoice?.currency)}{Number(statusInvoice?.paidAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
               </Text>
             </div>
             <div className="p-3 rounded-none border shadow-sm" style={{ backgroundColor: 'var(--bg-blue-50)', borderColor: 'var(--border-color)' }}>
               <Text type="secondary" className="text-[10px] uppercase font-bold tracking-wider block mb-1">Due</Text>
               <Text strong className="text-sm" style={{ color: 'var(--text-sky-500)' }}>
-                ${Number(statusInvoice?.balanceDue || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                {currencySymbol(statusInvoice?.currency)}{Number(statusInvoice?.balanceDue || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
               </Text>
             </div>
           </div>
 
           <Form form={statusForm} layout="vertical" onFinish={handlePaymentUpdate} requiredMark={false}>
             <Form.Item
-              label={<span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest leading-none">Payment Amount (USD)</span>}
+              label={<span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest leading-none">Payment Amount ({statusInvoice?.currency || 'INR'})</span>}
               name="paidAmount"
               rules={[
                 { required: true, message: "Please enter amount" },
@@ -1698,7 +1757,7 @@ export default function InvoiceInvoicesPage() {
                     const balanceDue = Number(statusInvoice?.balanceDue || 0);
                     const paidAmount = Number(value || 0);
                     if (paidAmount > balanceDue) {
-                      return Promise.reject(new Error(`Amount exceeds balance ($${balanceDue.toFixed(2)})`));
+                      return Promise.reject(new Error(`Amount exceeds balance (${currencySymbol(statusInvoice?.currency)}${balanceDue.toFixed(2)})`));
                     }
                     if (paidAmount <= 0) {
                       return Promise.reject(new Error('Amount must be positive'));
@@ -1713,7 +1772,7 @@ export default function InvoiceInvoicesPage() {
                 min={0}
                 max={statusInvoice?.balanceDue}
                 placeholder="0.00"
-                prefix={<span className="text-slate-400">$</span>}
+                prefix={<span className="text-slate-400">{currencySymbol(statusInvoice?.currency)}</span>}
                 className="h-12 rounded-none text-lg font-bold"
                 step="0.01"
                 style={{ backgroundColor: 'var(--customers-card-bg)', borderColor: 'var(--border-color)', color: 'var(--text-primary)' }}
@@ -2012,7 +2071,7 @@ export default function InvoiceInvoicesPage() {
                       Total
                     </span>
                     <div className="font-semibold" style={{ color: 'var(--text-primary)' }}>
-                      ${Number(paymentHistory?.summary?.totalAmount || transactionInvoice?.grandTotal || transactionInvoice?.total || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      {currencySymbol(transactionInvoice?.currency)}{Number(paymentHistory?.summary?.totalAmount || transactionInvoice?.grandTotal || transactionInvoice?.total || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </div>
                   </div>
 
@@ -2022,7 +2081,7 @@ export default function InvoiceInvoicesPage() {
                       Paid
                     </span>
                     <div className="font-semibold text-green-700">
-                      ${Number(paymentHistory?.summary?.totalPaid || transactionInvoice?.paidAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      {currencySymbol(transactionInvoice?.currency)}{Number(paymentHistory?.summary?.totalPaid || transactionInvoice?.paidAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </div>
                   </div>
 
@@ -2032,7 +2091,7 @@ export default function InvoiceInvoicesPage() {
                       Refund
                     </span>
                     <div className="font-semibold text-orange-700">
-                      ${Number(paymentHistory?.summary?.totalRefunded || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      {currencySymbol(transactionInvoice?.currency)}{Number(paymentHistory?.summary?.totalRefunded || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </div>
                   </div>
 
@@ -2042,7 +2101,7 @@ export default function InvoiceInvoicesPage() {
                       Balance
                     </span>
                     <div className="font-semibold text-blue-700">
-                      ${Number(paymentHistory?.summary?.balanceDue || transactionInvoice?.balanceDue || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      {currencySymbol(transactionInvoice?.currency)}{Number(paymentHistory?.summary?.balanceDue || transactionInvoice?.balanceDue || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </div>
                   </div>
                 </div>
@@ -2170,7 +2229,7 @@ export default function InvoiceInvoicesPage() {
                             </td>
                             <td className="px-4 py-3 whitespace-nowrap text-right">
                               <span className={`font-medium`} style={{ color: payment.status === 'REFUNDED' ? '#f97316' : 'var(--text-primary)' }}>
-                                {payment.status === 'REFUNDED' ? '−' : ''}${Number(payment.amount || 0).toLocaleString()}
+                                {payment.status === 'REFUNDED' ? '−' : ''}{currencySymbol(transactionInvoice?.currency)}{Number(payment.amount || 0).toLocaleString()}
                               </span>
                               <div className="text-[10px]" style={{ color: 'var(--text-slate-400)' }}>
                                 {payment.paymentMethod?.replace('_', ' ') || 'Bank Transfer'}
@@ -2190,10 +2249,10 @@ export default function InvoiceInvoicesPage() {
                               </div>
                             </td>
                             <td className="px-4 py-3 whitespace-nowrap text-right font-medium" style={{ color: '#16a34a' }}>
-                              ${Number(payment.amount || 0).toLocaleString()}
+                              {currencySymbol(transactionInvoice?.currency)}{Number(payment.amount || 0).toLocaleString()}
                             </td>
                             <td className="px-4 py-3 whitespace-nowrap text-right font-medium" style={{ color: '#1d4ed8' }}>
-                              ${Number(payment.balanceAfter || 0).toLocaleString()}
+                              {currencySymbol(transactionInvoice?.currency)}{Number(payment.balanceAfter || 0).toLocaleString()}
                             </td>
                             <td className="px-4 py-3">
                               <div style={{ color: 'var(--text-slate-600)' }}>
@@ -2255,7 +2314,7 @@ export default function InvoiceInvoicesPage() {
                         <div className="flex justify-between items-start">
                           <div>
                             <span className="font-semibold text-sm" style={{ color: 'var(--text-primary)' }}>
-                              ${Number(payment.amount || 0).toLocaleString()}
+                              {currencySymbol(transactionInvoice?.currency)}{Number(payment.amount || 0).toLocaleString()}
                             </span>
                             <span className="text-xs ml-2" style={{ color: 'var(--text-slate-600)' }}>
                               {payment.description || 'Payment processed'}
@@ -2439,7 +2498,7 @@ export default function InvoiceInvoicesPage() {
                               {proof.paymentDate ? dayjs(proof.paymentDate).format('MMM DD, YYYY') : "Date Not Specified"}
                             </div>
                             <Text strong className="text-xl" style={{ color: "var(--text-primary)" }}>
-                              ${Number(proof.amount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                              {currencySymbol(selectedProofInvoice?.currency)}{Number(proof.amount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                             </Text>
                           </div>
                           <Tag color="success" className="m-0 px-2 py-0.5 border-0 font-medium">Uploaded</Tag>

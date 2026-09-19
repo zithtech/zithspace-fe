@@ -2,9 +2,9 @@
 
 
 import { Customer } from "@/services/customersService";
-import { Modal, Form, Input, Row, Col, Switch } from "antd";
-
+import { Modal, Form, Input, Row, Col, Switch, Select } from "antd";
 import { useEffect } from "react";
+import { useAllProjects } from "@/hooks/useGlobalData";
 
 type Props = {
   open: boolean;
@@ -16,33 +16,32 @@ type Props = {
 
 export default function CustomerModal({ open, loading, customer, onClose, onSave }: Props) {
   const [form] = Form.useForm();
+  const { data: allProjects = [], isLoading: loadingProjects } = useAllProjects({
+    enabled: open,
+  });
 
-  
-useEffect(() => {
-  if (!open) return; // only trigger on open
+  useEffect(() => {
+    if (!open) return; // only trigger on open
 
-  if (customer) {
-    form.setFieldsValue({
-      companyName: customer.companyName,
-      email: customer.email,
-      phone: customer.phone,
-      address: customer.address,
-      city: customer.city,
-      country: customer.country,
-      taxId: customer.taxId,
-      gstin: customer.gstin,
-      pan: customer.pan,
-      isActive: customer.isActive ?? true,
-    });
-  } else {
-    form.resetFields();
-    form.setFieldsValue({ isActive: true });
-  }
-}, [open, customer, form]);
-
-
-
-
+    if (customer) {
+      form.setFieldsValue({
+        companyName: customer.companyName,
+        email: customer.email,
+        phone: customer.phone,
+        address: customer.address,
+        city: customer.city,
+        country: customer.country,
+        taxId: customer.taxId,
+        gstin: customer.gstin,
+        pan: customer.pan,
+        isActive: customer.isActive ?? true,
+        projectIds: customer.projectIds || customer.projects?.map((p) => p.id) || [],
+      });
+    } else {
+      form.resetFields();
+      form.setFieldsValue({ isActive: true, projectIds: [] });
+    }
+  }, [open, customer, form]);
 
   return (
     <Modal
@@ -152,6 +151,29 @@ useEffect(() => {
             </Form.Item>
           </Col>
         </Row>
+
+        <Form.Item name="projectIds" label="Linked Projects (Optional)">
+          <Select
+            mode="multiple"
+            allowClear
+            showSearch
+            loading={loadingProjects}
+            placeholder={
+              loadingProjects
+                ? "Loading projects..."
+                : "Select project(s) to link (optional)"
+            }
+            filterOption={(input, option) =>
+              ((option?.label as string) || "")
+                .toLowerCase()
+                .includes(input.toLowerCase())
+            }
+            options={allProjects.map((p) => ({
+              value: p.value,
+              label: p.code ? `${p.label} (${p.code})` : p.label,
+            }))}
+          />
+        </Form.Item>
 
         <Form.Item 
           name="isActive" 

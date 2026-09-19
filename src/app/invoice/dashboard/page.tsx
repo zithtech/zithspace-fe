@@ -33,6 +33,7 @@ import dayjs from "dayjs";
 import type { Dayjs } from "dayjs";
 import { useInvoices } from "@/hooks/useInvoices";
 import type { ColumnsType } from "antd/es/table";
+import { currencySymbol } from "@/utils/currencies";
 
 import isBetween from "dayjs/plugin/isBetween";
 
@@ -342,14 +343,14 @@ export default function DashboardPage() {
     {
       title: "AMOUNT",
       dataIndex: "grandTotal",
-      width: 130,
+      width: 160,
       align: "right",
       render: (v, record) => (
         <span
           className="text-[12px] font-semibold tabular-nums"
           style={{ color: "var(--text-primary)" }}
         >
-          ${Number(v || record.total || 0).toLocaleString(undefined, {
+          {currencySymbol(record?.currency)}{Number(v || record.total || 0).toLocaleString(undefined, {
             minimumFractionDigits: 2,
             maximumFractionDigits: 2,
           })}
@@ -593,7 +594,7 @@ export default function DashboardPage() {
             </div>
 
             <div className="flex items-center gap-2 w-full md:w-auto">
-              {canReadInvoiceHistory && (
+              {/* {canReadInvoiceHistory && (
                 <Button
                   icon={<History size={13} />}
                   onClick={() => setHistoryDrawerVisible(true)}
@@ -602,7 +603,7 @@ export default function DashboardPage() {
                 >
                   <span>Email history</span>
                 </Button>
-              )}
+              )} */}
               {canCreateInvoice && canUseNewInvoice && (
                 <Button
                   type="primary"
@@ -651,19 +652,19 @@ export default function DashboardPage() {
                   />
                   <StatTile
                     label="Total revenue"
-                    value={`$${totalRevenue.toLocaleString(undefined, {
+                    value={`${currencySymbol(invoices[0]?.currency)}${totalRevenue.toLocaleString(undefined, {
                       maximumFractionDigits: 0,
                     })}`}
                     icon={DollarSign}
                     color="#10b981"
                     bgColor="rgba(16,185,129,0.1)"
-                    sub={`Paid: $${totalPaid.toLocaleString(undefined, {
+                    sub={`Paid: ${currencySymbol(invoices[0]?.currency)}${totalPaid.toLocaleString(undefined, {
                       maximumFractionDigits: 0,
                     })}`}
                   />
                   <StatTile
                     label="Pending amount"
-                    value={`$${pendingAmount.toLocaleString(undefined, {
+                    value={`${currencySymbol(invoices[0]?.currency)}${pendingAmount.toLocaleString(undefined, {
                       maximumFractionDigits: 0,
                     })}`}
                     icon={TrendingUp}
@@ -673,7 +674,7 @@ export default function DashboardPage() {
                   />
                   <StatTile
                     label="Overdue"
-                    value={`$${overdueAmount.toLocaleString(undefined, {
+                    value={`${currencySymbol(invoices[0]?.currency)}${overdueAmount.toLocaleString(undefined, {
                       maximumFractionDigits: 0,
                     })}`}
                     icon={AlertCircle}
@@ -950,10 +951,10 @@ export default function DashboardPage() {
         }}
       />
 
-      <EmailHistoryDrawer
+      {/* <EmailHistoryDrawer
         open={historyDrawerVisible}
         onClose={() => setHistoryDrawerVisible(false)}
-      />
+      /> */}
     </MainLayout>
   );
 }

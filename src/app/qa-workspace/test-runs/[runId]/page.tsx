@@ -450,6 +450,10 @@ export default function TestRunExecutionPage() {
    */
   const submitNewCase = async () => {
     if (!newCase.name.trim() || addSaving) return;
+    if (newCase.name.trim().length > 255) {
+      message.error("Test Case Name cannot exceed 255 characters");
+      return;
+    }
     setAddSaving(true);
     try {
       let finalSteps = [...newCase.steps];
@@ -584,6 +588,7 @@ export default function TestRunExecutionPage() {
 
           <div className="ex-actions">
             <button
+              data-tour="qa-run-details-btn"
               className={`ex-btn ex-btn--details${isOpen ? " is-open" : ""}`}
               onClick={() => toggleDetails(result.id)}
               aria-expanded={isOpen}
@@ -592,6 +597,7 @@ export default function TestRunExecutionPage() {
             </button>
             <span className="ex-divider" />
             <button
+              data-tour="qa-run-pass-btn"
               className={`ex-btn${result.status === "Pass" ? " is-on--pass" : ""}`}
               onClick={() => handleStatus(result, "Pass")}
               disabled={isSaving}
@@ -599,6 +605,7 @@ export default function TestRunExecutionPage() {
               <CheckCircleOutlined /> Pass
             </button>
             <button
+              data-tour="qa-run-fail-btn"
               className={`ex-btn${result.status === "Fail" ? " is-on--fail" : ""}`}
               onClick={() => handleStatus(result, "Fail")}
               disabled={isSaving}
@@ -606,6 +613,7 @@ export default function TestRunExecutionPage() {
               <CloseCircleOutlined /> Fail
             </button>
             <button
+              data-tour="qa-run-blocked-btn"
               className={`ex-btn${result.status === "Blocked" ? " is-on--blocked" : ""}`}
               onClick={() => handleStatus(result, "Blocked")}
               disabled={isSaving}
@@ -2144,6 +2152,7 @@ export default function TestRunExecutionPage() {
                   }
                 >
                   <Button
+                   data-tour="qa-run-fail-buglist"
                     icon={<BugOutlined />}
                     onClick={openBugModal}
                     disabled={counts.fail === 0}
@@ -2608,11 +2617,31 @@ export default function TestRunExecutionPage() {
                   />
                 </Form.Item>
 
-                <Form.Item label="Test Case Name" required style={{ marginBottom: 16 }}>
+                <Form.Item
+                  label="Test Case Name"
+                  required
+                  style={{ marginBottom: 16 }}
+                  validateStatus={newCase.name && newCase.name.trim().length > 255 ? 'error' : undefined}
+                  help={newCase.name && newCase.name.trim().length > 255 ? 'Test Case Name cannot exceed 255 characters' : undefined}
+                >
                   <Input
                     autoFocus
                     placeholder="e.g., Verify error shown when email format is invalid"
                     value={newCase.name}
+                    count={{
+                      show: ({ count }) => (
+                        <span
+                          style={{
+                            color: count > 255 ? "#ef4444" : "var(--text-secondary, #94a3b8)",
+                            fontWeight: count > 255 ? 600 : 400,
+                            fontSize: 12,
+                          }}
+                        >
+                          {count} / 255
+                        </span>
+                      ),
+                    }}
+                    status={newCase.name && newCase.name.trim().length > 255 ? 'error' : undefined}
                     onChange={(e) => setNewCase({ ...newCase, name: e.target.value })}
                     size="large"
                     style={{ borderRadius: 6 }}

@@ -53,9 +53,9 @@ export default function TestSuitesPage() {
   const [modules, setModules] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
-  const [scenarioFilter, setScenarioFilter] = useState<string | undefined>();
-  const [moduleFilter, setModuleFilter] = useState<string | undefined>();
-  const [coverageFilter, setCoverageFilter] = useState<string | undefined>();
+  const [scenarioFilter, setScenarioFilter] = useState<string[]>([]);
+  const [moduleFilter, setModuleFilter] = useState<string[]>([]);
+  const [coverageFilter, setCoverageFilter] = useState<string[]>([]);
   /* Suites are read inside one project, the way the Bug List works — the
      choice is remembered and shared with the other QA Space lists. */
   const {
@@ -110,9 +110,9 @@ export default function TestSuitesPage() {
             page,
             pageSize,
             search: debouncedSearch || undefined,
-            parent_test_case_id: scenarioFilter || undefined,
-            module_id: moduleFilter || undefined,
-            coverageFilter: coverageFilter || undefined,
+            parent_test_case_id: scenarioFilter.length > 0 ? scenarioFilter.join(',') : undefined,
+            module_id: moduleFilter.length > 0 ? moduleFilter.join(',') : undefined,
+            coverageFilter: coverageFilter.length > 0 ? coverageFilter.join(',') : undefined,
             project_id: projectFilter || undefined,
             allowed_projects: projectOptions.length > 0 ? projectOptions.map(p => p.value).join(',') : undefined
           }
@@ -144,9 +144,9 @@ export default function TestSuitesPage() {
   /** Switching project drops filters that name things from the old one. */
   const chooseProject = (id: string | null) => {
     setProjectId(id);
-    setScenarioFilter(undefined);
-    setModuleFilter(undefined);
-    setCoverageFilter(undefined);
+    setScenarioFilter([]);
+    setModuleFilter([]);
+    setCoverageFilter([]);
     setSearchTerm('');
     setPage(1);
   };
@@ -174,10 +174,12 @@ export default function TestSuitesPage() {
 
   const filteredSuites = suites; // Data is already filtered by backend
 
+  const totalSuites = stats?.totalSuites ?? stats?.allSuites ?? totalItems;
   const totalLinkedCases = stats?.totalLinkedCases || 0;
   const uniqueScenarios = stats?.uniqueScenarios || 0;
   const emptySuites = stats?.emptySuites || 0;
-  const avgCasesPerSuite = totalItems > 0 ? (totalLinkedCases / totalItems).toFixed(1) : '0';
+  const linkedSuites = stats?.linkedSuites ?? (totalSuites > emptySuites ? totalSuites - emptySuites : 0);
+  const avgCasesPerSuite = totalSuites > 0 ? (totalLinkedCases / totalSuites).toFixed(1) : '0';
 
   const scenarioFilterOptions = [
     { value: 'Unassigned', label: 'Unassigned' },
@@ -190,26 +192,28 @@ export default function TestSuitesPage() {
   ];
 
   const moduleNavOptions = modules.map(m => ({ value: String(m.id), label: String(m.module_name) }));
-  const selectedModuleLabel = moduleFilter === 'Unassigned'
-    ? 'Unassigned'
-    : moduleNavOptions.find(m => m.value === moduleFilter)?.label;
+  const selectedModuleLabel = moduleFilter.length === 1
+    ? (moduleFilter[0] === 'Unassigned' ? 'Unassigned' : moduleNavOptions.find(m => m.value === moduleFilter[0])?.label)
+    : moduleFilter.length > 1
+      ? `${moduleFilter.length} Modules`
+      : undefined;
 
   /* ── Banner figures ───────────────────────────────────────────────────
      The Ticket List's sprint head reads a sprint's completion; here the same
      three rows read how much of the suite library actually holds cases —
      an empty suite runs nothing. */
   const projectName = projectOptions.find(p => p.value === selectedProjectId)?.label;
-  const filledPct = totalItems > 0 ? Math.round(((totalItems - emptySuites) / totalItems) * 100) : 0;
+  const filledPct = totalSuites > 0 ? Math.round(((totalSuites - emptySuites) / totalSuites) * 100) : 0;
   const bannerAccent = filledPct >= 80 ? '#10b981' : filledPct > 0 ? '#3b82f6' : '#64748b';
 
   const activeFilterCount =
-    (searchTerm.trim() ? 1 : 0) + (scenarioFilter ? 1 : 0) + (moduleFilter ? 1 : 0) + (coverageFilter ? 1 : 0);
+    (searchTerm.trim() ? 1 : 0) + scenarioFilter.length + moduleFilter.length + coverageFilter.length;
 
   const clearFilters = () => {
     setSearchTerm('');
-    setScenarioFilter(undefined);
-    setModuleFilter(undefined);
-    setCoverageFilter(undefined);
+    setScenarioFilter([]);
+    setModuleFilter([]);
+    setCoverageFilter([]);
   };
 
   // Client-side pagination variables are now derived from totalItems for the footer
@@ -487,9 +491,9 @@ export default function TestSuitesPage() {
                       <TestSuiteFilters
                         filters={{ scenarioFilter, moduleFilter, coverageFilter }}
                         onFilterChange={(key, val) => {
-                          if (key === 'scenarioFilter') setScenarioFilter(val || undefined);
-                          if (key === 'moduleFilter') setModuleFilter(val || undefined);
-                          if (key === 'coverageFilter') setCoverageFilter(val || undefined);
+                          if (key === 'scenarioFilter') setScenarioFilter(val || []);
+                          if (key === 'moduleFilter') setModuleFilter(val || []);
+                          if (key === 'coverageFilter') setCoverageFilter(val || []);
                         }}
                         onReset={clearFilters}
                         scenarioOptions={scenarioFilterOptions}
@@ -529,8 +533,8 @@ export default function TestSuitesPage() {
               <Space size={10} className="sc-header-right">
                 <Segmented
                   className="saas-segmented-premium sc-owner-seg"
-                  value={coverageFilter || 'any'}
-                  onChange={(v) => setCoverageFilter(v === 'any' ? undefined : String(v))}
+                  value={coverageFilter.length === 1 ? coverageFilter[0] : coverageFilter.length === 0 ? 'any' : 'custom'}
+                  onChange={(v) => setCoverageFilter(v === 'any' ? [] : [String(v)])}
                   options={[
                     {
                       value: 'any',
@@ -538,7 +542,7 @@ export default function TestSuitesPage() {
                         <span className="sc-owner-opt">
                           <Layers size={13} />
                           <span className="sc-owner-opt__label">All Suites</span>
-                          <span className="sc-owner-opt__count">{totalItems}</span>
+                          <span className="sc-owner-opt__count">{totalSuites}</span>
                         </span>
                       ),
                     },
@@ -548,6 +552,7 @@ export default function TestSuitesPage() {
                         <span className="sc-owner-opt">
                           <Link2 size={13} />
                           <span className="sc-owner-opt__label">With Cases</span>
+                          <span className="sc-owner-opt__count">{linkedSuites}</span>
                         </span>
                       ),
                     },
@@ -561,6 +566,17 @@ export default function TestSuitesPage() {
                         </span>
                       ),
                     },
+                    ...(coverageFilter.length > 1 || (coverageFilter.length === 1 && !['linked', 'empty'].includes(coverageFilter[0]))
+                      ? [{
+                          value: 'custom',
+                          label: (
+                            <span className="sc-owner-opt">
+                              <FilterOutlined style={{ fontSize: 12 }} />
+                              <span className="sc-owner-opt__label">{`${coverageFilter.length} active`}</span>
+                            </span>
+                          ),
+                        }]
+                      : []),
                   ]}
                 />
 
@@ -607,6 +623,7 @@ export default function TestSuitesPage() {
                     icon={<PlusOutlined />}
                     onClick={() => openCreateModal()}
                     style={{ height: 36, borderRadius: 8, fontWeight: 700 }}
+                    data-tour="test-suites"
                   >
                     Create Suite
                   </Button>
@@ -626,31 +643,28 @@ export default function TestSuitesPage() {
                   <TicketFilterPill
                     icon={<FolderOutlined style={{ fontSize: 11 }} />}
                     label="Scenario"
-                    value={scenarioFilter || ""}
+                    values={scenarioFilter}
                     options={scenarioFilterOptions}
-                    onChange={(val) => setScenarioFilter(val || undefined)}
+                    onChange={(val) => setScenarioFilter(val || [])}
                     onSearch={setParentSearchTerm}
                     itemNoun="scenarios"
                     width={280}
-                    multiple={false}
                   />
                   <TicketFilterPill
                     icon={<ApartmentOutlined style={{ fontSize: 11 }} />}
                     label="Module"
-                    value={moduleFilter || ""}
+                    values={moduleFilter}
                     options={moduleFilterOptions}
-                    onChange={(val) => setModuleFilter(val || undefined)}
+                    onChange={(val) => setModuleFilter(val || [])}
                     itemNoun="modules"
-                    multiple={false}
                   />
                   <TicketFilterPill
                     icon={<LinkOutlined style={{ fontSize: 11 }} />}
                     label="Coverage"
-                    value={coverageFilter || ""}
+                    values={coverageFilter}
                     options={COVERAGE_OPTIONS}
-                    onChange={(val) => setCoverageFilter(val || undefined)}
+                    onChange={(val) => setCoverageFilter(val || [])}
                     itemNoun="options"
-                    multiple={false}
                   />
                 </div>
                 <div className="tl-filter-row-actions">
@@ -709,7 +723,7 @@ export default function TestSuitesPage() {
                         {projectName || 'Project'} — All Test Suites
                       </Typography.Text>
                       <span className="tl-sprint-tags">
-                        <span className="tl-sprint-tag tl-sprint-tag-active">{totalItems} SUITES</span>
+                        <span className="tl-sprint-tag tl-sprint-tag-active">{totalSuites} SUITES</span>
                         {emptySuites > 0 && (
                           <span className="tl-sprint-tag tl-sprint-tag-empty">{emptySuites} EMPTY</span>
                         )}

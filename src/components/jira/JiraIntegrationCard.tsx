@@ -3,10 +3,14 @@ import { Card, Typography, Button, Tag, Space, message } from "antd";
 import { Plug, ServerCrash, Blocks } from "lucide-react";
 import JiraMigrationWizard from "./JiraMigrationWizard";
 import { api } from "@/lib/axios";
+import { useProduct } from "@/context/ProductContext";
 
 const { Title, Text } = Typography;
 
 export default function JiraIntegrationCard() {
+  const { manifest } = useProduct();
+  const brandName = manifest?.name || "Zukvo";
+
   const [loading, setLoading] = useState(false);
   const [isConnected, setIsConnected] = useState(false);
   const [showWizard, setShowWizard] = useState(false);
@@ -89,7 +93,7 @@ export default function JiraIntegrationCard() {
               Jira Migration
             </Title>
             <Text style={{ fontSize: 13, color: 'var(--text-secondary)' }}>
-              Import your existing Jira projects, tickets, and bugs into Zukvo.
+              Import your existing Jira projects, tickets, and bugs into {brandName}.
             </Text>
           </div>
         </div>

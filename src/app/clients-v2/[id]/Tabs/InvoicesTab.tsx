@@ -8,6 +8,7 @@ import { api } from "@/lib/axios";
 import dayjs from "dayjs";
 import { TimeTrackingHeader } from "@/components/time-tracking/TimeTrackingHeader";
 import { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
+import { currencySymbol } from "@/utils/currencies";
 
 interface InvoicesTabProps {
   clientId: string;
@@ -151,10 +152,10 @@ export default function InvoicesTab({ clientId, onRefresh }: InvoicesTabProps) {
     {
       title: "AMOUNT",
       dataIndex: "grandTotal",
-      width: 120,
-      render: (v: number) => (
+      width: 160,
+      render: (v: number, record: any) => (
         <div className="font-bold" style={{ color: 'var(--text-primary)' }}>
-          ${Number(v || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+          {currencySymbol(record?.currency)}{Number(v || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
         </div>
       ),
     },
@@ -351,7 +352,7 @@ export default function InvoicesTab({ clientId, onRefresh }: InvoicesTabProps) {
 
                     <div className="pc-foot-row" style={{ justifyContent: "space-between", alignItems: "center" }}>
                       <span className="pc-foot-item" style={{ fontSize: "13px", fontWeight: 700, color: "var(--text-slate-900)" }}>
-                        ${Number(invoice.grandTotal || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        {currencySymbol(invoice?.currency)}{Number(invoice.grandTotal || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                       </span>
                       <span>
                         {(!invoice.clientStatus || invoice.clientStatus === "UNPAID") ? (

@@ -120,6 +120,7 @@ export default function CalendarToolbar({
                 <SegmentedSwitcher value={view} onChange={onViewChange} options={views} />
                 {canCreate && (
                     <Button
+                        data-tour="calendar-create-event-btn"
                         type="primary"
                         icon={<PlusOutlined />}
                         onClick={onCreateEvent}

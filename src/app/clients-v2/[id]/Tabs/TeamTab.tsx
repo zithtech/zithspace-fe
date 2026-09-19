@@ -1,6 +1,7 @@
 "use client";
 
 import NoData from "@/components/common/NoData";
+import ConfirmDialog from "@/components/common/ConfirmDialog";
 import dayjs from "dayjs";
 import React, { useEffect, useMemo, useState } from "react";
 import {
@@ -157,6 +158,7 @@ export default function TeamTab({ clientId, projects = [], onCountChange, onRefr
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<TeamMember | null>(null);
   const [messageApi, contextHolder] = message.useMessage();
+  const [modal, modalContextHolder] = Modal.useModal();
 
   const [viewMode, setViewMode] = useState<"list" | "grid">("grid");
   const [searchQuery, setSearchQuery] = useState("");
@@ -232,27 +234,27 @@ export default function TeamTab({ clientId, projects = [], onCountChange, onRefr
           key: "remove",
           danger: true,
           label: (
-            <div className="pp-menu-item">
-              <span className="pp-menu-ic" style={{ color: "#ef4444", background: "rgba(239, 68, 68, 0.12)" }}>
-                <Trash2 size={13} />
-              </span>
-              <span className="pp-menu-text">
-                <span className="pp-menu-title" style={{ color: "#ef4444" }}>Remove member</span>
-                <span className="pp-menu-desc">Remove from client portal</span>
-              </span>
-            </div>
+            <ConfirmDialog
+              tone="danger"
+              icon={<Trash2 size={16} />}
+              title="Remove team member?"
+              description={`Are you sure you want to remove ${m.displayName || "this team member"} from the client portal?`}
+              confirmText="Remove"
+              cancelText="Cancel"
+              placement="left"
+              onConfirm={() => remove(m)}
+            >
+              <div onClick={(e) => e.stopPropagation()} className="pp-menu-item">
+                <span className="pp-menu-ic" style={{ color: "#ef4444", background: "rgba(239, 68, 68, 0.12)" }}>
+                  <Trash2 size={13} />
+                </span>
+                <span className="pp-menu-text">
+                  <span className="pp-menu-title" style={{ color: "#ef4444" }}>Remove member</span>
+                  <span className="pp-menu-desc">Remove from client portal</span>
+                </span>
+              </div>
+            </ConfirmDialog>
           ),
-          onClick: () => {
-            Modal.confirm({
-              title: "Remove team member?",
-              content: "They will disappear from the client portal immediately.",
-              okText: "Remove",
-              okType: "danger",
-              cancelText: "Cancel",
-              centered: true,
-              onOk: () => remove(m),
-            });
-          },
         },
       ],
     };
@@ -485,6 +487,7 @@ export default function TeamTab({ clientId, projects = [], onCountChange, onRefr
   return (
     <div style={{ padding: "4px 0 24px", color: c.text }}>
       {contextHolder}
+      {modalContextHolder}
 
       {/* Header */}
       <div className="cd-tab-sticky-head">
@@ -1003,27 +1006,27 @@ function TeamCard({
         key: "remove",
         danger: true,
         label: (
-          <div className="pp-menu-item">
-            <span className="pp-menu-ic" style={{ color: "#ef4444", background: "rgba(239, 68, 68, 0.12)" }}>
-              <Trash2 size={13} />
-            </span>
-            <span className="pp-menu-text">
-              <span className="pp-menu-title" style={{ color: "#ef4444" }}>Remove member</span>
-              <span className="pp-menu-desc">Remove from client portal</span>
-            </span>
-          </div>
+          <ConfirmDialog
+            tone="danger"
+            icon={<Trash2 size={16} />}
+            title="Remove team member?"
+            description={`Are you sure you want to remove ${member.displayName || "this team member"} from the client portal?`}
+            confirmText="Remove"
+            cancelText="Cancel"
+            placement="left"
+            onConfirm={onRemove}
+          >
+            <div onClick={(e) => e.stopPropagation()} className="pp-menu-item">
+              <span className="pp-menu-ic" style={{ color: "#ef4444", background: "rgba(239, 68, 68, 0.12)" }}>
+                <Trash2 size={13} />
+              </span>
+              <span className="pp-menu-text">
+                <span className="pp-menu-title" style={{ color: "#ef4444" }}>Remove member</span>
+                <span className="pp-menu-desc">Remove from client portal</span>
+              </span>
+            </div>
+          </ConfirmDialog>
         ),
-        onClick: () => {
-          Modal.confirm({
-            title: "Remove team member?",
-            content: "They will disappear from the client portal immediately.",
-            okText: "Remove",
-            okType: "danger",
-            cancelText: "Cancel",
-            centered: true,
-            onOk: onRemove,
-          });
-        },
       },
     ],
   };

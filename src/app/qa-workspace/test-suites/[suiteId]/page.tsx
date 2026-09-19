@@ -9,8 +9,8 @@ import ZukvoLoader from "@/components/common/ZukvoLoader";
 
 import React, { useState, useEffect, useMemo } from "react";
 import MainLayout from "@/components/layout/MainLayout";
-import { Button, Table, Tag, Input, Select, Checkbox, Typography, Drawer, Form, Tooltip } from "antd";
-import { PlusOutlined, ArrowLeftOutlined, SearchOutlined, SnippetsOutlined, FileTextOutlined, CheckCircleOutlined, BugOutlined, CloseOutlined } from "@ant-design/icons";
+import { Button, Table, Tag, Input, Select, Checkbox, Typography, Drawer, Form, Tooltip, Popover, Space } from "antd";
+import { PlusOutlined, ArrowLeftOutlined, SearchOutlined, SnippetsOutlined, FileTextOutlined, CheckCircleOutlined, BugOutlined, CloseOutlined, FilterOutlined, ExpandAltOutlined, ReloadOutlined, AppstoreOutlined, ThunderboltOutlined } from "@ant-design/icons";
 import { usePermission } from "@/hooks/usePermission";
 import { useRouter, useParams } from "next/navigation";
 import { Layers, Zap, Pencil, Trash2, Folder, Target, Link, User, Menu, RotateCw } from "lucide-react";
@@ -22,6 +22,9 @@ import { SearchableDropdown } from "@/components/common/SearchableDropdown";
 import { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
 import { useDebounce } from "@/hooks/useDebounce";
 import { useQaOptions } from "@/hooks/useQaOptions";
+import { useQaProject } from "@/components/qa/QaProjectGate";
+import TicketFilterPill from "@/components/projects/TicketFilterPill";
+import SuiteCaseFilters from "./SuiteCaseFilters";
 
 const { Text } = Typography;
 
@@ -79,12 +82,16 @@ export default function TestSuiteDetailsPage() {
   const suiteId = params?.suiteId as string;
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
 
+  const { projectId: selectedProjectId } = useQaProject();
+
   const [suite, setSuite] = useState<any>(null);
   const [parents, setParents] = useState<any[]>([]);
   const [modules, setModules] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [linkedCasesPaginated, setLinkedCasesPaginated] = useState<any[]>([]);
   const [totalItems, setTotalItems] = useState(0);
+
+  const effectiveProjectId = suite?.project_id || selectedProjectId || undefined;
 
   // Modal States for Add / Manage Test Cases in Suite
   const [modalOpen, setModalOpen] = useState(false);
@@ -96,9 +103,11 @@ export default function TestSuiteDetailsPage() {
   // Filters + pagination for the linked case list
   const [searchTerm, setSearchTerm] = useState("");
   const debouncedSearch = useDebounce(searchTerm, 500);
-  const [typeFilter, setTypeFilter] = useState<string | undefined>();
-  const [priorityFilter, setPriorityFilter] = useState<string | undefined>();
-  const [statusFilter, setStatusFilter] = useState<string | undefined>();
+  const [typeFilter, setTypeFilter] = useState<string[]>([]);
+  const [priorityFilter, setPriorityFilter] = useState<string[]>([]);
+  const [statusFilter, setStatusFilter] = useState<string[]>([]);
+  const [isFilterPanelOpen, setIsFilterPanelOpen] = useState(false);
+  const [isFilterRowOpen, setIsFilterRowOpen] = useState(false);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(15);
 
@@ -111,7 +120,7 @@ export default function TestSuiteDetailsPage() {
     const searchParents = async () => {
       try {
         const res = await axios.get("/api/v2/qa/parents", {
-          params: { search: debouncedParentSearch, limit: 50 }
+          params: { search: debouncedParentSearch, limit: 50, project_id: effectiveProjectId }
         });
         const fetched = Array.isArray(res.data) ? res.data : (res.data?.data || []);
         setParents((prev: any[]) => {
@@ -122,7 +131,7 @@ export default function TestSuiteDetailsPage() {
       } catch (e) {}
     };
     searchParents();
-  }, [debouncedParentSearch]);
+  }, [debouncedParentSearch, effectiveProjectId]);
 
   useEffect(() => {
     setPage(1);
@@ -130,30 +139,34 @@ export default function TestSuiteDetailsPage() {
 
   const { canReadSuite, canUpdateSuite } = usePermission();
   // Priority options come from QA Settings
-  const { priorityOptions } = useQaOptions();
+  const { priorityOptions, testTypeOptions } = useQaOptions();
 
   const fetchSuiteData = async () => {
     if (!suiteId) return;
     try {
       setLoading(true);
-      const [suiteRes, parentsRes, modRes, casesRes] = await Promise.all([
+      const [suiteRes, modRes, casesRes] = await Promise.all([
         axios.get(`/api/v2/qa/suites/${suiteId}`),
-        axios.get("/api/v2/qa/parents?limit=1000"),
         axios.get("/api/v2/qa/modules?limit=1000"),
         apiClient.get(`/api/v2/qa/suites/${suiteId}/cases`, {
           params: {
             page,
             pageSize,
             search: debouncedSearch || undefined,
-            test_type: typeFilter || undefined,
-            priority: priorityFilter || undefined,
-            status: statusFilter || undefined
+            test_type: typeFilter.length > 0 ? (typeFilter.length === 1 ? typeFilter[0] : typeFilter.join(',')) : undefined,
+            priority: priorityFilter.length > 0 ? (priorityFilter.length === 1 ? priorityFilter[0] : priorityFilter.join(',')) : undefined,
+            status: statusFilter.length > 0 ? (statusFilter.length === 1 ? statusFilter[0] : statusFilter.join(',')) : undefined
           }
         })
       ]);
 
       const suiteData = suiteRes?.data || suiteRes || null;
       setSuite(suiteData);
+
+      const projId = suiteData?.project_id || selectedProjectId || undefined;
+      const parentsRes: any = await axios.get("/api/v2/qa/parents", {
+        params: { limit: 1000, project_id: projId }
+      });
 
       setParents(Array.isArray(parentsRes) ? parentsRes : (parentsRes?.data?.data || parentsRes?.data || []));
       setModules(Array.isArray(modRes) ? modRes : (modRes?.data?.data || modRes?.data || []));
@@ -172,7 +185,7 @@ export default function TestSuiteDetailsPage() {
     if (canReadSuite && suiteId) {
       fetchSuiteData();
     }
-  }, [canReadSuite, suiteId, page, pageSize, debouncedSearch, typeFilter, priorityFilter, statusFilter]);
+  }, [canReadSuite, suiteId, page, pageSize, debouncedSearch, typeFilter, priorityFilter, statusFilter, selectedProjectId]);
 
   // Fetch child test cases when parent_test_case_id or module_id is selected inside modal
   useEffect(() => {
@@ -222,7 +235,8 @@ export default function TestSuiteDetailsPage() {
 
   const handleSaveSuite = async () => {
     try {
-      if (!formData.suite_name) return message.error("Suite Name is required");
+      if (!formData.suite_name?.trim()) return message.error("Suite Name is required");
+      if (formData.suite_name.trim().length > 255) return message.error("Suite Name cannot exceed 255 characters");
       if (!formData.parent_test_case_id && !formData.module_id) return message.error("Parent Business Scenario is required");
 
       let chosenModuleId = formData.module_id;
@@ -316,23 +330,32 @@ export default function TestSuiteDetailsPage() {
 
   const filteredCases = linkedCasesPaginated;
 
-  const uniqueSorted = (values: any[]) =>
-    Array.from(new Set(values.filter(Boolean)))
-      .sort((a, b) => String(a).localeCompare(String(b)))
-      .map(v => ({ value: String(v), label: String(v) }));
+  const typeFilterOptions = useMemo(() => {
+    const configured = (testTypeOptions || []).map(o => o.value);
+    const defaults = ["Functional", "UI", "API", "Regression", "Security", "Performance", "Usability", "Integration", "Smoke", "Sanity"];
+    const all = Array.from(new Set([...configured, ...defaults]));
+    return all.sort((a, b) => a.localeCompare(b)).map(v => ({ value: v, label: v }));
+  }, [testTypeOptions]);
 
-  const typeFilterOptions = uniqueSorted(linkedCases.map(c => c.test_type || 'Functional'));
-  const statusFilterOptions = uniqueSorted(linkedCases.map(c => c.status || 'Active'));
+  const statusFilterOptions = [
+    { value: 'Draft', label: 'Draft' },
+    { value: 'Ready', label: 'Ready' },
+    { value: 'Active', label: 'Active' },
+    { value: 'Deprecated', label: 'Deprecated' },
+  ];
 
-  const activeFilterCount = (searchTerm.trim() ? 1 : 0) + (typeFilter ? 1 : 0) + (priorityFilter ? 1 : 0) +
-    (statusFilter ? 1 : 0);
+  const activeFilterCount =
+    (searchTerm.trim() ? 1 : 0) + typeFilter.length + priorityFilter.length + statusFilter.length;
 
   const clearFilters = () => {
     setSearchTerm('');
-    setTypeFilter(undefined);
-    setPriorityFilter(undefined);
-    setStatusFilter(undefined);
+    setTypeFilter([]);
+    setPriorityFilter([]);
+    setStatusFilter([]);
   };
+
+  const activePct = linkedCases.length > 0 ? Math.round((activeCount / linkedCases.length) * 100) : 0;
+  const bannerAccent = activePct >= 80 ? '#10b981' : activePct > 0 ? '#3b82f6' : '#64748b';
 
   const pageCount = Math.max(1, Math.ceil(totalItems / pageSize));
   const safePage = Math.min(page, pageCount);
@@ -543,45 +566,186 @@ export default function TestSuiteDetailsPage() {
         .cd-title { min-width: 0; margin: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
         .dh-main-controls { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
         .sc-topbar .dh-main-controls .ant-btn { height: 32px !important; border-radius: 8px; }
+        .sc-topbar .dh-main-controls .ant-btn.ant-btn-icon-only {
+          width: 32px !important;
+          min-width: 32px !important;
+          height: 32px !important;
+          padding: 0 !important;
+          display: inline-flex !important;
+          align-items: center !important;
+          justify-content: center !important;
+        }
         @media (max-width: 900px) { .cd-crumb, .cd-sep, .sc-topbar__div { display: none; } }
 
-        /* ── Stat tiles ─────────────────────────────────────────────── */
-        .pp-stat-card {
-          background: transparent; border: 1px solid var(--border-slate-200);
-          border-radius: 0; padding: 10px 12px; min-height: 84px;
-          display: flex; flex-direction: column; justify-content: space-between; gap: 8px;
+        /* ── Popover overlay ────────────────────────────────────────── */
+        .tf-popover-overlay .ant-popover-inner {
+          padding: 0 !important;
+          background: transparent !important;
+          box-shadow: none !important;
+          border: 0 !important;
+          border-radius: 12px !important;
         }
-        .pp-stat-top { display: flex; align-items: center; justify-content: space-between; }
-        .pp-stat-left { display: flex; align-items: center; gap: 8px; }
-        .pp-stat-icon { width: 26px; height: 26px; border-radius: 6px; display: inline-flex; align-items: center; justify-content: center; font-size: 13px; }
-        .pp-stat-label { font-size: 11.5px; font-weight: 600; color: var(--text-slate-500); }
-        .pp-stat-bottom { display: flex; align-items: flex-end; justify-content: space-between; gap: 8px; }
-        .pp-stat-value-wrap { display: flex; align-items: baseline; gap: 6px; }
-        .pp-stat-value { font-size: 18px; font-weight: 800; color: var(--text-slate-900); letter-spacing: -0.02em; line-height: 1; }
-        .pp-stat-period { font-size: 10.5px; color: var(--text-slate-400); font-weight: 500; }
-        .sc-stat-hit { cursor: pointer; outline: none; }
-        .sc-stat-hit .pp-stat-card { transition: border-color .15s ease, background .15s ease; }
-        .sc-stat-hit:hover .pp-stat-card { border-color: #bfdbfe; background: var(--bg-slate-50); }
-        .sc-stat-hit.is-active .pp-stat-card { border-color: #3b82f6; box-shadow: inset 0 -2px 0 #3b82f6; }
-        .sc-stat-hit:focus-visible .pp-stat-card { border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59,130,246,.16); }
+        .tf-popover-overlay .ant-popover-arrow { display: none !important; }
 
-        /* ── Filter row ─────────────────────────────────────────────── */
-        .sc-filters { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
-        .sc-filters__search { width: 240px; }
-        .sc-filters .ant-input-affix-wrapper { height: 32px !important; border-radius: 8px; }
-        .sc-filters__field { min-width: 150px; }
-        .sc-filters .sd-trigger { height: 32px !important; min-height: 32px !important; border-radius: 8px !important; padding-block: 0 !important; }
-        .sc-clear {
-          height: 32px; display: inline-flex; align-items: center;
-          font-size: 12px; font-weight: 600; color: #3b82f6;
-          padding: 0 11px; border-radius: 8px;
-          border: 1px solid var(--border-slate-200); background: transparent;
-          cursor: pointer; transition: all .15s ease;
+        /* ── Section + scope banner (Ticket List sprint head) ─────────────────── */
+        .tl-section {
+          background: var(--bg-pure-white);
+          border-top: 1px solid var(--border-slate-200);
+          border-bottom: 1px solid var(--border-slate-200);
+          display: flex;
+          flex-direction: column;
+          flex: 1;
+          min-height: 0;
+          overflow: hidden;
         }
-        .sc-clear:hover { background: var(--bg-blue-50); border-color: #bfdbfe; }
+        [data-theme='dark'] .tl-section {
+          background: transparent;
+          border-top-color: #1f2937;
+          border-bottom-color: #1f2937;
+        }
+        .tl-section-head {
+          padding: 6px 12px;
+          background: var(--bg-slate-50);
+          border-bottom: 1px solid var(--border-slate-200);
+          position: relative;
+          flex-shrink: 0;
+        }
+        [data-theme='dark'] .tl-section-head {
+          background: #0f1419;
+          border-bottom-color: #1f2937;
+        }
+        .tl-section-body {
+          padding: 0;
+          display: flex;
+          flex-direction: column;
+          flex: 1;
+          min-height: 0;
+          overflow: hidden;
+        }
+        .tl-section-body > .zlo,
+        .tl-section-body > .zlo > .zlo__content {
+          flex: 1;
+          min-height: 0;
+          display: flex;
+          flex-direction: column;
+        }
 
-        /* ── Table cells ────────────────────────────────────────────── */
-        .sc-tablewrap { background: transparent; border: 1px solid var(--border-slate-200); border-radius: 0; overflow: hidden; }
+        .tl-sprint-head-v2 { display: flex !important; flex-direction: column; gap: 6px; padding: 10px 12px !important; }
+        .tl-sprint-row1 { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+        .tl-sprint-title-block { display: flex; align-items: center; gap: 8px; min-width: 0; flex: 1 1 auto; }
+        .tl-sprint-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+        .tl-sprint-title {
+          font-size: 14px !important; font-weight: 800 !important; color: var(--text-slate-900) !important;
+          letter-spacing: -0.01em; max-width: 460px;
+        }
+        [data-theme='dark'] .tl-sprint-title { color: #f1f5f9 !important; }
+        .tl-sprint-tags { display: inline-flex; align-items: center; gap: 6px; flex-shrink: 0; }
+        .tl-sprint-tag {
+          display: inline-flex; align-items: center; height: 18px; padding: 0 6px;
+          font-size: 9px; font-weight: 800; letter-spacing: 0.04em; border-radius: 4px;
+          border: 1px solid transparent; text-transform: uppercase; line-height: 1;
+        }
+        .tl-sprint-tag-active { background: transparent; color: #10b981; border-color: rgba(16, 185, 129, 0.32); }
+        .tl-sprint-tag-delayed { background: transparent; color: #ef4444; border-color: rgba(239, 68, 68, 0.32); }
+        [data-theme='dark'] .tl-sprint-tag-active { color: #34d399; }
+        [data-theme='dark'] .tl-sprint-tag-delayed { color: #fca5a5; }
+
+        .tl-sprint-actions { display: inline-flex; align-items: center; gap: 8px; flex-shrink: 0; }
+        .tl-sprint-burndown-btn.ant-btn { height: 28px; font-size: 12px; font-weight: 600; border-radius: 6px; }
+        .tl-sprint-complete-btn.ant-btn.ant-btn-primary {
+          height: 28px; font-size: 12px; font-weight: 700;
+          background: #10b981; border-color: #10b981; border-radius: 6px;
+        }
+        .tl-sprint-complete-btn.ant-btn.ant-btn-primary:hover {
+          background: #059669 !important; border-color: #059669 !important;
+        }
+
+        .tl-sprint-row2 { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; padding-left: 15px; }
+        .tl-sprint-meta {
+          display: inline-flex; align-items: center; gap: 6px;
+          font-size: 11.5px; font-weight: 600; color: var(--text-slate-500); letter-spacing: -0.005em;
+        }
+        .tl-sprint-meta b { color: var(--text-slate-900); font-weight: 800; }
+        [data-theme='dark'] .tl-sprint-meta { color: #94a3b8 !important; }
+        [data-theme='dark'] .tl-sprint-meta b { color: #f1f5f9 !important; }
+
+        .tl-sprint-row3 { display: flex; align-items: center; gap: 12px; padding-left: 15px; }
+        .tl-sprint-progress-bar {
+          flex: 1 1 auto; position: relative; height: 6px;
+          background: var(--bg-slate-100); border-radius: 999px; overflow: hidden; min-width: 60px;
+        }
+        [data-theme='dark'] .tl-sprint-progress-bar { background: #1f2937 !important; }
+        .tl-sprint-progress-fill {
+          position: absolute; inset: 0;
+          background: linear-gradient(90deg, #3b82f6, #2563eb);
+          border-radius: 999px; transition: width 0.4s ease;
+        }
+        .tl-sprint-progress-pct {
+          flex-shrink: 0; font-size: 12px; font-weight: 800; color: var(--text-slate-900);
+          font-variant-numeric: tabular-nums; min-width: 36px; text-align: right;
+        }
+        [data-theme='dark'] .tl-sprint-progress-pct { color: #f1f5f9 !important; }
+
+        /* ── Inline filter row ────────────────────────────────────────── */
+        .tl-filter-row {
+          display: flex; align-items: center; gap: 10px; padding: 8px 12px;
+          background: var(--bg-slate-50); border-bottom: 1px solid var(--border-slate-200);
+          flex-shrink: 0;
+        }
+        [data-theme='dark'] .tl-filter-row { background: #0f1419; border-bottom-color: #1f2937; }
+        .tl-filter-row-label {
+          display: inline-flex; align-items: center; gap: 6px;
+          font-size: 10.5px; font-weight: 800; color: var(--text-slate-500);
+          text-transform: uppercase; letter-spacing: 0.08em; flex-shrink: 0;
+        }
+        [data-theme='dark'] .tl-filter-row-label { color: #94a3b8; }
+        .tl-filter-row-count {
+          display: inline-flex; align-items: center; justify-content: center;
+          min-width: 18px; height: 18px; padding: 0 6px;
+          background: var(--bg-pure-white); border: 1px solid var(--border-slate-200);
+          color: var(--text-slate-500); border-radius: 999px;
+          font-size: 10px; font-weight: 800; font-variant-numeric: tabular-nums;
+        }
+        [data-theme='dark'] .tl-filter-row-count { background: #111720; border-color: #2d3748; color: #cbd5e1; }
+        .tl-filter-row-pills { flex: 1 1 auto; min-width: 0; display: flex; flex-wrap: wrap; gap: 6px; }
+        .tl-filter-row-actions { flex-shrink: 0; display: inline-flex; align-items: center; gap: 4px; }
+        .tl-filter-row-reset {
+          display: inline-flex; align-items: center; gap: 5px; height: 28px; padding: 0 10px;
+          background: transparent; border: 1px dashed var(--border-slate-200); border-radius: 8px;
+          font-family: inherit; font-size: 11px; font-weight: 700; color: var(--text-slate-500); cursor: pointer;
+          transition: background 0.12s ease, border-color 0.12s ease, color 0.12s ease;
+        }
+        .tl-filter-row-reset:hover {
+          color: #1d4ed8; border-color: rgba(59,130,246,0.45);
+          background: rgba(59,130,246,0.06); border-style: solid;
+        }
+        .tl-filter-row-close {
+          display: inline-flex; align-items: center; justify-content: center;
+          width: 28px; height: 28px; background: transparent;
+          border: 1px solid var(--border-slate-200); border-radius: 8px;
+          color: var(--text-slate-500); cursor: pointer;
+          transition: background 0.12s ease, color 0.12s ease, border-color 0.12s ease;
+        }
+        .tl-filter-row-close:hover { color: var(--text-slate-900); background: var(--bg-pure-white); border-color: var(--text-slate-400); }
+        [data-theme='dark'] .tl-filter-row-reset,
+        [data-theme='dark'] .tl-filter-row-close { border-color: #2d3748; color: #94a3b8; }
+
+        /* ── Table shell + rows ───────────────────────────────────────────────── */
+        .pp-table-wrap {
+          background: var(--bg-pure-white);
+          border: none;
+          border-radius: 0;
+          flex: 1; min-height: 0; overflow-y: auto; overflow-x: auto; margin: 0;
+          -ms-overflow-style: none; scrollbar-width: none;
+        }
+        .pp-table-wrap::-webkit-scrollbar,
+        .pp-table-wrap .ant-table-body::-webkit-scrollbar,
+        .pp-table-wrap .ant-table-content::-webkit-scrollbar { width: 0; height: 0; display: none; }
+        .pp-table-wrap .ant-table-body,
+        .pp-table-wrap .ant-table-content { -ms-overflow-style: none; scrollbar-width: none; }
+        [data-theme='dark'] .pp-table-wrap { background: #0f1419; }
+
+        .sc-tablewrap { background: transparent; border: none; border-radius: 0; overflow: hidden; flex: 1; display: flex; flex-direction: column; min-height: 0; }
         .sc-table, .sc-table.ant-table-wrapper, .sc-table .ant-table, .sc-table .ant-table-container, .sc-table .ant-table-content, .sc-table .ant-table-header, .sc-table .ant-table-body { border-radius: 0 !important; }
         .sc-table .ant-table-thead > tr > th, .sc-table .ant-table-thead > tr > td { border-radius: 0 !important; border-start-start-radius: 0 !important; border-start-end-radius: 0 !important; }
         .sc-table .ant-table-thead > tr > th { background: var(--bg-slate-50) !important; padding: 8px 14px !important; letter-spacing: .06em !important; }
@@ -955,7 +1119,7 @@ export default function TestSuiteDetailsPage() {
         </aside>
 
         <main className="dh-main">
-          {/* Back · breadcrumb · suite name — one line */}
+          {/* Back · breadcrumb · suite name · quick search · filters · refresh · add case */}
           <div className="dh-main-topbar sc-topbar">
             <div className="sc-topbar__title" style={{ display: 'flex', alignItems: 'center' }}>
               <Button
@@ -987,140 +1151,259 @@ export default function TestSuiteDetailsPage() {
             </div>
 
             <div className="dh-main-controls">
-              <Button
-                type="default"
-                icon={<RotateCw size={14} className={loading ? "animate-spin" : ""} />}
-                onClick={fetchSuiteData}
-                disabled={loading}
-                title="Refresh"
-                style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 32, height: 32, padding: 0 }}
+              <Input
+                placeholder="Quick search linked cases..."
+                prefix={<SearchOutlined style={{ color: 'var(--text-slate-400)', fontSize: 12 }} />}
+                className="saas-input"
+                style={{ maxWidth: 220, borderRadius: 8, height: 32, background: 'transparent', fontSize: 12 }}
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                allowClear
               />
+
+              <Space.Compact className="ticket-filter-group">
+                <Popover
+                  content={
+                    <SuiteCaseFilters
+                      filters={{ typeFilter, priorityFilter, statusFilter }}
+                      onFilterChange={(key, val) => {
+                        if (key === 'typeFilter') setTypeFilter(val || []);
+                        if (key === 'priorityFilter') setPriorityFilter(val || []);
+                        if (key === 'statusFilter') setStatusFilter(val || []);
+                      }}
+                      onReset={clearFilters}
+                      typeOptions={typeFilterOptions}
+                      priorityOptions={priorityOptions}
+                      statusOptions={statusFilterOptions}
+                    />
+                  }
+                  trigger="click"
+                  open={isFilterPanelOpen}
+                  onOpenChange={setIsFilterPanelOpen}
+                  placement="bottomLeft"
+                  overlayClassName="tf-popover-overlay"
+                  styles={{ body: { padding: 0 } }}
+                >
+                  <Button
+                    icon={<FilterOutlined />}
+                    className={activeFilterCount > 0 ? 'saas-tag-blue' : ''}
+                    style={{ height: 32, fontWeight: 600, fontSize: 12 }}
+                  >
+                    Filters {activeFilterCount > 0 && `(${activeFilterCount})`}
+                  </Button>
+                </Popover>
+                <Button
+                  icon={<ExpandAltOutlined />}
+                  style={{ height: 32 }}
+                  aria-label="Expand filters"
+                  onClick={() => setIsFilterRowOpen(prev => !prev)}
+                />
+              </Space.Compact>
+
+              <Tooltip title="Refresh view">
+                <Button
+                  icon={<ReloadOutlined spin={loading} />}
+                  onClick={fetchSuiteData}
+                  disabled={loading}
+                  style={{ width: 32, height: 32, minWidth: 32, borderRadius: 8, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
+                  aria-label="Refresh view"
+                />
+              </Tooltip>
               {canUpdateSuite && (
-                <Button type="primary" size="small" icon={<PlusOutlined />} onClick={openEditModal}>
+                <Button type="primary" size="small" icon={<PlusOutlined />} onClick={openEditModal} style={{ height: 32, borderRadius: 8, fontWeight: 600 }}>
                   Add Test Case
                 </Button>
               )}
             </div>
           </div>
 
-          <div className="dh-main-scroll">
-            {/* Stats — product-standard tiles, Active / Automated filter on click */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-3">
-              {[
-                { key: undefined, label: "Linked Cases", value: linkedCases.length, color: "#3B82F6", bg: "rgba(59,130,246,0.1)", icon: FileTextOutlined, sub: 'in this suite' },
-                { key: 'active', label: "Active", value: activeCount, color: "#10b981", bg: "rgba(16,185,129,0.1)", icon: CheckCircleOutlined, sub: `${linkedCases.length ? Math.round((activeCount / linkedCases.length) * 100) : 0}% of the suite` },
-                { key: 'automated', label: "Automated", value: automatedCount, color: "#3B82F6", bg: "rgba(59,130,246,0.1)", icon: BugOutlined, sub: `${linkedCases.length - automatedCount} still manual` },
-                { key: 'highPriority', label: "High / Critical", value: highPriorityCount, color: "#64748b", bg: "rgba(100,116,139,0.1)", icon: Zap, sub: 'need the most attention' }
-              ].map((stat, i) => {
-                return (
-                  <div key={`${stat.label}-${i}`}>
-                    <StatTile label={stat.label} value={stat.value} icon={stat.icon} color={stat.color} bgColor={stat.bg} sub={stat.sub} />
-                  </div>
-                );
-              })}
-            </div>
-
-            {/* Filter row */}
-            <div className="sc-filters">
-              <Input
-                className="sc-filters__search"
-                placeholder="Search linked cases…"
-                prefix={<SearchOutlined style={{ color: "var(--text-slate-400)" }} />}
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                allowClear
-              />
-              <SearchableDropdown
-                options={typeFilterOptions}
-                value={typeFilter}
-                onChange={(v) => setTypeFilter(v)}
-                placeholder="All test types"
-                itemNoun="types"
-                className="sc-filters__field"
-              />
-              <SearchableDropdown
-                options={priorityOptions}
-                value={priorityFilter}
-                onChange={(v) => setPriorityFilter(v)}
-                placeholder="Any priority"
-                hideAvatar
-                itemNoun="levels"
-                className="sc-filters__field"
-              />
-              <SearchableDropdown
-                options={statusFilterOptions}
-                value={statusFilter}
-                onChange={(v) => setStatusFilter(v)}
-                placeholder="All statuses"
-                itemNoun="statuses"
-                className="sc-filters__field"
-              />
-              {activeFilterCount > 0 && (
-                <button type="button" className="sc-clear" onClick={clearFilters}>
-                  Clear ({activeFilterCount})
-                </button>
-              )}
-            </div>
-
-            {/* Linked cases */}
-            <ZukvoLoadingOverlay loading={loading} message="Loading linked cases…" minHeight={loading ? 300 : undefined}>
-            <div className="sc-tablewrap">
-              <Table
-                className="ts-table sc-table"
-                dataSource={pagedCases}
-                columns={columns}
-                rowKey="id"
-                pagination={false}
-                locale={{
-                  /* Holding the height beats claiming "no cases" mid-fetch. */
-                  emptyText: <NoData description={loading ? (
-                                            <div style={{ minHeight: 220 }} />
-                                          ) : (
-                                            <div className="sc-empty">
-                                              <FileTextOutlined className="sc-empty__icon" />
-                                              <p className="sc-empty__title">
-                                                {activeFilterCount > 0 ? 'No cases match these filters' : 'No test cases linked yet'}
-                                              </p>
-                                              <p className="sc-empty__desc">
-                                                {activeFilterCount > 0
-                                                  ? 'Try widening your search or clearing the filters.'
-                                                  : 'Map cases from the business scenario into this suite so they run together.'}
-                                              </p>
-                                              {activeFilterCount > 0
-                                                ? <Button size="small" onClick={clearFilters}>Clear filters</Button>
-                                                : canUpdateSuite && <Button type="primary" size="small" icon={<PlusOutlined />} onClick={openEditModal}>Add Test Case</Button>}
-                                            </div>
-                                          )} />
-                }}
-              />
-            </div>
-            </ZukvoLoadingOverlay>
-          </div>
-
-          {/* Pager sits outside the scroll area so it stays pinned to the bottom */}
-          {filteredCases.length > 0 && (
-            <div className="pp-footer">
-              <div className="pp-footer-info">
-                Showing <strong>{pageStart}–{pageEnd}</strong> of <strong>{totalItems}</strong>
+          {/* Inline filter row */}
+          {isFilterRowOpen && (
+            <div className="tl-filter-row">
+              <div className="tl-filter-row-label">
+                <FilterOutlined style={{ fontSize: 11 }} />
+                <span>Filters</span>
+                <span className="tl-filter-row-count">{activeFilterCount > 0 ? activeFilterCount : '0'}</span>
               </div>
-              <div className="pp-pager">
-                <button type="button" className="pp-pager-btn" disabled={safePage <= 1} onClick={() => setPage(p => Math.max(1, p - 1))}>‹</button>
-                {Array.from({ length: pageCount }, (_, i) => i + 1)
-                  .slice(Math.max(0, safePage - 3), Math.max(0, safePage - 3) + 5)
-                  .map((p) => (
-                    <button key={p} type="button" className={`pp-pager-num ${p === safePage ? 'is-active' : ''}`} onClick={() => setPage(p)}>{p}</button>
-                  ))}
-                <button type="button" className="pp-pager-btn" disabled={safePage >= pageCount} onClick={() => setPage(p => Math.min(pageCount, p + 1))}>›</button>
-                <Select
-                  className="pp-pagesize"
-                  value={pageSize}
-                  onChange={(v) => { setPageSize(v); setPage(1); }}
-                  options={[10, 15, 20, 25, 50, 100].map((n) => ({ value: n, label: `${n} / page` }))}
-                  popupMatchSelectWidth={120}
+              <div className="tl-filter-row-pills">
+                <TicketFilterPill
+                  icon={<AppstoreOutlined style={{ fontSize: 11 }} />}
+                  label="Test Type"
+                  values={typeFilter}
+                  options={typeFilterOptions}
+                  onChange={(val) => setTypeFilter(val || [])}
+                  itemNoun="types"
+                  width={260}
                 />
+                <TicketFilterPill
+                  icon={<ThunderboltOutlined style={{ fontSize: 11 }} />}
+                  label="Priority"
+                  values={priorityFilter}
+                  options={priorityOptions}
+                  onChange={(val) => setPriorityFilter(val || [])}
+                  itemNoun="levels"
+                  width={260}
+                />
+                <TicketFilterPill
+                  icon={<CheckCircleOutlined style={{ fontSize: 11 }} />}
+                  label="Status"
+                  values={statusFilter}
+                  options={statusFilterOptions}
+                  onChange={(val) => setStatusFilter(val || [])}
+                  itemNoun="statuses"
+                  width={260}
+                />
+              </div>
+              <div className="tl-filter-row-actions">
+                {activeFilterCount > 0 && (
+                  <button type="button" className="tl-filter-row-reset" onClick={clearFilters}>
+                    <ReloadOutlined style={{ fontSize: 10 }} />
+                    Reset
+                  </button>
+                )}
+                <button
+                  type="button"
+                  className="tl-filter-row-close"
+                  onClick={() => setIsFilterRowOpen(false)}
+                  aria-label="Close filters"
+                  title="Close filters"
+                >
+                  <CloseOutlined style={{ fontSize: 10 }} />
+                </button>
               </div>
             </div>
           )}
+
+          <div className="tl-section">
+            {/* ── Overview banner — no curve, no gap, matches Suites / Runs page exactly ── */}
+            <div className="tl-section-head tl-sprint-head-v2 tl-section-head--static">
+              <div className="tl-sprint-row1">
+                <div className="tl-sprint-title-block">
+                  <span
+                    className="tl-sprint-dot"
+                    style={{ background: bannerAccent, boxShadow: `0 0 0 3px ${bannerAccent}33` }}
+                  />
+                  <Typography.Text
+                    className="tl-sprint-title"
+                    ellipsis={{ tooltip: suite?.suite_name ? `${suite.suite_name} — Linked Test Cases` : 'Test Suite' }}
+                  >
+                    {suite?.suite_name ? `${suite.suite_name} — Linked Test Cases` : 'Test Suite'}
+                  </Typography.Text>
+                  <span className="tl-sprint-tags">
+                    <span className="tl-sprint-tag tl-sprint-tag-active">{linkedCases.length} CASES</span>
+                    {(suite?.module_name || moduleItem?.module_name) && (
+                      <span className="tl-sprint-tag" style={{ color: '#3b82f6', borderColor: 'rgba(59,130,246,0.32)' }}>
+                        {suite?.module_name || moduleItem?.module_name}
+                      </span>
+                    )}
+                  </span>
+                </div>
+                <div className="tl-sprint-actions">
+                  {suite?.parent_test_case_id && (
+                    <Button
+                      type="default"
+                      size="small"
+                      icon={<Target size={13} />}
+                      onClick={() => router.push(`/qa-workspace/test-cases/${suite.parent_test_case_id}`)}
+                      className="saas-button-item tl-sprint-burndown-btn"
+                    >
+                      Scenario
+                    </Button>
+                  )}
+                </div>
+              </div>
+
+              <div className="tl-sprint-row2">
+                <span className="tl-sprint-meta">
+                  <CheckCircleOutlined style={{ fontSize: 11 }} />
+                  <b>{activeCount}</b>/{linkedCases.length} active
+                </span>
+                <span className="tl-sprint-meta">
+                  <b>{automatedCount}</b> automated
+                </span>
+                <span className="tl-sprint-meta">
+                  <b>{highPriorityCount}</b> high / critical
+                </span>
+                <span className="tl-sprint-meta">
+                  <b>{suite?.module_name || moduleItem?.module_name || 'Unassigned'}</b> module
+                </span>
+                {suite?.created_by_name && (
+                  <span className="tl-sprint-meta">
+                    Created by <b>{suite.created_by_name}</b>
+                  </span>
+                )}
+              </div>
+
+              <div className="tl-sprint-row3">
+                <div className="tl-sprint-progress-bar">
+                  <div className="tl-sprint-progress-fill" style={{ width: `${Math.min(100, activePct)}%` }} />
+                </div>
+                <span className="tl-sprint-progress-pct">{activePct}%</span>
+              </div>
+            </div>
+
+            <div className="tl-section-body">
+              {/* Linked cases */}
+              <ZukvoLoadingOverlay loading={loading} message="Loading linked cases…" minHeight={loading ? 300 : undefined}>
+                <div className="pp-table-wrap">
+                  <Table
+                    className="saas-table tl-table pp-table"
+                    dataSource={pagedCases}
+                    columns={columns}
+                    rowKey="id"
+                    size="small"
+                    pagination={false}
+                    scroll={{ x: 'max-content' }}
+                    locale={{
+                      emptyText: <NoData description={loading ? (
+                        <div style={{ minHeight: 220 }} />
+                      ) : (
+                        <div className="sc-empty">
+                          <FileTextOutlined className="sc-empty__icon" />
+                          <p className="sc-empty__title">
+                            {activeFilterCount > 0 ? 'No cases match these filters' : 'No test cases linked yet'}
+                          </p>
+                          <p className="sc-empty__desc">
+                            {activeFilterCount > 0
+                              ? 'Try widening your search or clearing the filters.'
+                              : 'Map cases from the business scenario into this suite so they run together.'}
+                          </p>
+                          {activeFilterCount > 0
+                            ? <Button size="small" onClick={clearFilters}>Clear filters</Button>
+                            : canUpdateSuite && <Button type="primary" size="small" icon={<PlusOutlined />} onClick={openEditModal}>Add Test Case</Button>}
+                        </div>
+                      )} />
+                    }}
+                  />
+                </div>
+              </ZukvoLoadingOverlay>
+
+              {/* Pager sits outside the scroll area so it stays pinned to the bottom */}
+              {filteredCases.length > 0 && (
+                <div className="pp-footer">
+                  <div className="pp-footer-info">
+                    Showing <strong>{pageStart}–{pageEnd}</strong> of <strong>{totalItems}</strong>
+                  </div>
+                  <div className="pp-pager">
+                    <button type="button" className="pp-pager-btn" disabled={safePage <= 1} onClick={() => setPage(p => Math.max(1, p - 1))}>‹</button>
+                    {Array.from({ length: pageCount }, (_, i) => i + 1)
+                      .slice(Math.max(0, safePage - 3), Math.max(0, safePage - 3) + 5)
+                      .map((p) => (
+                        <button key={p} type="button" className={`pp-pager-num ${p === safePage ? 'is-active' : ''}`} onClick={() => setPage(p)}>{p}</button>
+                      ))}
+                    <button type="button" className="pp-pager-btn" disabled={safePage >= pageCount} onClick={() => setPage(p => Math.min(pageCount, p + 1))}>›</button>
+                    <Select
+                      className="pp-pagesize"
+                      value={pageSize}
+                      onChange={(v) => { setPageSize(v); setPage(1); }}
+                      options={[10, 15, 20, 25, 50, 100].map((n) => ({ value: n, label: `${n} / page` }))}
+                      popupMatchSelectWidth={120}
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
         </main>
       </div>
 
@@ -1192,10 +1475,26 @@ export default function TestSuiteDetailsPage() {
                   <Input
                     placeholder="E.g. Smoke Test Suite"
                     value={formData.suite_name}
+                    count={{
+                      show: ({ count }) => (
+                        <span
+                          style={{
+                            color: count > 255 ? "#ef4444" : "var(--text-secondary, #94a3b8)",
+                            fontWeight: count > 255 ? 600 : 400,
+                            fontSize: 12,
+                          }}
+                        >
+                          {count} / 255
+                        </span>
+                      ),
+                    }}
+                    status={formData.suite_name && formData.suite_name.trim().length > 255 ? 'error' : undefined}
                     onChange={(e) => setFormData({ ...formData, suite_name: e.target.value })}
                     size="large"
-                    style={{ borderRadius: 8 }}
                   />
+                  {formData.suite_name && formData.suite_name.trim().length > 255 && (
+                    <div style={{ color: '#ef4444', fontSize: 12, marginTop: 4 }}>Suite Name cannot exceed 255 characters</div>
+                  )}
                 </Form.Item>
 
                 <Form.Item label="Associated Test Case (Business Scenario)" required style={{ marginBottom: 16 }}>

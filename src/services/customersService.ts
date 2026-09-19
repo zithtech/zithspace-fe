@@ -17,6 +17,9 @@ export interface Customer {
   pan?: string | null;
   isActive: boolean;
   clientId?: string | null;
+  projectIds?: string[] | null;
+  projectId?: string | null;
+  projects?: Array<{ id: string; name: string; code: string }> | null;
 
   tenantId: string;
   createdBy: string;
@@ -40,6 +43,8 @@ export interface CreateCustomerData {
   pan?: string | null;
   isActive?: boolean;
   clientId?: string | null;
+  projectIds?: string[] | null;
+  projectId?: string | null;
 }
 
 export interface UpdateCustomerData {
@@ -56,6 +61,8 @@ export interface UpdateCustomerData {
   pan?: string | null;
   isActive?: boolean;
   clientId?: string | null;
+  projectIds?: string[] | null;
+  projectId?: string | null;
 }
 
 export interface CustomersFilters {

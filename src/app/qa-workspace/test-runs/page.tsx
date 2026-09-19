@@ -56,9 +56,9 @@ function TestRunsContent() {
   const [scopes, setScopes] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
-  const [suiteFilter, setSuiteFilter] = useState<string | undefined>();
-  const [progressFilter, setProgressFilter] = useState<string | undefined>();
-  const [moduleFilter, setModuleFilter] = useState<string | undefined>();
+  const [suiteFilter, setSuiteFilter] = useState<string[]>([]);
+  const [progressFilter, setProgressFilter] = useState<string[]>([]);
+  const [moduleFilter, setModuleFilter] = useState<string[]>([]);
   /* Runs are read inside one project, the way the Bug List works — the choice
      is remembered and shared with the other QA Space lists. */
   const {
@@ -129,10 +129,9 @@ function TestRunsContent() {
           params: {
             page,
             pageSize,
-            ...(debouncedSearch ? { search: debouncedSearch } : {}),
-            ...(suiteFilter ? { suite_id: suiteFilter } : {}),
-            ...(progressFilter ? { progress: progressFilter } : {}),
-            ...(moduleFilter ? { module_id: moduleFilter } : {}),
+            ...(suiteFilter.length > 0 ? { suite_id: suiteFilter.join(',') } : {}),
+            ...(progressFilter.length > 0 ? { progress: progressFilter.join(',') } : {}),
+            ...(moduleFilter.length > 0 ? { module_id: moduleFilter.join(',') } : {}),
             project_id: projectFilter || undefined,
             allowed_projects: projectOptions.length > 0 ? projectOptions.map(p => p.value).join(',') : undefined
           }
@@ -173,9 +172,9 @@ function TestRunsContent() {
   /** Switching project drops filters that name things from the old one. */
   const chooseProject = (id: string | null) => {
     setProjectId(id);
-    setSuiteFilter(undefined);
-    setModuleFilter(undefined);
-    setProgressFilter(undefined);
+    setSuiteFilter([]);
+    setModuleFilter([]);
+    setProgressFilter([]);
     setSearchTerm('');
     setPage(1);
   };
@@ -187,14 +186,19 @@ function TestRunsContent() {
 
   const handleCreateRun = async () => {
     try {
-      if (!formData.run_name) return message.error("Run Name is required");
+      if (!formData.run_name?.trim()) return message.error("Run Name is required");
+      if (formData.run_name.trim().length > 255) return message.error("Run Name cannot exceed 255 characters");
       if (!formData.scope_id) return message.error("Test Scope is required");
       if (!formData.suite_id) return message.error("Test Suite is required");
 
       setSaving(true);
-      await axios.post("/api/v2/qa/runs", formData);
+      const res: any = await axios.post("/api/v2/qa/runs", formData);
       message.success("Test Run created successfully");
+      const createdId = res?.data?.data?.id || res?.data?.id || res?.data?.run?.id;
       setModalOpen(false);
+      if (createdId) {
+        router.push(`/qa-workspace/test-runs/${createdId}`);
+      }
       fetchData();
     } catch (error) {
       message.error("Failed to create test run");
@@ -233,26 +237,32 @@ function TestRunsContent() {
   const suiteFilterOptions = suites.map(s => ({ value: s.id, label: s.suite_name }));
 
   const moduleFilterOptions = modules.map(m => ({ value: m.id, label: m.module_name || m.name || "Unnamed Module" }));
-  const selectedSuiteLabel = suiteFilterOptions.find(o => o.value === suiteFilter)?.label;
+  const selectedSuiteLabel = suiteFilter.length === 1
+    ? suiteFilterOptions.find(o => o.value === suiteFilter[0])?.label
+    : suiteFilter.length > 1
+      ? `${suiteFilter.length} Suites`
+      : undefined;
 
   /* ── Banner figures ───────────────────────────────────────────────────
      The Ticket List's sprint head reads a sprint's completion; here the same
      three rows read execution — how much of the plan has actually been run. */
   const projectName = projectOptions.find(p => p.value === selectedProjectId)?.label;
+  const totalRuns = stats?.totalRuns ?? stats?.allRuns ?? totalItems;
   const activeRuns = stats?.activeRuns || 0;
   const completedRuns = stats?.completedRuns || 0;
+  const notStartedRuns = stats?.notStartedRuns || 0;
   const executedCases = stats?.totalExecutedCases || 0;
-  const completedPct = totalItems > 0 ? Math.round((completedRuns / totalItems) * 100) : 0;
+  const completedPct = totalRuns > 0 ? Math.round((completedRuns / totalRuns) * 100) : 0;
   const bannerAccent = completedPct >= 80 ? '#10b981' : activeRuns > 0 ? '#3b82f6' : '#64748b';
 
   const activeFilterCount =
-    (searchTerm.trim() ? 1 : 0) + (suiteFilter ? 1 : 0) + (progressFilter ? 1 : 0) + (moduleFilter ? 1 : 0);
+    (searchTerm.trim() ? 1 : 0) + suiteFilter.length + progressFilter.length + moduleFilter.length;
 
   const clearFilters = () => {
     setSearchTerm('');
-    setSuiteFilter(undefined);
-    setProgressFilter(undefined);
-    setModuleFilter(undefined);
+    setSuiteFilter([]);
+    setProgressFilter([]);
+    setModuleFilter([]);
   };
 
   // Client-side pagination variables are now derived from totalItems for the footer
@@ -529,9 +539,9 @@ function TestRunsContent() {
                       <TestRunFilters
                         filters={{ suiteFilter, moduleFilter, progressFilter }}
                         onFilterChange={(key, val) => {
-                          if (key === 'suiteFilter') setSuiteFilter(val || undefined);
-                          if (key === 'moduleFilter') setModuleFilter(val || undefined);
-                          if (key === 'progressFilter') setProgressFilter(val || undefined);
+                          if (key === 'suiteFilter') setSuiteFilter(val || []);
+                          if (key === 'moduleFilter') setModuleFilter(val || []);
+                          if (key === 'progressFilter') setProgressFilter(val || []);
                         }}
                         onReset={clearFilters}
                         suiteOptions={suiteFilterOptions}
@@ -571,8 +581,8 @@ function TestRunsContent() {
               <Space size={10} className="sc-header-right">
                 <Segmented
                   className="saas-segmented-premium sc-owner-seg"
-                  value={progressFilter || 'any'}
-                  onChange={(v) => setProgressFilter(v === 'any' ? undefined : String(v))}
+                  value={progressFilter.length === 1 ? progressFilter[0] : progressFilter.length === 0 ? 'any' : 'custom'}
+                  onChange={(v) => setProgressFilter(v === 'any' ? [] : [String(v)])}
                   options={[
                     {
                       value: 'any',
@@ -580,7 +590,7 @@ function TestRunsContent() {
                         <span className="sc-owner-opt">
                           <Layers size={13} />
                           <span className="sc-owner-opt__label">All Runs</span>
-                          <span className="sc-owner-opt__count">{totalItems}</span>
+                          <span className="sc-owner-opt__count">{totalRuns}</span>
                         </span>
                       ),
                     },
@@ -610,9 +620,21 @@ function TestRunsContent() {
                         <span className="sc-owner-opt">
                           <PlayCircle size={13} />
                           <span className="sc-owner-opt__label">Not Started</span>
+                          <span className="sc-owner-opt__count">{notStartedRuns}</span>
                         </span>
                       ),
                     },
+                    ...(progressFilter.length > 1 || (progressFilter.length === 1 && !['active', 'completed', 'notStarted'].includes(progressFilter[0]))
+                      ? [{
+                          value: 'custom',
+                          label: (
+                            <span className="sc-owner-opt">
+                              <FilterOutlined style={{ fontSize: 12 }} />
+                              <span className="sc-owner-opt__label">{`${progressFilter.length} active`}</span>
+                            </span>
+                          ),
+                        }]
+                      : []),
                   ]}
                 />
 
@@ -659,6 +681,7 @@ function TestRunsContent() {
                     icon={<PlusOutlined />}
                     onClick={openCreateModal}
                     style={{ height: 36, borderRadius: 8, fontWeight: 700 }}
+                    data-tour="test-runs"
                   >
                     Create Test Run
                   </Button>
@@ -678,31 +701,28 @@ function TestRunsContent() {
                   <TicketFilterPill
                     icon={<AppstoreOutlined style={{ fontSize: 11 }} />}
                     label="Suite"
-                    value={suiteFilter || ""}
+                    values={suiteFilter}
                     options={suiteFilterOptions}
-                    onChange={(val) => setSuiteFilter(val || undefined)}
+                    onChange={(val) => setSuiteFilter(val || [])}
                     onSearch={setSuiteSearchTerm}
                     itemNoun="suites"
                     width={280}
-                    multiple={false}
                   />
                   <TicketFilterPill
                     icon={<ApartmentOutlined style={{ fontSize: 11 }} />}
                     label="Module"
-                    value={moduleFilter || ""}
+                    values={moduleFilter}
                     options={moduleFilterOptions}
-                    onChange={(val) => setModuleFilter(val || undefined)}
+                    onChange={(val) => setModuleFilter(val || [])}
                     itemNoun="modules"
-                    multiple={false}
                   />
                   <TicketFilterPill
                     icon={<ThunderboltOutlined style={{ fontSize: 11 }} />}
                     label="Progress"
-                    value={progressFilter || ""}
+                    values={progressFilter}
                     options={PROGRESS_OPTIONS}
-                    onChange={(val) => setProgressFilter(val || undefined)}
+                    onChange={(val) => setProgressFilter(val || [])}
                     itemNoun="states"
-                    multiple={false}
                   />
                 </div>
                 <div className="tl-filter-row-actions">
@@ -761,7 +781,7 @@ function TestRunsContent() {
                         {projectName || 'Project'} — All Test Runs
                       </Text>
                       <span className="tl-sprint-tags">
-                        <span className="tl-sprint-tag tl-sprint-tag-active">{totalItems} RUNS</span>
+                        <span className="tl-sprint-tag tl-sprint-tag-active">{totalRuns} RUNS</span>
                         {activeRuns > 0 && (
                           <span className="tl-sprint-tag tl-sprint-tag-running">{activeRuns} RUNNING</span>
                         )}
@@ -798,7 +818,7 @@ function TestRunsContent() {
                       <span>across {suites.length} suites</span>
                     </span>
                     <span className="tl-sprint-meta">
-                      <b>{completedRuns}</b>/{totalItems} runs completed
+                      <b>{completedRuns}</b>/{totalRuns} runs completed
                     </span>
                     <span className="tl-sprint-meta">
                       <b>{activeRuns}</b> partially executed
@@ -911,10 +931,27 @@ function TestRunsContent() {
               <label className="rd__label">Run Name <span className="rd__req">*</span></label>
               <Input
                 placeholder="E.g. Release v2.1 Smoke"
-                value={formData.run_name}
+                value={formData.run_name || ""}
+                count={{
+                  show: ({ count }) => (
+                    <span
+                      style={{
+                        color: count > 255 ? "#ef4444" : "var(--text-secondary, #94a3b8)",
+                        fontWeight: count > 255 ? 600 : 400,
+                        fontSize: 12,
+                      }}
+                    >
+                      {count} / 255
+                    </span>
+                  ),
+                }}
+                status={formData.run_name && formData.run_name.trim().length > 255 ? 'error' : undefined}
                 onChange={(e) => setFormData({ ...formData, run_name: e.target.value })}
                 autoFocus
               />
+              {formData.run_name && formData.run_name.trim().length > 255 && (
+                <div style={{ color: '#ef4444', fontSize: 12, marginTop: 4 }}>Run Name cannot exceed 255 characters</div>
+              )}
               <p className="rd__hint">Name it after what you&apos;re validating, so results stay easy to find later.</p>
             </div>
 
@@ -990,7 +1027,7 @@ function TestRunsContent() {
               type="primary"
               loading={saving}
               icon={<PlayCircleOutlined />}
-              disabled={!formData.run_name?.trim() || !formData.scope_id || !formData.suite_id}
+              disabled={!formData.run_name?.trim() || formData.run_name.trim().length > 255 || !formData.scope_id || !formData.suite_id}
               onClick={handleCreateRun}
             >
               Start Run
@@ -1511,7 +1548,9 @@ const RUNS_PAGE_STYLES = `
 .rd__label { display: block; margin-bottom: 5px; font-size: 12px; font-weight: 600; color: var(--text-slate-700); }
 .rd__req { color: #ef4444; }
 .rd__hint { margin: 5px 0 0; font-size: 11.5px; line-height: 1.45; color: var(--text-slate-400); }
-.rd__body .ant-input { height: 34px; border-radius: 8px; font-size: 12.5px; }
+.rd__body .ant-input:not(.ant-input-affix-wrapper) { height: 34px; border-radius: 8px; font-size: 12.5px; }
+.rd__body .ant-input-affix-wrapper { height: 34px; border-radius: 8px; font-size: 12.5px; }
+.rd__body .ant-input-affix-wrapper input.ant-input { height: auto !important; min-height: 0 !important; font-size: 12.5px; border: none !important; box-shadow: none !important; background: transparent !important; padding: 0 !important; }
 .rd__control { width: 100%; }
 .rd__body .sd-trigger { height: 34px !important; min-height: 34px !important; border-radius: 8px !important; padding: 0 12px !important; }
 

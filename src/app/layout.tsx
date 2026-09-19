@@ -9,6 +9,7 @@ import { DEFAULT_PRODUCT, PRODUCT_HEADER, ProductKey } from "@/lib/product";
 import QueryProvider from "@/providers/QueryProvider";
 import { SocketProvider } from "@/providers/SocketProvider";
 import AntdGlobalProvider from "@/providers/AntdGlobalProvider";
+import { Toaster } from "react-hot-toast";
 import "./globals.css";
 
 import { ThemeProvider } from "@/context/ThemeContext";
@@ -96,6 +97,27 @@ export default async function RootLayout({
               <ThemeConfigProvider>
                 <App>
                   <AntdGlobalProvider />
+                  {/* The one <Toaster /> for the whole app. Every toast.*() call
+                      anywhere renders through this host; without it the calls
+                      succeed and paint nothing, so a failed save looks exactly
+                      like a button that does not work. Mounted here rather than
+                      per-module so a new module gets feedback for free. */}
+                  <Toaster
+                    position="top-right"
+                    toastOptions={{
+                      duration: 3500,
+                      style: {
+                        fontSize: 13,
+                        fontWeight: 600,
+                        borderRadius: 10,
+                        padding: "10px 14px",
+                        background: "#1e293b",
+                        color: "#f8fafc",
+                      },
+                      success: { iconTheme: { primary: "#16a34a", secondary: "#f8fafc" } },
+                      error: { iconTheme: { primary: "#ef4444", secondary: "#f8fafc" } },
+                    }}
+                  />
                   <TenantProvider>
                     {/* Outside AuthProvider on purpose: if the workspace in the
                         host does not exist there is nothing to authenticate

@@ -572,6 +572,20 @@ export const Permissions = {
   LETTER_FORMAT_READ:       'letter.format.read',
   LETTER_FORMAT_UPDATE:     'letter.format.update',
   LETTER_FORMAT_DELETE:     'letter.format.delete',
+
+  // ─── Project Agreements (HRMS) ───────────────────────────────────
+  // Authoring the WORDING and raising a document against a project are
+  // different jobs, so they are separate resources.
+  PROJECT_AGREEMENT_TEMPLATE_CREATE: 'project_agreement_template.create',
+  PROJECT_AGREEMENT_TEMPLATE_READ:   'project_agreement_template.read',
+  PROJECT_AGREEMENT_TEMPLATE_UPDATE: 'project_agreement_template.update',
+  PROJECT_AGREEMENT_TEMPLATE_DELETE: 'project_agreement_template.delete',
+  PROJECT_AGREEMENT_CREATE:          'project_agreement.create',
+  PROJECT_AGREEMENT_READ:            'project_agreement.read',
+  PROJECT_AGREEMENT_UPDATE:          'project_agreement.update',
+  PROJECT_AGREEMENT_DELETE:          'project_agreement.delete',
+  /** The letterhead — one setting for the whole tenant, so administration. */
+  PROJECT_AGREEMENT_MANAGE:          'project_agreement.manage',
 } as const;
 
 export type Permission = (typeof Permissions)[keyof typeof Permissions];

@@ -604,6 +604,23 @@ export const usePermission = () => {
     canUpdateLetterFormat: hasPermission(Permissions.LETTER_FORMAT_UPDATE),
     canDeleteLetterFormat: hasPermission(Permissions.LETTER_FORMAT_DELETE),
 
+    // ─── Project Agreements ─────────────────────────────────────────
+    canCreateAgreementTemplate: hasPermission(Permissions.PROJECT_AGREEMENT_TEMPLATE_CREATE),
+    canReadAgreementTemplate: hasAnyPermission(
+      Permissions.PROJECT_AGREEMENT_TEMPLATE_READ,
+      Permissions.PROJECT_AGREEMENT_MANAGE,
+    ),
+    canUpdateAgreementTemplate: hasPermission(Permissions.PROJECT_AGREEMENT_TEMPLATE_UPDATE),
+    canDeleteAgreementTemplate: hasPermission(Permissions.PROJECT_AGREEMENT_TEMPLATE_DELETE),
+    canCreateAgreement: hasPermission(Permissions.PROJECT_AGREEMENT_CREATE),
+    canReadAgreement: hasAnyPermission(
+      Permissions.PROJECT_AGREEMENT_READ,
+      Permissions.PROJECT_AGREEMENT_MANAGE,
+    ),
+    canUpdateAgreement: hasPermission(Permissions.PROJECT_AGREEMENT_UPDATE),
+    canDeleteAgreement: hasPermission(Permissions.PROJECT_AGREEMENT_DELETE),
+    canManageAgreements: hasPermission(Permissions.PROJECT_AGREEMENT_MANAGE),
+
     // ─── Raw helpers ─────────────────────────────────────────────────
     /** Check a single permission string */
     can: hasPermission,

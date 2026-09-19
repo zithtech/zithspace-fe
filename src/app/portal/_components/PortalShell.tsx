@@ -8,6 +8,7 @@ import { usePathname, useRouter } from "next/navigation";
 import {
   Home,
   Receipt,
+  FileSignature,
   FileText,
   CalendarCheck,
   GitPullRequest,
@@ -33,6 +34,7 @@ const NAV: {
   icon: LucideIcon;
 }[] = [
   { href: "/portal", label: "Home", icon: Home },
+  { href: "/portal/agreements", label: "Agreements", icon: FileSignature },
   { href: "/portal/invoices", label: "Invoices", icon: Receipt },
   { href: "/portal/mom", label: "Meetings", icon: ClipboardList },
   { href: "/portal/documents", label: "Documents", icon: FileText },

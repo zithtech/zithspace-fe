@@ -988,6 +988,7 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
       "/opening-management",
       "/openings",
       "/letters-docs",
+      "/project-agreements",
       "/pipeline",
     ],
     defaultPath: "/profile",
@@ -1005,6 +1006,9 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
       Permissions.LETTER_TEMPLATE_READ,
       Permissions.LETTER_READ,
       Permissions.RECRUITMENT_READ,
+      Permissions.PROJECT_AGREEMENT_READ,
+      Permissions.PROJECT_AGREEMENT_TEMPLATE_READ,
+      Permissions.PROJECT_AGREEMENT_MANAGE,
     ],
     // Chip shown only to managers/HR — normal users reach their own profile,
     // attendance, leaves, etc. via My Hub. Route access still uses the broader
@@ -1020,6 +1024,9 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
       Permissions.LETTER_TEMPLATE_READ,
       Permissions.LETTER_READ,
       Permissions.RECRUITMENT_READ,
+      Permissions.PROJECT_AGREEMENT_READ,
+      Permissions.PROJECT_AGREEMENT_TEMPLATE_READ,
+      Permissions.PROJECT_AGREEMENT_MANAGE,
       // Escalations moved here from WORK — without these an escalation-only
       // user would lose the chip that reaches the page at all.
       Permissions.ESCALATION_READ,
@@ -1106,6 +1113,61 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
         requiredAnyPermission: [
           Permissions.LETTER_TEMPLATE_READ,
           Permissions.LETTER_READ,
+        ],
+      },
+      {
+        key: "/project-agreements",
+        icon: I(FileSignature),
+        label: "Project Agreements",
+        // 'hrms' rides along until a hrms_project_agreements row exists in
+        // admin_feature_catalog — the same fallback the API gate uses. Drop it
+        // once the catalogue row is in place to gate this per plan.
+        requiredSubscriptionFeature: ["hrms_project_agreements", "hrms"],
+        requiredAnyPermission: [
+          Permissions.PROJECT_AGREEMENT_READ,
+          Permissions.PROJECT_AGREEMENT_TEMPLATE_READ,
+          Permissions.PROJECT_AGREEMENT_MANAGE,
+        ],
+        // The module's three surfaces live HERE rather than in a second
+        // sidebar inside the page — one nav, in the order somebody uses them.
+        children: [
+          {
+            key: "/project-agreements/agreements",
+            label: "Agreements",
+            icon: I(FileText),
+            path: "/project-agreements/agreements",
+            requiredSubscriptionFeature: ["hrms_project_agreements", "hrms"],
+            requiredAnyPermission: [
+              Permissions.PROJECT_AGREEMENT_READ,
+              Permissions.PROJECT_AGREEMENT_MANAGE,
+            ],
+          },
+          {
+            key: "/project-agreements/templates",
+            label: "Templates",
+            icon: I(Layers),
+            path: "/project-agreements/templates",
+            requiredSubscriptionFeature: ["hrms_project_agreements", "hrms"],
+            requiredAnyPermission: [
+              Permissions.PROJECT_AGREEMENT_TEMPLATE_READ,
+              Permissions.PROJECT_AGREEMENT_READ,
+              Permissions.PROJECT_AGREEMENT_MANAGE,
+            ],
+          },
+          {
+            // Doc Types and Letterhead, tabbed. Neither is a daily destination,
+            // so they share one slot rather than each taking a place in the nav
+            // beside the work itself.
+            key: "/project-agreements/settings",
+            label: "Settings",
+            icon: I(Settings),
+            path: "/project-agreements/settings",
+            requiredSubscriptionFeature: ["hrms_project_agreements", "hrms"],
+            requiredAnyPermission: [
+              Permissions.PROJECT_AGREEMENT_READ,
+              Permissions.PROJECT_AGREEMENT_MANAGE,
+            ],
+          },
         ],
       },
       {

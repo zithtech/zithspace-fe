@@ -13,7 +13,11 @@ export interface EmploymentType {
 }
 
 export const employmentTypeService = {
-  getAll: async (): Promise<EmploymentType[]> => {
+  getAll: async (params?: { page?: number; limit?: number; search?: string }): Promise<any> => {
+    if (params && (params.page || params.limit || params.search)) {
+      const res = await api.get<{ data: EmploymentType[]; pagination?: any }>("/api/employment-types", { params });
+      return res;
+    }
     return await api.get<EmploymentType[]>("/api/employment-types");
   },
 

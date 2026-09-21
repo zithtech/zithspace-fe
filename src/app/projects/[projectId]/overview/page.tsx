@@ -271,7 +271,12 @@ const ProjectOverviewPage = () => {
           )}
 
           {activeView === "sprint" && (
-            <SprintTable sprints={sprints} selectedSprintId={selectedSprintId} onSelectSprint={setSelectedSprintId} />
+            <SprintTable
+              projectId={projectId}
+              sprints={sprints}
+              selectedSprintId={selectedSprintId}
+              onSelectSprint={setSelectedSprintId}
+            />
           )}
 
           {activeView === "timeline" &&

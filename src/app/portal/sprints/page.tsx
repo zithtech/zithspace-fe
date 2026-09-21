@@ -327,7 +327,7 @@ export default function PortalSprintsPage() {
   const [dateRange, setDateRange] = useState<[Dayjs | null, Dayjs | null] | null>(null);
   const [page, setPage] = useState(1);
   const [view, setView] = useState<ViewMode>("card");
-  const limit = 20;
+  const [limit, setLimit] = useState(15);
 
   const fromIso = dateRange?.[0] ? dateRange[0]!.format("YYYY-MM-DD") : undefined;
   const toIso = dateRange?.[1] ? dateRange[1]!.format("YYYY-MM-DD") : undefined;
@@ -371,7 +371,7 @@ export default function PortalSprintsPage() {
   useEffect(() => {
     load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page, status, projectId, fromIso, toIso]);
+  }, [page, limit, status, projectId, fromIso, toIso]);
 
   useEffect(() => {
     const t = setTimeout(() => {
@@ -766,8 +766,18 @@ export default function PortalSprintsPage() {
               current={page}
               pageSize={limit}
               total={meta.total}
-              onChange={setPage}
-              showSizeChanger={false}
+              showSizeChanger
+              pageSizeOptions={["10", "15", "20", "25", "50", "100"]}
+              onChange={(p, size) => {
+                setPage(p);
+                if (size && size !== limit) {
+                  setLimit(size);
+                }
+              }}
+              onShowSizeChange={(current, size) => {
+                setPage(1);
+                setLimit(size);
+              }}
             />
           </div>
         )}

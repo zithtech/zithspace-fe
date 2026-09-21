@@ -42,6 +42,7 @@ export default function MemberGrid({
   const [search, setSearch] = useState('');
   const [debounced, setDebounced] = useState('');
   const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(15);
   const [view, setView] = useState<ViewMode>('grid');
 
   const [projects, setProjects] = useState<Opt[]>([]);
@@ -81,7 +82,7 @@ export default function MemberGrid({
     try {
       const res = await PerformanceReportService.getMembers({
         page,
-        limit: PAGE_SIZE,
+        limit: pageSize,
         search: debounced || undefined,
         projectId: projectId || undefined,
         positionId: positionId || undefined,
@@ -94,7 +95,7 @@ export default function MemberGrid({
     } finally {
       setLoading(false);
     }
-  }, [page, debounced, projectId, positionId, departmentId]);
+  }, [page, pageSize, debounced, projectId, positionId, departmentId]);
 
   useEffect(() => {
     load();
@@ -102,10 +103,10 @@ export default function MemberGrid({
 
   const rangeLabel = useMemo(() => {
     if (total === 0) return 'No members';
-    const start = (page - 1) * PAGE_SIZE + 1;
-    const end = Math.min(page * PAGE_SIZE, total);
+    const start = (page - 1) * pageSize + 1;
+    const end = Math.min(page * pageSize, total);
     return `Showing ${start}–${end} of ${total}`;
-  }, [page, total]);
+  }, [page, pageSize, total]);
 
   // Active filters, rendered as removable chips under the toolbar.
   const chips = useMemo(() => {
@@ -486,10 +487,15 @@ export default function MemberGrid({
         <span className="mg-footer-info">{rangeLabel}</span>
         <Pagination
           current={page}
-          pageSize={PAGE_SIZE}
+          pageSize={pageSize}
           total={total}
-          showSizeChanger={false}
-          onChange={setPage}
+          showSizeChanger={true}
+          pageSizeOptions={[10, 15, 20, 25, 50, 100]}
+          onChange={(p, s) => {
+            setPage(p);
+            if (s && s !== pageSize) setPageSize(s);
+          }}
+          size="small"
         />
       </div>
 

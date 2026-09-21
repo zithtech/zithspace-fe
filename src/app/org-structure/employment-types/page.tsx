@@ -62,15 +62,22 @@ export default function EmploymentTypesPage() {
   const [historyOpen, setHistoryOpen] = useState(false);
   const [view, setView] = useState<OrgView>("grid");
   const [openCardId, setOpenCardId] = useState<string | null>(null);
+  const [pagination, setPagination] = useState({ current: 1, pageSize: 15 });
 
   const {
-    employmentTypes,
+    allEmploymentTypes,
+    paginatedEmploymentTypes,
+    totalCount,
     loading,
     fetchEmploymentTypes,
     createEmploymentType,
     updateEmploymentType,
     deleteEmploymentType,
-  } = useEmploymentTypes();
+  } = useEmploymentTypes({
+    page: pagination.current,
+    limit: pagination.pageSize,
+    search: searchText,
+  });
 
   useEffect(() => {
     if (!authLoading && !canReadOrgEmploymentType) {
@@ -78,8 +85,12 @@ export default function EmploymentTypesPage() {
     }
   }, [authLoading, canReadOrgEmploymentType, router]);
 
-  const totalTypes = employmentTypes.length;
-  const activeTypes = employmentTypes.filter((t) => t.isActive).length;
+  useEffect(() => {
+    setPagination((p) => ({ ...p, current: 1 }));
+  }, [searchText]);
+
+  const totalTypes = allEmploymentTypes.length;
+  const activeTypes = allEmploymentTypes.filter((t) => t.isActive).length;
   const inactiveTypes = totalTypes - activeTypes;
 
   const generateCodeFromName = (name: string): string => {
@@ -131,15 +142,6 @@ export default function EmploymentTypesPage() {
     }
   };
 
-  const filteredData = useMemo(() => {
-    if (!searchText.trim()) return employmentTypes;
-    const q = searchText.toLowerCase();
-    return employmentTypes.filter(
-      (item) =>
-        item.name.toLowerCase().includes(q) ||
-        (item.description || "").toLowerCase().includes(q),
-    );
-  }, [employmentTypes, searchText]);
 
   if (authLoading) {
     return (
@@ -371,14 +373,20 @@ export default function EmploymentTypesPage() {
             search={searchText}
             onSearchChange={setSearchText}
             searchPlaceholder="Search by name, code, or description…"
-            meta={<><strong>{filteredData.length}</strong> of {totalTypes} employment types</>}
+            meta={<><strong>{paginatedEmploymentTypes.length}</strong> of {totalCount} employment types</>}
             view={view}
             onViewChange={setView}
             loading={loading}
             stats={stats}
             columns={columns}
-            data={filteredData}
+            data={paginatedEmploymentTypes}
             rowKey="id"
+            serverPagination={{
+              current: pagination.current,
+              pageSize: pagination.pageSize,
+              total: totalCount,
+              onChange: (page, pageSize) => setPagination({ current: page, pageSize }),
+            }}
             renderCard={renderEmploymentTypeCard}
             emptyTitle="No employment types found"
             emptySubtitle="Define your first contract type to onboard members."

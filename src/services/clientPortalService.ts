@@ -1,4 +1,4 @@
-import { api } from "@/lib/axios";
+import { api, apiClient } from "@/lib/axios";
 
 export interface ClientPortalUser {
   id: string;
@@ -36,10 +36,29 @@ export interface CreatePortalUserResponse {
 }
 
 export const clientPortalService = {
-  listForClient(clientId: string) {
-    return api.get<ClientPortalUser[]>(
-      `/api/clients-v2/${clientId}/portal-users`,
+  async listForClient(
+    clientId: string,
+    params: {
+      page?: number;
+      limit?: number;
+      search?: string;
+      status?: string;
+    } = {},
+  ) {
+    const qs = new URLSearchParams();
+    Object.entries(params).forEach(([k, v]) => {
+      if (v != null && v !== "") qs.append(k, String(v));
+    });
+    const res = await apiClient.get(
+      `/api/clients-v2/${clientId}/portal-users${qs.toString() ? `?${qs.toString()}` : ""}`,
     );
+    if (res.data?.success === false) {
+      throw new Error(res.data.error || "Failed to load portal users");
+    }
+    return {
+      data: (res.data?.data || []) as ClientPortalUser[],
+      meta: res.data?.meta || { total: (res.data?.data || []).length, page: 1, limit: 15, totalPages: 1 },
+    };
   },
 
   create(clientId: string, payload: CreatePortalUserPayload) {

@@ -113,7 +113,7 @@ export default function BidIqPage() {
   const [dateRange, setDateRange] = useState<[Dayjs | null, Dayjs | null] | null>(null);
   const [layout, setLayout] = useState<"list" | "grid">("list");
   const [tablePage, setTablePage] = useState(1);
-  const [tablePageSize, setTablePageSize] = useState(20);
+  const [tablePageSize, setTablePageSize] = useState(15);
   const [paginatedBids, setPaginatedBids] = useState<Lead[]>([]);
   const [totalCount, setTotalCount] = useState(0);
   const [paginatedLoading, setPaginatedLoading] = useState(false);
@@ -203,7 +203,7 @@ export default function BidIqPage() {
 
       const res = await LeadService.getAll(filters);
       setPaginatedBids(res?.data || []);
-      setTotalCount(res?.pagination?.total || 0);
+      setTotalCount(Number(res?.pagination?.total ?? (res as any)?.count ?? (res as any)?.data?.length ?? 0) || 0);
     } catch (err: any) {
       console.error('Failed to fetch paginated Bidiq:', err);
     } finally {
@@ -689,57 +689,57 @@ export default function BidIqPage() {
               </div>
 
               {totalCount > 0 && (
-                <div className="biq-bottom-bar">
-                    <div className="biq-bottom-info">
-                      Showing{" "}
-                      <strong>
-                        {(tablePage - 1) * tablePageSize + 1}–
-                        {Math.min(tablePage * tablePageSize, totalCount)}
-                      </strong>{" "}
-                      of <strong>{totalCount}</strong>
-                    </div>
-                    <div className="biq-pager">
-                      <button
-                        type="button"
-                        className="biq-pager-btn"
-                        disabled={tablePage <= 1}
-                        onClick={() => setTablePage((p) => Math.max(1, p - 1))}
-                      >
-                        ‹
-                      </button>
-                      {Array.from({ length: Math.ceil(totalCount / tablePageSize) }, (_, i) => i + 1)
-                        .slice(Math.max(0, tablePage - 3), Math.max(0, tablePage - 3) + 5)
-                        .map((p) => (
-                          <button
-                            key={p}
-                            type="button"
-                            className={`biq-pager-num ${p === tablePage ? "is-active" : ""}`}
-                            onClick={() => setTablePage(p)}
-                          >
-                            {p}
-                          </button>
-                        ))}
-                      <button
-                        type="button"
-                        className="biq-pager-btn"
-                        disabled={tablePage >= Math.ceil(totalCount / tablePageSize)}
-                        onClick={() => setTablePage((p) => Math.min(Math.ceil(totalCount / tablePageSize), p + 1))}
-                      >
-                        ›
-                      </button>
-                      <Select
-                        className="biq-pagesize"
-                        value={tablePageSize}
-                        onChange={(v) => {
-                          setTablePageSize(v);
-                          setTablePage(1);
-                        }}
-                        options={[10, 20, 25, 50, 100].map((n) => ({ value: n, label: `${n} / page` }))}
-                        popupMatchSelectWidth={120}
-                      />
-                    </div>
+                <div className="pp-footer pp-footer--sticky">
+                  <div className="pp-footer-info">
+                    Showing{" "}
+                    <strong>
+                      {(tablePage - 1) * tablePageSize + 1}–
+                      {Math.min(tablePage * tablePageSize, totalCount)}
+                    </strong>{" "}
+                    of <strong>{totalCount}</strong>
                   </div>
-                )}
+                  <div className="pp-pager">
+                    <button
+                      type="button"
+                      className="pp-pager-btn"
+                      disabled={tablePage <= 1}
+                      onClick={() => setTablePage((p) => Math.max(1, p - 1))}
+                    >
+                      ‹
+                    </button>
+                    {Array.from({ length: Math.ceil(totalCount / tablePageSize) }, (_, i) => i + 1)
+                      .slice(Math.max(0, tablePage - 3), Math.max(0, tablePage - 3) + 5)
+                      .map((p) => (
+                        <button
+                          key={p}
+                          type="button"
+                          className={`pp-pager-num ${p === tablePage ? "is-active" : ""}`}
+                          onClick={() => setTablePage(p)}
+                        >
+                          {p}
+                        </button>
+                      ))}
+                    <button
+                      type="button"
+                      className="pp-pager-btn"
+                      disabled={tablePage >= Math.ceil(totalCount / tablePageSize)}
+                      onClick={() => setTablePage((p) => Math.min(Math.ceil(totalCount / tablePageSize), p + 1))}
+                    >
+                      ›
+                    </button>
+                    <Select
+                      className="pp-pagesize"
+                      value={tablePageSize}
+                      onChange={(v) => {
+                        setTablePageSize(v);
+                        setTablePage(1);
+                      }}
+                      options={[10, 15, 20, 25, 50, 100].map((n) => ({ value: n, label: `${n} / page` }))}
+                      popupMatchSelectWidth={120}
+                    />
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -889,29 +889,32 @@ export default function BidIqPage() {
           /* ---------- Body ---------- */
           .biq-body { flex: 1; min-height: 0; overflow-y: auto; padding-bottom: 0; }
 
-          /* ---------- Fixed full-bleed pagination footer ---------- */
-          .biq-bottom-bar {
-            flex-shrink: 0;
-            display: flex; align-items: center; justify-content: space-between;
-            flex-wrap: wrap; gap: 10px;
-            margin: 0 -18px;          /* full-bleed: cancel .biq-main horizontal padding */
-            padding: 8px 18px;
+          /* Footer + pager */
+          .pp-footer {
+            display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;
+            padding: 0 14px; border-top: 1px solid var(--border-slate-200);
+            height: 52px !important;
+            box-sizing: border-box;
+          }
+          .pp-footer--sticky {
+            position: sticky; bottom: 0; z-index: 30; margin: 8px -18px 0; padding: 0 18px;
             background: var(--bg-pure-white);
-            border-top: 1px solid var(--border-slate-200);
             box-shadow: 0 -4px 14px rgba(15,23,42,0.05);
+            height: 52px !important;
+            box-sizing: border-box;
           }
-          .biq-bottom-info { font-size: 12px; color: var(--text-slate-500); }
-          .biq-bottom-info strong { color: var(--text-slate-700); font-weight: 700; font-variant-numeric: tabular-nums; }
-          .biq-pager { display: flex; align-items: center; gap: 3px; }
-          .biq-pager-btn, .biq-pager-num {
-            min-width: 24px; height: 24px; border-radius: 5px; border: 1px solid var(--border-slate-200);
-            background: var(--bg-pure-white); color: var(--text-slate-600); cursor: pointer; font-size: 11px; font-weight: 600;
+          .pp-footer-info { font-size: 12px; color: var(--text-slate-500); }
+          .pp-footer-info strong { color: var(--text-slate-700); font-weight: 700; font-variant-numeric: tabular-nums; }
+          .pp-pager { display: flex; align-items: center; gap: 3px; }
+          .pp-pager-btn, .pp-pager-num {
+            min-width: 28px; height: 28px; border-radius: 7px; border: 1px solid var(--border-slate-200);
+            background: var(--bg-pure-white); color: var(--text-slate-600); cursor: pointer; font-size: 12.5px; font-weight: 600;
           }
-          .biq-pager-btn:hover:not(:disabled), .biq-pager-num:hover { border-color: #3b82f6; color: #3b82f6; }
-          .biq-pager-btn:disabled { opacity: 0.4; cursor: not-allowed; }
-          .biq-pager-num.is-active { background: #3B82F6; border-color: #3B82F6; color: #fff; }
-          .biq-pagesize { margin-left: 5px; }
-          .biq-pagesize .ant-select-selector { border-radius: 7px !important; height: 24px !important; font-size: 11px !important; padding: 0 8px !important; }
+          .pp-pager-btn:hover:not(:disabled), .pp-pager-num:hover { border-color: #3b82f6; color: #3b82f6; }
+          .pp-pager-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+          .pp-pager-num.is-active { background: #3B82F6; border-color: #3B82F6; color: #fff; }
+          .pp-pagesize { margin-left: 5px; }
+          .pp-pagesize .ant-select-selector { border-radius: 7px !important; height: 28px !important; }
 
           /* ---------- Table (list) ---------- */
           .biq-table-card {

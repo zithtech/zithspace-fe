@@ -1,4 +1,4 @@
-import { api } from "@/lib/axios";
+import { api, apiClient } from "@/lib/axios";
 
 export interface LeadStatus {
   id: string;
@@ -37,10 +37,22 @@ export interface LeadPlatform {
   updated_at?: string;
 }
 
+export interface LeadSettingsPaginationParams {
+  page?: number;
+  limit?: number;
+  search?: string;
+  filter?: string;
+  all?: boolean;
+}
+
 const leadSettingsService = {
   // Statuses
-  getStatuses: async (): Promise<LeadStatus[]> => {
-    return await api.get('/api/lead-settings/statuses');
+  getStatuses: async (params?: LeadSettingsPaginationParams): Promise<any> => {
+    if (params && (params.page || params.limit || params.search || params.filter)) {
+      const response = await apiClient.get('/api/lead-settings/statuses', { params });
+      return response.data;
+    }
+    return await api.get('/api/lead-settings/statuses', { params });
   },
   createStatus: async (data: Partial<LeadStatus>): Promise<LeadStatus> => {
     return await api.post('/api/lead-settings/statuses', data);
@@ -53,8 +65,12 @@ const leadSettingsService = {
   },
 
   // Actions
-  getActions: async (): Promise<LeadAction[]> => {
-    return await api.get('/api/lead-settings/actions');
+  getActions: async (params?: LeadSettingsPaginationParams): Promise<any> => {
+    if (params && (params.page || params.limit || params.search || params.filter)) {
+      const response = await apiClient.get('/api/lead-settings/actions', { params });
+      return response.data;
+    }
+    return await api.get('/api/lead-settings/actions', { params });
   },
   createAction: async (data: Partial<LeadAction>): Promise<LeadAction> => {
     return await api.post('/api/lead-settings/actions', data);
@@ -68,8 +84,12 @@ const leadSettingsService = {
 
   // Platforms — gig-platform sources (Upwork, LinkedIn, …) and own-website
   // sources (Zukvo, Zithtech, …) used as the lead's "Source" identity.
-  getPlatforms: async (): Promise<LeadPlatform[]> => {
-    return await api.get('/api/lead-settings/platforms');
+  getPlatforms: async (params?: LeadSettingsPaginationParams): Promise<any> => {
+    if (params && (params.page || params.limit || params.search || params.filter)) {
+      const response = await apiClient.get('/api/lead-settings/platforms', { params });
+      return response.data;
+    }
+    return await api.get('/api/lead-settings/platforms', { params });
   },
   createPlatform: async (data: Partial<LeadPlatform>): Promise<LeadPlatform> => {
     return await api.post('/api/lead-settings/platforms', data);

@@ -26,7 +26,7 @@ const CAT_COLOR: Record<ComponentCategory, string> = { earning: PALETTE.green, d
 
 const inr = new Intl.NumberFormat('en-IN', { maximumFractionDigits: 0 });
 const money = (n: number) => `₹${inr.format(Math.round(n))}`;
-const PAGE_SIZE_OPTIONS = [10, 20, 25, 50, 100];
+const PAGE_SIZE_OPTIONS = [10, 15, 20, 25, 50, 100];
 type StatusFilter = 'all' | 'assigned' | 'unassigned';
 
 interface Row {
@@ -78,7 +78,7 @@ export default function EmployeePaySetupPanel() {
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
 
   const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(20);
+  const [pageSize, setPageSize] = useState(15);
   const [totalEmployees, setTotalEmployees] = useState(0);
 
   // profile drawer

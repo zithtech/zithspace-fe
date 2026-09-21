@@ -29,7 +29,7 @@ import OpeningV2Service, {
   type OpeningListItem,
   type SkillMatchResult,
 } from '@/services/openingV2Service';
-import { AutoComplete, Drawer, Table, Dropdown, Button, Progress } from 'antd';
+import { AutoComplete, Drawer, Table, Dropdown, Button, Progress, Select } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import type { MenuProps } from 'antd';
 import { commonDrawerProps, drawerFormStyles, SectionCard } from "@/components/common/DrawerSection";
@@ -38,10 +38,13 @@ import ConfirmDialog from '@/components/common/ConfirmDialog';
 import { usePermission } from '@/hooks/usePermission';
 import { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
 
+const PAGE_SIZE_OPTIONS = [10, 15, 20, 25, 50, 100];
+
 export default function CandidatesPage() {
   const { message } = App.useApp();
   const [candidates, setCandidates] = useState<any[]>([]);
   const [search, setSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [loading, setLoading] = useState(true);
   const router = useRouter();
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -52,12 +55,43 @@ export default function CandidatesPage() {
   const [expFilter, setExpFilter] = useState<string>("all");
   const { canCreateRecruitment, canUpdateRecruitment, canDeleteRecruitment } = usePermission();
 
+  const [tablePage, setTablePage] = useState(1);
+  const [tablePageSize, setTablePageSize] = useState(15);
+  const [total, setTotal] = useState(0);
+  const [statsData, setStatsData] = useState({ total: 0, interview: 0, hired: 0, rejected: 0 });
+  const [positions, setPositions] = useState<Position[]>([]);
+
+  useEffect(() => {
+    PositionService.getAll().then((res) => {
+      setPositions(res || []);
+    }).catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    const t = setTimeout(() => {
+      setDebouncedSearch(search);
+      setTablePage(1);
+    }, 350);
+    return () => clearTimeout(t);
+  }, [search]);
+
   const fetchCandidates = async () => {
     setLoading(true);
     try {
-      const res = await pipelineClient.listCandidates({ search });
+      const res = await pipelineClient.listCandidates({
+        page: tablePage,
+        limit: tablePageSize,
+        search: debouncedSearch || undefined,
+        status: statusFilter !== 'all' ? statusFilter : undefined,
+        role: roleFilter !== 'all' ? roleFilter : undefined,
+        exp: expFilter !== 'all' ? expFilter : undefined,
+      });
       if (res.success) {
-        setCandidates(res.data.candidates);
+        setCandidates(res.data.candidates || []);
+        setTotal(res.data.total || 0);
+        if (res.data.stats) {
+          setStatsData(res.data.stats);
+        }
       }
     } catch (err) {
       console.error(err);
@@ -68,7 +102,7 @@ export default function CandidatesPage() {
 
   useEffect(() => {
     fetchCandidates();
-  }, [search]);
+  }, [debouncedSearch, statusFilter, roleFilter, expFilter, tablePage, tablePageSize]);
 
   const menuLabel = (title: string, desc: string, icon: React.ReactNode, color: string, tint: string) => (
     <div className="pp-menu-item">
@@ -225,25 +259,17 @@ export default function CandidatesPage() {
     }
   ];
 
-  const filteredCandidates = candidates.filter((c) => {
-    if (statusFilter !== 'all' && c.status?.toLowerCase() !== statusFilter.toLowerCase()) return false;
-    if (roleFilter !== 'all' && c.role?.toLowerCase() !== roleFilter.toLowerCase()) return false;
-    if (expFilter !== 'all') {
-      const exp = parseFloat(c.total_experience || '0');
-      if (expFilter === '0-2' && exp > 2) return false;
-      if (expFilter === '3-5' && (exp < 3 || exp > 5)) return false;
-      if (expFilter === '5+' && exp < 5) return false;
-    }
-    return true;
-  });
+  const roles = Array.from(new Set([...positions.map(p => p.title || (p as any).positionTitle), ...candidates.map(c => c.role)].filter(Boolean)));
 
-  const roles = Array.from(new Set(candidates.map(c => c.role).filter(Boolean)));
+  const pageCount = Math.max(1, Math.ceil(total / tablePageSize));
+  const pageStart = total === 0 ? 0 : (tablePage - 1) * tablePageSize + 1;
+  const pageEnd = Math.min(tablePage * tablePageSize, total);
 
   const stats = [
-    { label: "Total Candidates", value: candidates.length, color: "#3b82f6", bg: "rgba(59,130,246,0.1)" },
-    { label: "Interview", value: candidates.filter(c => c.status === 'Interview').length, color: "#f59e0b", bg: "rgba(245,158,11,0.1)" },
-    { label: "Hired", value: candidates.filter(c => c.status === 'Hired').length, color: "#10b981", bg: "rgba(16,185,129,0.1)" },
-    { label: "Rejected", value: candidates.filter(c => c.status === 'Rejected').length, color: "#ef4444", bg: "rgba(239,68,68,0.1)" }
+    { label: "Total Candidates", value: statsData.total || total, color: "#3b82f6", bg: "rgba(59,130,246,0.1)" },
+    { label: "Interview", value: statsData.interview, color: "#f59e0b", bg: "rgba(245,158,11,0.1)" },
+    { label: "Hired", value: statsData.hired, color: "#10b981", bg: "rgba(16,185,129,0.1)" },
+    { label: "Rejected", value: statsData.rejected, color: "#ef4444", bg: "rgba(239,68,68,0.1)" }
   ];
 
   return (
@@ -259,7 +285,7 @@ export default function CandidatesPage() {
           />
         </div>
         <div className="pl-topbar-meta">
-          <span className="pl-meta-item"><span className="pl-pulse" /><strong>{candidates.length}</strong> candidates</span>
+          <span className="pl-meta-item"><span className="pl-pulse" /><strong>{total}</strong> candidates</span>
         </div>
         <div className="pl-topbar-actions flex items-center gap-3">
           <div className="pp-segmented">
@@ -327,7 +353,7 @@ export default function CandidatesPage() {
         <div className="w-48">
           <SearchableDropdown
             value={statusFilter}
-            onChange={(val) => setStatusFilter(val)}
+            onChange={(val) => { setStatusFilter(val); setTablePage(1); }}
             placeholder="All Statuses"
             options={[
               { label: 'All Statuses', value: 'all' },
@@ -347,7 +373,7 @@ export default function CandidatesPage() {
         <div className="w-56">
           <SearchableDropdown
             value={roleFilter}
-            onChange={(val) => setRoleFilter(val)}
+            onChange={(val) => { setRoleFilter(val); setTablePage(1); }}
             placeholder="All Roles"
             options={[
               { label: 'All Roles', value: 'all' },
@@ -359,7 +385,7 @@ export default function CandidatesPage() {
         <div className="w-48">
           <SearchableDropdown
             value={expFilter}
-            onChange={(val) => setExpFilter(val)}
+            onChange={(val) => { setExpFilter(val); setTablePage(1); }}
             placeholder="Any Experience"
             options={[
               { label: 'Any Experience', value: 'all' },
@@ -378,7 +404,7 @@ export default function CandidatesPage() {
               <Table
                 size="small"
                 columns={columns}
-                dataSource={filteredCandidates.map(c => ({ ...c, key: c.id }))}
+                dataSource={candidates.map(c => ({ ...c, key: c.id }))}
                 pagination={false}
                 className="pp-table"
                 scroll={{ x: 800 }}
@@ -399,12 +425,12 @@ export default function CandidatesPage() {
             <div className="pp-grid">
               {loading ? (
                 <div className="col-span-full text-center py-8 text-slate-500 w-full">Loading...</div>
-              ) : filteredCandidates.length === 0 ? (
+              ) : candidates.length === 0 ? (
                 <div style={{ gridColumn: "1 / -1" }}>
                   <NoData description="No candidates found." />
                 </div>
               ) : (
-                filteredCandidates.map((c) => {
+                candidates.map((c) => {
                   const initials = c.name.split(' ').map((n: string) => n[0]).join('').substring(0, 2).toUpperCase();
                   let statusColor = '#94a3b8'; // default
                   if (c.status === 'Applied') statusColor = '#3b82f6';
@@ -482,16 +508,53 @@ export default function CandidatesPage() {
         </ZukvoLoadingOverlay>
       </div>
 
-      <div className="pl-footer pl-footer--sticky">
-        <div className="pl-footer-info">
-          Showing <strong>1–{candidates.length}</strong> of <strong>{candidates.length}</strong> candidates
+      {total > 0 && (
+        <div className="pl-footer pl-footer--sticky">
+          <div className="pl-footer-info">
+            Showing <strong>{pageStart}–{pageEnd}</strong> of <strong>{total}</strong> candidates
+          </div>
+          <div className="pl-pager">
+            <button
+              type="button"
+              className="pl-pager-btn"
+              disabled={tablePage <= 1}
+              onClick={() => setTablePage((p) => Math.max(1, p - 1))}
+            >
+              ‹
+            </button>
+            {Array.from({ length: pageCount }, (_, i) => i + 1)
+              .slice(Math.max(0, tablePage - 3), Math.max(0, tablePage - 3) + 5)
+              .map((p) => (
+                <button
+                  key={p}
+                  type="button"
+                  className={`pl-pager-num ${p === tablePage ? 'is-active' : ''}`}
+                  onClick={() => setTablePage(p)}
+                >
+                  {p}
+                </button>
+              ))}
+            <button
+              type="button"
+              className="pl-pager-btn"
+              disabled={tablePage >= pageCount}
+              onClick={() => setTablePage((p) => Math.min(pageCount, p + 1))}
+            >
+              ›
+            </button>
+            <Select
+              className="pl-pagesize"
+              value={tablePageSize}
+              onChange={(v) => {
+                setTablePageSize(v);
+                setTablePage(1);
+              }}
+              options={PAGE_SIZE_OPTIONS.map((n) => ({ value: n, label: `${n} / page` }))}
+              popupMatchSelectWidth={120}
+            />
+          </div>
         </div>
-        <div className="pl-pager">
-          <button type="button" className="pl-pager-btn" disabled>‹</button>
-          <button type="button" className="pl-pager-num is-active">1</button>
-          <button type="button" className="pl-pager-btn" disabled>›</button>
-        </div>
-      </div>
+      )}
 
       {isModalOpen && <AddCandidateModal editCandidate={editCandidate} onClose={(refresh) => { setIsModalOpen(false); if (refresh) fetchCandidates(); }} />}
     </>

@@ -68,7 +68,7 @@ export default function DepartmentsPage() {
   const [submitting, setSubmitting] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [view, setView] = useState<OrgView>("grid");
-  const [pagination, setPagination] = useState({ current: 1, pageSize: 20 });
+  const [pagination, setPagination] = useState({ current: 1, pageSize: 15 });
 
   const { employmentTypes, loading: employmentTypesLoading } = useEmploymentTypes();
   const { allDepartments, paginatedDepartments, totalCount, loading, createDepartment, updateDepartment, deleteDepartment, refresh } = useDepartments({

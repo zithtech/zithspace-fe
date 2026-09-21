@@ -123,7 +123,7 @@ export default function InvoiceproCustomerPage() {
   useActivitySource({ section: "FINANCE", module: "Invoices", page: "InvoiceCustomerList" });
 
   const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState(20);
+  const [pageSize, setPageSize] = useState(15);
 
   const { data: customersData, isLoading, refetch, isFetching } = useCustomers({
     page: currentPage,
@@ -944,7 +944,7 @@ export default function InvoiceproCustomerPage() {
                     setPageSize(v);
                     setCurrentPage(1);
                   }}
-                  options={[10, 20, 25, 50, 100].map((n) => ({
+                  options={[10, 15, 20, 25, 50, 100].map((n) => ({
                     value: n,
                     label: `${n} / page`,
                   }))}

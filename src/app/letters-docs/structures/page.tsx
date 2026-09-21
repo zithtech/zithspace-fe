@@ -25,7 +25,7 @@ import { SnippetsOutlined, FileTextOutlined, CheckCircleOutlined, StarOutlined, 
 import type { ColumnsType } from 'antd/es/table';
 import ZukvoLoader from '@/components/common/ZukvoLoader';
 
-const PAGE_SIZE_OPTIONS = [10, 20, 25, 50, 100];
+const PAGE_SIZE_OPTIONS = [10, 15, 20, 25, 50, 100];
 
 const renderDropdownItem = (icon: React.ReactNode, title: string, subtitle: string, iconBg: string, iconColor: string, isDanger?: boolean) => (
   <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '4px' }}>
@@ -61,16 +61,27 @@ export default function StructuresManagementPage() {
   const [view, setView] = useState<'list' | 'card'>('list');
 
   const [tablePage, setTablePage] = useState(1);
-  const [tablePageSize, setTablePageSize] = useState(20);
+  const [tablePageSize, setTablePageSize] = useState(15);
+  const [total, setTotal] = useState(0);
 
   const [previewStructure, setPreviewStructure] = useState<DocumentStructure | null>(null);
   const [deleteStructId, setDeleteStructId] = useState<string | null>(null);
 
+  const paginatedStructures = structures;
+  const pageCount = Math.max(1, Math.ceil(total / tablePageSize));
+  const pageStart = total === 0 ? 0 : (tablePage - 1) * tablePageSize + 1;
+  const pageEnd = Math.min(tablePage * tablePageSize, total);
+
   const fetchData = async () => {
     try {
       setLoading(true);
-      const structs = await LettersService.getStructures();
-      setStructures(structs);
+      const res = await LettersService.getStructures({
+        search: searchQuery || undefined,
+        limit: tablePageSize,
+        offset: (tablePage - 1) * tablePageSize,
+      });
+      setStructures(res.data || []);
+      setTotal(res.total || 0);
     } catch (err: any) {
       toast.error(err.message || 'Failed to load structures');
     } finally {
@@ -84,8 +95,8 @@ export default function StructuresManagementPage() {
       toast.loading('Deleting structure...', { id: 'del-struct' });
       await LettersService.deleteStructure(deleteStructId);
       toast.success('Structure deleted successfully!', { id: 'del-struct' });
-      setStructures(structures.filter(s => s.id !== deleteStructId));
       setDeleteStructId(null);
+      fetchData();
     } catch (err: any) {
       toast.error(err.message || 'Failed to delete structure', { id: 'del-struct' });
     }
@@ -93,21 +104,10 @@ export default function StructuresManagementPage() {
 
   useEffect(() => {
     fetchData();
-  }, []);
-
-  const filteredStructures = useMemo(() => {
-    if (!searchQuery) return structures;
-    return structures.filter(s => s.name.toLowerCase().includes(searchQuery.toLowerCase()));
-  }, [structures, searchQuery]);
-
-  const total = filteredStructures.length;
-  const pageCount = Math.ceil(total / tablePageSize) || 1;
-  const paginatedStructures = filteredStructures.slice((tablePage - 1) * tablePageSize, tablePage * tablePageSize);
-  const pageStart = total === 0 ? 0 : (tablePage - 1) * tablePageSize + 1;
-  const pageEnd = Math.min(tablePage * tablePageSize, total);
+  }, [tablePage, tablePageSize]);
 
   const statCells: StatCellData[] = useMemo(() => {
-    const total = structures.length;
+    const totalCount = total;
     const globalCount = structures.filter(s => s.tenantId === 'GLOBAL').length;
     const recentCount = structures.filter(s => {
       if (!s.createdAt && !s.updatedAt) return false;
@@ -118,15 +118,20 @@ export default function StructuresManagementPage() {
     const genericTrend = [0, 2, 4, 3, 5, 4, 7];
 
     return [
-      { key: 'total', title: 'Total Structures', value: total, suffix: '', icon: <Layers size={18} />, color: '#3b82f6', tint: 'rgba(59,130,246,0.10)', trend: genericTrend, delta: total },
+      { key: 'total', title: 'Total Structures', value: totalCount, suffix: '', icon: <Layers size={18} />, color: '#3b82f6', tint: 'rgba(59,130,246,0.10)', trend: genericTrend, delta: totalCount },
       { key: 'global', title: 'Global Structures', value: globalCount, suffix: '', icon: <StarOutlined />, color: '#8b5cf6', tint: 'rgba(139,92,246,0.10)', trend: genericTrend, delta: globalCount },
       { key: 'recent', title: 'New This Week', value: recentCount, suffix: '', icon: <FileTextOutlined />, color: '#f59e0b', tint: 'rgba(245,158,11,0.10)', trend: genericTrend, delta: recentCount },
-      { key: 'active', title: 'Active Structures', value: total, suffix: '', icon: <CheckCircleOutlined />, color: '#10b981', tint: 'rgba(16,185,129,0.10)', trend: genericTrend, delta: total },
+      { key: 'active', title: 'Active Structures', value: totalCount, suffix: '', icon: <CheckCircleOutlined />, color: '#10b981', tint: 'rgba(16,185,129,0.10)', trend: genericTrend, delta: totalCount },
     ];
-  }, [structures]);
+  }, [structures, total]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
+    if (tablePage === 1) {
+      fetchData();
+    } else {
+      setTablePage(1);
+    }
   };
 
   const columns: ColumnsType<DocumentStructure> = [
@@ -272,7 +277,7 @@ export default function StructuresManagementPage() {
           <div style={{ padding: '60px 0', textAlign: 'center', color: 'var(--text-slate-600)', fontSize: '15px' }}>
             <ZukvoLoader message="Loading custom structures..." size="md" />
           </div>
-        ) : filteredStructures.length === 0 ? (
+        ) : structures.length === 0 ? (
           <NoData description={
             <div className="pp-empty" style={{ padding: '60px 0', textAlign: 'center' }}>
               <div className="pp-empty-orb"><Layers size={48} style={{ color: 'var(--text-slate-300)', margin: '0 auto 16px' }} /></div>

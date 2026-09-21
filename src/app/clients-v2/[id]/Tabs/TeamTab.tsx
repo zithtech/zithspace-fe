@@ -16,6 +16,8 @@ import {
   Table,
   Dropdown,
   Drawer,
+  Pagination,
+  Typography,
 } from "antd";
 import {
   Plus,
@@ -163,21 +165,11 @@ export default function TeamTab({ clientId, projects = [], onCountChange, onRefr
   const [viewMode, setViewMode] = useState<"list" | "grid">("grid");
   const [searchQuery, setSearchQuery] = useState("");
   const [projectFilter, setProjectFilter] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(15);
+  const [totalCount, setTotalCount] = useState(0);
 
-  const filteredItems = useMemo(() => {
-    return items.filter((m) => {
-      const searchLower = searchQuery.toLowerCase().trim();
-      if (searchLower) {
-        const nameMatch = m.displayName?.toLowerCase().includes(searchLower);
-        const roleMatch = m.roleLabel?.toLowerCase().includes(searchLower);
-        const disc = m.discipline ? DISCIPLINE_META[m.discipline]?.label.toLowerCase() : "";
-        const discMatch = disc ? disc.includes(searchLower) : false;
-        if (!nameMatch && !roleMatch && !discMatch) return false;
-      }
-      if (projectFilter && m.projectId !== projectFilter) return false;
-      return true;
-    });
-  }, [items, searchQuery, projectFilter]);
+  const paginatedItems = items;
 
   const teamMemberActionMenu = (m: TeamMember) => {
     return {
@@ -260,12 +252,19 @@ export default function TeamTab({ clientId, projects = [], onCountChange, onRefr
     };
   };
 
-  const load = async () => {
+  const load = async (page = currentPage, size = pageSize, search = searchQuery, project = projectFilter) => {
     setLoading(true);
     try {
-      const loaded = await teamService.listForClient(clientId);
-      setItems(loaded);
-      onCountChange?.(loaded.length);
+      const res = await teamService.listForClient(clientId, {
+        page,
+        limit: size,
+        search,
+        projectId: project || undefined,
+      });
+      setItems(res.data);
+      const total = res.meta?.total ?? res.data.length;
+      setTotalCount(total);
+      onCountChange?.(total);
     } catch (err: any) {
       messageApi.error(`Failed to load team: ${err?.message || ""}`);
     } finally {
@@ -277,7 +276,7 @@ export default function TeamTab({ clientId, projects = [], onCountChange, onRefr
     try {
       setRefreshing(true);
       await Promise.all([
-        load(),
+        load(currentPage, pageSize, searchQuery, projectFilter),
         onRefresh ? onRefresh() : Promise.resolve(),
       ]);
     } catch (err) {
@@ -288,9 +287,18 @@ export default function TeamTab({ clientId, projects = [], onCountChange, onRefr
   };
 
   useEffect(() => {
-    load();
+    load(currentPage, pageSize, searchQuery, projectFilter);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [clientId]);
+  }, [clientId, currentPage, pageSize, projectFilter]);
+
+  useEffect(() => {
+    const t = setTimeout(() => {
+      setCurrentPage(1);
+      load(1, pageSize, searchQuery, projectFilter);
+    }, 300);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchQuery]);
 
   const toggleVisible = async (m: TeamMember) => {
     try {
@@ -485,7 +493,7 @@ export default function TeamTab({ clientId, projects = [], onCountChange, onRefr
   }, [c, tones, items]);
 
   return (
-    <div style={{ padding: "4px 0 24px", color: c.text }}>
+    <div style={{ color: c.text }} className="team-tab-container">
       {contextHolder}
       {modalContextHolder}
 
@@ -588,7 +596,7 @@ export default function TeamTab({ clientId, projects = [], onCountChange, onRefr
         )}
       </div>
 
-      <div style={{ marginTop: 20 }}>
+      <div className="team-tab-body">
       {loading ? (
         <div
           style={{
@@ -614,21 +622,21 @@ export default function TeamTab({ clientId, projects = [], onCountChange, onRefr
         <div className="pp-table-wrap">
           <Table
             className="pp-table"
-            dataSource={filteredItems}
+            dataSource={paginatedItems}
             columns={columns}
             rowKey="id"
-            pagination={{ pageSizeOptions: [10, 20, 25, 50, 100], pageSize: 20, hideOnSinglePage: true }}
+            pagination={false}
             scroll={{ x: "max-content" }} locale={{ emptyText: <NoData /> }}
           />
         </div>
       ) : (
         <div className="pp-grid">
-          {filteredItems.length === 0 ? (
+          {items.length === 0 ? (
             <div style={{ padding: 40, textAlign: "center", border: `1px dashed ${c.border}`, borderRadius: 12, color: c.textSubtle, gridColumn: "1/-1" }}>
               No team members match your filters.
             </div>
           ) : (
-            filteredItems.map((m) => (
+            paginatedItems.map((m) => (
               <TeamCard
                 key={m.id}
                 member={m}
@@ -647,6 +655,34 @@ export default function TeamTab({ clientId, projects = [], onCountChange, onRefr
         </div>
       )}
       </div>
+
+      {totalCount > 0 && (
+        <div className="pm2-pagination team-pagination-footer">
+          <Typography.Text style={{ fontSize: 13, color: "var(--text-slate-500)" }}>
+            Showing{" "}
+            <span style={{ color: "var(--text-slate-700)", fontWeight: 700 }}>
+              {(currentPage - 1) * pageSize + 1}–
+              {Math.min(currentPage * pageSize, totalCount)}
+            </span>{" "}
+            of{" "}
+            <span style={{ color: "var(--text-slate-700)", fontWeight: 700 }}>
+              {totalCount}
+            </span>{" "}
+            team member{totalCount !== 1 ? "s" : ""}
+          </Typography.Text>
+          <Pagination
+            current={currentPage}
+            pageSize={pageSize}
+            total={totalCount}
+            onChange={(page, size) => {
+              setCurrentPage(page);
+              setPageSize(size);
+            }}
+            showSizeChanger
+            pageSizeOptions={[10, 15, 20, 25, 50, 100]}
+          />
+        </div>
+      )}
 
       <TeamMemberModal
         open={modalOpen}
@@ -870,6 +906,104 @@ export default function TeamTab({ clientId, projects = [], onCountChange, onRefr
         }
         [data-theme="dark"] .pp-action-pop .ant-dropdown-menu-item:hover {
           background: var(--bg-slate-800) !important;
+        }
+
+        /* ── Container & Body for full-height stretch ── */
+        .team-tab-container {
+          display: flex !important;
+          flex-direction: column !important;
+          flex: 1 !important;
+          min-height: 100% !important;
+          padding: 4px 0 0 0 !important;
+          position: relative !important;
+        }
+        .team-tab-body {
+          flex: 1 0 auto !important;
+          padding-bottom: 16px !important;
+        }
+
+        /* ── Sticky pagination footer (fixed to bottom) ── */
+        .team-pagination-footer {
+          display: flex !important;
+          align-items: center !important;
+          justify-content: space-between !important;
+          gap: 12px !important;
+          padding: 10px 16px !important;
+          margin-top: auto !important;
+          margin-left: -12px !important;
+          margin-right: -12px !important;
+          margin-bottom: 0 !important;
+          flex-wrap: wrap !important;
+          position: sticky !important;
+          bottom: 0 !important;
+          left: 0 !important;
+          right: 0 !important;
+          background: var(--bg-pure-white) !important;
+          border-top: 1px solid var(--border-slate-200) !important;
+          z-index: 20 !important;
+          box-shadow: 0 -4px 16px rgba(15, 23, 42, 0.04) !important;
+        }
+        [data-theme="dark"] .team-pagination-footer {
+          background: #0B0F1A !important;
+          border-top-color: #1f2937 !important;
+        }
+        @media (max-width: 900px) {
+          .team-pagination-footer {
+            margin-left: -12px !important;
+            margin-right: -12px !important;
+            padding-left: 12px !important;
+            padding-right: 12px !important;
+          }
+        }
+        @media (max-width: 720px) {
+          .team-pagination-footer {
+            margin-left: -12px !important;
+            margin-right: -12px !important;
+            padding-left: 12px !important;
+            padding-right: 12px !important;
+          }
+        }
+
+        .team-pagination-footer .ant-pagination-item,
+        .team-pagination-footer .ant-pagination-prev .ant-pagination-item-link,
+        .team-pagination-footer .ant-pagination-next .ant-pagination-item-link {
+          border: 1px solid var(--border-slate-200) !important;
+          border-radius: 6px !important;
+          background: transparent !important;
+          color: var(--text-slate-500) !important;
+        }
+        .team-pagination-footer .ant-pagination-item-active {
+          background: #3b82f6 !important;
+          border-color: #3b82f6 !important;
+        }
+        .team-pagination-footer .ant-pagination-item-active a {
+          color: #fff !important;
+        }
+        .team-pagination-footer .ant-select-selector {
+          border: 1px solid var(--border-slate-200) !important;
+          border-radius: 6px !important;
+          background: transparent !important;
+          height: 28px !important;
+          font-size: 12px !important;
+        }
+        [data-theme="dark"] .team-pagination-footer .ant-pagination-item,
+        [data-theme="dark"] .team-pagination-footer .ant-pagination-prev .ant-pagination-item-link,
+        [data-theme="dark"] .team-pagination-footer .ant-pagination-next .ant-pagination-item-link {
+          border-color: #374151 !important;
+          background: #111827 !important;
+          color: #9ca3af !important;
+        }
+        [data-theme="dark"] .team-pagination-footer .ant-pagination-item-active {
+          background: #3b82f6 !important;
+          border-color: #3b82f6 !important;
+        }
+        [data-theme="dark"] .team-pagination-footer .ant-pagination-item-active a {
+          color: #fff !important;
+        }
+        [data-theme="dark"] .team-pagination-footer .ant-select-selector {
+          border-color: #374151 !important;
+          background: #111827 !important;
+          color: #e5e7eb !important;
         }
       `}} />
     </div>

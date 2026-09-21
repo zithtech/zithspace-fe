@@ -125,7 +125,7 @@ function InvitesContent() {
 
   const [rows, setRows] = useState<Invite[]>([]);
   const [tablePage, setTablePage] = useState(1);
-  const [tablePageSize, setTablePageSize] = useState(10);
+  const [tablePageSize, setTablePageSize] = useState(15);
 
   const [loading, setLoading] = useState(false);
 
@@ -647,7 +647,7 @@ function InvitesContent() {
               if (s) setTablePageSize(s);
             }}
             showSizeChanger
-            pageSizeOptions={[10, 20, 25, 50, 100]}
+            pageSizeOptions={[10, 15, 20, 25, 50, 100]}
             size="small"
           />
         </div>

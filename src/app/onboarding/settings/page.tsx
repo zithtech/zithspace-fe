@@ -688,7 +688,7 @@ function DocumentsNeededTab() {
             className="docn-table"
             columns={columns}
             dataSource={rows}
-            pagination={{ pageSizeOptions: [10, 20, 25, 50, 100], pageSize: 10, hideOnSinglePage: true, size: "small" }}
+            pagination={{ pageSizeOptions: [10, 15, 20, 25, 50, 100], pageSize: 15, showSizeChanger: true, hideOnSinglePage: true, size: "small" }}
             scroll={{ x: 'max-content' }}
             locale={{ emptyText: <NoData description={"No documents yet — add the ones you need from new hires."} /> }}
           />

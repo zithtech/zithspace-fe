@@ -26,7 +26,7 @@ const APPROVER_OPTIONS: { value: ApproverType; label: string }[] = [
   { value: 'specific_user', label: 'Specific User' },
 ];
 const APPROVER_LABEL: Record<ApproverType, string> = { manager: 'Reporting Manager', role: 'Role', specific_user: 'Specific User' };
-const PAGE_SIZE_OPTIONS = [10, 20, 25, 50, 100];
+const PAGE_SIZE_OPTIONS = [10, 15, 20, 25, 50, 100];
 
 type StepDraft = { approverType: ApproverType; roleId: string | null; specificUserId: string | null; fallbackUserId: string | null };
 
@@ -72,7 +72,7 @@ export default function ApprovalWorkflowPanel() {
   const [debouncedSearch, setDebouncedSearch] = useState('');
 
   const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(20);
+  const [pageSize, setPageSize] = useState(15);
   const [totalWorkflows, setTotalWorkflows] = useState(0);
 
   const [open, setOpen] = useState(false);

@@ -1,7 +1,7 @@
 "use client";
 
 import NoData from "@/components/common/NoData";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import {
   Table,
@@ -25,6 +25,8 @@ import {
   Segmented,
   Dropdown,
   Drawer,
+  Pagination,
+  Typography,
 } from "antd";
 import {
   Plus,
@@ -51,7 +53,7 @@ import {
   List,
   MoreHorizontal,
 } from "lucide-react";
-import { api } from "@/lib/axios";
+import { api, apiClient } from "@/lib/axios";
 import { usePermission } from "@/hooks/usePermission";
 import { useSubscriptionFeature } from "@/hooks/useSubscriptionFeature";
 import dayjs from "dayjs";
@@ -86,10 +88,13 @@ export default function ProjectsTab({ clientId, onRefresh }: ProjectsTabProps) {
   const canUseProjectTrash = useSubscriptionFeature('work_projects_project_trash');
   const router = useRouter();
   const [projects, setProjects] = useState<any[]>([]);
+  const [totalCount, setTotalCount] = useState(0);
   const [loading, setLoading] = useState(false);
   const [employees, setEmployees] = useState<any[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [viewMode, setViewMode] = useState<"list" | "grid">("grid");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(15);
 
 
   const [isModalVisible, setIsModalVisible] = useState(false);
@@ -252,11 +257,18 @@ export default function ProjectsTab({ clientId, onRefresh }: ProjectsTabProps) {
     return null;
   };
 
-  const fetchProjects = async () => {
+  const fetchProjects = async (page = currentPage, size = pageSize, search = searchTerm) => {
     setLoading(true);
     try {
-      const data = await api.get(`/api/clients-v2/${clientId}/projects`);
-      setProjects(data || []);
+      const qs = new URLSearchParams();
+      qs.append("page", String(page));
+      qs.append("limit", String(size));
+      if (search.trim()) qs.append("search", search.trim());
+      const res = await apiClient.get(`/api/clients-v2/${clientId}/projects?${qs.toString()}`);
+      const data = res.data?.data || [];
+      const meta = res.data?.meta || { total: data.length };
+      setProjects(Array.isArray(data) ? data : []);
+      setTotalCount(meta.total ?? (Array.isArray(data) ? data.length : 0));
     } catch (error) {
       console.error("Error fetching projects:", error);
       messageApi.error("Load Error: Failed to load project database.");
@@ -279,7 +291,7 @@ export default function ProjectsTab({ clientId, onRefresh }: ProjectsTabProps) {
     try {
       setRefreshing(true);
       await Promise.all([
-        fetchProjects(),
+        fetchProjects(currentPage, pageSize, searchTerm),
         fetchEmployees(),
         onRefresh(),
       ]);
@@ -291,9 +303,22 @@ export default function ProjectsTab({ clientId, onRefresh }: ProjectsTabProps) {
   };
 
   useEffect(() => {
-    fetchProjects();
+    fetchProjects(currentPage, pageSize, searchTerm);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [clientId, currentPage, pageSize]);
+
+  useEffect(() => {
     fetchEmployees();
   }, [clientId]);
+
+  useEffect(() => {
+    const t = setTimeout(() => {
+      setCurrentPage(1);
+      fetchProjects(1, pageSize, searchTerm);
+    }, 300);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchTerm]);
 
   const currencySelector = (
     <Form.Item name="currency" noStyle initialValue="USD">
@@ -553,16 +578,10 @@ export default function ProjectsTab({ clientId, onRefresh }: ProjectsTabProps) {
     },
   ];
 
-  const filteredProjects = projects.filter((project) => {
-    const matchesSearch =
-      project.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      project.code.toLowerCase().includes(searchTerm.toLowerCase());
-
-    return matchesSearch;
-  });
+  const paginatedProjects = projects;
 
   return (
-    <div style={{ animation: "fadeIn 0.3s ease-in-out" }}>
+    <div style={{ animation: "fadeIn 0.3s ease-in-out" }} className="projects-tab-container">
       {contextHolder}
       {modalContextHolder}
 
@@ -603,18 +622,16 @@ export default function ProjectsTab({ clientId, onRefresh }: ProjectsTabProps) {
                     icon={<Plus size={16} />}
                     onClick={() => setIsModalVisible(true)}
                     style={{
+                      background: "linear-gradient(135deg, #3b82f6, #2563eb)",
+                      boxShadow: "0 4px 12px rgba(59, 130, 246, 0.25)",
                       borderRadius: 8,
                       height: 32,
                       fontWeight: 600,
                       display: "flex",
-                      alignItems: "center",
-                      background: "linear-gradient(135deg, #3b82f6, #2563eb)",
-                      border: "none",
-                      boxShadow: "0 4px 12px rgba(59, 130, 246, 0.25)",
-                      whiteSpace: "nowrap"
+                      alignItems: "center"
                     }}
                   >
-                    Initiate Project
+                    New Project
                   </Button>
                 )}
               </div>
@@ -622,15 +639,19 @@ export default function ProjectsTab({ clientId, onRefresh }: ProjectsTabProps) {
           />
         </div>
 
+        {/* Filter controls */}
         <div style={{ margin: "12px 0 8px 0", display: "flex", justifyContent: "space-between", alignItems: "center", gap: "12px", flexWrap: "wrap" }}>
-          <Input
-            placeholder="Search by name or project code..."
-            prefix={<Search size={15} style={{ color: "var(--text-slate-400)", marginRight: 8 }} />}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="projects-search-input"
-            style={{ width: "320px" }}
-            allowClear
-          />
+          <div style={{ display: "flex", gap: "12px", flexWrap: "wrap", alignItems: "center", flex: 1, minWidth: 0 }}>
+            <Input
+              placeholder="Search by project name or code..."
+              prefix={<Search size={15} style={{ color: "var(--text-slate-400)", marginRight: 8 }} />}
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="contacts-search-input"
+              style={{ width: "320px" }}
+              allowClear
+            />
+          </div>
 
           <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
             <div className="ptab-segmented">
@@ -657,180 +678,210 @@ export default function ProjectsTab({ clientId, onRefresh }: ProjectsTabProps) {
         <div className="ptab-divider" />
       </div>
 
-      <ZukvoLoadingOverlay loading={loading} message="">
-        {viewMode === "list" ? (
-          <div className="pp-table-wrap">
-            <Table
-              dataSource={filteredProjects}
-              columns={columns}
-              rowKey="id"
-              pagination={{ pageSizeOptions: [10, 20, 25, 50, 100], pageSize: 20, hideOnSinglePage: true }}
-              className="pp-table"
-              scroll={{ x: "max-content" }}
-              onRow={(record) => ({
-                onClick: () => router.push(`/projects/${record.id}/overview`),
-                style: { cursor: "pointer" },
-              })}
-              locale={{
-                emptyText: <NoData description={(
-                                        <div className="ptab-empty">
-                                          <div className="ptab-empty-icon">
-                                            <Layers size={26} />
+      <div className="projects-tab-body">
+        <ZukvoLoadingOverlay loading={loading} message="">
+          {viewMode === "list" ? (
+            <div className="pp-table-wrap">
+              <Table
+                dataSource={paginatedProjects}
+                columns={columns}
+                rowKey="id"
+                pagination={false}
+                className="pp-table"
+                scroll={{ x: "max-content" }}
+                onRow={(record) => ({
+                  onClick: () => router.push(`/projects/${record.id}/overview`),
+                  style: { cursor: "pointer" },
+                })}
+                locale={{
+                  emptyText: <NoData description={(
+                                          <div className="ptab-empty">
+                                            <div className="ptab-empty-icon">
+                                              <Layers size={26} />
+                                            </div>
+                                            <div className="ptab-empty-title">No projects yet</div>
+                                            <div className="ptab-empty-desc">
+                                              Initiate the first project under this client to start tracking budget, timelines, and ownership.
+                                            </div>
                                           </div>
-                                          <div className="ptab-empty-title">No projects yet</div>
-                                          <div className="ptab-empty-desc">
-                                            Initiate the first project under this client to start tracking budget, timelines, and ownership.
-                                          </div>
-                                        </div>
-                                      )} />,
-              }}
-            />
+                                        )} />,
+                }}
+              />
 
-          </div>
-        ) : (
-          <div className="pp-grid">
-            {filteredProjects.length === 0 ? (
-              <div className="ptab-empty-wrapper">
-                <div className="ptab-empty">
-                  <div className="ptab-empty-icon">
-                    <Layers size={26} />
-                  </div>
-                  <div className="ptab-empty-title">No projects yet</div>
-                  <div className="ptab-empty-desc">
-                    Initiate the first project under this client to start tracking budget, timelines, and ownership.
+            </div>
+          ) : (
+            <div className="pp-grid">
+              {projects.length === 0 ? (
+                <div className="ptab-empty-wrapper">
+                  <div className="ptab-empty">
+                    <div className="ptab-empty-icon">
+                      <Layers size={26} />
+                    </div>
+                    <div className="ptab-empty-title">No projects yet</div>
+                    <div className="ptab-empty-desc">
+                      Initiate the first project under this client to start tracking budget, timelines, and ownership.
+                    </div>
                   </div>
                 </div>
-              </div>
-            ) : (
-              filteredProjects.map((project) => {
-                const name = project.name;
-                const initials = (name?.[0] || "").toUpperCase();
+              ) : (
+                paginatedProjects.map((project) => {
+                  const name = project.name;
+                  const initials = (name?.[0] || "").toUpperCase();
 
-                const sKey = project.status || "Draft";
-                const statusConfig: any = {
-                  Active: { color: "success", icon: <Activity size={10} /> },
-                  Draft: { color: "processing", icon: <FileText size={10} /> },
-                  "On Hold": { color: "warning", icon: <Clock size={10} /> },
-                  Completed: { color: "default", icon: <CheckCircle2 size={10} /> },
-                  Closed: { color: "error", icon: <AlertCircle size={10} /> },
-                };
-                const statusItem = statusConfig[sKey] || { color: "default", icon: null };
+                  const sKey = project.status || "Draft";
+                  const statusConfig: any = {
+                    Active: { color: "success", icon: <Activity size={10} /> },
+                    Draft: { color: "processing", icon: <FileText size={10} /> },
+                    "On Hold": { color: "warning", icon: <Clock size={10} /> },
+                    Completed: { color: "default", icon: <CheckCircle2 size={10} /> },
+                    Closed: { color: "error", icon: <AlertCircle size={10} /> },
+                  };
+                  const statusItem = statusConfig[sKey] || { color: "default", icon: null };
 
-                const created = project.createdAt ? dayjs(project.createdAt) : null;
-                const updated = project.updatedAt ? dayjs(project.updatedAt) : null;
+                  const created = project.createdAt ? dayjs(project.createdAt) : null;
+                  const updated = project.updatedAt ? dayjs(project.updatedAt) : null;
 
-                const symbol = currencyOptions.find((c) => c.value === project.currency)?.symbol || "$";
-                const budget = Number(project.budget || 0);
-                const invoiced = Number(project.invoicedAmount || 0);
-                const percentage = budget > 0 ? Math.min(100, (invoiced / budget) * 100) : 0;
+                  const symbol = currencyOptions.find((c) => c.value === project.currency)?.symbol || "$";
+                  const budget = Number(project.budget || 0);
+                  const invoiced = Number(project.invoicedAmount || 0);
+                  const percentage = budget > 0 ? Math.min(100, (invoiced / budget) * 100) : 0;
 
-                return (
-                  <div key={project.id} className="pc-card" onClick={() => router.push(`/projects/${project.id}/overview`)}>
-                    <div className="pc-top">
-                      <div className="pc-avatar" style={{ background: "#3b82f6", color: "#fff", borderRadius: "50%" }}>
-                        {initials}
-                      </div>
-                      <div className="pc-identity-body">
-                        <div className="pc-title" style={{ display: "flex", alignItems: "center", gap: "6px", flexWrap: "wrap" }}>
-                          <span>{name}</span>
-                          <Tag
-                            color={statusItem.color}
-                            icon={statusItem.icon}
-                            style={{ borderRadius: 6, fontWeight: 600, border: 0, fontSize: "10px", padding: "1px 6px", display: "inline-flex", alignItems: "center", gap: 3 }}
-                          >
-                            {sKey.toUpperCase()}
-                          </Tag>
+                  return (
+                    <div key={project.id} className="pc-card" onClick={() => router.push(`/projects/${project.id}/overview`)}>
+                      <div className="pc-top">
+                        <div className="pc-avatar" style={{ background: "#3b82f6", color: "#fff", borderRadius: "50%" }}>
+                          {initials}
                         </div>
-                        <div className="pc-client-line">
-                          <span className="pc-client-key">Code:</span>
-                          <span className="pc-client-val">{project.code}</span>
+                        <div className="pc-identity-body">
+                          <div className="pc-title" style={{ display: "flex", alignItems: "center", gap: "6px", flexWrap: "wrap" }}>
+                            <span>{name}</span>
+                            <Tag
+                              color={statusItem.color}
+                              icon={statusItem.icon}
+                              style={{ borderRadius: 6, fontWeight: 600, border: 0, fontSize: "10px", padding: "1px 6px", display: "inline-flex", alignItems: "center", gap: 3 }}
+                            >
+                              {sKey.toUpperCase()}
+                            </Tag>
+                          </div>
+                          <div className="pc-client-line">
+                            <span className="pc-client-key">Code:</span>
+                            <span className="pc-client-val">{project.code}</span>
+                          </div>
                         </div>
-                      </div>
-                      <Dropdown
-                        menu={projectActionMenu(project)}
-                        overlayClassName="pp-action-pop"
-                        trigger={["click"]}
-                        placement="bottomRight"
-                      >
-                        <button type="button" className="pc-actions" onClick={(e) => e.stopPropagation()}>
-                          <MoreHorizontal size={14} />
-                        </button>
-                      </Dropdown>
-                    </div>
-
-                    <div className="pc-foot">
-                      <div className="pc-foot-row">
-                        <span className="pc-foot-item">
-                          <span className="pc-foot-key">Created by</span>
-                          <Avatar size={16} src={project.createdBy?.avatarUrl || project.createdBy?.avatar} style={{ background: "var(--bg-blue-50)", color: "#3b82f6", fontSize: 8, fontWeight: 700 }}>
-                            {(project.createdBy?.name?.[0] || "—").toUpperCase()}
-                          </Avatar>
-                          <span className="pc-foot-val">{project.createdBy?.name || "—"}</span>
-                        </span>
-                        <span className="pc-foot-div" />
-                        <span className="pc-foot-item">
-                          <span className="pc-foot-key">Created</span>
-                          <span className="pc-foot-val">{created ? created.format("MMM D, YYYY · h:mm A") : "—"}</span>
-                        </span>
-                        <span className="pc-foot-div" />
-                        <span className="pc-foot-item">
-                          <span className="pc-foot-key">Updated</span>
-                          <span className="pc-foot-val">{updated ? updated.format("MMM D, YYYY · h:mm A") : "—"}</span>
-                        </span>
+                        <Dropdown
+                          menu={projectActionMenu(project)}
+                          overlayClassName="pp-action-pop"
+                          trigger={["click"]}
+                          placement="bottomRight"
+                        >
+                          <button type="button" className="pc-actions" onClick={(e) => e.stopPropagation()}>
+                            <MoreHorizontal size={14} />
+                          </button>
+                        </Dropdown>
                       </div>
 
-                      <div className="pc-foot-row">
-                        <span className="pc-foot-item">
-                          <Briefcase size={12} style={{ color: "var(--text-slate-400)", flexShrink: 0 }} />
-                          <span style={{ fontSize: "11.5px", color: "var(--text-slate-700)" }}>{project.billingType}</span>
-                        </span>
-                        <span className="pc-foot-div" />
-                        <span className="pc-foot-item">
-                          <User size={12} style={{ color: "var(--text-slate-400)", flexShrink: 0 }} />
-                          <span style={{ fontSize: "11.5px", color: "var(--text-slate-700)", fontWeight: 500 }}>
-                            {project.projectManager?.name || (project.projectManager?.first_name ? `${project.projectManager.first_name} ${project.projectManager.last_name}` : "Unassigned")}
+                      <div className="pc-foot">
+                        <div className="pc-foot-row">
+                          <span className="pc-foot-item">
+                            <span className="pc-foot-key">Created by</span>
+                            <Avatar size={16} src={project.createdBy?.avatarUrl || project.createdBy?.avatar} style={{ background: "var(--bg-blue-50)", color: "#3b82f6", fontSize: 8, fontWeight: 700 }}>
+                              {(project.createdBy?.name?.[0] || "—").toUpperCase()}
+                            </Avatar>
+                            <span className="pc-foot-val">{project.createdBy?.name || "—"}</span>
                           </span>
-                        </span>
-                        {project.startDate && (
-                          <>
-                            <span className="pc-foot-div" />
-                            <span className="pc-foot-item">
-                              <Calendar size={12} style={{ color: "var(--text-slate-400)", flexShrink: 0 }} />
-                              <span style={{ fontSize: "11.5px", color: "var(--text-slate-700)", fontWeight: 500 }}>
-                                {dayjs(project.startDate).format("MMM DD, YYYY")}
+                          <span className="pc-foot-div" />
+                          <span className="pc-foot-item">
+                            <span className="pc-foot-key">Created</span>
+                            <span className="pc-foot-val">{created ? created.format("MMM D, YYYY · h:mm A") : "—"}</span>
+                          </span>
+                          <span className="pc-foot-div" />
+                          <span className="pc-foot-item">
+                            <span className="pc-foot-key">Updated</span>
+                            <span className="pc-foot-val">{updated ? updated.format("MMM D, YYYY · h:mm A") : "—"}</span>
+                          </span>
+                        </div>
+
+                        <div className="pc-foot-row">
+                          <span className="pc-foot-item">
+                            <Briefcase size={12} style={{ color: "var(--text-slate-400)", flexShrink: 0 }} />
+                            <span style={{ fontSize: "11.5px", color: "var(--text-slate-700)" }}>{project.billingType}</span>
+                          </span>
+                          <span className="pc-foot-div" />
+                          <span className="pc-foot-item">
+                            <User size={12} style={{ color: "var(--text-slate-400)", flexShrink: 0 }} />
+                            <span style={{ fontSize: "11.5px", color: "var(--text-slate-700)", fontWeight: 500 }}>
+                              {project.projectManager?.name || (project.projectManager?.first_name ? `${project.projectManager.first_name} ${project.projectManager.last_name}` : "Unassigned")}
+                            </span>
+                          </span>
+                          {project.startDate && (
+                            <>
+                              <span className="pc-foot-div" />
+                              <span className="pc-foot-item">
+                                <Calendar size={12} style={{ color: "var(--text-slate-400)", flexShrink: 0 }} />
+                                <span style={{ fontSize: "11.5px", color: "var(--text-slate-700)", fontWeight: 500 }}>
+                                  {dayjs(project.startDate).format("MMM DD, YYYY")}
+                                </span>
                               </span>
-                            </span>
-                          </>
-                        )}
-                        {budget > 0 && (
-                          <>
-                            <span className="pc-foot-div" />
-                            <span className="pc-foot-item" style={{ gap: "6px" }}>
-                              <span style={{ color: "var(--text-slate-500)", fontWeight: 500, fontSize: "11px" }}>Budget: {symbol}{budget.toLocaleString()}</span>
-                              <div style={{ width: "36px", display: "inline-flex", alignItems: "center" }}>
-                                <Progress
-                                  percent={percentage}
-                                  size="small"
-                                  showInfo={false}
-                                  strokeColor="var(--premium-blue)"
-                                  trailColor="var(--border-slate-100)"
-                                  strokeWidth={3}
-                                  style={{ margin: 0 }}
-                                />
-                              </div>
-                              <span style={{ color: "var(--text-slate-600)", fontWeight: 600, fontSize: "10.5px" }}>{Math.round(percentage)}% used</span>
-                            </span>
-                          </>
-                        )}
+                            </>
+                          )}
+                          {budget > 0 && (
+                            <>
+                              <span className="pc-foot-div" />
+                              <span className="pc-foot-item" style={{ gap: "6px" }}>
+                                <span style={{ color: "var(--text-slate-500)", fontWeight: 500, fontSize: "11px" }}>Budget: {symbol}{budget.toLocaleString()}</span>
+                                <div style={{ width: "36px", display: "inline-flex", alignItems: "center" }}>
+                                  <Progress
+                                    percent={percentage}
+                                    size="small"
+                                    showInfo={false}
+                                    strokeColor="var(--premium-blue)"
+                                    trailColor="var(--border-slate-100)"
+                                    strokeWidth={3}
+                                    style={{ margin: 0 }}
+                                  />
+                                </div>
+                                <span style={{ color: "var(--text-slate-600)", fontWeight: 600, fontSize: "10.5px" }}>{Math.round(percentage)}% used</span>
+                              </span>
+                            </>
+                          )}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                );
-              })
-            )}
-          </div>
-        )}
-      </ZukvoLoadingOverlay>
+                  );
+                })
+              )}
+            </div>
+          )}
+        </ZukvoLoadingOverlay>
+      </div>
+
+      {!loading && totalCount > 0 && (
+        <div className="pm2-pagination projects-pagination-footer">
+          <Typography.Text style={{ fontSize: 13, color: "var(--text-slate-500)" }}>
+            Showing{" "}
+            <span style={{ color: "var(--text-slate-700)", fontWeight: 700 }}>
+              {(currentPage - 1) * pageSize + 1}–
+              {Math.min(currentPage * pageSize, totalCount)}
+            </span>{" "}
+            of{" "}
+            <span style={{ color: "var(--text-slate-700)", fontWeight: 700 }}>
+              {totalCount}
+            </span>{" "}
+            project{totalCount !== 1 ? "s" : ""}
+          </Typography.Text>
+          <Pagination
+            current={currentPage}
+            pageSize={pageSize}
+            total={totalCount}
+            onChange={(page, size) => {
+              setCurrentPage(page);
+              setPageSize(size);
+            }}
+            showSizeChanger
+            pageSizeOptions={[10, 15, 20, 25, 50, 100]}
+          />
+        </div>
+      )}
 
       {/* Create Drawer */}
       <>
@@ -1359,6 +1410,104 @@ export default function ProjectsTab({ clientId, onRefresh }: ProjectsTabProps) {
         /* Prevent horizontal overflow from edge-to-edge header bleed */
         .cd-tabs .ant-tabs-content-holder {
           overflow-x: hidden !important;
+        }
+
+        /* ── Container & Body for full-height stretch ── */
+        .projects-tab-container {
+          display: flex !important;
+          flex-direction: column !important;
+          flex: 1 !important;
+          min-height: 100% !important;
+          padding: 4px 0 0 0 !important;
+          position: relative !important;
+        }
+        .projects-tab-body {
+          flex: 1 0 auto !important;
+          padding-bottom: 16px !important;
+        }
+
+        /* ── Sticky pagination footer (fixed to bottom) ── */
+        .projects-pagination-footer {
+          display: flex !important;
+          align-items: center !important;
+          justify-content: space-between !important;
+          gap: 12px !important;
+          padding: 10px 16px !important;
+          margin-top: auto !important;
+          margin-left: -12px !important;
+          margin-right: -12px !important;
+          margin-bottom: 0 !important;
+          flex-wrap: wrap !important;
+          position: sticky !important;
+          bottom: 0 !important;
+          left: 0 !important;
+          right: 0 !important;
+          background: var(--bg-pure-white) !important;
+          border-top: 1px solid var(--border-slate-200) !important;
+          z-index: 20 !important;
+          box-shadow: 0 -4px 16px rgba(15, 23, 42, 0.04) !important;
+        }
+        [data-theme="dark"] .projects-pagination-footer {
+          background: #0B0F1A !important;
+          border-top-color: #1f2937 !important;
+        }
+        @media (max-width: 900px) {
+          .projects-pagination-footer {
+            margin-left: -12px !important;
+            margin-right: -12px !important;
+            padding-left: 12px !important;
+            padding-right: 12px !important;
+          }
+        }
+        @media (max-width: 720px) {
+          .projects-pagination-footer {
+            margin-left: -12px !important;
+            margin-right: -12px !important;
+            padding-left: 12px !important;
+            padding-right: 12px !important;
+          }
+        }
+
+        .projects-pagination-footer .ant-pagination-item,
+        .projects-pagination-footer .ant-pagination-prev .ant-pagination-item-link,
+        .projects-pagination-footer .ant-pagination-next .ant-pagination-item-link {
+          border: 1px solid var(--border-slate-200) !important;
+          border-radius: 6px !important;
+          background: transparent !important;
+          color: var(--text-slate-500) !important;
+        }
+        .projects-pagination-footer .ant-pagination-item-active {
+          background: #3b82f6 !important;
+          border-color: #3b82f6 !important;
+        }
+        .projects-pagination-footer .ant-pagination-item-active a {
+          color: #fff !important;
+        }
+        .projects-pagination-footer .ant-select-selector {
+          border: 1px solid var(--border-slate-200) !important;
+          border-radius: 6px !important;
+          background: transparent !important;
+          height: 28px !important;
+          font-size: 12px !important;
+        }
+        [data-theme="dark"] .projects-pagination-footer .ant-pagination-item,
+        [data-theme="dark"] .projects-pagination-footer .ant-pagination-prev .ant-pagination-item-link,
+        [data-theme="dark"] .projects-pagination-footer .ant-pagination-next .ant-pagination-item-link {
+          border-color: #374151 !important;
+          background: #111827 !important;
+          color: #9ca3af !important;
+        }
+        [data-theme="dark"] .projects-pagination-footer .ant-pagination-item-active {
+          background: #3b82f6 !important;
+          border-color: #3b82f6 !important;
+        }
+        [data-theme="dark"] .projects-pagination-footer .ant-pagination-item-active a {
+          color: #fff !important;
+        }
+        [data-theme="dark"] .projects-pagination-footer .ant-select-selector {
+          border-color: #374151 !important;
+          background: #111827 !important;
+          color: #e5e7eb !important;
         }
 
         /* Full bleed header styling flush with vertical sidebar border */

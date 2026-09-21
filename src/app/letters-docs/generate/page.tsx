@@ -39,7 +39,7 @@ import LetterTiptapEditor from '@/components/letters/LetterTiptapEditor';
 import { LetterStatsCards, StatCellData } from '@/components/letters/LetterStatsCards';
 import { SnippetsOutlined, FileTextOutlined, CheckCircleOutlined, StarOutlined } from '@ant-design/icons';
 
-const PAGE_SIZE_OPTIONS = [10, 20, 25, 50, 100];
+const PAGE_SIZE_OPTIONS = [10, 15, 20, 25, 50, 100];
 import type { ColumnsType } from 'antd/es/table';
 import { AppstoreOutlined, UnorderedListOutlined, ReloadOutlined, EllipsisOutlined } from '@ant-design/icons';
 import ZukvoLoader from '@/components/common/ZukvoLoader';
@@ -107,11 +107,12 @@ function LetterGenerationContent() {
   }, [valuesMap['salary_structure_id']]);
 
   const [tablePage, setTablePage] = useState(1);
-  const [tablePageSize, setTablePageSize] = useState(20);
+  const [tablePageSize, setTablePageSize] = useState(15);
+  const [total, setTotal] = useState(0);
+  const [stats, setStats] = useState<any>({ total: 0, globalCount: 0, activeCount: 0, recentCount: 0 });
 
-  const total = templates.length;
-  const pageCount = Math.ceil(total / tablePageSize) || 1;
-  const paginatedTemplates = templates.slice((tablePage - 1) * tablePageSize, tablePage * tablePageSize);
+  const paginatedTemplates = templates;
+  const pageCount = Math.max(1, Math.ceil(total / tablePageSize));
   const pageStart = total === 0 ? 0 : (tablePage - 1) * tablePageSize + 1;
   const pageEnd = Math.min(tablePage * tablePageSize, total);
 
@@ -144,9 +145,13 @@ function LetterGenerationContent() {
       const templatesData = await LettersService.getTemplates({
         status: 'ACTIVE',
         search: searchQuery || undefined,
-        categoryId: selectedCategory || undefined
+        categoryId: selectedCategory || undefined,
+        limit: tablePageSize,
+        offset: (tablePage - 1) * tablePageSize,
       });
       setTemplates(templatesData.data || []);
+      setTotal(templatesData.total || 0);
+      if (templatesData.stats) setStats(templatesData.stats);
     } catch (err: any) {
       toast.error(err.message || 'Failed to search templates');
     } finally {
@@ -155,24 +160,15 @@ function LetterGenerationContent() {
   };
 
   const statCells: StatCellData[] = useMemo(() => {
-    const total = templates.length;
-    const globalCount = templates.filter(t => t.tenantId === 'GLOBAL').length;
-    const activeCount = templates.filter(t => t.status === 'ACTIVE').length;
-    const recentCount = templates.filter(t => {
-      if (!t.createdAt && !t.updatedAt) return false;
-      const d = new Date(t.createdAt || t.updatedAt);
-      return (new Date().getTime() - d.getTime()) < 7 * 24 * 60 * 60 * 1000;
-    }).length;
-
     const genericTrend = [0, 2, 4, 3, 5, 4, 7];
 
     return [
-      { key: 'total', title: 'Total Templates', value: total, suffix: '', icon: <SnippetsOutlined />, color: '#3b82f6', tint: 'rgba(59,130,246,0.10)', trend: genericTrend, delta: total },
-      { key: 'active', title: 'Active Templates', value: activeCount, suffix: '', icon: <CheckCircleOutlined />, color: '#10b981', tint: 'rgba(16,185,129,0.10)', trend: genericTrend, delta: activeCount },
-      { key: 'global', title: 'Global Templates', value: globalCount, suffix: '', icon: <StarOutlined />, color: '#8b5cf6', tint: 'rgba(139,92,246,0.10)', trend: genericTrend, delta: globalCount },
-      { key: 'recent', title: 'New This Week', value: recentCount, suffix: '', icon: <FileTextOutlined />, color: '#f59e0b', tint: 'rgba(245,158,11,0.10)', trend: genericTrend, delta: recentCount },
+      { key: 'total', title: 'Total Templates', value: stats.total || total, suffix: '', icon: <SnippetsOutlined />, color: '#3b82f6', tint: 'rgba(59,130,246,0.10)', trend: genericTrend, delta: stats.total || total },
+      { key: 'active', title: 'Active Templates', value: stats.activeCount || total, suffix: '', icon: <CheckCircleOutlined />, color: '#10b981', tint: 'rgba(16,185,129,0.10)', trend: genericTrend, delta: stats.activeCount || total },
+      { key: 'global', title: 'Global Templates', value: stats.globalCount || 0, suffix: '', icon: <StarOutlined />, color: '#8b5cf6', tint: 'rgba(139,92,246,0.10)', trend: genericTrend, delta: stats.globalCount || 0 },
+      { key: 'recent', title: 'New This Week', value: stats.recentCount || 0, suffix: '', icon: <FileTextOutlined />, color: '#f59e0b', tint: 'rgba(245,158,11,0.10)', trend: genericTrend, delta: stats.recentCount || 0 },
     ];
-  }, [templates]);
+  }, [stats, total]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -210,14 +206,9 @@ function LetterGenerationContent() {
   };
 
   useEffect(() => {
-    const fetchTemplatesAndPositions = async () => {
+    const fetchInitialData = async () => {
       try {
-        setLoading(true);
-        const [templatesData, categoriesData] = await Promise.all([
-          LettersService.getTemplates({ status: 'ACTIVE' }),
-          LettersService.getCategories(),
-        ]);
-        setTemplates(templatesData.data || []);
+        const categoriesData = await LettersService.getCategories();
         setCategories(categoriesData || []);
 
         if (editId) {
@@ -231,17 +222,23 @@ function LetterGenerationContent() {
           }
         }
       } catch (err: any) {
-        toast.error(err.message || 'Failed to load active templates');
-      } finally {
-        fetchPositionsAndDepartments();
+        toast.error(err.message || 'Failed to load initial data');
       }
     };
-    fetchTemplatesAndPositions();
+    fetchInitialData();
   }, [editId]);
 
   useEffect(() => {
+    setTablePage(1);
+  }, [searchQuery, selectedCategory, tablePageSize]);
+
+  useEffect(() => {
+    if (tablePage > pageCount && pageCount > 0) setTablePage(pageCount);
+  }, [total, tablePage, pageCount]);
+
+  useEffect(() => {
     fetchTemplates();
-  }, [selectedCategory]);
+  }, [selectedCategory, tablePage, tablePageSize]);
 
   const filterContent = filterPortalNode ? createPortal(
     <div className="lv-sidebar-filter-sec" style={{ marginTop: '20px', padding: '0 6px' }}>

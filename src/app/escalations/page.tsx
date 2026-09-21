@@ -160,7 +160,7 @@ export default function EscalationListPage() {
   const [categoryFilter, setCategoryFilter] = useState<string[]>([]);
 
   const [tablePage, setTablePage] = useState(1);
-  const [tablePageSize, setTablePageSize] = useState(20);
+  const [tablePageSize, setTablePageSize] = useState(15);
   const [totalEscalations, setTotalEscalations] = useState(0);
   const [totalTrash, setTotalTrash] = useState(0);
   const [selectedKeys, setSelectedKeys] = useState<React.Key[]>([]);
@@ -1107,7 +1107,7 @@ export default function EscalationListPage() {
                   className="es-pagesize"
                   value={tablePageSize}
                   onChange={(v) => { setTablePageSize(v); setTablePage(1); }}
-                  options={[10, 20, 25, 50, 100].map((n) => ({ value: n, label: `${n} / page` }))}
+                  options={[10, 15, 20, 25, 50, 100].map((n) => ({ value: n, label: `${n} / page` }))}
                   popupMatchSelectWidth={120}
                 />
               </div>

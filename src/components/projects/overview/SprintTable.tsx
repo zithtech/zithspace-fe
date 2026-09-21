@@ -41,8 +41,13 @@ export interface TableSprint {
   tickets: SprintTicket[];
 }
 
+import { useQuery } from "@tanstack/react-query";
+import { ProjectService } from "@/services/projectService";
+import ZukvoLoader from "@/components/common/ZukvoLoader";
+
 interface SprintTableProps {
-  sprints: TableSprint[];
+  sprints?: TableSprint[];
+  projectId?: string;
   selectedSprintId: string | null;
   onSelectSprint: (id: string | null) => void;
 }
@@ -197,25 +202,33 @@ const TicketChildTable: React.FC<{ tickets: SprintTicket[] }> = ({ tickets }) =>
 };
 
 export const SprintTable: React.FC<SprintTableProps> = ({
-  sprints,
+  sprints = [],
+  projectId,
   selectedSprintId,
   onSelectSprint,
 }) => {
   const [expanded, setExpanded] = useState<React.Key[]>([]);
   const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(20);
+  const [pageSize, setPageSize] = useState(15);
+
+  const { data: sprintResponse, isLoading } = useQuery({
+    queryKey: ["projectSprints", projectId, page, pageSize],
+    queryFn: () => ProjectService.getProjectSprints(projectId!, { page, limit: pageSize }),
+    enabled: !!projectId,
+  });
 
   // Keep the table expansion in sync with the selection.
   useEffect(() => {
     if (selectedSprintId) setExpanded([selectedSprintId]);
   }, [selectedSprintId]);
 
-  // Reset to the first page whenever the data set changes.
-  useEffect(() => {
-    setPage(1);
-  }, [sprints.length]);
+  const displayedSprints: TableSprint[] = projectId
+    ? (sprintResponse?.data ?? [])
+    : sprints.slice((page - 1) * pageSize, page * pageSize);
 
-  const pagedSprints = sprints.slice((page - 1) * pageSize, page * pageSize);
+  const total = projectId
+    ? (sprintResponse?.pagination?.total ?? 0)
+    : sprints.length;
 
   const columns: ColumnsType<TableSprint> = [
     {
@@ -327,7 +340,25 @@ export const SprintTable: React.FC<SprintTableProps> = ({
     },
   ];
 
-  if (!sprints.length) {
+  if (isLoading) {
+    return (
+      <div
+        style={{
+          background: "var(--bg-pure-white)",
+          border: "1px solid var(--border-color)",
+          borderRadius: 6,
+          padding: "48px 0",
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+        }}
+      >
+        <ZukvoLoader size="md" message="Loading sprints..." />
+      </div>
+    );
+  }
+
+  if (!isLoading && total === 0) {
     return (
       <div
         style={{
@@ -392,7 +423,7 @@ export const SprintTable: React.FC<SprintTableProps> = ({
             fontWeight: 600,
           }}
         >
-          {sprints.length}
+          {total}
         </span>
         <Text style={{ fontSize: 11.5, color: "var(--text-slate-400)", marginLeft: "auto" }}>
           Click a row to expand its tickets
@@ -404,7 +435,7 @@ export const SprintTable: React.FC<SprintTableProps> = ({
         rowKey="id"
         size="middle"
         columns={columns}
-        dataSource={pagedSprints}
+        dataSource={displayedSprints}
         pagination={false}
         expandable={{
           expandedRowKeys: expanded,
@@ -431,20 +462,24 @@ export const SprintTable: React.FC<SprintTableProps> = ({
         }}
         rowClassName={(record) => (record.id === selectedSprintId ? "po-row-active" : "")} locale={{ emptyText: <NoData /> }}
       />
+    </div>
 
-      {/* The pager is the panel's own footer band, not a detached strip. */}
+    {/* The pager is sticky at the bottom, detached from the table */}
+    {total > 0 && (
       <OverviewPager
-        total={sprints.length}
+        total={total}
         page={page}
         pageSize={pageSize}
+        pageSizeOptions={[10, 15, 20, 25, 50, 100]}
         onPageChange={setPage}
         onPageSizeChange={(s) => {
           setPageSize(s);
           setPage(1);
         }}
         noun="sprints"
+        sticky={true}
       />
-    </div>
+    )}
 
     <style jsx global>{`
         .po-sprint-table .ant-table {

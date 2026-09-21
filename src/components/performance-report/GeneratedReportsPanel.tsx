@@ -91,6 +91,7 @@ export default function GeneratedReportsPanel() {
   const [member, setMember] = useState<string | undefined>();
   const [monthRange, setMonthRange] = useState<[Dayjs, Dayjs] | null>(null);
   const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(15);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -400,8 +401,8 @@ export default function GeneratedReportsPanel() {
   }, [search, dept, subDept, member, monthRange]);
 
   const total = filtered.length;
-  const paged = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
-  const rangeInfo = total === 0 ? '0 reports' : `${(page - 1) * PAGE_SIZE + 1}–${Math.min(page * PAGE_SIZE, total)} of ${total}`;
+  const paged = filtered.slice((page - 1) * pageSize, page * pageSize);
+  const rangeInfo = total === 0 ? '0 reports' : `${(page - 1) * pageSize + 1}–${Math.min(page * pageSize, total)} of ${total}`;
 
   // ── header KPIs (computed over the filtered set so they track the filters) ──
   const kpis = useMemo(() => {
@@ -745,10 +746,18 @@ export default function GeneratedReportsPanel() {
       </div>
 
       {/* 4. Fixed bottom pagination */}
-      <div className="gr-footer">
-        <span className="gr-footer-info">{total === 0 ? 'No reports' : `Showing ${rangeInfo}`}</span>
-        <Pagination current={page} pageSize={PAGE_SIZE} total={total} showSizeChanger={false} onChange={setPage} />
-      </div>
+        <Pagination
+          current={page}
+          pageSize={pageSize}
+          total={total}
+          showSizeChanger={true}
+          pageSizeOptions={[10, 15, 20, 25, 50, 100]}
+          onChange={(p, s) => {
+            setPage(p);
+            if (s && s !== pageSize) setPageSize(s);
+          }}
+          size="small"
+        />
 
       {/* Generate wizard */}
       <Modal

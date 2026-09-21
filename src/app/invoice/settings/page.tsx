@@ -177,7 +177,7 @@ export default function InvoiceSettingPage() {
   const [isMobileOpen, setIsMobileOpen] = useState(false);
 
   const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState(20);
+  const [pageSize, setPageSize] = useState(15);
 
   const { data: savedSettingsData, isLoading, isError, error, refetch, isFetching } = useSettingsProfiles({
     page: currentPage,
@@ -1139,7 +1139,7 @@ export default function InvoiceSettingPage() {
                     setPageSize(v);
                     setCurrentPage(1);
                   }}
-                  options={[10, 20, 25, 50, 100].map((n) => ({
+                  options={[10, 15, 20, 25, 50, 100].map((n) => ({
                     value: n,
                     label: `${n} / page`,
                   }))}

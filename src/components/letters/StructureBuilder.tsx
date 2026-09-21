@@ -55,7 +55,8 @@ export default function StructureBuilder() {
       setSaving(true);
 
       // Validate: duplicate name check
-      const existing = await LettersService.getStructures();
+      const structsRes = await LettersService.getStructures();
+      const existing = Array.isArray(structsRes) ? structsRes : structsRes.data || [];
       const duplicate = existing.find(
         (s) => s.name.trim().toLowerCase() === trimmedName.toLowerCase() && s.id !== editId
       );

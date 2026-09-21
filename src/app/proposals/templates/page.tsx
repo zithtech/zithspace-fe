@@ -2,7 +2,7 @@
 
 import NoData from "@/components/common/NoData";
 
-import React, { useMemo, useState, useEffect } from 'react';
+import React, { useMemo, useState, useEffect, useCallback } from 'react';
 import {
   Button, Dropdown, message, Select, Tooltip,
 } from 'antd';
@@ -23,6 +23,7 @@ import { nanoid } from 'nanoid';
 import {
   useProposalLibraryStore, LibraryTemplate, LibrarySection, blockTypeForSectionType,
 } from '@/store/proposalLibraryStore';
+import { ProposalTemplateService } from '@/services/proposalTemplateService';
 import { usePermission } from '@/hooks/usePermission';
 import { useActivitySource } from '@/hooks/useActivitySource';
 import ConfirmDialog from '@/components/common/ConfirmDialog';
@@ -30,7 +31,7 @@ import TemplatePreviewModal from '@/components/proposals/TemplatePreviewModal';
 import '../library.css';
 
 type SavedView = 'all' | 'archived';
-const PAGE_SIZE_OPTIONS = [10, 20, 25, 50, 100];
+const PAGE_SIZE_OPTIONS = [10, 15, 20, 25, 50, 100];
 
 const BLOCK_TYPE_LABEL: Record<string, string> = {
   cover: 'Cover', text: 'Text', section: 'Section', pricing: 'Pricing',
@@ -80,20 +81,65 @@ function TemplatesContent() {
   const [messageApi, holder] = message.useMessage();
   const { canCreateProposal, canUpdateProposal, canDeleteProposal } = usePermission();
 
-  const templates = useProposalLibraryStore((s) => s.templates);
   const sections = useProposalLibraryStore((s) => s.sections);
   const fetchSections = useProposalLibraryStore((s) => s.fetchSections);
-  const fetchTemplates = useProposalLibraryStore((s) => s.fetchTemplates);
-  useEffect(() => { fetchSections(); fetchTemplates(true); }, [fetchSections, fetchTemplates]);
   const duplicateTemplate = useProposalLibraryStore((s) => s.duplicateTemplate);
   const archiveTemplate = useProposalLibraryStore((s) => s.archiveTemplate);
   const deleteTemplate = useProposalLibraryStore((s) => s.deleteTemplate);
-  const sectionsLoading = useProposalLibraryStore((s) => s.sectionsLoading);
-  const templatesLoading = useProposalLibraryStore((s) => s.templatesLoading);
-  const loading = sectionsLoading || templatesLoading;
+
+  const [templatesList, setTemplatesList] = useState<LibraryTemplate[]>([]);
+  const [templatesLoading, setTemplatesLoading] = useState(false);
+  const [templatesLoaded, setTemplatesLoaded] = useState(false);
+  const [total, setTotal] = useState(0);
+  const [stats, setStats] = useState({
+    total: 0,
+    active: 0,
+    archived: 0,
+  });
+
+  const [searchText, setSearchText] = useState('');
+  const [savedView, setSavedView] = useState<SavedView>('all');
+  const [view, setView] = useState<'grid' | 'list'>('grid');
+  const [tablePage, setTablePage] = useState(1);
+  const [tablePageSize, setTablePageSize] = useState(15);
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
+  const [previewTpl, setPreviewTpl] = useState<LibraryTemplate | null>(null);
+
+  const loadTemplates = useCallback(async () => {
+    setTemplatesLoading(true);
+    try {
+      const res = await ProposalTemplateService.list({
+        page: tablePage,
+        limit: tablePageSize,
+        search: searchText.trim() || undefined,
+        view: savedView,
+      });
+      setTemplatesList(res.data || []);
+      if (res.pagination) {
+        setTotal(res.pagination.total);
+      }
+      if (res.stats) {
+        setStats(res.stats);
+      }
+      setTemplatesLoaded(true);
+    } catch (err: any) {
+      messageApi.error(err?.message || 'Failed to load templates');
+    } finally {
+      setTemplatesLoading(false);
+    }
+  }, [tablePage, tablePageSize, searchText, savedView, messageApi]);
+
+  useEffect(() => {
+    loadTemplates();
+  }, [loadTemplates]);
+
+  useEffect(() => {
+    fetchSections();
+  }, [fetchSections]);
+
   const handleRefresh = () => {
+    loadTemplates();
     fetchSections(true);
-    fetchTemplates(true);
   };
 
   const sectionById = useMemo(() => {
@@ -109,48 +155,29 @@ function TemplatesContent() {
       ? t.blocks.map(blockLabel)
       : (t.sectionIds || []).map((id) => sectionById.get(id)?.name).filter(Boolean) as string[]);
 
-  const [searchText, setSearchText] = useState('');
-  const [savedView, setSavedView] = useState<SavedView>('all');
-  const [view, setView] = useState<'grid' | 'list'>('grid');
-  const [tablePage, setTablePage] = useState(1);
-  const [tablePageSize, setTablePageSize] = useState(20);
-  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
-
-  const [previewTpl, setPreviewTpl] = useState<LibraryTemplate | null>(null);
-
   const handleDeleteTemplate = async (t: LibraryTemplate) => {
     try {
       await deleteTemplate(t.id);
       messageApi.success('Template deleted');
+      loadTemplates();
     } catch (e: any) {
       messageApi.error(e?.message || 'Failed to delete template');
       throw e; // keep the confirm popover open on failure
     }
   };
 
-  const activeCount = templates.filter((t) => !t.archived).length;
-  const archivedCount = templates.filter((t) => t.archived).length;
-  const avgBlocks = activeCount
-    ? Math.round(templates.filter((t) => !t.archived).reduce((a, t) => a + blockCount(t), 0) / activeCount)
+  const activeCount = stats.active;
+  const archivedCount = stats.archived;
+  const avgBlocks = templatesList.length
+    ? Math.round(templatesList.filter((t) => !t.archived).reduce((a, t) => a + blockCount(t), 0) / Math.max(1, templatesList.filter((t) => !t.archived).length))
     : 0;
   const sectionCount = sections.filter((s) => !s.archived).length;
 
-  const filtered = useMemo(() => {
-    const q = searchText.trim().toLowerCase();
-    return templates.filter((t) => {
-      if (savedView === 'archived') { if (!t.archived) return false; }
-      else if (t.archived) return false;
-      if (q && !`${t.name} ${t.description || ''}`.toLowerCase().includes(q)) return false;
-      return true;
-    });
-  }, [templates, searchText, savedView]);
-
-  const total = filtered.length;
   const pageCount = Math.max(1, Math.ceil(total / tablePageSize));
   const safePage = Math.min(tablePage, pageCount);
   const pageStart = total === 0 ? 0 : (safePage - 1) * tablePageSize + 1;
   const pageEnd = Math.min(safePage * tablePageSize, total);
-  const paged = filtered.slice((safePage - 1) * tablePageSize, safePage * tablePageSize);
+  const paged = templatesList;
 
   const views: { key: SavedView; label: string; icon: React.ReactNode; color: string; count: number }[] = [
     { key: 'all', label: 'All Templates', icon: <AppstoreOutlined />, color: '#3B82F6', count: activeCount },
@@ -195,11 +222,17 @@ function TemplatesContent() {
       else if (key === 'edit') openEdit(t);
       else if (key === 'duplicate') {
         duplicateTemplate(t.id)
-          .then(() => messageApi.success('Template duplicated'))
+          .then(() => {
+            messageApi.success('Template duplicated');
+            loadTemplates();
+          })
           .catch((e: any) => messageApi.error(e?.message || 'Failed to duplicate template'));
       } else if (key === 'archive') {
         archiveTemplate(t.id, !t.archived)
-          .then(() => messageApi.success(t.archived ? 'Template restored' : 'Template archived'))
+          .then(() => {
+            messageApi.success(t.archived ? 'Template restored' : 'Template archived');
+            loadTemplates();
+          })
           .catch((e: any) => messageApi.error(e?.message || 'Failed to update template'));
       }
     },
@@ -303,8 +336,8 @@ function TemplatesContent() {
                 <button type="button" className={view === 'list' ? 'is-active' : ''} onClick={() => setView('list')} aria-label="List view"><UnorderedListOutlined /></button>
               </div>
               <Tooltip title="Refresh">
-                <button type="button" className="pp-ghost-btn" onClick={handleRefresh} disabled={loading}>
-                  <ReloadOutlined spin={loading} />
+                <button type="button" className="pp-ghost-btn" onClick={handleRefresh} disabled={templatesLoading}>
+                  <ReloadOutlined spin={templatesLoading} />
                 </button>
               </Tooltip>
               <Tooltip title="Section library">

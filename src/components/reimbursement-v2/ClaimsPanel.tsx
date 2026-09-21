@@ -18,7 +18,7 @@ import ConfirmDialog from '@/components/common/ConfirmDialog';
 import ReimbursementV2Service, {
   Claim, ClaimDetail, ExpenseCategory, Advance,
 } from '@/services/reimbursementV2Service';
-import { PALETTE, TINT, PanelHeader, StatCards, RmbStyles, money, fmtDate, StatusTag, CurrencySelect, preventInvalidNumberKeys } from './ui';
+import { PALETTE, TINT, PanelHeader, StatCards, RmbStyles, money, fmtDate, StatusTag, CurrencySelect, preventInvalidNumberKeys, tablePaginationConfig } from './ui';
 import { drawerFormStyles as formStyles, commonDrawerProps, SectionCard } from '@/components/common/DrawerSection';
 import SearchableDropdown from '@/components/common/SearchableDropdown';
 import { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
@@ -49,7 +49,7 @@ export default function ClaimsPanel({ hideSidebarToggle }: { hideSidebarToggle?:
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState(20);
+  const [pageSize, setPageSize] = useState(15);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [current, setCurrent] = useState<ClaimDetail | null>(null);
   const [creating, setCreating] = useState(false);
@@ -399,15 +399,15 @@ export default function ClaimsPanel({ hideSidebarToggle }: { hideSidebarToggle?:
       <div className="rvp-table-wrap">
         <Table rowKey="id" size="middle" loading={loading} columns={columns} dataSource={rows}
           pagination={{
+            ...tablePaginationConfig,
             current: currentPage,
             pageSize,
             total,
-            showSizeChanger: true,
-            pageSizeOptions: ['10', '20', '50', '100'],
             showTotal: (t) => `${t} claims`,
             onChange: (page, size) => {
               setCurrentPage(page);
               setPageSize(size ?? pageSize);
+              load(page, size ?? pageSize);
             },
           }} locale={{ emptyText: <NoData /> }} />
       </div>

@@ -78,7 +78,7 @@ interface OrgModuleScaffoldProps<T> {
   };
 }
 
-const DEFAULT_PAGE_SIZES = [10, 20, 25, 50, 100];
+const DEFAULT_PAGE_SIZES = [10, 15, 20, 25, 50, 100];
 
 // Smooth area sparkline used inside the stat cards (Proposals style).
 const AreaSparkline = ({ values, color }: { values: number[]; color: string }) => {
@@ -143,7 +143,7 @@ export function OrgModuleScaffold<T extends Record<string, any>>({
   serverPagination,
 }: OrgModuleScaffoldProps<T>) {
   const [internalPage, setInternalPage] = useState(1);
-  const [internalPageSize, setInternalPageSize] = useState(defaultPageSize ?? 20);
+  const [internalPageSize, setInternalPageSize] = useState(defaultPageSize ?? 15);
 
   const page = serverPagination ? serverPagination.current : internalPage;
   const pageSize = serverPagination ? serverPagination.pageSize : internalPageSize;

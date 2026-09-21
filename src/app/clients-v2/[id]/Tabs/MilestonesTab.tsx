@@ -15,6 +15,8 @@ import {
   Avatar,
   Space,
   Drawer,
+  Pagination,
+  Typography,
 } from "antd";
 import {
   Plus,
@@ -148,6 +150,7 @@ export default function MilestonesTab({ clientId, projects = [], onRefresh }: Pr
   const { canUpdateClient } = usePermission();
 
   const [items, setItems] = useState<Milestone[]>([]);
+  const [totalCount, setTotalCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [createOpen, setCreateOpen] = useState(false);
   const [editing, setEditing] = useState<Milestone | null>(null);
@@ -158,15 +161,25 @@ export default function MilestonesTab({ clientId, projects = [], onRefresh }: Pr
   }, [items, viewingMilestoneId]);
   const [messageApi, contextHolder] = message.useMessage();
 
-  const [searchTerm, setSearchTerm] = useState("");
-  const [selectedProject, setSelectedProject] = useState("all");
-  const [selectedStatus, setSelectedStatus] = useState("all");
   const [viewMode, setViewMode] = useState<"list" | "grid">("grid");
+  const [searchTerm, setSearchTerm] = useState("");
+  const [selectedStatus, setSelectedStatus] = useState<string>("all");
+  const [selectedProject, setSelectedProject] = useState<string>("all");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(15);
 
-  const load = async () => {
+  const load = async (page = currentPage, size = pageSize, search = searchTerm, project = selectedProject, status = selectedStatus) => {
     setLoading(true);
     try {
-      setItems(await milestoneService.list(clientId));
+      const res = await milestoneService.list(clientId, {
+        page,
+        limit: size,
+        search,
+        projectId: project,
+        status,
+      });
+      setItems(res.data);
+      setTotalCount(res.meta?.total ?? res.data.length);
     } catch (err: any) {
       messageApi.error(`Failed to load milestones: ${err?.message || ""}`);
     } finally {
@@ -179,7 +192,7 @@ export default function MilestonesTab({ clientId, projects = [], onRefresh }: Pr
     try {
       setRefreshing(true);
       await Promise.all([
-        load(),
+        load(currentPage, pageSize, searchTerm, selectedProject, selectedStatus),
         onRefresh ? onRefresh() : Promise.resolve(),
       ]);
     } catch (err) {
@@ -190,9 +203,18 @@ export default function MilestonesTab({ clientId, projects = [], onRefresh }: Pr
   };
 
   useEffect(() => {
-    load();
+    load(currentPage, pageSize, searchTerm, selectedProject, selectedStatus);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [clientId]);
+  }, [clientId, currentPage, pageSize, selectedProject, selectedStatus]);
+
+  useEffect(() => {
+    const t = setTimeout(() => {
+      setCurrentPage(1);
+      load(1, pageSize, searchTerm, selectedProject, selectedStatus);
+    }, 300);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchTerm]);
 
   const remove = async (m: Milestone) => {
     try {
@@ -205,32 +227,15 @@ export default function MilestonesTab({ clientId, projects = [], onRefresh }: Pr
   };
 
   const counts = useMemo(() => {
-    const total = items.length;
+    const total = totalCount || items.length;
     const completed = items.filter((m) => m.status === "completed").length;
     const inProgress = items.filter((m) => m.status === "in_progress").length;
     const itemsTotal = items.reduce((a, m) => a + m.itemsTotal, 0);
     const itemsDone = items.reduce((a, m) => a + m.itemsDone, 0);
     return { total, completed, inProgress, itemsTotal, itemsDone };
-  }, [items]);
+  }, [items, totalCount]);
 
-  const filteredItems = items.filter((item) => {
-    const search = searchTerm.toLowerCase();
-    const matchesSearch =
-      (item.name || "").toLowerCase().includes(search) ||
-      (item.projectName || "").toLowerCase().includes(search);
-
-    let matchesProject = true;
-    if (selectedProject !== "all") {
-      matchesProject = item.projectId === selectedProject;
-    }
-
-    let matchesStatus = true;
-    if (selectedStatus !== "all") {
-      matchesStatus = item.status === selectedStatus;
-    }
-
-    return matchesSearch && matchesProject && matchesStatus;
-  });
+  const paginatedItems = items;
 
   const milestoneActionMenu = (m: Milestone) => ({
     className: "pp-action-pop",
@@ -430,7 +435,7 @@ export default function MilestonesTab({ clientId, projects = [], onRefresh }: Pr
   ];
 
   return (
-    <div style={{ padding: "4px 0 24px", color: c.text }}>
+    <div style={{ color: c.text }} className="milestones-tab-container">
       {contextHolder}
 
       {/* Header */}
@@ -575,7 +580,7 @@ export default function MilestonesTab({ clientId, projects = [], onRefresh }: Pr
         <div className="ptab-divider" />
       </div>
 
-      <div>
+      <div className="milestones-tab-body">
         {loading ? (
           <div
             style={{
@@ -589,7 +594,7 @@ export default function MilestonesTab({ clientId, projects = [], onRefresh }: Pr
           >
             Loading…
           </div>
-        ) : filteredItems.length === 0 ? (
+        ) : items.length === 0 ? (
           <div
             style={{
               padding: 56,
@@ -649,7 +654,7 @@ export default function MilestonesTab({ clientId, projects = [], onRefresh }: Pr
         ) : viewMode === "list" ? (
           <div className="pp-table-wrap">
             <Table
-              dataSource={filteredItems}
+              dataSource={paginatedItems}
               columns={columns}
               rowKey="id"
               pagination={false}
@@ -658,12 +663,13 @@ export default function MilestonesTab({ clientId, projects = [], onRefresh }: Pr
               onRow={(record) => ({
                 onClick: () => setViewingMilestoneId(record.id),
                 style: { cursor: "pointer" },
-              })} locale={{ emptyText: <NoData /> }}
+              })}
+              locale={{ emptyText: <NoData /> }}
             />
           </div>
         ) : (
           <div className="pp-grid">
-            {filteredItems.map((m) => (
+            {paginatedItems.map((m) => (
               <MilestoneCard
                 key={m.id}
                 milestone={m}
@@ -681,6 +687,34 @@ export default function MilestonesTab({ clientId, projects = [], onRefresh }: Pr
           </div>
         )}
       </div>
+
+      {totalCount > 0 && (
+        <div className="pm2-pagination milestones-pagination-footer">
+          <Typography.Text style={{ fontSize: 13, color: "var(--text-slate-500)" }}>
+            Showing{" "}
+            <span style={{ color: "var(--text-slate-700)", fontWeight: 700 }}>
+              {(currentPage - 1) * pageSize + 1}–
+              {Math.min(currentPage * pageSize, totalCount)}
+            </span>{" "}
+            of{" "}
+            <span style={{ color: "var(--text-slate-700)", fontWeight: 700 }}>
+              {totalCount}
+            </span>{" "}
+            milestone{totalCount !== 1 ? "s" : ""}
+          </Typography.Text>
+          <Pagination
+            current={currentPage}
+            pageSize={pageSize}
+            total={totalCount}
+            onChange={(page, size) => {
+              setCurrentPage(page);
+              setPageSize(size);
+            }}
+            showSizeChanger
+            pageSizeOptions={[10, 15, 20, 25, 50, 100]}
+          />
+        </div>
+      )}
 
       <MilestoneModal
         open={createOpen}
@@ -920,6 +954,104 @@ export default function MilestonesTab({ clientId, projects = [], onRefresh }: Pr
         .pp-menu-title { font-size: 13px; font-weight: 600; color: var(--text-slate-900); letter-spacing: -0.01em; }
         .pp-menu-desc { font-size: 11px; color: var(--text-slate-400); margin-top: 1px; }
         .pp-action-pop .ant-dropdown-menu-item-danger:hover { background: rgba(239,68,68,0.08) !important; }
+
+        /* ── Container & Body for full-height stretch ── */
+        .milestones-tab-container {
+          display: flex !important;
+          flex-direction: column !important;
+          flex: 1 !important;
+          min-height: 100% !important;
+          padding: 4px 0 0 0 !important;
+          position: relative !important;
+        }
+        .milestones-tab-body {
+          flex: 1 0 auto !important;
+          padding-bottom: 16px !important;
+        }
+
+        /* ── Sticky pagination footer (fixed to bottom) ── */
+        .milestones-pagination-footer {
+          display: flex !important;
+          align-items: center !important;
+          justify-content: space-between !important;
+          gap: 12px !important;
+          padding: 10px 16px !important;
+          margin-top: auto !important;
+          margin-left: -12px !important;
+          margin-right: -12px !important;
+          margin-bottom: 0 !important;
+          flex-wrap: wrap !important;
+          position: sticky !important;
+          bottom: 0 !important;
+          left: 0 !important;
+          right: 0 !important;
+          background: var(--bg-pure-white) !important;
+          border-top: 1px solid var(--border-slate-200) !important;
+          z-index: 20 !important;
+          box-shadow: 0 -4px 16px rgba(15, 23, 42, 0.04) !important;
+        }
+        [data-theme="dark"] .milestones-pagination-footer {
+          background: #0B0F1A !important;
+          border-top-color: #1f2937 !important;
+        }
+        @media (max-width: 900px) {
+          .milestones-pagination-footer {
+            margin-left: -12px !important;
+            margin-right: -12px !important;
+            padding-left: 12px !important;
+            padding-right: 12px !important;
+          }
+        }
+        @media (max-width: 720px) {
+          .milestones-pagination-footer {
+            margin-left: -12px !important;
+            margin-right: -12px !important;
+            padding-left: 12px !important;
+            padding-right: 12px !important;
+          }
+        }
+
+        .milestones-pagination-footer .ant-pagination-item,
+        .milestones-pagination-footer .ant-pagination-prev .ant-pagination-item-link,
+        .milestones-pagination-footer .ant-pagination-next .ant-pagination-item-link {
+          border: 1px solid var(--border-slate-200) !important;
+          border-radius: 6px !important;
+          background: transparent !important;
+          color: var(--text-slate-500) !important;
+        }
+        .milestones-pagination-footer .ant-pagination-item-active {
+          background: #3b82f6 !important;
+          border-color: #3b82f6 !important;
+        }
+        .milestones-pagination-footer .ant-pagination-item-active a {
+          color: #fff !important;
+        }
+        .milestones-pagination-footer .ant-select-selector {
+          border: 1px solid var(--border-slate-200) !important;
+          border-radius: 6px !important;
+          background: transparent !important;
+          height: 28px !important;
+          font-size: 12px !important;
+        }
+        [data-theme="dark"] .milestones-pagination-footer .ant-pagination-item,
+        [data-theme="dark"] .milestones-pagination-footer .ant-pagination-prev .ant-pagination-item-link,
+        [data-theme="dark"] .milestones-pagination-footer .ant-pagination-next .ant-pagination-item-link {
+          border-color: #374151 !important;
+          background: #111827 !important;
+          color: #9ca3af !important;
+        }
+        [data-theme="dark"] .milestones-pagination-footer .ant-pagination-item-active {
+          background: #3b82f6 !important;
+          border-color: #3b82f6 !important;
+        }
+        [data-theme="dark"] .milestones-pagination-footer .ant-pagination-item-active a {
+          color: #fff !important;
+        }
+        [data-theme="dark"] .milestones-pagination-footer .ant-select-selector {
+          border-color: #374151 !important;
+          background: #111827 !important;
+          color: #e5e7eb !important;
+        }
       `}} />
     </div>
   );

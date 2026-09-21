@@ -48,7 +48,7 @@ export const useInvoices = (
   return useQuery({
     queryKey: invoiceKeys.list(params),
     queryFn: () => InvoiceService.getInvoices(params),
-    staleTime: 2 * 60 * 1000,
+    staleTime: 0,
     enabled,
     placeholderData: (previousData) => previousData,
   });
@@ -62,7 +62,7 @@ export const useInvoice = (invoiceId: string, enabled: boolean = true) => {
   return useQuery({
     queryKey: invoiceKeys.detail(invoiceId),
     queryFn: () => InvoiceService.getInvoiceById(invoiceId),
-    staleTime: 5 * 60 * 1000,
+    staleTime: 0,
     enabled: enabled && !!invoiceId,
   });
 };
@@ -651,7 +651,7 @@ export const useDeletedInvoices = (params?: InvoiceListParams, enabled: boolean 
   return useQuery({
     queryKey: [...invoiceKeys.lists(), "deleted", params ?? {}],
     queryFn: () => InvoiceService.getDeletedInvoices(params),
-    staleTime: 1 * 60 * 1000,
+    staleTime: 0,
     enabled,
   });
 };

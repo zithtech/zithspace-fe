@@ -562,8 +562,8 @@ function useDashboardData() {
         .then((r) => setSprints(r.data))
         .catch(() => {}),
       portalMilestoneService
-        .list()
-        .then((r) => setMilestones(r))
+        .list({ limit: 6 })
+        .then((r) => setMilestones(r.data || (Array.isArray(r) ? r : [])))
         .catch(() => {}),
       portalApprovalsService
         .list({ status: "open", limit: 6 })

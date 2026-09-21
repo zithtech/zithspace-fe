@@ -10,6 +10,7 @@ import { useRouter } from "next/navigation";
 import {
   Card,
   Table,
+  Pagination,
   Button,
   Typography,
   Tag,
@@ -789,6 +790,8 @@ export default function RolesPage() {
   const [historyOpen, setHistoryOpen] = useState(false);
 
   const [roles, setRoles] = useState<RBACRole[]>([]);
+  const [totalRoles, setTotalRoles] = useState(0);
+  const [rolesStatsCounts, setRolesStatsCounts] = useState<{ total: number; system: number; custom: number }>({ total: 0, system: 0, custom: 0 });
   const [allPermissions, setAllPermissions] = useState<Record<string, RBACPermission[]>>({});
   const [loading, setLoading] = useState(true);
   const { message: messageApi } = App.useApp();
@@ -796,6 +799,8 @@ export default function RolesPage() {
   // Filters
   const [searchTerm, setSearchTerm] = useState("");
   const [roleTypeFilter, setRoleTypeFilter] = useState<"all" | "system" | "custom">("all");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(15);
 
   // List / grid view
   const [view, setView] = useState<"list" | "grid">("list");
@@ -850,31 +855,14 @@ export default function RolesPage() {
     const totalMembers = roles.reduce((sum, r) => sum + (r._count?.userRoles || 0), 0);
     const assignedPerms = roles.reduce((sum, r) => sum + (r._count?.rolePermissions || 0), 0);
     return {
-      total: roles.length,
-      system: roles.filter(r => r.isSystem).length,
-      custom: roles.filter(r => !r.isSystem).length,
+      total: rolesStatsCounts.total || totalRoles || roles.length,
+      system: rolesStatsCounts.system || roles.filter(r => r.isSystem).length,
+      custom: rolesStatsCounts.custom || roles.filter(r => !r.isSystem).length,
       permissions: Object.values(allPermissions).flat().length,
       assignedPerms,
       totalMembers,
     };
-  }, [roles, allPermissions]);
-
-  // Filtered roles
-  const filteredRoles = React.useMemo(() => {
-    let list = [...roles];
-    if (searchTerm) {
-      const q = searchTerm.toLowerCase();
-      list = list.filter(
-        r =>
-          r.name.toLowerCase().includes(q) ||
-          r.slug.toLowerCase().includes(q) ||
-          (r.description || "").toLowerCase().includes(q),
-      );
-    }
-    if (roleTypeFilter === "system") list = list.filter(r => r.isSystem);
-    else if (roleTypeFilter === "custom") list = list.filter(r => !r.isSystem);
-    return list;
-  }, [roles, searchTerm, roleTypeFilter]);
+  }, [roles, rolesStatsCounts, totalRoles, allPermissions]);
 
   const hasActiveFilter = !!searchTerm || roleTypeFilter !== "all";
 
@@ -888,6 +876,7 @@ export default function RolesPage() {
   const handleClearFilters = () => {
     setSearchTerm("");
     setRoleTypeFilter("all");
+    setCurrentPage(1);
   };
 
   // ── Route guard ────────────────────────────────────────────────────────────
@@ -898,17 +887,52 @@ export default function RolesPage() {
   }, [user, isLoading, canReadRole, router]);
 
   // ── Initial data fetch ─────────────────────────────────────────────────────
-  const fetchRoles = useCallback(async () => {
+  const fetchRoles = useCallback(async (page = currentPage, size = pageSize, search = searchTerm, type = roleTypeFilter) => {
     try {
       setLoading(true);
-      const data = await RBACService.listRoles();
-      setRoles(data);
+      const res = await RBACService.listRoles({
+        page,
+        limit: size,
+        search: search.trim() || undefined,
+        type: type === 'all' ? undefined : type,
+      });
+      if (res && res.data) {
+        setRoles(res.data);
+        if (res.pagination) {
+          setTotalRoles(res.pagination.total);
+        } else {
+          setTotalRoles(res.data.length);
+        }
+        if (res.stats) {
+          setRolesStatsCounts(res.stats);
+        }
+      } else if (Array.isArray(res)) {
+        setRoles(res);
+        setTotalRoles(res.length);
+      }
     } catch {
       messageApi.error("Failed to load roles");
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [currentPage, pageSize, searchTerm, roleTypeFilter, messageApi]);
+
+  useEffect(() => {
+    if (user) {
+      fetchRoles(currentPage, pageSize, searchTerm, roleTypeFilter);
+    }
+  }, [user, currentPage, pageSize, roleTypeFilter]);
+
+  // Debounced search
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (user) {
+        setCurrentPage(1);
+        fetchRoles(1, pageSize, searchTerm, roleTypeFilter);
+      }
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
 
   const fetchPermissions = useCallback(async () => {
     try {
@@ -940,10 +964,9 @@ export default function RolesPage() {
 
   useEffect(() => {
     if (user) {
-      fetchRoles();
       fetchPermissions();
     }
-  }, [user, fetchRoles, fetchPermissions]);
+  }, [user, fetchPermissions]);
 
   // ── Members drawer logic ───────────────────────────────────────────────────
   const openMembersDrawer = async (role: RBACRole) => {
@@ -1522,7 +1545,7 @@ export default function RolesPage() {
                 <Table
                   className="premium-table rp-table"
                   columns={columns}
-                  dataSource={filteredRoles}
+                  dataSource={roles}
                   rowKey="id"
                   pagination={false}
                   scroll={{ x: 1000 }} locale={{ emptyText: <NoData /> }}
@@ -1533,10 +1556,10 @@ export default function RolesPage() {
               <div className="rp-grid">
                 {loading ? (
                   <div className="rp-grid-loading">Loading…</div>
-                ) : filteredRoles.length === 0 ? (
+                ) : roles.length === 0 ? (
                   <div className="rp-grid-loading">No roles match your filters.</div>
                 ) : (
-                  filteredRoles.map((record) => {
+                  roles.map((record) => {
                     const permCount = record._count?.rolePermissions ?? 0;
                     const memberCount = record._count?.userRoles ?? 0;
                     return (
@@ -1647,8 +1670,31 @@ export default function RolesPage() {
 
           <div className="rp-footer rp-footer--sticky">
             <div className="rp-footer-info">
-              Showing <strong>{filteredRoles.length}</strong> of <strong>{roleStats.total}</strong> roles
+              Showing{" "}
+              <strong>
+                {totalRoles === 0
+                  ? 0
+                  : `${(currentPage - 1) * pageSize + 1}–${Math.min(
+                      currentPage * pageSize,
+                      totalRoles,
+                    )}`}
+              </strong>{" "}
+              of <strong>{totalRoles}</strong> role{totalRoles !== 1 ? "s" : ""}
             </div>
+            {totalRoles > 0 && (
+              <Pagination
+                current={currentPage}
+                pageSize={pageSize}
+                total={totalRoles}
+                onChange={(page, size) => {
+                  setCurrentPage(page);
+                  setPageSize(size);
+                }}
+                showSizeChanger
+                pageSizeOptions={[10, 15, 20, 25, 50, 100]}
+                size="small"
+              />
+            )}
           </div>
         </main>
 

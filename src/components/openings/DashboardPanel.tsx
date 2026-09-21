@@ -45,7 +45,7 @@ export default function DashboardPanel() {
   const [departmentId, setDepartmentId] = useState<string | null>(null);
   const [includeClosed, setIncludeClosed] = useState(false);
   const [tablePage, setTablePage] = useState(1);
-  const [tablePageSize, setTablePageSize] = useState(25);
+  const [tablePageSize, setTablePageSize] = useState(15);
 
   const load = useCallback(async () => {
     setLoading(true);

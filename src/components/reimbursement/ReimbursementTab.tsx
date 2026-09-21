@@ -15250,8 +15250,10 @@ export default function ReimbursementConfigurationPage() {
                         dataSource={filteredData}
                         size="small"
                         pagination={{
-                          pageSize: 10,
+                          defaultPageSize: 15,
+                          pageSizeOptions: [10, 15, 20, 25, 50, 100],
                           size: "small",
+                          showSizeChanger: true,
                           showTotal: (total) => `Total ${total}`,
                         }}
                         rowKey="id"

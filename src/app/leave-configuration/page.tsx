@@ -672,7 +672,7 @@ export default function leaveConfiguration() {
               )}
               size="small"
               style={{ marginTop: 5 }}
-              pagination={{ pageSizeOptions: [10, 20, 25, 50, 100], pageSize: 10 }}
+              pagination={{ pageSizeOptions: [10, 15, 20, 25, 50, 100], pageSize: 15, showSizeChanger: true }}
             />
           </ZukvoLoadingOverlay>
 

@@ -16,7 +16,7 @@ export const useInvoiceTemplates = (params?: { page?: number; limit?: number }) 
   return useQuery({
     queryKey: [...templateKeys.lists(), params],
     queryFn: () => InvoiceTemplateService.getTemplates(params),
-    staleTime: 5 * 60 * 1000,
+    staleTime: 0,
   });
 };
 
@@ -24,7 +24,7 @@ export const useInvoiceTemplate = (id: string, enabled: boolean = true) => {
   return useQuery({
     queryKey: templateKeys.detail(id),
     queryFn: () => InvoiceTemplateService.getTemplateById(id),
-    staleTime: 5 * 60 * 1000,
+    staleTime: 0,
     enabled: enabled && !!id,
   });
 };

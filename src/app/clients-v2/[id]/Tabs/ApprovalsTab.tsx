@@ -20,6 +20,8 @@ import {
   Row,
   Col,
   Avatar,
+  Pagination,
+  Typography,
 } from "antd";
 import {
   Plus,
@@ -177,6 +179,7 @@ export default function ApprovalsTab({ clientId, projects = [], onRefresh }: Pro
   const tones = useMemo(() => tonesOf(c), [c]);
 
   const [items, setItems] = useState<ApprovalListItem[]>([]);
+  const [totalCount, setTotalCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [createOpen, setCreateOpen] = useState(false);
   const [openId, setOpenId] = useState<string | null>(null);
@@ -186,11 +189,21 @@ export default function ApprovalsTab({ clientId, projects = [], onRefresh }: Pro
   const [selectedProject, setSelectedProject] = useState("all");
   const [selectedStatus, setSelectedStatus] = useState("all");
   const [viewMode, setViewMode] = useState<"list" | "grid">("grid");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(15);
 
-  const load = async () => {
+  const load = async (page = currentPage, size = pageSize, search = searchTerm, project = selectedProject, status = selectedStatus) => {
     setLoading(true);
     try {
-      setItems(await approvalsService.listForClient(clientId));
+      const res = await approvalsService.listForClient(clientId, {
+        page,
+        limit: size,
+        search,
+        projectId: project,
+        status,
+      });
+      setItems(res.data);
+      setTotalCount(res.meta?.total ?? res.data.length);
     } catch (err: any) {
       messageApi.error(`Failed to load approvals: ${err?.message || ""}`);
     } finally {
@@ -213,7 +226,7 @@ export default function ApprovalsTab({ clientId, projects = [], onRefresh }: Pro
     try {
       setRefreshing(true);
       await Promise.all([
-        load(),
+        load(currentPage, pageSize, searchTerm, selectedProject, selectedStatus),
         onRefresh ? onRefresh() : Promise.resolve(),
       ]);
     } catch (err) {
@@ -224,29 +237,20 @@ export default function ApprovalsTab({ clientId, projects = [], onRefresh }: Pro
   };
 
   useEffect(() => {
-    load();
+    load(currentPage, pageSize, searchTerm, selectedProject, selectedStatus);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [clientId]);
+  }, [clientId, currentPage, pageSize, selectedProject, selectedStatus]);
 
-  const filteredItems = items.filter((item) => {
-    const search = searchTerm.toLowerCase();
-    const matchesSearch =
-      (item.title || "").toLowerCase().includes(search) ||
-      (item.approvalNumber || "").toLowerCase().includes(search) ||
-      (item.subjectLabel || "").toLowerCase().includes(search);
+  useEffect(() => {
+    const t = setTimeout(() => {
+      setCurrentPage(1);
+      load(1, pageSize, searchTerm, selectedProject, selectedStatus);
+    }, 300);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchTerm]);
 
-    let matchesProject = true;
-    if (selectedProject !== "all") {
-      matchesProject = item.projectId === selectedProject;
-    }
-
-    let matchesStatus = true;
-    if (selectedStatus !== "all") {
-      matchesStatus = item.status === selectedStatus;
-    }
-
-    return matchesSearch && matchesProject && matchesStatus;
-  });
+  const paginatedItems = items;
 
   const columns = [
     {
@@ -468,7 +472,7 @@ export default function ApprovalsTab({ clientId, projects = [], onRefresh }: Pro
   ];
 
   return (
-    <div style={{ padding: "4px 0 24px", color: c.text }}>
+    <div style={{ color: c.text }} className="approvals-tab-container">
       {contextHolder}
 
       {/* Header */}
@@ -567,7 +571,7 @@ export default function ApprovalsTab({ clientId, projects = [], onRefresh }: Pro
         <div className="ptab-divider" />
       </div>
 
-      <div>
+      <div className="approvals-tab-body">
       {loading ? (
         <div
           style={{
@@ -581,7 +585,7 @@ export default function ApprovalsTab({ clientId, projects = [], onRefresh }: Pro
         >
           Loading…
         </div>
-      ) : filteredItems.length === 0 ? (
+      ) : items.length === 0 ? (
         <div
           style={{
             padding: 56,
@@ -638,7 +642,7 @@ export default function ApprovalsTab({ clientId, projects = [], onRefresh }: Pro
       ) : viewMode === "list" ? (
         <div className="pp-table-wrap">
           <Table
-            dataSource={filteredItems}
+            dataSource={paginatedItems}
             columns={columns}
             rowKey="id"
             pagination={false}
@@ -652,7 +656,7 @@ export default function ApprovalsTab({ clientId, projects = [], onRefresh }: Pro
         </div>
       ) : (
         <div className="pp-grid">
-          {filteredItems.map((a) => {
+          {paginatedItems.map((a) => {
             const st = STATUS_META[a.status] || STATUS_META.open;
             const progress = a.requiredCount > 0
               ? `${a.approvedCount}/${a.requiredCount} signed off`
@@ -817,6 +821,34 @@ export default function ApprovalsTab({ clientId, projects = [], onRefresh }: Pro
         </div>
       )}
       </div>
+
+      {totalCount > 0 && (
+        <div className="pm2-pagination approvals-pagination-footer">
+          <Typography.Text style={{ fontSize: 13, color: "var(--text-slate-500)" }}>
+            Showing{" "}
+            <span style={{ color: "var(--text-slate-700)", fontWeight: 700 }}>
+              {(currentPage - 1) * pageSize + 1}–
+              {Math.min(currentPage * pageSize, totalCount)}
+            </span>{" "}
+            of{" "}
+            <span style={{ color: "var(--text-slate-700)", fontWeight: 700 }}>
+              {totalCount}
+            </span>{" "}
+            approval{totalCount !== 1 ? "s" : ""}
+          </Typography.Text>
+          <Pagination
+            current={currentPage}
+            pageSize={pageSize}
+            total={totalCount}
+            onChange={(page, size) => {
+              setCurrentPage(page);
+              setPageSize(size);
+            }}
+            showSizeChanger
+            pageSizeOptions={[10, 15, 20, 25, 50, 100]}
+          />
+        </div>
+      )}
 
       <CreateApprovalModal
         open={createOpen}
@@ -1253,6 +1285,104 @@ export default function ApprovalsTab({ clientId, projects = [], onRefresh }: Pro
         .cd-tabs .ant-tabs-content-holder {
           overflow-x: hidden !important;
         }
+
+        /* ── Container & Body for full-height stretch ── */
+        .approvals-tab-container {
+          display: flex !important;
+          flex-direction: column !important;
+          flex: 1 !important;
+          min-height: 100% !important;
+          padding: 4px 0 0 0 !important;
+          position: relative !important;
+        }
+        .approvals-tab-body {
+          flex: 1 0 auto !important;
+          padding-bottom: 16px !important;
+        }
+
+        /* ── Sticky pagination footer (fixed to bottom) ── */
+        .approvals-pagination-footer {
+          display: flex !important;
+          align-items: center !important;
+          justify-content: space-between !important;
+          gap: 12px !important;
+          padding: 10px 16px !important;
+          margin-top: auto !important;
+          margin-left: -12px !important;
+          margin-right: -12px !important;
+          margin-bottom: 0 !important;
+          flex-wrap: wrap !important;
+          position: sticky !important;
+          bottom: 0 !important;
+          left: 0 !important;
+          right: 0 !important;
+          background: var(--bg-pure-white) !important;
+          border-top: 1px solid var(--border-slate-200) !important;
+          z-index: 20 !important;
+          box-shadow: 0 -4px 16px rgba(15, 23, 42, 0.04) !important;
+        }
+        [data-theme="dark"] .approvals-pagination-footer {
+          background: #0B0F1A !important;
+          border-top-color: #1f2937 !important;
+        }
+        @media (max-width: 900px) {
+          .approvals-pagination-footer {
+            margin-left: -12px !important;
+            margin-right: -12px !important;
+            padding-left: 12px !important;
+            padding-right: 12px !important;
+          }
+        }
+        @media (max-width: 720px) {
+          .approvals-pagination-footer {
+            margin-left: -12px !important;
+            margin-right: -12px !important;
+            padding-left: 12px !important;
+            padding-right: 12px !important;
+          }
+        }
+
+        .approvals-pagination-footer .ant-pagination-item,
+        .approvals-pagination-footer .ant-pagination-prev .ant-pagination-item-link,
+        .approvals-pagination-footer .ant-pagination-next .ant-pagination-item-link {
+          border: 1px solid var(--border-slate-200) !important;
+          border-radius: 6px !important;
+          background: transparent !important;
+          color: var(--text-slate-500) !important;
+        }
+        .approvals-pagination-footer .ant-pagination-item-active {
+          background: #3b82f6 !important;
+          border-color: #3b82f6 !important;
+        }
+        .approvals-pagination-footer .ant-pagination-item-active a {
+          color: #fff !important;
+        }
+        .approvals-pagination-footer .ant-select-selector {
+          border: 1px solid var(--border-slate-200) !important;
+          border-radius: 6px !important;
+          background: transparent !important;
+          height: 28px !important;
+          font-size: 12px !important;
+        }
+        [data-theme="dark"] .approvals-pagination-footer .ant-pagination-item,
+        [data-theme="dark"] .approvals-pagination-footer .ant-pagination-prev .ant-pagination-item-link,
+        [data-theme="dark"] .approvals-pagination-footer .ant-pagination-next .ant-pagination-item-link {
+          border-color: #374151 !important;
+          background: #111827 !important;
+          color: #9ca3af !important;
+        }
+        [data-theme="dark"] .approvals-pagination-footer .ant-pagination-item-active {
+          background: #3b82f6 !important;
+          border-color: #3b82f6 !important;
+        }
+        [data-theme="dark"] .approvals-pagination-footer .ant-pagination-item-active a {
+          color: #fff !important;
+        }
+        [data-theme="dark"] .approvals-pagination-footer .ant-select-selector {
+          border-color: #374151 !important;
+          background: #111827 !important;
+          color: #e5e7eb !important;
+        }
       `}} />
     </div>
   );
@@ -1462,10 +1592,10 @@ function CreateApprovalModal({
       subjectType: "design",
     });
     clientPortalService
-      .listForClient(clientId)
-      .then((list) =>
+      .listForClient(clientId, { limit: 100 })
+      .then((res) =>
         setPortalUsers(
-          (list || [])
+          (res.data || [])
             .filter((u: any) => u.status === "active")
             .map((u: any) => ({
               id: u.id,
@@ -1946,10 +2076,10 @@ function ApprovalDetailDrawer({
     if (id) {
       load();
       clientPortalService
-        .listForClient(clientId)
-        .then((list) =>
+        .listForClient(clientId, { limit: 100 })
+        .then((res) =>
           setPortalUsers(
-            (list || [])
+            (res.data || [])
               .filter((u: any) => u.status === "active")
               .map((u: any) => ({
                 id: u.id,

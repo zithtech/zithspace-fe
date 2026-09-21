@@ -1,4 +1,4 @@
-import { api } from "@/lib/axios";
+import { api, apiClient } from "@/lib/axios";
 
 export type EnvKind =
   | "production"
@@ -92,10 +92,31 @@ export interface CreateDeployPayload {
 }
 
 export const environmentsService = {
-  listForClient(clientId: string) {
-    return api.get<EnvListItem[]>(
-      `/api/clients-v2/${clientId}/environments`,
+  async listForClient(
+    clientId: string,
+    params: {
+      page?: number;
+      limit?: number;
+      search?: string;
+      kind?: string;
+      status?: string;
+      projectId?: string;
+    } = {},
+  ) {
+    const qs = new URLSearchParams();
+    Object.entries(params).forEach(([k, v]) => {
+      if (v != null && v !== "") qs.append(k, String(v));
+    });
+    const res = await apiClient.get(
+      `/api/clients-v2/${clientId}/environments${qs.toString() ? `?${qs.toString()}` : ""}`,
     );
+    if (res.data?.success === false) {
+      throw new Error(res.data.error || "Failed to load environments");
+    }
+    return {
+      data: (res.data?.data || []) as EnvListItem[],
+      meta: res.data?.meta || { total: (res.data?.data || []).length, page: 1, limit: 15, totalPages: 1 },
+    };
   },
   create(clientId: string, payload: CreateEnvPayload) {
     return api.post<{ id: string }>(

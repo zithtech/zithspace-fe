@@ -218,7 +218,7 @@ export default function ClientsV2ListPage() {
 
   const [data, setData] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
-  const [pagination, setPagination] = useState({ current: 1, pageSize: 20, total: 0 });
+  const [pagination, setPagination] = useState({ current: 1, pageSize: 15, total: 0 });
   const [searchText, setSearchText] = useState("");
   const [highRiskCount, setHighRiskCount] = useState(0);
   const [activeFilter, setActiveFilter] = useState<"all" | "active" | "highRisk">("all");
@@ -247,7 +247,7 @@ export default function ClientsV2ListPage() {
 
   const fetchClients = async (
     page = 1,
-    pageSize = 20,
+    pageSize = 15,
     search = "",
     filter: "all" | "active" | "highRisk" = "all",
     type?: string,
@@ -1399,7 +1399,7 @@ export default function ClientsV2ListPage() {
                         fetchClients(p, s, searchText, activeFilter, typeFilter);
                       }}
                       showSizeChanger
-                      pageSizeOptions={[10, 20, 25, 50, 100]}
+                      pageSizeOptions={[10, 15, 20, 25, 50, 100]}
                     />
                   </div>
                 )}

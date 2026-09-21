@@ -141,7 +141,7 @@ const Onboarded = () => {
   const [total, setTotal] = useState(0);
   const [stats, setStats] = useState({ total: 0, active: 0, inactive: 0 });
   const [tablePage, setTablePage] = useState(1);
-  const [tablePageSize, setTablePageSize] = useState(10);
+  const [tablePageSize, setTablePageSize] = useState(15);
 
   useEffect(() => {
     if (!authLoading && !canReadOnboarding) {
@@ -510,7 +510,7 @@ const Onboarded = () => {
               if (s) setTablePageSize(s);
             }}
             showSizeChanger
-            pageSizeOptions={[10, 20, 25, 50, 100]}
+            pageSizeOptions={[10, 15, 20, 25, 50, 100]}
             size="small"
           />
         </div>

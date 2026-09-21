@@ -1,16 +1,40 @@
 "use client";
+
 import ZukvoLoader from "@/components/common/ZukvoLoader";
-
-
 import React, { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { Input, Empty, Pagination, DatePicker, Drawer, notification } from "antd";
+import {
+  Input,
+  Empty,
+  Pagination,
+  DatePicker,
+  Drawer,
+  notification,
+  Divider,
+  Typography,
+  Button,
+  Space,
+  Segmented,
+  Tooltip,
+  Tag,
+} from "antd";
+import {
+  FilterOutlined,
+  ExpandAltOutlined,
+  CloseOutlined,
+  ReloadOutlined,
+  AppstoreOutlined,
+  AlertOutlined,
+  BellOutlined,
+  CheckCircleOutlined,
+} from "@ant-design/icons";
+import dayjs, { Dayjs } from "dayjs";
+import quarterOfYear from "dayjs/plugin/quarterOfYear";
 import { PortalInvoiceDetailContent as PortalInvoiceDetailPage } from "./_InvoiceDetail";
 import {
   Receipt,
   Search,
   ChevronRight,
-  ChevronDown,
   Eye,
   CheckCircle2,
   AlertTriangle,
@@ -19,19 +43,31 @@ import {
   CreditCard,
   Clock,
   FileText,
+  X,
+  Calendar,
+  RotateCw,
+  Filter,
+  User,
+  List as ListIcon,
+  LayoutGrid,
 } from "lucide-react";
 import {
   portalInvoiceService,
   PortalInvoiceListItem,
   PortalInvoiceListMeta,
 } from "@/services/portalInvoiceService";
+import TicketFilterPill, {
+  FilterPillOption,
+} from "@/components/projects/TicketFilterPill";
+
+dayjs.extend(quarterOfYear);
+
+const { RangePicker } = DatePicker;
 
 /* --------------------------------------------------------------- */
-/*  Theme palette (mirrors PortalAccessTab — keep portal cohesive) */
+/*  Theme palette                                                  */
 /* --------------------------------------------------------------- */
 
-// The /portal subtree is light-mode-only for now (no theme toggle in shell).
-// Mirroring the staff palette so visual language stays consistent.
 const p = {
   surface: "#ffffff",
   surfaceElevated: "#ffffff",
@@ -43,64 +79,42 @@ const p = {
   textMuted: "#475569",
   textSubtle: "#64748b",
   textFaint: "#94a3b8",
-  accent: "#6366f1",
-  accentBg: "#e0e7ff",
-  accentBorder: "#c7d2fe",
-  accentText: "#4338ca",
-  success: "#10b981",
+  accent: "#3b82f6",
+  accentBg: "#eff6ff",
+  accentBorder: "#bfdbfe",
+  accentText: "#1d4ed8",
+  success: "#059669",
   successBg: "#ecfdf5",
   successBorder: "#a7f3d0",
   successText: "#047857",
-  danger: "#ef4444",
+  danger: "#dc2626",
   dangerBg: "#fef2f2",
   dangerBorder: "#fecaca",
   dangerText: "#b91c1c",
-  warning: "#f59e0b",
+  warning: "#d97706",
   warningBg: "#fffbeb",
   warningBorder: "#fde68a",
-  warningText: "#b45309",
-  neutralBg: "#f8fafc",
+  warningText: "#92400e",
+  neutralBg: "#f1f5f9",
   neutralBorder: "#e2e8f0",
   neutralText: "#475569",
 };
 
-const STATUS_META: Record<
-  string,
-  { label: string; tone: keyof typeof STATUS_TONE; icon: any }
-> = {
-  DRAFT: { label: "Draft", tone: "neutral", icon: FileText },
-  PENDING: { label: "Pending", tone: "warning", icon: Clock },
-  APPROVAL: { label: "Approval", tone: "warning", icon: Clock },
-  SUBMITTED: { label: "Submitted", tone: "accent", icon: Send },
-  SENT: { label: "Sent", tone: "accent", icon: Send },
-  VIEWED: { label: "Viewed", tone: "neutral", icon: Eye },
-  PARTIALLY_PAID: { label: "Partially paid", tone: "warning", icon: CreditCard },
-  PAID: { label: "Paid", tone: "success", icon: CheckCircle2 },
-  OVERDUE: { label: "Overdue", tone: "danger", icon: AlertTriangle },
-  CANCELLED: { label: "Cancelled", tone: "neutral", icon: Ban },
-};
-
-const STATUS_TONE = {
-  accent: { bg: p.accentBg, border: p.accentBorder, text: p.accentText },
-  success: { bg: p.successBg, border: p.successBorder, text: p.successText },
-  warning: { bg: p.warningBg, border: p.warningBorder, text: p.warningText },
-  danger: { bg: p.dangerBg, border: p.dangerBorder, text: p.dangerText },
-  neutral: { bg: p.neutralBg, border: p.neutralBorder, text: p.neutralText },
-};
-
-const FILTER_TABS: { key: string; label: string }[] = [
-  { key: "ALL", label: "All" },
-  { key: "DRAFT", label: "Draft" },
-  { key: "PENDING", label: "Pending" },
-  { key: "OVERDUE", label: "Overdue" },
-  { key: "SENT", label: "Sent" },
-  { key: "VIEWED", label: "Viewed" },
-  { key: "PARTIALLY_PAID", label: "Partially paid" },
-  { key: "PAID", label: "Paid" },
-  { key: "CANCELLED", label: "Cancelled" },
+const STATUS_FILTER_OPTIONS: FilterPillOption[] = [
+  { value: "DRAFT", label: "Draft" },
+  { value: "PENDING", label: "Pending" },
+  { value: "OVERDUE", label: "Overdue" },
+  { value: "SENT", label: "Sent" },
+  { value: "VIEWED", label: "Viewed" },
+  { value: "PARTIALLY_PAID", label: "Partially paid" },
+  { value: "PAID", label: "Paid" },
+  { value: "CANCELLED", label: "Cancelled" },
 ];
 
-function fmtCurrency(value: number | string | null | undefined, currency?: string | null) {
+function fmtCurrency(
+  value: number | string | null | undefined,
+  currency?: string | null
+) {
   if (value == null || value === "") return "—";
   const n = typeof value === "string" ? Number(value) : value;
   if (isNaN(n)) return "—";
@@ -141,33 +155,44 @@ export default function PortalInvoicesPage() {
   const [items, setItems] = useState<PortalInvoiceListItem[]>([]);
   const [meta, setMeta] = useState<PortalInvoiceListMeta | null>(null);
   const [loading, setLoading] = useState(true);
+  const [status, setStatus] = useState<string>("ALL");
+  const [customerFilter, setCustomerFilter] = useState<string>("");
   const [search, setSearch] = useState("");
+  const [datePicked, setDatePicked] = useState<
+    [Dayjs | null, Dayjs | null] | null
+  >(null);
   const [page, setPage] = useState(1);
+  const [viewMode, setViewMode] = useState<"table" | "card">("table");
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const limit = 20;
+  const [refreshing, setRefreshing] = useState(false);
+  const [isFilterRowOpen, setIsFilterRowOpen] = useState(false);
+  const [limit, setLimit] = useState(15);
 
-  const load = async () => {
-    setLoading(true);
+  const load = async (isRefresh = false) => {
+    if (isRefresh) setRefreshing(true);
+    else setLoading(true);
     try {
       const res = await portalInvoiceService.list({
         page,
         limit,
+        status: status === "ALL" ? undefined : status,
         search: search || undefined,
       });
       setItems(res.data);
       setMeta(res.meta);
-    } catch (err) {
+    } catch {
       setItems([]);
       setMeta(null);
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   };
 
   useEffect(() => {
     load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page]);
+  }, [page, limit, status]);
 
   // Debounce search
   useEffect(() => {
@@ -179,506 +204,1314 @@ export default function PortalInvoicesPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [search]);
 
-  const summary = meta?.summary;
-  const summaryCounts = summary?.counts || {};
-  const overdueCount = useMemo(() => {
-    // items has decorated status; overdue is computed
-    return items.filter((i) => i.isOverdue).length;
+  const customerOptions: FilterPillOption[] = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const it of items) {
+      if (it.customerName) {
+        map.set(it.customerName, it.customerName);
+      }
+    }
+    return Array.from(map.entries()).map(([k, v]) => ({
+      value: k,
+      label: v,
+    }));
   }, [items]);
 
-  const total = meta?.total ?? items.length;
-  const hasMore = page * limit < total;
-  const allDisplayedOnCurrentPage = total <= limit;
+  const activeFilterCount = useMemo(() => {
+    let count = 0;
+    if (status !== "ALL") count++;
+    if (customerFilter) count++;
+    if (datePicked && (datePicked[0] || datePicked[1])) count++;
+    return count;
+  }, [status, customerFilter, datePicked]);
+
+  // Filter items locally by customer and date range if selected
+  const displayedItems = useMemo(() => {
+    return items.filter((inv) => {
+      if (customerFilter && inv.customerName !== customerFilter) {
+        return false;
+      }
+      if (datePicked && datePicked[0] && datePicked[1]) {
+        if (!inv.invoiceDate) return false;
+        const d = dayjs(inv.invoiceDate);
+        if (
+          !((d.isAfter(datePicked[0], "day") || d.isSame(datePicked[0], "day")) &&
+            (d.isBefore(datePicked[1], "day") || d.isSame(datePicked[1], "day")))
+        ) {
+          return false;
+        }
+      }
+      return true;
+    });
+  }, [items, customerFilter, datePicked]);
+
+  const summary = meta?.summary;
+  const summaryCounts = summary?.counts || {};
+  const total = summary?.totalInvoices ?? (meta?.total ?? displayedItems.length);
+  const paidCount =
+    summaryCounts.PAID ?? items.filter((i) => i.status === "PAID").length;
+  const overdueCount =
+    summaryCounts.OVERDUE ?? items.filter((i) => i.isOverdue).length;
+  const unpaidCount =
+    (summaryCounts.SENT || 0) +
+      (summaryCounts.PENDING || 0) +
+      (summaryCounts.PARTIALLY_PAID || 0) +
+      (summaryCounts.DRAFT || 0) ||
+    items.filter((i) => i.status !== "PAID" && i.status !== "CANCELLED").length;
+  const completedPct = total > 0 ? Math.round((paidCount / total) * 100) : 0;
+
+  const activeStatusLabel = useMemo(() => {
+    const tab = STATUS_FILTER_OPTIONS.find((t) => t.value === status);
+    return tab ? tab.label : "All invoices";
+  }, [status]);
+
+  const rangePresets: { label: string; value: [Dayjs, Dayjs] }[] = [
+    { label: "Last 7 days", value: [dayjs().subtract(6, "day"), dayjs()] },
+    { label: "Last 30 days", value: [dayjs().subtract(29, "day"), dayjs()] },
+    {
+      label: "This month",
+      value: [dayjs().startOf("month"), dayjs().endOf("month")],
+    },
+    {
+      label: "Last month",
+      value: [
+        dayjs().subtract(1, "month").startOf("month"),
+        dayjs().subtract(1, "month").endOf("month"),
+      ],
+    },
+    {
+      label: "This quarter",
+      value: [dayjs().startOf("quarter"), dayjs().endOf("quarter")],
+    },
+  ];
 
   return (
     <div
       style={{
         height: "100vh",
         overflowY: "auto",
-        backgroundColor: "#fafafa",
+        backgroundColor: "#ffffff",
+        display: "flex",
+        flexDirection: "column",
         width: "100%",
       }}
     >
-      <div style={{ padding: "24px 32px 48px", maxWidth: 1280, margin: "0 auto", fontFamily: "'Inter', -apple-system, sans-serif" }}>
-        {/* Top Header Card */}
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            gap: 20,
-            padding: "16px 24px",
-            background: p.surfaceElevated,
-            border: `1px solid ${p.border}`,
-            borderRadius: 10,
-            marginBottom: 16,
-            position: "relative",
-            overflow: "hidden",
-            boxShadow: "0 2px 10px rgba(0,0,0,0.02)",
-            flexWrap: "wrap",
-          }}
-        >
-        <div style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: 4, background: p.accent }} />
-        
-        <div style={{ display: "flex", gap: 14, alignItems: "center" }}>
-          <div style={{
-            width: 38, height: 38, borderRadius: 10, background: p.accentBg, color: p.accentText,
-            display: "flex", alignItems: "center", justifyContent: "center", border: `1px solid ${p.accentBorder}`
-          }}>
-            <Receipt size={18} />
-          </div>
-          <div>
-            <h1 style={{ fontSize: 18, fontWeight: 700, color: p.text, margin: 0, letterSpacing: "-0.01em" }}>Invoices</h1>
-            <div style={{ fontSize: 12.5, color: p.textSubtle, marginTop: 2 }}>
-              Every issued invoice, payment logged, and outstanding balance — shared securely.
-            </div>
-          </div>
+      {/* ── Top Header Toolbar matching Projects Management ── */}
+      <div className="pm2-toolbar saas-header-container sc-header">
+        <div className="pm2-head-id">
+          <span className="pm2-head-ic">
+            <Receipt size={16} />
+          </span>
+          <span className="pm2-head-text">
+            <span className="pm2-head-title">Invoices</span>
+            <span className="pm2-head-sub">OVERSEE INVOICES & PAYMENTS</span>
+          </span>
         </div>
 
-        <div style={{ display: "flex", gap: 8 }}>
-          <MiniStat label="TOTAL" value={summary?.totalInvoices || 0} color={p.accentText} />
-          <MiniStat label="OVERDUE" value={summaryCounts.OVERDUE || overdueCount || 0} color={p.dangerText} />
-          <MiniStat label="UNPAID" value={(summaryCounts.SENT || 0) + (summaryCounts.PARTIALLY_PAID || 0)} color={p.warningText} />
-          <MiniStat label="PAID" value={summaryCounts.PAID || 0} color={p.accentText} />
-          <button style={{
-            width: 44, height: 44, borderRadius: 8, border: `1px solid ${p.border}`, background: p.surfaceElevated,
-            display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: p.textMuted,
-            marginLeft: 4
-          }} onClick={load}>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8"></path><path d="M21 3v5h-5"></path></svg>
-          </button>
-        </div>
-      </div>
-
-      {/* Filter / Search Bar */}
-      <div style={{ display: "flex", gap: 12, marginBottom: 20, flexWrap: "wrap" }}>
-        {/* Search */}
-        <div style={{
-          display: "flex", alignItems: "center", gap: 10, padding: "0 14px",
-          border: `1px solid ${p.border}`, borderRadius: 8, background: p.surfaceElevated,
-          height: 40, flex: 1, fontSize: 13, color: p.textSubtle
-        }}>
-          <Search size={16} color={p.textFaint} />
-          <input 
-            type="text" 
-            placeholder="Search invoices, amounts, descriptions..."
-            style={{ border: "none", outline: "none", background: "transparent", width: "100%", color: p.text }}
+        <div className="sc-header-controls">
+          <Input
+            placeholder="Quick search invoice name..."
+            prefix={<Search size={13} style={{ color: "var(--text-slate-400)", marginRight: 4 }} />}
+            className="saas-input"
+            style={{ maxWidth: 280, borderRadius: 8, height: 32, background: "transparent", fontSize: 12.5 }}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
+            allowClear
           />
+
+          <Space.Compact className="ticket-filter-group">
+            <Button
+              icon={<FilterOutlined />}
+              className={activeFilterCount > 0 ? "saas-tag-blue" : ""}
+              style={{ height: 32, fontWeight: 600, fontSize: 12 }}
+              onClick={() => setIsFilterRowOpen((v) => !v)}
+            >
+              Filters {activeFilterCount > 0 && `(${activeFilterCount})`}
+            </Button>
+            <Button
+              icon={<ExpandAltOutlined />}
+              style={{ height: 32 }}
+              aria-label="Expand filters"
+              onClick={() => setIsFilterRowOpen((v) => !v)}
+            />
+          </Space.Compact>
+
+          {/* View Toggle */}
+          <div className="premium-view-toggle" role="group" aria-label="View mode">
+            <button
+              type="button"
+              data-active={viewMode === "table" ? "true" : "false"}
+              onClick={() => setViewMode("table")}
+              title="Table View"
+            >
+              <ListIcon size={13} />
+            </button>
+            <button
+              type="button"
+              data-active={viewMode === "card" ? "true" : "false"}
+              onClick={() => setViewMode("card")}
+              title="Card View"
+            >
+              <LayoutGrid size={13} />
+            </button>
+          </div>
         </div>
 
-        {/* Date Filter */}
-        <DatePicker.RangePicker 
-          style={{ width: 240, height: 40, borderRadius: 8, border: `1px solid ${p.border}`, background: p.surfaceElevated }}
-          onChange={(dates) => {
-             // Hooked up for visual rendering, API connection depends on backend support
-             console.log("Selected dates:", dates);
-          }}
-        />
+        <Space size={10} className="sc-header-right">
+          <Tooltip title="Refresh invoices">
+            <Button
+              icon={<ReloadOutlined spin={refreshing} />}
+              onClick={() => load(true)}
+              disabled={loading}
+              style={{ width: 32, height: 32, borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center" }}
+            />
+          </Tooltip>
+        </Space>
       </div>
 
-      {/* Main List Container */}
-      <style dangerouslySetInnerHTML={{__html: `
-        .invoice-row:hover { background: #f8fafc !important; }
-        .invoice-row:last-child { border-bottom: none !important; }
-      `}} />
-      <div
-        style={{
-          background: p.surfaceElevated,
-          border: `1px solid ${p.border}`,
-          borderRadius: 12,
-          borderBottomLeftRadius: 0,
-          borderBottomRightRadius: 0,
-          overflowX: "auto",
-        }}
-      >
-        {/* Table header */}
-        <div style={{
-          display: "grid",
-          gridTemplateColumns: "120px 1.5fr 110px 110px 150px 120px 120px 30px",
-          gap: 12,
-          padding: "14px 24px",
-          borderBottom: `1px solid ${p.border}`,
-          background: p.surfaceElevated,
-          fontSize: 10.5,
-          fontWeight: 700,
-          color: p.textSubtle,
-          textTransform: "uppercase",
-          letterSpacing: "0.06em",
-          borderTopLeftRadius: 12,
-          borderTopRightRadius: 12,
-          minWidth: "1000px",
-        }}>
-          <div>INVOICE NUMBER</div>
-          <div>CUSTOMER</div>
-          <div>INVOICE DATE</div>
-          <div>DUE DATE</div>
-          <div>CLIENT STATUS</div>
-          <div style={{ textAlign: "right" }}>AMOUNT</div>
-          <div style={{ textAlign: "right" }}>BALANCE DUE</div>
-          <div></div>
+      {/* ── Inline filter row (when opened) ── */}
+      {isFilterRowOpen && (
+        <div className="tl-filter-row">
+          <div className="tl-filter-row-label">
+            <FilterOutlined style={{ fontSize: 11 }} />
+            <span>Filters</span>
+            <span className="tl-filter-row-count">{activeFilterCount}</span>
+          </div>
+
+          <div className="tl-filter-row-pills">
+            {/* Status Pill */}
+            <TicketFilterPill
+              icon={<CheckCircle2 size={12} />}
+              label="Status"
+              value={status === "ALL" ? "" : status}
+              options={STATUS_FILTER_OPTIONS}
+              onChange={(val: any) => {
+                setStatus(val || "ALL");
+                setPage(1);
+              }}
+              itemNoun="statuses"
+              multiple={false}
+            />
+
+            {/* Customer Pill */}
+            {customerOptions.length > 0 && (
+              <TicketFilterPill
+                icon={<User size={12} />}
+                label="Customer"
+                value={customerFilter}
+                options={customerOptions}
+                onChange={(val: any) => {
+                  setCustomerFilter(val || "");
+                  setPage(1);
+                }}
+                itemNoun="customers"
+                width={260}
+                multiple={false}
+              />
+            )}
+
+            {/* Date Range Picker */}
+            <RangePicker
+              value={datePicked}
+              onChange={(dates) => {
+                setDatePicked(dates as [Dayjs | null, Dayjs | null] | null);
+                setPage(1);
+              }}
+              presets={rangePresets}
+              className="premium-rangepicker"
+              style={{ height: 28, borderRadius: 6, fontSize: 12 }}
+              placeholder={["Start", "End"]}
+              format="DD MMM YY"
+              suffixIcon={<Calendar size={12} color={p.textFaint} />}
+              allowClear
+            />
+          </div>
+
+          <div className="tl-filter-row-actions">
+            {activeFilterCount > 0 && (
+              <button
+                type="button"
+                className="tl-filter-row-reset"
+                onClick={() => {
+                  setStatus("ALL");
+                  setCustomerFilter("");
+                  setDatePicked(null);
+                  setPage(1);
+                }}
+              >
+                <ReloadOutlined style={{ fontSize: 10 }} />
+                Reset
+              </button>
+            )}
+            <button
+              type="button"
+              className="tl-filter-row-close"
+              onClick={() => setIsFilterRowOpen(false)}
+              aria-label="Close filters"
+              title="Close filters"
+            >
+              <CloseOutlined style={{ fontSize: 10 }} />
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ── Main Overview Banner (Sprint head style) ── */}
+      <div className="tl-section-head tl-sprint-head-v2 tl-section-head--static">
+        <div className="tl-sprint-row1">
+          <div className="tl-sprint-title-block">
+            <span
+              className="tl-sprint-dot"
+              style={{
+                background: "#3b82f6",
+                boxShadow: "0 0 0 3px rgba(59, 130, 246, 0.2)",
+              }}
+            />
+            <span className="tl-sprint-title pm2-banner-title">
+              Invoices — {activeStatusLabel}
+            </span>
+            <span className="tl-sprint-tags">
+              <span className="tl-sprint-tag tl-sprint-tag-neutral">
+                {total} INVOICES
+              </span>
+              {unpaidCount > 0 && (
+                <span className="tl-sprint-tag tl-sprint-tag-active">
+                  {unpaidCount} ACTIVE
+                </span>
+              )}
+              {overdueCount > 0 && (
+                <span className="tl-sprint-tag tl-sprint-tag-delayed">
+                  {overdueCount} ON HOLD
+                </span>
+              )}
+            </span>
+          </div>
         </div>
 
+        <div className="tl-sprint-row2">
+          <span className="tl-sprint-meta">
+            <span className="pm2-pulse-dot" />
+            <b>{displayedItems.length}</b>{" "}
+            {displayedItems.length === 1 ? "result" : "results"} on this page
+          </span>
+          <span className="tl-sprint-meta">
+            <b>{unpaidCount}</b> active
+          </span>
+          <span className="tl-sprint-meta">
+            <b>{overdueCount}</b> on hold
+          </span>
+          <span className="tl-sprint-meta">
+            <b>{paidCount}</b> completed
+          </span>
+        </div>
+
+        <div className="tl-sprint-row3">
+          <div className="tl-sprint-progress-bar">
+            <div
+              className="tl-sprint-progress-fill"
+              style={{ width: `${Math.min(100, completedPct)}%` }}
+            />
+          </div>
+          <span className="tl-sprint-progress-pct">{completedPct}%</span>
+        </div>
+      </div>
+
+      {/* ── Main Content Container ── */}
+      <div
+        className="portal-invoices-content"
+        style={{
+          padding: 0,
+          width: "100%",
+          flex: "1 0 auto",
+        }}
+      >
         {loading ? (
           <div style={{ padding: 60, textAlign: "center" }}>
             <ZukvoLoader size="md" />
           </div>
-        ) : items.length === 0 ? (
+        ) : displayedItems.length === 0 ? (
           <div style={{ padding: 56, textAlign: "center" }}>
             <Empty
               image={Empty.PRESENTED_IMAGE_SIMPLE}
               description={
                 <span style={{ color: p.textSubtle }}>
-                  {search
-                    ? `No invoices match "${search}".`
-                    : status === "ALL"
-                      ? "No invoices yet."
-                      : "No invoices in this status."}
+                  {search || activeFilterCount > 0
+                    ? "No invoices match your filter criteria."
+                    : "No invoices yet."}
                 </span>
               }
             />
           </div>
+        ) : viewMode === "table" ? (
+          /* Table View */
+          <div
+            className="pm-table-wrap"
+            style={{
+              background: "#ffffff",
+              overflowX: "auto",
+            }}
+          >
+            {/* Table Header */}
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns:
+                  "minmax(220px, 2fr) 110px 150px 120px 120px 110px 110px",
+                minWidth: 920,
+                gap: 12,
+                padding: "7px 16px",
+                background: "var(--bg-slate-50, #f8fafc)",
+                borderBottom: "1px solid var(--border-slate-200, #e2e8f0)",
+                fontSize: 10,
+                fontWeight: 800,
+                color: "var(--text-slate-400, #94a3b8)",
+                textTransform: "uppercase",
+                letterSpacing: "0.04em",
+                alignItems: "center",
+              }}
+            >
+              <div>PROJECT / INVOICE</div>
+              <div>STATUS</div>
+              <div>CLIENT</div>
+              <div>START DATE</div>
+              <div>END DATE</div>
+              <div style={{ textAlign: "right" }}>AMOUNT</div>
+              <div style={{ textAlign: "right" }}>BALANCE DUE</div>
+            </div>
+
+            <div>
+              {displayedItems.map((inv, idx) => (
+                <InvoiceRow
+                  key={inv.id}
+                  inv={inv}
+                  isLast={idx === displayedItems.length - 1}
+                  onClick={() => setSelectedId(inv.id)}
+                  onStatusChange={async (newStatus) => {
+                    const previousStatus = inv.clientStatus;
+                    try {
+                      setItems((prevItems) =>
+                        prevItems.map((item) =>
+                          item.id === inv.id
+                            ? { ...item, clientStatus: newStatus }
+                            : item
+                        )
+                      );
+                      await portalInvoiceService.updateClientStatus(
+                        inv.id,
+                        newStatus
+                      );
+                      notification.success({
+                        message: "Client status updated",
+                      });
+                    } catch (err: any) {
+                      setItems((prevItems) =>
+                        prevItems.map((item) =>
+                          item.id === inv.id
+                            ? { ...item, clientStatus: previousStatus }
+                            : item
+                        )
+                      );
+                      notification.error({
+                        message: "Failed to update status",
+                        description: err.message,
+                      });
+                    }
+                  }}
+                />
+              ))}
+            </div>
+          </div>
         ) : (
-          <div>
-            {items.map((inv) => (
-              <InvoiceRow 
-                key={inv.id} 
-                inv={inv} 
-                onClick={() => setSelectedId(inv.id)} 
-                onStatusChange={async (newStatus) => {
-                  const previousStatus = inv.clientStatus;
-                  try {
-                    // Optimistic update
-                    setItems((prevItems) => 
-                      prevItems.map(item => 
-                        item.id === inv.id ? { ...item, clientStatus: newStatus } : item
-                      )
-                    );
-                    await portalInvoiceService.updateClientStatus(inv.id, newStatus);
-                    notification.success({ message: "Client status updated" });
-                    // No need to call load() and show a spinner since we optimistically updated
-                  } catch (err: any) {
-                    // Revert optimistic update
-                    setItems((prevItems) => 
-                      prevItems.map(item => 
-                        item.id === inv.id ? { ...item, clientStatus: previousStatus } : item
-                      )
-                    );
-                    notification.error({ message: "Failed to update status", description: err.message });
-                  }
-                }}
+          /* Card View */
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))",
+              gap: 14,
+              padding: "16px 24px",
+            }}
+          >
+            {displayedItems.map((inv) => (
+              <InvoiceCard
+                key={inv.id}
+                inv={inv}
+                onClick={() => setSelectedId(inv.id)}
               />
             ))}
           </div>
         )}
       </div>
 
-      {/* Footer / Pagination */}
-      <div style={{
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "space-between",
-        padding: "12px 24px",
-        background: p.surfaceElevated,
-        border: `1px solid ${p.border}`,
-        borderTop: "none",
-        borderRadius: "0 0 12px 12px",
-        fontSize: 13,
-        flexWrap: "wrap",
-        gap: 12,
-      }}>
-        <div style={{
+      {/* ── Fixed Sticky Bottom Footer ── */}
+      <div
+        className="portal-invoices-pagination-footer"
+        style={{
+          position: "sticky",
+          bottom: 0,
+          left: 0,
+          right: 0,
+          zIndex: 20,
+          background: "#ffffff",
+          borderTop: `1px solid ${p.border}`,
+          boxShadow: "0 -4px 16px rgba(15, 23, 42, 0.04)",
+          padding: "10px 24px",
           display: "flex",
           alignItems: "center",
-          gap: 8,
-          color: items.length === 0 ? p.textSubtle : hasMore ? p.textSubtle : p.successText,
-          fontWeight: 600
-        }}>
-          <div style={{
-            width: 6,
-            height: 6,
-            borderRadius: 3,
-            background: items.length === 0 ? p.textFaint : hasMore ? p.textFaint : p.success
-          }} />
-          {items.length === 0 ? "No invoices to display" : hasMore ? "More pages available" : "All invoices loaded"}
+          justifyContent: "space-between",
+          flexWrap: "wrap",
+          gap: 12,
+          marginTop: "auto",
+        }}
+      >
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <Typography.Text style={{ fontSize: 13, color: p.textSubtle }}>
+            Showing{" "}
+            <span style={{ color: p.text, fontWeight: 700 }}>
+              {displayedItems.length > 0 ? (page - 1) * limit + 1 : 0}–
+              {Math.min(page * limit, total)}
+            </span>{" "}
+            of <span style={{ color: p.text, fontWeight: 700 }}>{total}</span>{" "}
+            invoice{total !== 1 ? "s" : ""}
+          </Typography.Text>
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 16, color: p.textMuted, flexWrap: "wrap" }}>
-          {items.length > 0 ? (
-            <span>{(page - 1) * limit + 1}-{Math.min(page * limit, total)} of {total} invoices</span>
-          ) : (
-            <span>0 invoices</span>
-          )}
-          <div style={{ display: "flex", gap: 6 }}>
-            {/* Prev Button */}
-            <button
-              style={{
-                width: 32,
-                height: 32,
-                borderRadius: 16,
-                border: `1px solid ${p.border}`,
-                background: p.surfaceElevated,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                cursor: (page === 1 || loading) ? "not-allowed" : "pointer",
-                color: (page === 1 || loading) ? p.textFaint : p.textMuted,
-                opacity: (page === 1 || loading) ? 0.5 : 1,
-              }}
-              disabled={page === 1 || loading}
-              onClick={() => setPage(Math.max(1, page - 1))}
-            >
-              <ChevronRight size={14} style={{ transform: "rotate(180deg)" }} />
-            </button>
 
-            {/* Current Page Indicator */}
-            <button
-              style={{
-                width: 32,
-                height: 32,
-                borderRadius: 16,
-                border: allDisplayedOnCurrentPage ? `1px solid ${p.border}` : `1px solid ${p.accentBorder}`,
-                background: allDisplayedOnCurrentPage ? p.surfaceMuted : p.accentBg,
-                color: allDisplayedOnCurrentPage ? p.textSubtle : p.accentText,
-                fontWeight: 600,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                cursor: "default",
-                opacity: allDisplayedOnCurrentPage ? 0.6 : 1,
-              }}
-            >
-              {page}
-            </button>
-
-            {/* Next Button */}
-            <button
-              style={{
-                width: 32,
-                height: 32,
-                borderRadius: 16,
-                border: `1px solid ${p.border}`,
-                background: p.surfaceElevated,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                cursor: (!hasMore || loading) ? "not-allowed" : "pointer",
-                color: (!hasMore || loading) ? p.textFaint : p.textMuted,
-                opacity: (!hasMore || loading) ? 0.5 : 1,
-              }}
-              disabled={!hasMore || loading}
-              onClick={() => setPage(page + 1)}
-            >
-              <ChevronRight size={14} />
-            </button>
-          </div>
-          {/* Limit Selector */}
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 6,
-              padding: "6px 12px",
-              border: `1px solid ${p.border}`,
-              borderRadius: 16,
-              background: p.surfaceElevated,
-              cursor: allDisplayedOnCurrentPage ? "not-allowed" : "pointer",
-              opacity: allDisplayedOnCurrentPage ? 0.6 : 1,
-              pointerEvents: allDisplayedOnCurrentPage ? "none" : "auto",
-            }}
-          >
-            20 / page <ChevronDown size={14} color={p.textFaint} />
-          </div>
-        </div>
+        <Pagination
+          current={page}
+          pageSize={limit}
+          total={total}
+          showSizeChanger
+          pageSizeOptions={["10", "15", "20", "25", "50", "100"]}
+          onChange={(p, size) => {
+            setPage(p);
+            if (size && size !== limit) {
+              setLimit(size);
+            }
+          }}
+          onShowSizeChange={(current, size) => {
+            setPage(1);
+            setLimit(size);
+          }}
+        />
       </div>
 
+      {/* Invoice Detail Drawer */}
       <Drawer
         open={!!selectedId}
         onClose={() => setSelectedId(null)}
         width={1000}
         closable={false}
         destroyOnClose
-        styles={{ body: { padding: 0, background: "#f6f7f9" }, header: { display: "none" } }}
+        styles={{
+          body: { padding: 0, background: "#f6f7f9" },
+          header: { display: "none" },
+        }}
       >
-        {selectedId && <PortalInvoiceDetailPage invoiceId={selectedId} onClose={() => setSelectedId(null)} />}
+        {selectedId && (
+          <PortalInvoiceDetailPage
+            invoiceId={selectedId}
+            onClose={() => setSelectedId(null)}
+          />
+        )}
       </Drawer>
+
+      <style jsx global>{`
+        /* ── Header Toolbar ── */
+        .pm2-toolbar.sc-header {
+          position: sticky;
+          top: 0;
+          z-index: 100;
+          height: auto;
+          min-height: 0;
+          margin: 0;
+          padding: 10px 24px;
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          flex-wrap: wrap;
+          background: #ffffff;
+          border-bottom: 1px solid #e2e8f0;
+          flex-shrink: 0;
+        }
+        .sc-header-controls {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          flex: 1;
+          min-width: 0;
+        }
+        .sc-header-right {
+          flex-shrink: 0;
+        }
+
+        .pm2-head-id {
+          display: flex;
+          align-items: center;
+          gap: 9px;
+          min-width: 0;
+          flex-shrink: 0;
+        }
+        .pm2-head-ic {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          flex-shrink: 0;
+          width: 32px;
+          height: 32px;
+          border-radius: 8px;
+          font-size: 14px;
+          color: #3b82f6;
+          background: rgba(59, 130, 246, 0.1);
+          border: 1px solid rgba(59, 130, 246, 0.18);
+        }
+        .pm2-head-text {
+          display: flex;
+          flex-direction: column;
+          min-width: 0;
+        }
+        .pm2-head-title {
+          font-size: 13.5px;
+          font-weight: 800;
+          color: #0f172a;
+          letter-spacing: -0.01em;
+          line-height: 1.2;
+        }
+        .pm2-head-sub {
+          font-size: 9.5px;
+          font-weight: 700;
+          letter-spacing: 0.08em;
+          text-transform: uppercase;
+          color: #94a3b8;
+          margin-top: 1px;
+        }
+
+        /* ── Segmented Control ── */
+        .sc-owner-seg .ant-segmented-item-label {
+          padding: 0 4px;
+        }
+        .sc-owner-opt {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          height: 100%;
+          padding: 2px 4px;
+        }
+        .sc-owner-opt__ic {
+          display: inline-flex;
+          align-items: center;
+          font-size: 11px;
+        }
+        .sc-owner-opt__label {
+          font-size: 12px;
+          font-weight: 600;
+          white-space: nowrap;
+        }
+        .sc-owner-opt__count {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          min-width: 18px;
+          height: 17px;
+          padding: 0 5px;
+          border-radius: 999px;
+          background: #f1f5f9;
+          color: #64748b;
+          font-size: 10px;
+          font-weight: 800;
+          font-variant-numeric: tabular-nums;
+        }
+        .ant-segmented-item-selected .sc-owner-opt__count {
+          background: #eff6ff;
+          color: #3b82f6;
+        }
+
+        /* ── Overview Banner ── */
+        .tl-section-head {
+          padding: 10px 24px;
+          background: #f8fafc;
+          border-bottom: 1px solid #e2e8f0;
+          flex-shrink: 0;
+        }
+        .tl-sprint-head-v2 {
+          display: flex;
+          flex-direction: column;
+          gap: 6px;
+        }
+        .tl-sprint-row1 {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 12px;
+          flex-wrap: wrap;
+        }
+        .tl-sprint-title-block {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          min-width: 0;
+          flex: 1 1 auto;
+        }
+        .tl-sprint-dot {
+          width: 7px;
+          height: 7px;
+          border-radius: 50%;
+          flex-shrink: 0;
+        }
+        .pm2-banner-title {
+          font-size: 13.5px;
+          font-weight: 800;
+          color: #0f172a;
+          letter-spacing: -0.01em;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+        .tl-sprint-tags {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          flex-shrink: 0;
+        }
+        .tl-sprint-tag {
+          display: inline-flex;
+          align-items: center;
+          height: 18px;
+          padding: 0 6px;
+          font-size: 9px;
+          font-weight: 800;
+          letter-spacing: 0.04em;
+          border-radius: 4px;
+          border: 1px solid transparent;
+          text-transform: uppercase;
+          line-height: 1;
+        }
+        .tl-sprint-tag-active {
+          background: transparent;
+          color: #10b981;
+          border-color: rgba(16, 185, 129, 0.32);
+        }
+        .tl-sprint-tag-neutral {
+          background: transparent;
+          color: #64748b;
+          border-color: rgba(100, 116, 139, 0.32);
+        }
+        .tl-sprint-tag-delayed {
+          background: transparent;
+          color: #ef4444;
+          border-color: rgba(239, 68, 68, 0.32);
+        }
+
+        .tl-sprint-row2 {
+          display: flex;
+          align-items: center;
+          gap: 18px;
+          flex-wrap: wrap;
+          padding-left: 15px;
+        }
+        .tl-sprint-meta {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          font-size: 11.5px;
+          font-weight: 600;
+          color: #64748b;
+          letter-spacing: -0.005em;
+        }
+        .tl-sprint-meta b {
+          color: #0f172a;
+          font-weight: 800;
+        }
+        .pm2-pulse-dot {
+          width: 6px;
+          height: 6px;
+          border-radius: 50%;
+          background: #10b981;
+          display: inline-block;
+          box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.2);
+        }
+
+        .tl-sprint-row3 {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          padding-left: 15px;
+        }
+        .tl-sprint-progress-bar {
+          flex: 1 1 auto;
+          position: relative;
+          height: 6px;
+          background: #f1f5f9;
+          border-radius: 999px;
+          overflow: hidden;
+          min-width: 60px;
+        }
+        .tl-sprint-progress-fill {
+          position: absolute;
+          inset: 0;
+          background: linear-gradient(90deg, #3b82f6, #2563eb);
+          border-radius: 999px;
+          transition: width 0.4s ease;
+        }
+        .tl-sprint-progress-pct {
+          flex-shrink: 0;
+          font-size: 12px;
+          font-weight: 800;
+          color: #0f172a;
+          font-variant-numeric: tabular-nums;
+          min-width: 36px;
+          text-align: right;
+        }
+
+        /* ── Inline Filter Row ── */
+        .tl-filter-row {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          padding: 8px 24px;
+          background: #f8fafc;
+          border-bottom: 1px solid #e2e8f0;
+          flex-shrink: 0;
+        }
+        .tl-filter-row-label {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          font-size: 10.5px;
+          font-weight: 800;
+          color: #64748b;
+          text-transform: uppercase;
+          letter-spacing: 0.08em;
+          flex-shrink: 0;
+        }
+        .tl-filter-row-count {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          min-width: 18px;
+          height: 18px;
+          padding: 0 6px;
+          background: #ffffff;
+          border: 1px solid #cbd5e1;
+          color: #475569;
+          border-radius: 999px;
+          font-size: 10px;
+          font-weight: 800;
+          letter-spacing: 0;
+          font-variant-numeric: tabular-nums;
+        }
+        .tl-filter-row-pills {
+          flex: 1 1 auto;
+          min-width: 0;
+          display: flex;
+          flex-wrap: wrap;
+          align-items: center;
+          gap: 6px;
+        }
+        .tl-filter-row-actions {
+          flex-shrink: 0;
+          display: inline-flex;
+          align-items: center;
+          gap: 4px;
+        }
+        .tl-filter-row-reset {
+          display: inline-flex;
+          align-items: center;
+          gap: 5px;
+          height: 28px;
+          padding: 0 10px;
+          background: transparent;
+          border: 1px dashed #cbd5e1;
+          border-radius: 6px;
+          font-family: inherit;
+          font-size: 11px;
+          font-weight: 700;
+          color: #64748b;
+          cursor: pointer;
+          transition: all 0.12s ease;
+        }
+        .tl-filter-row-reset:hover {
+          color: #1d4ed8;
+          border-color: rgba(59, 130, 246, 0.45);
+          background: rgba(59, 130, 246, 0.06);
+          border-style: solid;
+        }
+        .tl-filter-row-close {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          width: 28px;
+          height: 28px;
+          background: transparent;
+          border: 1px solid #e2e8f0;
+          border-radius: 6px;
+          color: #64748b;
+          cursor: pointer;
+          transition: all 0.12s ease;
+        }
+        .tl-filter-row-close:hover {
+          color: #0f172a;
+          background: #ffffff;
+          border-color: #94a3b8;
+        }
+
+        .saas-tag-blue {
+          background: #eff6ff !important;
+          color: #1d4ed8 !important;
+          border-color: #bfdbfe !important;
+        }
+
+        /* ── View Toggle ── */
+        .premium-view-toggle {
+          display: inline-flex;
+          background: #ffffff;
+          border: 1px solid #e2e8f0;
+          border-radius: 6px;
+          padding: 2px;
+        }
+        .premium-view-toggle button {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          width: 26px;
+          height: 26px;
+          border: none;
+          background: transparent;
+          color: #64748b;
+          border-radius: 4px;
+          cursor: pointer;
+          transition: all 120ms ease;
+        }
+        .premium-view-toggle button:hover {
+          color: #0f172a;
+          background: #f1f5f9;
+        }
+        .premium-view-toggle button[data-active='true'] {
+          background: #eff6ff;
+          color: #1d4ed8;
+        }
+
+        /* Card hover */
+        .pm2-card {
+          transition: all 140ms ease;
+        }
+        .pm2-card:hover {
+          border-color: #cbd5e1 !important;
+          box-shadow: 0 4px 12px rgba(15, 23, 42, 0.06);
+          transform: translateY(-1px);
+        }
+
+        /* Row hover */
+        .pm2-table-row {
+          transition: background 120ms ease;
+        }
+        .pm2-table-row:hover {
+          background: #f8fafc !important;
+        }
+
+        .portal-invoices-pagination-footer .ant-pagination-item,
+        .portal-invoices-pagination-footer .ant-pagination-prev .ant-pagination-item-link,
+        .portal-invoices-pagination-footer .ant-pagination-next .ant-pagination-item-link {
+          border: 1px solid var(--border-slate-200, #e2e8f0) !important;
+          border-radius: 6px !important;
+          background: transparent !important;
+          color: var(--text-slate-500, #64748b) !important;
+        }
+        .portal-invoices-pagination-footer .ant-pagination-item-active {
+          background: #3b82f6 !important;
+          border-color: #3b82f6 !important;
+        }
+        .portal-invoices-pagination-footer .ant-pagination-item-active a {
+          color: #ffffff !important;
+        }
+      `}</style>
     </div>
-  </div>
   );
 }
 
-/* --------------------------------------------------------------- */
-/*  Sub-components                                                  */
-/* --------------------------------------------------------------- */
-
-function MiniStat({ label, value, color }: { label: string; value: string | number; color: string }) {
-  return (
-    <div style={{
-      padding: "6px 14px",
-      background: p.surfaceElevated,
-      border: `1px solid ${p.border}`,
-      borderRadius: 8,
-      display: "flex",
-      flexDirection: "column",
-      alignItems: "center",
-      justifyContent: "center",
-      minWidth: 70,
-      height: 44
-    }}>
-      <div style={{ fontSize: 9.5, fontWeight: 700, color: p.textSubtle, textTransform: "uppercase", letterSpacing: "0.06em" }}>
-        {label}
-      </div>
-      <div style={{ fontSize: 15, fontWeight: 700, color, marginTop: 1 }}>
-        {value}
-      </div>
-    </div>
-  );
-}
-
-function StatusPill({
-  status,
+function InvoiceRow({
+  inv,
+  isLast,
+  onClick,
+  onStatusChange,
 }: {
-  status: string;
+  inv: PortalInvoiceListItem;
+  isLast: boolean;
+  onClick: () => void;
+  onStatusChange: (s: string) => void;
 }) {
-  const meta = STATUS_META[status] || {
-    label: status,
-    tone: "neutral" as const,
-    icon: FileText,
-  };
-  const tone = STATUS_TONE[meta.tone];
-  const Icon = meta.icon;
-  return (
-    <span
-      style={{
-        display: "inline-flex",
-        alignItems: "center",
-        gap: 5,
-        padding: "4px 10px",
-        background: `linear-gradient(to right, ${tone.bg}, #ffffff)`,
-        border: `1px solid ${tone.border}`,
-        color: tone.text,
-        borderRadius: 999,
-        fontSize: 11.5,
-        fontWeight: 600,
-        lineHeight: 1.2,
-      }}
-    >
-      <Icon size={12} />
-      {meta.label}
-    </span>
-  );
-}
-
-function InvoiceRow({ inv, onClick, onStatusChange }: { inv: PortalInvoiceListItem; onClick: () => void; onStatusChange: (s: string) => void }) {
   const dDue = daysUntil(inv.dueDate);
   const dueLabel = (() => {
     if (!inv.dueDate) return "—";
-    if (inv.status === "PAID" || inv.status === "CANCELLED")
-      return fmtDate(inv.dueDate);
-    if (dDue == null) return fmtDate(inv.dueDate);
-    if (dDue < 0)
-      return `${Math.abs(dDue)}d overdue`;
-    if (dDue === 0) return "Due today";
-    if (dDue <= 7) return `${dDue}d left`;
     return fmtDate(inv.dueDate);
   })();
 
-  const dueColor =
-    inv.isOverdue || (dDue != null && dDue < 0)
-      ? p.dangerText
-      : dDue != null && dDue <= 7 && inv.status !== "PAID" && inv.status !== "CANCELLED"
-        ? p.warningText
-        : p.text;
+  const currentStatus = inv.clientStatus || "UNPAID";
+  const statusTag =
+    currentStatus === "PAID"
+      ? { color: "#10b981", bg: "#d1fae5", label: "PAID" }
+      : currentStatus === "PARTIALLY_PAID"
+      ? { color: "#f59e0b", bg: "#fef3c7", label: "PARTIAL" }
+      : { color: "#10b981", bg: "#d1fae5", label: "ACTIVE" };
 
   return (
     <div
       onClick={onClick}
+      className="pm2-table-row"
       style={{
         display: "grid",
-        gridTemplateColumns: "120px 1.5fr 110px 110px 150px 120px 120px 30px",
+        gridTemplateColumns:
+          "minmax(220px, 2fr) 110px 150px 120px 120px 110px 110px",
+        minWidth: 920,
         gap: 12,
-        padding: "14px 24px",
-        borderBottom: `1px solid ${p.border}`,
+        padding: "8px 16px",
+        alignItems: "center",
+        borderBottom: isLast ? "none" : "1px solid #f1f5f9",
         textDecoration: "none",
         color: "inherit",
-        alignItems: "center",
-        transition: "background 150ms ease",
         cursor: "pointer",
-        minWidth: "1000px",
       }}
-      className="invoice-row"
     >
-      {/* 1. Invoice # */}
-      <div>
-        <span style={{
-          background: p.accentBg,
-          color: p.accentText,
-          padding: "4px 10px",
-          borderRadius: 6,
-          fontSize: 12,
-          fontWeight: 600,
-          fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
-          border: `1px solid ${p.accentBorder}`
-        }}>
-          {inv.invoiceNumber}
-        </span>
-      </div>
-
-      {/* 2. Customer */}
-      <div style={{ fontSize: 13.5, fontWeight: 600, color: p.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-        {inv.customerName || inv.description || "Invoice Services"}
-      </div>
-
-      {/* 3. Invoice Date */}
-      <div style={{ fontSize: 13, fontWeight: 500, color: p.textMuted }}>
-        {fmtDate(inv.invoiceDate)}
-      </div>
-
-      {/* 4. Due Date */}
-      <div style={{ fontSize: 13, fontWeight: 600, color: dueColor }}>
-        {dueLabel}
-      </div>
-
-      {/* 4.5. Client Status */}
-      <div onClick={(e) => e.stopPropagation()}>
-        <select
-          value={inv.clientStatus || "UNPAID"}
-          onChange={(e) => onStatusChange(e.target.value)}
+      {/* 1. Project / Invoice */}
+      <div style={{ display: "flex", alignItems: "center", gap: 12, minWidth: 0 }}>
+        <div
           style={{
-            padding: "4px 8px",
+            width: 24,
+            height: 24,
             borderRadius: 6,
-            border: `1px solid ${p.border}`,
-            background: p.surfaceElevated,
-            color: p.text,
-            fontSize: 12,
-            outline: "none",
-            cursor: "pointer",
-            width: "100%",
+            flexShrink: 0,
+            display: "inline-flex",
+            alignItems: "center",
+            justifyContent: "center",
+            color: "#3B82F6",
+            background: "rgba(59, 130, 246, 0.08)",
+            border: "1px solid rgba(59, 130, 246, 0.16)",
           }}
         >
-          <option value="UNPAID">Unpaid</option>
-          <option value="PARTIALLY_PAID">Partially Paid</option>
-          <option value="PAID">Paid</option>
-        </select>
+          <Receipt size={13} />
+        </div>
+        <div style={{ display: "flex", flexDirection: "column", minWidth: 0 }}>
+          <span
+            style={{
+              fontSize: 13,
+              fontWeight: 700,
+              color: "#0f172a",
+              lineHeight: 1.25,
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              whiteSpace: "nowrap",
+            }}
+          >
+            {inv.customerName || inv.description || "Invoice"}
+          </span>
+          <span
+            style={{
+              fontSize: 10,
+              color: "#64748b",
+              marginTop: 1,
+              fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
+              fontWeight: 600,
+            }}
+          >
+            {inv.invoiceNumber}
+          </span>
+        </div>
       </div>
 
-      {/* 5. Amount */}
-      <div style={{ fontSize: 13.5, fontWeight: 600, color: p.text, textAlign: "right" }}>
+      {/* 2. Status */}
+      <div>
+        <Tag
+          style={{
+            borderRadius: 6,
+            padding: "1px 8px",
+            fontWeight: 700,
+            fontSize: 10,
+            textTransform: "uppercase",
+            border: "none",
+            margin: 0,
+            color: statusTag.color,
+            background: statusTag.bg,
+          }}
+        >
+          {statusTag.label}
+        </Tag>
+      </div>
+
+      {/* 3. Client */}
+      <div>
+        {inv.customerName ? (
+          <span
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 4,
+              padding: "2px 8px",
+              borderRadius: 6,
+              background: "#eff6ff",
+              color: "#2563eb",
+              fontSize: 11,
+              fontWeight: 600,
+            }}
+          >
+            <span
+              style={{
+                width: 5,
+                height: 5,
+                borderRadius: "50%",
+                background: "#3b82f6",
+              }}
+            />
+            {inv.customerName}
+          </span>
+        ) : (
+          <span style={{ color: "#94a3b8", fontSize: 12 }}>—</span>
+        )}
+      </div>
+
+      {/* 4. Start Date / Invoice Date */}
+      <div
+        style={{
+          display: "inline-flex",
+          alignItems: "center",
+          gap: 6,
+          fontSize: 11.5,
+          color: "#475569",
+        }}
+      >
+        <Calendar size={12} color="#94a3b8" />
+        <span>{fmtDate(inv.invoiceDate)}</span>
+      </div>
+
+      {/* 5. End Date / Due Date */}
+      <div
+        style={{
+          display: "inline-flex",
+          alignItems: "center",
+          gap: 6,
+          fontSize: 11.5,
+          color: "#475569",
+        }}
+      >
+        <Calendar size={12} color="#94a3b8" />
+        <span>{dueLabel}</span>
+      </div>
+
+      {/* 6. Amount */}
+      <div
+        style={{
+          fontSize: 12.5,
+          fontWeight: 700,
+          color: "#0f172a",
+          textAlign: "right",
+          fontVariantNumeric: "tabular-nums",
+        }}
+      >
         {fmtCurrency(inv.grandTotal ?? inv.subtotal, inv.currency)}
       </div>
 
-      {/* 6. Balance Due */}
-      <div style={{ fontSize: 13.5, fontWeight: Number(inv.balanceDue) > 0 ? 600 : 500, color: Number(inv.balanceDue) > 0 ? p.text : p.textMuted, textAlign: "right" }}>
+      {/* 7. Balance Due */}
+      <div
+        style={{
+          fontSize: 12.5,
+          fontWeight: Number(inv.balanceDue) > 0 ? 700 : 500,
+          color: Number(inv.balanceDue) > 0 ? "#0f172a" : "#64748b",
+          textAlign: "right",
+          fontVariantNumeric: "tabular-nums",
+        }}
+      >
         {fmtCurrency(inv.balanceDue, inv.currency)}
-      </div>
-
-      {/* 7. Chevron */}
-      <div style={{ display: "flex", justifyContent: "flex-end" }}>
-        <ChevronRight size={16} color={p.textFaint} />
       </div>
     </div>
   );
 }
 
+/* --------------------------------------------------------------- */
+/*  Card Component (Card View)                                     */
+/* --------------------------------------------------------------- */
 
+function InvoiceCard({
+  inv,
+  onClick,
+}: {
+  inv: PortalInvoiceListItem;
+  onClick: () => void;
+}) {
+  const dDue = daysUntil(inv.dueDate);
+  const dueLabel = (() => {
+    if (!inv.dueDate) return "—";
+    return fmtDate(inv.dueDate);
+  })();
 
+  const currentStatus = inv.clientStatus || "UNPAID";
+  const statusTag =
+    currentStatus === "PAID"
+      ? { color: "#10b981", bg: "#d1fae5", label: "PAID" }
+      : currentStatus === "PARTIALLY_PAID"
+      ? { color: "#f59e0b", bg: "#fef3c7", label: "PARTIAL" }
+      : { color: "#10b981", bg: "#d1fae5", label: "ACTIVE" };
+
+  return (
+    <div
+      onClick={onClick}
+      className="pm2-card"
+      style={{
+        background: "#ffffff",
+        border: "1px solid #e2e8f0",
+        borderRadius: 10,
+        padding: "16px",
+        cursor: "pointer",
+        display: "flex",
+        flexDirection: "column",
+        gap: 12,
+        position: "relative",
+      }}
+    >
+      {/* Card Top */}
+      <div
+        style={{
+          display: "flex",
+          alignItems: "flex-start",
+          justifyContent: "space-between",
+          gap: 10,
+        }}
+      >
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <div
+            style={{
+              width: 26,
+              height: 26,
+              borderRadius: 6,
+              display: "inline-flex",
+              alignItems: "center",
+              justifyContent: "center",
+              color: "#3B82F6",
+              background: "rgba(59, 130, 246, 0.08)",
+              border: "1px solid rgba(59, 130, 246, 0.16)",
+            }}
+          >
+            <Receipt size={13} />
+          </div>
+          <span
+            style={{
+              fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
+              fontSize: 11,
+              fontWeight: 600,
+              color: "#64748b",
+              background: "#f1f5f9",
+              padding: "2px 6px",
+              borderRadius: 4,
+            }}
+          >
+            {inv.invoiceNumber}
+          </span>
+        </div>
+
+        <Tag
+          style={{
+            borderRadius: 6,
+            padding: "1px 8px",
+            fontWeight: 700,
+            fontSize: 10,
+            textTransform: "uppercase",
+            border: "none",
+            margin: 0,
+            color: statusTag.color,
+            background: statusTag.bg,
+          }}
+        >
+          {statusTag.label}
+        </Tag>
+      </div>
+
+      {/* Customer / Description */}
+      <div>
+        <div
+          style={{
+            fontSize: 14,
+            fontWeight: 700,
+            color: "#0f172a",
+            lineHeight: 1.35,
+            letterSpacing: "-0.01em",
+          }}
+        >
+          {inv.customerName || inv.description || "Invoice"}
+        </div>
+        {inv.customerName && inv.description && (
+          <div
+            style={{
+              fontSize: 12,
+              color: "#64748b",
+              marginTop: 4,
+              lineHeight: 1.4,
+              display: "-webkit-box",
+              WebkitLineClamp: 2,
+              WebkitBoxOrient: "vertical",
+              overflow: "hidden",
+            }}
+          >
+            {inv.description}
+          </div>
+        )}
+      </div>
+
+      {/* Dates */}
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 16,
+          fontSize: 11.5,
+          color: "#64748b",
+          marginTop: "auto",
+          paddingTop: 8,
+          borderTop: "1px solid #f1f5f9",
+          flexWrap: "wrap",
+        }}
+      >
+        <div style={{ display: "inline-flex", alignItems: "center", gap: 5 }}>
+          <Calendar size={12} color="#94a3b8" />
+          <span>Issued {fmtDate(inv.invoiceDate)}</span>
+        </div>
+        <div style={{ display: "inline-flex", alignItems: "center", gap: 5 }}>
+          <Clock size={12} color="#94a3b8" />
+          <span>Due {dueLabel}</span>
+        </div>
+      </div>
+
+      {/* Amounts */}
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: 8,
+          background: "#f8fafc",
+          padding: "8px 12px",
+          borderRadius: 6,
+        }}
+      >
+        <div>
+          <span style={{ fontSize: 10, color: "#94a3b8", fontWeight: 700, textTransform: "uppercase" }}>
+            Total
+          </span>
+          <div style={{ fontSize: 13, fontWeight: 700, color: "#0f172a" }}>
+            {fmtCurrency(inv.grandTotal ?? inv.subtotal, inv.currency)}
+          </div>
+        </div>
+
+        <div style={{ textAlign: "right" }}>
+          <span style={{ fontSize: 10, color: "#94a3b8", fontWeight: 700, textTransform: "uppercase" }}>
+            Balance Due
+          </span>
+          <div
+            style={{
+              fontSize: 13,
+              fontWeight: 700,
+              color: Number(inv.balanceDue) > 0 ? "#b91c1c" : "#10b981",
+            }}
+          >
+            {fmtCurrency(inv.balanceDue, inv.currency)}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}

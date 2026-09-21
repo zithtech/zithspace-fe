@@ -14,7 +14,7 @@ import { usePermission } from '@/hooks/usePermission';
 import ReimbursementV2Service, {
   ApprovalInboxItem, AdvanceInboxItem, ClaimDetail,
 } from '@/services/reimbursementV2Service';
-import { PALETTE, TINT, PanelHeader, RmbStyles, money, fmtDate, StatusTag } from './ui';
+import { PALETTE, TINT, PanelHeader, RmbStyles, money, fmtDate, StatusTag, tablePaginationConfig } from './ui';
 import { drawerFormStyles as formStyles, commonDrawerProps, SectionCard } from '@/components/common/DrawerSection';
 import { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
 
@@ -27,12 +27,12 @@ export default function ApprovalsPanel() {
   const [claims, setClaims] = useState<ApprovalInboxItem[]>([]);
   const [claimsTotal, setClaimsTotal] = useState(0);
   const [claimsPage, setClaimsPage] = useState(1);
-  const [claimsSize, setClaimsSize] = useState(20);
+  const [claimsSize, setClaimsSize] = useState(15);
 
   const [advances, setAdvances] = useState<AdvanceInboxItem[]>([]);
   const [advancesTotal, setAdvancesTotal] = useState(0);
   const [advancesPage, setAdvancesPage] = useState(1);
-  const [advancesSize, setAdvancesSize] = useState(20);
+  const [advancesSize, setAdvancesSize] = useState(15);
 
   const [loading, setLoading] = useState(false);
   const [pending, setPending] = useState<Pending>(null);
@@ -142,11 +142,10 @@ export default function ApprovalsPanel() {
                 <Table rowKey="id" size="middle" loading={loading} columns={claimCols} dataSource={claims}
                   locale={{ emptyText: <NoData description="No pending claims" /> }}
                   pagination={{
+                    ...tablePaginationConfig,
                     current: claimsPage,
                     pageSize: claimsSize,
                     total: claimsTotal,
-                    showSizeChanger: true,
-                    pageSizeOptions: ['10', '20', '50', '100'],
                     showTotal: (t) => `${t} claims`,
                     onChange: (page, size) => {
                       setClaimsPage(page);
@@ -164,11 +163,10 @@ export default function ApprovalsPanel() {
                 <Table rowKey="id" size="middle" loading={loading} columns={advanceCols} dataSource={advances}
                   locale={{ emptyText: <NoData description="No pending advances" /> }}
                   pagination={{
+                    ...tablePaginationConfig,
                     current: advancesPage,
                     pageSize: advancesSize,
                     total: advancesTotal,
-                    showSizeChanger: true,
-                    pageSizeOptions: ['10', '20', '50', '100'],
                     showTotal: (t) => `${t} advances`,
                     onChange: (page, size) => {
                       setAdvancesPage(page);

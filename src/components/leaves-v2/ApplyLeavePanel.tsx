@@ -53,7 +53,7 @@ const { RangePicker } = DatePicker;
 
 const PALETTE = { blue: '#3B82F6', green: '#10B981', red: '#EF4444', grey: '#94A3B8' } as const;
 const TINT = { blue: 'rgba(59,130,246,0.10)', green: 'rgba(16,185,129,0.10)', red: 'rgba(239,68,68,0.10)', grey: 'rgba(148,163,184,0.12)' } as const;
-const PAGE_SIZE_OPTIONS = [10, 20, 25, 50, 100];
+const PAGE_SIZE_OPTIONS = [10, 15, 20, 25, 50, 100];
 
 const DAY_PORTION_OPTIONS: { value: DayPortion; label: string }[] = [
   { value: 'full', label: 'Full day' },
@@ -109,7 +109,7 @@ export default function ApplyLeavePanel({ hideSidebarToggle }: { hideSidebarTogg
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
 
   const [tablePage, setTablePage] = useState(1);
-  const [tablePageSize, setTablePageSize] = useState(20);
+  const [tablePageSize, setTablePageSize] = useState(15);
 
   // drawer
   const [open, setOpen] = useState(false);

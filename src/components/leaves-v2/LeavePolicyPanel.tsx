@@ -74,7 +74,7 @@ const localLvpStyles = `
 
 
 
-const PAGE_SIZE_OPTIONS = [10, 20, 25, 50, 100];
+const PAGE_SIZE_OPTIONS = [10, 15, 20, 25, 50, 100];
 
 const SCOPE_TYPES: { value: PolicyScopeType; label: string }[] = [
   { value: 'grade', label: 'Grade' },
@@ -162,7 +162,7 @@ export default function LeavePolicyPanel() {
 
   // pagination
   const [tablePage, setTablePage] = useState(1);
-  const [tablePageSize, setTablePageSize] = useState(20);
+  const [tablePageSize, setTablePageSize] = useState(15);
 
   // drawer
   const [drawerOpen, setDrawerOpen] = useState(false);

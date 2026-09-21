@@ -73,7 +73,7 @@ export default function PositionsPage() {
   const [historyOpen, setHistoryOpen] = useState(false);
   const [view, setView] = useState<OrgView>("grid");
   const [openCardId, setOpenCardId] = useState<string | null>(null);
-  const [pagination, setPagination] = useState({ current: 1, pageSize: 20 });
+  const [pagination, setPagination] = useState({ current: 1, pageSize: 15 });
 
   const { allDepartments: departments = [], loading: departmentsLoading } = useDepartments();
   const { allGrades: grades = [], loading: gradesLoading } = useGrades();

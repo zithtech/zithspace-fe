@@ -1,4 +1,4 @@
-import { api } from "@/lib/axios";
+import { api, apiClient } from "@/lib/axios";
 
 export interface ClientRelease {
   id: string;
@@ -45,8 +45,30 @@ export interface UpdateReleasePayload {
 }
 
 export const releaseService = {
-  list(clientId: string) {
-    return api.get<ClientRelease[]>(`/api/clients-v2/${clientId}/releases`);
+  async list(
+    clientId: string,
+    params: {
+      page?: number;
+      limit?: number;
+      search?: string;
+      projectId?: string;
+      milestoneId?: string;
+    } = {},
+  ) {
+    const qs = new URLSearchParams();
+    Object.entries(params).forEach(([k, v]) => {
+      if (v != null && v !== "") qs.append(k, String(v));
+    });
+    const res = await apiClient.get(
+      `/api/clients-v2/${clientId}/releases${qs.toString() ? `?${qs.toString()}` : ""}`,
+    );
+    if (res.data?.success === false) {
+      throw new Error(res.data.error || "Failed to load releases");
+    }
+    return {
+      data: (res.data?.data || []) as ClientRelease[],
+      meta: res.data?.meta || { total: (res.data?.data || []).length, page: 1, limit: 15, totalPages: 1 },
+    };
   },
   milestoneOptions(clientId: string) {
     return api.get<MilestoneOption[]>(

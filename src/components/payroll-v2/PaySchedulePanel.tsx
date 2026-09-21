@@ -36,7 +36,7 @@ const ordinal = (n: number) => {
   switch (n % 10) { case 1: return `${n}st`; case 2: return `${n}nd`; case 3: return `${n}rd`; default: return `${n}th`; }
 };
 const slugifyCode = (s: string) => (s || '').trim().toUpperCase().replace(/[^A-Z0-9]+/g, '_').replace(/^_+|_+$/g, '').slice(0, 40);
-const PAGE_SIZE_OPTIONS = [10, 20, 25, 50, 100];
+const PAGE_SIZE_OPTIONS = [10, 15, 20, 25, 50, 100];
 
 type View = 'schedules' | 'groups';
 
@@ -82,7 +82,7 @@ export default function PaySchedulePanel() {
   const [debouncedSearch, setDebouncedSearch] = useState('');
 
   const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(20);
+  const [pageSize, setPageSize] = useState(15);
   const [totalSchedules, setTotalSchedules] = useState(0);
   const [totalGroups, setTotalGroups] = useState(0);
 

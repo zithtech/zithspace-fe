@@ -65,7 +65,7 @@ export default function GradesPage() {
   const [openCardId, setOpenCardId] = useState<string | null>(null);
   const [view, setView] = useState<OrgView>("grid");
 
-  const [pagination, setPagination] = useState({ current: 1, pageSize: 20 });
+  const [pagination, setPagination] = useState({ current: 1, pageSize: 15 });
 
   const { allGrades, paginatedGrades, totalCount, loading, addGrade, updateGrade, deleteGrade, fetchGrades } = useGrades({
     page: pagination.current,

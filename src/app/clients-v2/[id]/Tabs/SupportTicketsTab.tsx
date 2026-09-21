@@ -14,6 +14,8 @@ import {
   Tooltip,
   Table,
   Tag,
+  Pagination,
+  Typography,
 } from "antd";
 import {
   Plus,
@@ -177,25 +179,37 @@ export default function SupportTicketsTab({ clientId, projects = [], onCountChan
   const tones = useMemo(() => tonesOf(c), [c]);
 
   const [items, setItems] = useState<StaffPortalTicketListItem[]>([]);
+  const [totalCount, setTotalCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [search, setSearch] = useState("");
   const [createOpen, setCreateOpen] = useState(false);
   const [openId, setOpenId] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<"list" | "card">("list");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(15);
   const [messageApi, contextHolder] = message.useMessage();
 
-  const load = async () => {
+  const paginatedItems = items;
+
+  const load = async (
+    page = currentPage,
+    size = pageSize,
+    searchQuery = search,
+    status = statusFilter,
+  ) => {
     setLoading(true);
     try {
-      const { data } = await staffPortalTicketService.list({
+      const res = await staffPortalTicketService.list({
         clientId,
-        status: statusFilter,
-        search,
-        limit: 100,
+        status: status !== "all" ? status : undefined,
+        search: searchQuery.trim() || undefined,
+        page,
+        limit: size,
       });
-      setItems(data);
-      onCountChange?.(data.length);
+      setItems(res.data);
+      setTotalCount(res.meta.total);
+      onCountChange?.(res.meta.total);
     } catch (err: any) {
       messageApi.error(`Failed to load tickets: ${err?.message || ""}`);
     } finally {
@@ -208,7 +222,7 @@ export default function SupportTicketsTab({ clientId, projects = [], onCountChan
     try {
       setRefreshing(true);
       await Promise.all([
-        load(),
+        load(currentPage, pageSize, search, statusFilter),
         onRefresh ? onRefresh() : Promise.resolve(),
       ]);
     } catch (err) {
@@ -219,12 +233,15 @@ export default function SupportTicketsTab({ clientId, projects = [], onCountChan
   };
 
   useEffect(() => {
-    load();
+    load(currentPage, pageSize, search, statusFilter);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [clientId, statusFilter, search]);
+  }, [clientId, currentPage, pageSize, statusFilter]);
 
   useEffect(() => {
-    const t = setTimeout(load, 250);
+    const t = setTimeout(() => {
+      setCurrentPage(1);
+      load(1, pageSize, search, statusFilter);
+    }, 300);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [search]);
@@ -413,7 +430,7 @@ export default function SupportTicketsTab({ clientId, projects = [], onCountChan
   }, [c, tones]);
 
   return (
-    <div style={{ padding: "4px 0 24px", color: c.text }}>
+    <div style={{ color: c.text }} className="support-tab-container">
       {contextHolder}
 
       {/* Header */}
@@ -506,46 +523,77 @@ export default function SupportTicketsTab({ clientId, projects = [], onCountChan
       </div>
 
       {/* Body */}
-      {loading ? (
-        <div
-          style={{
-            padding: 48,
-            textAlign: "center",
-            border: `1px solid ${c.border}`,
-            borderRadius: 12,
-            background: c.surfaceElevated,
-            color: c.textSubtle,
-          }}
-        >
-          Loading…
-        </div>
-      ) : items.length === 0 ? (
-        <EmptyState c={c} onCreate={() => setCreateOpen(true)} />
-      ) : viewMode === "list" ? (
-        <div className="pp-table-wrap">
-          <ZukvoLoadingOverlay loading={loading} message="">
-            <Table
-              className="pp-table"
-              dataSource={items}
-              columns={columns}
-              rowKey="id"
-              pagination={{ pageSizeOptions: [10, 20, 25, 50, 100], pageSize: 20, hideOnSinglePage: true }}
-              scroll={{ x: "max-content" }}
-              onRow={(t) => ({ onClick: () => setOpenId(t.id), style: { cursor: "pointer" } })} locale={{ emptyText: <NoData /> }}
-            />
-          </ZukvoLoadingOverlay>
-        </div>
-      ) : (
-        <div className="pp-grid">
-          {items.map((t) => (
-            <TicketCard
-              key={t.id}
-              t={t}
-              c={c}
-              tones={tones}
-              onClick={() => setOpenId(t.id)}
-            />
-          ))}
+      <div className="support-tab-body">
+        {loading ? (
+          <div
+            style={{
+              padding: 48,
+              textAlign: "center",
+              border: `1px solid ${c.border}`,
+              borderRadius: 12,
+              background: c.surfaceElevated,
+              color: c.textSubtle,
+            }}
+          >
+            Loading…
+          </div>
+        ) : items.length === 0 ? (
+          <EmptyState c={c} onCreate={() => setCreateOpen(true)} />
+        ) : viewMode === "list" ? (
+          <div className="pp-table-wrap">
+            <ZukvoLoadingOverlay loading={loading} message="">
+              <Table
+                className="pp-table"
+                dataSource={paginatedItems}
+                columns={columns}
+                rowKey="id"
+                pagination={false}
+                scroll={{ x: "max-content" }}
+                onRow={(t) => ({ onClick: () => setOpenId(t.id), style: { cursor: "pointer" } })}
+                locale={{ emptyText: <NoData /> }}
+              />
+            </ZukvoLoadingOverlay>
+          </div>
+        ) : (
+          <div className="pp-grid">
+            {paginatedItems.map((t) => (
+              <TicketCard
+                key={t.id}
+                t={t}
+                c={c}
+                tones={tones}
+                onClick={() => setOpenId(t.id)}
+              />
+            ))}
+          </div>
+        )}
+      </div>
+
+      {totalCount > 0 && (
+        <div className="pm2-pagination support-pagination-footer">
+          <Typography.Text style={{ fontSize: 13, color: "var(--text-slate-500)" }}>
+            Showing{" "}
+            <span style={{ color: "var(--text-slate-700)", fontWeight: 700 }}>
+              {(currentPage - 1) * pageSize + 1}–
+              {Math.min(currentPage * pageSize, totalCount)}
+            </span>{" "}
+            of{" "}
+            <span style={{ color: "var(--text-slate-700)", fontWeight: 700 }}>
+              {totalCount}
+            </span>{" "}
+            ticket{totalCount !== 1 ? "s" : ""}
+          </Typography.Text>
+          <Pagination
+            current={currentPage}
+            pageSize={pageSize}
+            total={totalCount}
+            onChange={(page, size) => {
+              setCurrentPage(page);
+              setPageSize(size);
+            }}
+            showSizeChanger
+            pageSizeOptions={[10, 15, 20, 25, 50, 100]}
+          />
         </div>
       )}
 
@@ -602,6 +650,7 @@ export default function SupportTicketsTab({ clientId, projects = [], onCountChan
             margin-right: -16px !important;
             padding-left: 16px !important;
             padding-right: 16px !important;
+          }
         }
 
         /* Searchable Dropdown Overrides */
@@ -778,6 +827,104 @@ export default function SupportTicketsTab({ clientId, projects = [], onCountChan
         [data-theme="dark"] .pc-actions:hover {
           background: var(--bg-slate-700);
           color: var(--text-slate-100);
+        }
+
+        /* ── Container & Body for full-height stretch ── */
+        .support-tab-container {
+          display: flex !important;
+          flex-direction: column !important;
+          flex: 1 !important;
+          min-height: 100% !important;
+          padding: 4px 0 0 0 !important;
+          position: relative !important;
+        }
+        .support-tab-body {
+          flex: 1 0 auto !important;
+          padding-bottom: 16px !important;
+        }
+
+        /* ── Sticky pagination footer (fixed to bottom) ── */
+        .support-pagination-footer {
+          display: flex !important;
+          align-items: center !important;
+          justify-content: space-between !important;
+          gap: 12px !important;
+          padding: 10px 16px !important;
+          margin-top: auto !important;
+          margin-left: -12px !important;
+          margin-right: -12px !important;
+          margin-bottom: 0 !important;
+          flex-wrap: wrap !important;
+          position: sticky !important;
+          bottom: 0 !important;
+          left: 0 !important;
+          right: 0 !important;
+          background: var(--bg-pure-white) !important;
+          border-top: 1px solid var(--border-slate-200) !important;
+          z-index: 20 !important;
+          box-shadow: 0 -4px 16px rgba(15, 23, 42, 0.04) !important;
+        }
+        [data-theme="dark"] .support-pagination-footer {
+          background: #0B0F1A !important;
+          border-top-color: #1f2937 !important;
+        }
+        @media (max-width: 900px) {
+          .support-pagination-footer {
+            margin-left: -12px !important;
+            margin-right: -12px !important;
+            padding-left: 12px !important;
+            padding-right: 12px !important;
+          }
+        }
+        @media (max-width: 720px) {
+          .support-pagination-footer {
+            margin-left: -12px !important;
+            margin-right: -12px !important;
+            padding-left: 12px !important;
+            padding-right: 12px !important;
+          }
+        }
+
+        .support-pagination-footer .ant-pagination-item,
+        .support-pagination-footer .ant-pagination-prev .ant-pagination-item-link,
+        .support-pagination-footer .ant-pagination-next .ant-pagination-item-link {
+          border: 1px solid var(--border-slate-200) !important;
+          border-radius: 6px !important;
+          background: transparent !important;
+          color: var(--text-slate-500) !important;
+        }
+        .support-pagination-footer .ant-pagination-item-active {
+          background: #3b82f6 !important;
+          border-color: #3b82f6 !important;
+        }
+        .support-pagination-footer .ant-pagination-item-active a {
+          color: #fff !important;
+        }
+        .support-pagination-footer .ant-select-selector {
+          border: 1px solid var(--border-slate-200) !important;
+          border-radius: 6px !important;
+          background: transparent !important;
+          height: 28px !important;
+          font-size: 12px !important;
+        }
+        [data-theme="dark"] .support-pagination-footer .ant-pagination-item,
+        [data-theme="dark"] .support-pagination-footer .ant-pagination-prev .ant-pagination-item-link,
+        [data-theme="dark"] .support-pagination-footer .ant-pagination-next .ant-pagination-item-link {
+          border-color: #374151 !important;
+          background: #111827 !important;
+          color: #9ca3af !important;
+        }
+        [data-theme="dark"] .support-pagination-footer .ant-pagination-item-active {
+          background: #3b82f6 !important;
+          border-color: #3b82f6 !important;
+        }
+        [data-theme="dark"] .support-pagination-footer .ant-pagination-item-active a {
+          color: #fff !important;
+        }
+        [data-theme="dark"] .support-pagination-footer .ant-select-selector {
+          border-color: #374151 !important;
+          background: #111827 !important;
+          color: #e5e7eb !important;
         }
       `}} />
     </div>

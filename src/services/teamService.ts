@@ -1,4 +1,4 @@
-import { api } from "@/lib/axios";
+import { api, apiClient } from "@/lib/axios";
 
 export type TeamDiscipline =
   | "engineering"
@@ -67,8 +67,30 @@ export interface CreateTeamMemberPayload {
 }
 
 export const teamService = {
-  listForClient(clientId: string) {
-    return api.get<TeamMember[]>(`/api/clients-v2/${clientId}/team`);
+  async listForClient(
+    clientId: string,
+    params: {
+      page?: number;
+      limit?: number;
+      search?: string;
+      discipline?: string;
+      projectId?: string;
+    } = {},
+  ) {
+    const qs = new URLSearchParams();
+    Object.entries(params).forEach(([k, v]) => {
+      if (v != null && v !== "") qs.append(k, String(v));
+    });
+    const res = await apiClient.get(
+      `/api/clients-v2/${clientId}/team${qs.toString() ? `?${qs.toString()}` : ""}`,
+    );
+    if (res.data?.success === false) {
+      throw new Error(res.data.error || "Failed to load team");
+    }
+    return {
+      data: (res.data?.data || []) as TeamMember[],
+      meta: res.data?.meta || { total: (res.data?.data || []).length, page: 1, limit: 15, totalPages: 1 },
+    };
   },
   staffOptions(clientId: string, search?: string) {
     const qs = search ? `?search=${encodeURIComponent(search)}` : "";

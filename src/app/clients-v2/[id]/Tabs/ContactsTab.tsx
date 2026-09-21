@@ -1,7 +1,7 @@
 "use client";
 
 import NoData from "@/components/common/NoData";
-import React, { useState } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import dayjs from "dayjs";
 import {
   Table,
@@ -23,6 +23,8 @@ import {
   Tooltip,
   Dropdown,
   Drawer,
+  Pagination,
+  Typography,
 } from "antd";
 import {
   Plus,
@@ -44,7 +46,7 @@ import {
 } from "lucide-react";
 import { useTenant } from "@/context/TenantContext";
 import { usePermission } from "@/hooks/usePermission";
-import { api } from "@/lib/axios";
+import { api, apiClient } from "@/lib/axios";
 import { TimeTrackingHeader } from "@/components/time-tracking/TimeTrackingHeader";
 import { commonDrawerProps, SectionCard, drawerFormStyles } from "@/components/common/DrawerSection";
 import SearchableDropdown from "@/components/common/SearchableDropdown";
@@ -53,11 +55,11 @@ const { Option } = Select;
 
 interface Props {
   clientId: string;
-  contacts: any[];
+  contacts?: any[];
   onRefresh: () => void;
 }
 
-export default function ContactsTab({ clientId, contacts, onRefresh }: Props) {
+export default function ContactsTab({ clientId, contacts = [], onRefresh }: Props) {
   const { tenantId } = useTenant();
   const { canUpdateClient } = usePermission();
 
@@ -135,11 +137,58 @@ export default function ContactsTab({ clientId, contacts, onRefresh }: Props) {
   const [messageApi, contextHolder] = message.useMessage();
   const [modal, modalContextHolder] = Modal.useModal();
 
+  const [items, setItems] = useState<any[]>(contacts || []);
+  const [totalCount, setTotalCount] = useState(0);
+  const [loadingContacts, setLoadingContacts] = useState(false);
+
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [selectedProject, setSelectedProject] = useState("all");
   const [projects, setProjects] = useState<any[]>([]);
   const [viewMode, setViewMode] = useState<"list" | "grid">("grid");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(15);
+
+  const fetchContacts = async (
+    page = currentPage,
+    size = pageSize,
+    search = searchTerm,
+    category = selectedCategory,
+    proj = selectedProject,
+  ) => {
+    setLoadingContacts(true);
+    try {
+      const qs = new URLSearchParams();
+      qs.append("page", String(page));
+      qs.append("limit", String(size));
+      if (search.trim()) qs.append("search", search.trim());
+      if (category && category !== "all") qs.append("category", category);
+      if (proj && proj !== "all") qs.append("projectId", proj);
+      const res = await apiClient.get(`/api/clients-v2/${clientId}/contacts?${qs.toString()}`);
+      const data = res.data?.data || [];
+      const meta = res.data?.meta || { total: data.length };
+      setItems(Array.isArray(data) ? data : []);
+      setTotalCount(meta.total ?? (Array.isArray(data) ? data.length : 0));
+    } catch (err) {
+      console.error("Failed to fetch contacts:", err);
+    } finally {
+      setLoadingContacts(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchContacts(currentPage, pageSize, searchTerm, selectedCategory, selectedProject);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [clientId, currentPage, pageSize, selectedCategory, selectedProject]);
+
+  useEffect(() => {
+    const t = setTimeout(() => {
+      setCurrentPage(1);
+      fetchContacts(1, pageSize, searchTerm, selectedCategory, selectedProject);
+    }, 300);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchTerm]);
 
   React.useEffect(() => {
     const fetchProjects = async () => {
@@ -164,6 +213,7 @@ export default function ContactsTab({ clientId, contacts, onRefresh }: Props) {
         messageApi.success("Contact added successfully");
         setIsModalOpen(false);
         form.resetFields();
+        fetchContacts();
         onRefresh();
       }
     } catch (err) {
@@ -199,6 +249,7 @@ export default function ContactsTab({ clientId, contacts, onRefresh }: Props) {
         setIsEditModalOpen(false);
         editForm.resetFields();
         setEditingContact(null);
+        fetchContacts();
         onRefresh();
       }
     } catch (err) {
@@ -217,6 +268,7 @@ export default function ContactsTab({ clientId, contacts, onRefresh }: Props) {
       });
       if (data) {
         messageApi.success(`Contact is now ${newStatus}`);
+        fetchContacts();
         onRefresh();
       }
     } catch (err) {
@@ -229,6 +281,7 @@ export default function ContactsTab({ clientId, contacts, onRefresh }: Props) {
     try {
       await api.delete(`/api/clients-v2/contacts/${contactId}`);
       messageApi.success("Contact deleted successfully");
+      fetchContacts();
       onRefresh();
     } catch (err) {
       console.error(err);
@@ -272,56 +325,85 @@ export default function ContactsTab({ clientId, contacts, onRefresh }: Props) {
       title: "Communication",
       key: "communication",
       render: (_: any, record: any) => (
-        <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-          <Space size={6} style={{ fontSize: 13, color: "var(--text-slate-700)" }}>
-            <Mail size={14} style={{ color: "var(--text-slate-400)" }} />
-            {record.officialEmail}
-          </Space>
+        <Space direction="vertical" size={2}>
+          <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13, color: "var(--text-slate-700)", fontWeight: 500 }}>
+            <Mail size={12} style={{ color: "var(--text-slate-400)" }} />
+            <a href={`mailto:${record.officialEmail}`} style={{ color: "var(--text-slate-700)" }}>
+              {record.officialEmail}
+            </a>
+          </div>
           {record.mobileNumber && (
-            <Space size={6} style={{ fontSize: 12, color: "var(--text-slate-500)" }}>
-              <Phone size={14} style={{ color: "var(--text-slate-400)" }} />
-              {record.mobileNumber}
-            </Space>
+            <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: "var(--text-slate-500)" }}>
+              <Phone size={12} style={{ color: "var(--text-slate-400)" }} />
+              <span>{record.mobileNumber}</span>
+            </div>
           )}
-        </div>
+        </Space>
       ),
     },
     {
-      title: "Category",
-      dataIndex: "isPrimary",
-      key: "isPrimary",
-      render: (isPrimary: boolean) => (
-        isPrimary ? (
-          <Tag color="processing" style={{ borderRadius: 6, fontWeight: 500, border: 0 }}>PRIMARY</Tag>
-        ) : (
-          <Tag style={{ borderRadius: 6, fontWeight: 500, border: 0, background: "var(--bg-slate-50)", color: "var(--text-slate-500)" }}>SECONDARY</Tag>
-        )
+      title: "Role / Classification",
+      key: "classification",
+      render: (_: any, record: any) => (
+        <Space direction="vertical" size={4}>
+          <div>
+            {record.isPrimary ? (
+              <span className="pc-status-tag" style={{ color: "#3b82f6", background: "rgba(59, 130, 246, 0.12)" }}>
+                PRIMARY
+              </span>
+            ) : (
+              <span className="pc-status-tag" style={{ color: "var(--text-slate-500)", background: "var(--bg-slate-100)" }}>
+                SECONDARY
+              </span>
+            )}
+          </div>
+          {record.project && (
+            <div style={{ fontSize: 11, color: "var(--text-slate-500)", display: "flex", alignItems: "center", gap: 4 }}>
+              <Briefcase size={10} style={{ color: "var(--text-slate-400)" }} />
+              <span>{record.project.name}</span>
+            </div>
+          )}
+        </Space>
       ),
     },
     {
-      title: "Account Status",
+      title: "Active State",
       dataIndex: "status",
       key: "status",
       render: (status: string, record: any) => {
         const isActive = status === "Active";
-        return (
+        return canUpdateClient ? (
           <Space size={8}>
-            <Tooltip title={isActive ? "Deactivate" : "Activate"}>
-              <Switch
-                size="small"
-                checked={isActive}
-                onChange={(checked) => handleStatusChange(record.id, checked)}
-                style={{ backgroundColor: isActive ? "#10b981" : "var(--border-slate-200)" }}
-                disabled={!canUpdateClient}
-              />
-            </Tooltip>
-            <Tag
-              style={{ borderRadius: 20, padding: "0 10px", fontWeight: 600, border: 0 }}
-              color={isActive ? "success" : "default"}
+            <Switch
+              size="small"
+              checked={isActive}
+              onChange={(checked) => handleStatusChange(record.id, checked)}
+              style={{ backgroundColor: isActive ? "#10b981" : "var(--border-slate-200)" }}
+            />
+            <span
+              className="pc-status-tag"
+              style={{
+                fontSize: "10px",
+                padding: "1px 6px",
+                color: isActive ? "#10b981" : "var(--text-slate-400)",
+                background: isActive ? "rgba(16, 185, 129, 0.12)" : "var(--bg-slate-100)"
+              }}
             >
               {status?.toUpperCase()}
-            </Tag>
+            </span>
           </Space>
+        ) : (
+          <span
+            className="pc-status-tag"
+            style={{
+              fontSize: "10px",
+              padding: "1px 6px",
+              color: isActive ? "#10b981" : "var(--text-slate-400)",
+              background: isActive ? "rgba(16, 185, 129, 0.12)" : "var(--bg-slate-100)"
+            }}
+          >
+            {status?.toUpperCase()}
+          </span>
         );
       },
     },
@@ -377,28 +459,11 @@ export default function ContactsTab({ clientId, contacts, onRefresh }: Props) {
     },
   ];
 
-  const filteredContacts = contacts.filter((contact) => {
-    const fullName = `${contact.firstName || ""} ${contact.lastName || ""}`.toLowerCase();
-    const email = (contact.officialEmail || "").toLowerCase();
-    const matchesSearch = fullName.includes(searchTerm.toLowerCase()) || email.includes(searchTerm.toLowerCase());
-
-    let matchesCategory = true;
-    if (selectedCategory === "primary") {
-      matchesCategory = contact.isPrimary === true;
-    } else if (selectedCategory === "secondary") {
-      matchesCategory = contact.isPrimary === false;
-    }
-
-    let matchesProject = true;
-    if (selectedProject && selectedProject !== "all") {
-      matchesProject = contact.projectId === selectedProject;
-    }
-
-    return matchesSearch && matchesCategory && matchesProject;
-  });
+  const paginatedContacts = items;
+  const filteredContacts = items;
 
   return (
-    <div style={{ animation: "fadeIn 0.3s ease-in-out" }}>
+    <div style={{ animation: "fadeIn 0.3s ease-in-out" }} className="contacts-tab-container">
       {contextHolder}
       {modalContextHolder}
 
@@ -507,166 +572,196 @@ export default function ContactsTab({ clientId, contacts, onRefresh }: Props) {
         <div className="ptab-divider" />
       </div>
 
-      {viewMode === "list" ? (
-        <div className="pp-table-wrap">
-          <Table
-            dataSource={filteredContacts}
-            columns={columns}
-            rowKey="id"
-            pagination={false}
-            className="pp-table"
-            scroll={{ x: "max-content" }}
-            locale={{
-              emptyText: <NoData description={(
-                                    <div className="ptab-empty">
-                                      <div className="ptab-empty-icon">
-                                        <Users size={26} />
+      <div className="contacts-tab-body">
+        {viewMode === "list" ? (
+          <div className="pp-table-wrap">
+            <Table
+              dataSource={paginatedContacts}
+              columns={columns}
+              rowKey="id"
+              pagination={false}
+              className="pp-table"
+              scroll={{ x: "max-content" }}
+              locale={{
+                emptyText: <NoData description={(
+                                      <div className="ptab-empty">
+                                        <div className="ptab-empty-icon">
+                                          <Users size={26} />
+                                        </div>
+                                        <div className="ptab-empty-title">No contacts yet</div>
+                                        <div className="ptab-empty-desc">
+                                          Add representatives, emails, and phone numbers to keep client communication organized.
+                                        </div>
                                       </div>
-                                      <div className="ptab-empty-title">No contacts yet</div>
-                                      <div className="ptab-empty-desc">
-                                        Add representatives, emails, and phone numbers to keep client communication organized.
-                                      </div>
-                                    </div>
-                                  )} />,
-            }}
-          />
-        </div>
-      ) : (
-        <div className="pp-grid">
-          {filteredContacts.length === 0 ? (
-            <div className="ptab-empty-wrapper">
-              <div className="ptab-empty">
-                <div className="ptab-empty-icon">
-                  <Users size={26} />
-                </div>
-                <div className="ptab-empty-title">No contacts yet</div>
-                <div className="ptab-empty-desc">
-                  Add representatives, emails, and phone numbers to keep client communication organized.
+                                    )} />,
+              }}
+            />
+          </div>
+        ) : (
+          <div className="pp-grid">
+            {items.length === 0 ? (
+              <div className="ptab-empty-wrapper">
+                <div className="ptab-empty">
+                  <div className="ptab-empty-icon">
+                    <Users size={26} />
+                  </div>
+                  <div className="ptab-empty-title">No contacts yet</div>
+                  <div className="ptab-empty-desc">
+                    Add representatives, emails, and phone numbers to keep client communication organized.
+                  </div>
                 </div>
               </div>
-            </div>
-          ) : (
-            filteredContacts.map((contact) => {
-              const name = `${contact.firstName || ""} ${contact.lastName || ""}`;
-              const initials = `${contact.firstName?.[0] || ""}${contact.lastName?.[0] || ""}`;
-              const isActive = contact.status === "Active";
-              const accent = accentFor(contact.id || name);
-              const created = contact.createdAt ? dayjs(contact.createdAt) : null;
-              const updated = contact.updatedAt ? dayjs(contact.updatedAt) : null;
+            ) : (
+              paginatedContacts.map((contact) => {
+                const name = `${contact.firstName || ""} ${contact.lastName || ""}`;
+                const initials = `${contact.firstName?.[0] || ""}${contact.lastName?.[0] || ""}`;
+                const isActive = contact.status === "Active";
+                const accent = accentFor(contact.id || name);
+                const created = contact.createdAt ? dayjs(contact.createdAt) : null;
+                const updated = contact.updatedAt ? dayjs(contact.updatedAt) : null;
 
-              return (
-                <div key={contact.id} className="pc-card">
-                  <div className="pc-top">
-                    <div className="pc-avatar" style={{ background: `linear-gradient(135deg, ${accent[0]} 0%, ${accent[1]} 100%)` }}>
-                      {(contact.firstName?.[0] || "").toUpperCase()}
+                return (
+                  <div key={contact.id} className="pc-card">
+                    <div className="pc-top">
+                      <div className="pc-avatar" style={{ background: `linear-gradient(135deg, ${accent[0]} 0%, ${accent[1]} 100%)` }}>
+                        {(contact.firstName?.[0] || "").toUpperCase()}
+                      </div>
+                      <div className="pc-identity-body">
+                        <div className="pc-title" style={{ display: "flex", alignItems: "center", gap: "6px", flexWrap: "wrap" }}>
+                          <span>{name}</span>
+                          {contact.isPrimary && (
+                            <Tooltip title="Primary Contact">
+                              <ShieldCheck size={13} style={{ color: "#3b82f6", flexShrink: 0 }} />
+                            </Tooltip>
+                          )}
+                          <span
+                            className="pc-status-tag"
+                            style={{
+                              marginLeft: "4px",
+                              fontSize: "10px",
+                              padding: "1px 6px",
+                              color: isActive ? "#10b981" : "var(--text-slate-400)",
+                              background: isActive ? "rgba(16, 185, 129, 0.12)" : "var(--bg-slate-100)"
+                            }}
+                          >
+                            {contact.status?.toUpperCase()}
+                          </span>
+                        </div>
+                        <div className="pc-client-line">
+                          <span className="pc-client-key">Title:</span>
+                          <span className="pc-client-val">{contact.designation || "No Title"}</span>
+                        </div>
+                      </div>
+                      <Dropdown
+                        menu={contactActionMenu(contact)}
+                        overlayClassName="pp-action-pop"
+                        trigger={["click"]}
+                        placement="bottomRight"
+                      >
+                        <button type="button" className="pc-actions" onClick={(e) => e.stopPropagation()}>
+                          <MoreHorizontal size={14} />
+                        </button>
+                      </Dropdown>
                     </div>
-                    <div className="pc-identity-body">
-                      <div className="pc-title" style={{ display: "flex", alignItems: "center", gap: "6px", flexWrap: "wrap" }}>
-                        <span>{name}</span>
-                        {contact.isPrimary && (
-                          <Tooltip title="Primary Contact">
-                            <ShieldCheck size={13} style={{ color: "#3b82f6", flexShrink: 0 }} />
-                          </Tooltip>
-                        )}
-                        <span
-                          className="pc-status-tag"
-                          style={{
-                            marginLeft: "4px",
-                            fontSize: "10px",
-                            padding: "1px 6px",
-                            color: isActive ? "#10b981" : "var(--text-slate-400)",
-                            background: isActive ? "rgba(16, 185, 129, 0.12)" : "var(--bg-slate-100)"
-                          }}
-                        >
-                          {contact.status?.toUpperCase()}
+
+                    <div className="pc-foot">
+                      <div className="pc-foot-row">
+                        <span className="pc-foot-item">
+                          <span className="pc-foot-key">Created by</span>
+                          <Avatar size={16} src={contact.createdBy?.avatarUrl || contact.createdBy?.avatar} style={{ background: "var(--bg-blue-50)", color: "#3b82f6", fontSize: 8, fontWeight: 700 }}>
+                            {(contact.createdBy?.name?.[0] || "—").toUpperCase()}
+                          </Avatar>
+                          <span className="pc-foot-val">{contact.createdBy?.name || "—"}</span>
+                        </span>
+                        <span className="pc-foot-div" />
+                        <span className="pc-foot-item">
+                          <span className="pc-foot-key">Created</span>
+                          <span className="pc-foot-val">{created ? created.format("MMM D, YYYY · h:mm A") : "—"}</span>
+                        </span>
+                        <span className="pc-foot-div" />
+                        <span className="pc-foot-item">
+                          <span className="pc-foot-key">Updated</span>
+                          <span className="pc-foot-val">{updated ? updated.format("MMM D, YYYY · h:mm A") : "—"}</span>
                         </span>
                       </div>
-                      <div className="pc-client-line">
-                        <span className="pc-client-key">Title:</span>
-                        <span className="pc-client-val">{contact.designation || "No Title"}</span>
+
+                      <div className="pc-foot-row">
+                        <span className="pc-foot-item">
+                          <Mail size={12} style={{ color: "var(--text-slate-400)", flexShrink: 0 }} />
+                          <a href={`mailto:${contact.officialEmail}`} className="cc-comm-link" style={{ fontSize: "11.5px" }}>
+                            {contact.officialEmail}
+                          </a>
+                        </span>
+                        {contact.mobileNumber && (
+                          <>
+                            <span className="pc-foot-div" />
+                            <span className="pc-foot-item">
+                              <Phone size={12} style={{ color: "var(--text-slate-400)", flexShrink: 0 }} />
+                              <span style={{ fontSize: "11.5px", color: "var(--text-slate-700)", fontWeight: 600 }}>{contact.mobileNumber}</span>
+                            </span>
+                          </>
+                        )}
+                        <span className="pc-foot-div" />
+                        <span className="pc-foot-item">
+                          <span className="pc-foot-key">Type:</span>
+                          {contact.isPrimary ? (
+                            <span className="pc-status-tag" style={{ color: "#3b82f6", background: "rgba(59, 130, 246, 0.12)" }}>
+                              PRIMARY
+                            </span>
+                          ) : (
+                            <span className="pc-status-tag" style={{ color: "var(--text-slate-500)", background: "var(--bg-slate-100)" }}>
+                              SECONDARY
+                            </span>
+                          )}
+                        </span>
+                        {canUpdateClient && (
+                          <>
+                            <span className="pc-foot-div" />
+                            <span className="pc-foot-item">
+                              <Switch
+                                size="small"
+                                checked={isActive}
+                                onChange={(checked) => handleStatusChange(contact.id, checked)}
+                                style={{ backgroundColor: isActive ? "#10b981" : "var(--border-slate-200)" }}
+                              />
+                            </span>
+                          </>
+                        )}
                       </div>
                     </div>
-                    <Dropdown
-                      menu={contactActionMenu(contact)}
-                      overlayClassName="pp-action-pop"
-                      trigger={["click"]}
-                      placement="bottomRight"
-                    >
-                      <button type="button" className="pc-actions" onClick={(e) => e.stopPropagation()}>
-                        <MoreHorizontal size={14} />
-                      </button>
-                    </Dropdown>
                   </div>
+                );
+              })
+            )}
+          </div>
+        )}
+      </div>
 
-                  <div className="pc-foot">
-                    <div className="pc-foot-row">
-                      <span className="pc-foot-item">
-                        <span className="pc-foot-key">Created by</span>
-                        <Avatar size={16} src={contact.createdBy?.avatarUrl || contact.createdBy?.avatar} style={{ background: "var(--bg-blue-50)", color: "#3b82f6", fontSize: 8, fontWeight: 700 }}>
-                          {(contact.createdBy?.name?.[0] || "—").toUpperCase()}
-                        </Avatar>
-                        <span className="pc-foot-val">{contact.createdBy?.name || "—"}</span>
-                      </span>
-                      <span className="pc-foot-div" />
-                      <span className="pc-foot-item">
-                        <span className="pc-foot-key">Created</span>
-                        <span className="pc-foot-val">{created ? created.format("MMM D, YYYY · h:mm A") : "—"}</span>
-                      </span>
-                      <span className="pc-foot-div" />
-                      <span className="pc-foot-item">
-                        <span className="pc-foot-key">Updated</span>
-                        <span className="pc-foot-val">{updated ? updated.format("MMM D, YYYY · h:mm A") : "—"}</span>
-                      </span>
-                    </div>
-
-                    <div className="pc-foot-row">
-                      <span className="pc-foot-item">
-                        <Mail size={12} style={{ color: "var(--text-slate-400)", flexShrink: 0 }} />
-                        <a href={`mailto:${contact.officialEmail}`} className="cc-comm-link" style={{ fontSize: "11.5px" }}>
-                          {contact.officialEmail}
-                        </a>
-                      </span>
-                      {contact.mobileNumber && (
-                        <>
-                          <span className="pc-foot-div" />
-                          <span className="pc-foot-item">
-                            <Phone size={12} style={{ color: "var(--text-slate-400)", flexShrink: 0 }} />
-                            <span style={{ fontSize: "11.5px", color: "var(--text-slate-700)", fontWeight: 600 }}>{contact.mobileNumber}</span>
-                          </span>
-                        </>
-                      )}
-                      <span className="pc-foot-div" />
-                      <span className="pc-foot-item">
-                        <span className="pc-foot-key">Type:</span>
-                        {contact.isPrimary ? (
-                          <span className="pc-status-tag" style={{ color: "#3b82f6", background: "rgba(59, 130, 246, 0.12)" }}>
-                            PRIMARY
-                          </span>
-                        ) : (
-                          <span className="pc-status-tag" style={{ color: "var(--text-slate-500)", background: "var(--bg-slate-100)" }}>
-                            SECONDARY
-                          </span>
-                        )}
-                      </span>
-                      {canUpdateClient && (
-                        <>
-                          <span className="pc-foot-div" />
-                          <span className="pc-foot-item">
-                            <Switch
-                              size="small"
-                              checked={isActive}
-                              onChange={(checked) => handleStatusChange(contact.id, checked)}
-                              style={{ backgroundColor: isActive ? "#10b981" : "var(--border-slate-200)" }}
-                            />
-                          </span>
-                        </>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              );
-            })
-          )}
+      {!loadingContacts && totalCount > 0 && (
+        <div className="pm2-pagination contacts-pagination-footer">
+          <Typography.Text style={{ fontSize: 13, color: "var(--text-slate-500)" }}>
+            Showing{" "}
+            <span style={{ color: "var(--text-slate-700)", fontWeight: 700 }}>
+              {(currentPage - 1) * pageSize + 1}–
+              {Math.min(currentPage * pageSize, totalCount)}
+            </span>{" "}
+            of{" "}
+            <span style={{ color: "var(--text-slate-700)", fontWeight: 700 }}>
+              {totalCount}
+            </span>{" "}
+            contact{totalCount !== 1 ? "s" : ""}
+          </Typography.Text>
+          <Pagination
+            current={currentPage}
+            pageSize={pageSize}
+            total={totalCount}
+            onChange={(page, size) => {
+              setCurrentPage(page);
+              setPageSize(size);
+            }}
+            showSizeChanger
+            pageSizeOptions={[10, 15, 20, 25, 50, 100]}
+          />
         </div>
       )}
 
@@ -734,10 +829,14 @@ export default function ContactsTab({ clientId, contacts, onRefresh }: Props) {
                 <Form.Item
                   name="firstName"
                   label="First name"
-                  rules={[{ required: true, message: "Required" }]}
+                  rules={[
+                    { required: true, message: "Required" },
+                    { max: 50, message: "First name cannot exceed 50 characters" },
+                  ]}
                 >
                   <Input
                     placeholder="e.g. John"
+                    maxLength={50}
                     onKeyDown={(e) => {
                       if (
                         !/^[A-Za-z\s-]$/.test(e.key) &&
@@ -754,10 +853,14 @@ export default function ContactsTab({ clientId, contacts, onRefresh }: Props) {
                 <Form.Item
                   name="lastName"
                   label="Last name"
-                  rules={[{ required: true, message: "Required" }]}
+                  rules={[
+                    { required: true, message: "Required" },
+                    { max: 50, message: "Last name cannot exceed 50 characters" },
+                  ]}
                 >
                   <Input
                     placeholder="e.g. Smith"
+                    maxLength={50}
                     onKeyDown={(e) => {
                       if (
                         !/^[A-Za-z\s-]$/.test(e.key) &&
@@ -771,9 +874,14 @@ export default function ContactsTab({ clientId, contacts, onRefresh }: Props) {
                     }}
                   />
                 </Form.Item>
-                <Form.Item name="designation" label="Job designation">
+                <Form.Item
+                  name="designation"
+                  label="Job designation"
+                  rules={[{ max: 100, message: "Job designation cannot exceed 100 characters" }]}
+                >
                   <Input
                     placeholder="e.g. CTO, Hiring Manager"
+                    maxLength={100}
                     prefix={<Briefcase size={14} style={{ color: "var(--text-slate-400)" }} />}
                   />
                 </Form.Item>
@@ -942,10 +1050,14 @@ export default function ContactsTab({ clientId, contacts, onRefresh }: Props) {
                 <Form.Item
                   name="firstName"
                   label="First name"
-                  rules={[{ required: true, message: "Required" }]}
+                  rules={[
+                    { required: true, message: "Required" },
+                    { max: 50, message: "First name cannot exceed 50 characters" },
+                  ]}
                 >
                   <Input
                     placeholder="e.g. John"
+                    maxLength={50}
                     onKeyDown={(e) => {
                       if (
                         !/^[A-Za-z\s-]$/.test(e.key) &&
@@ -962,10 +1074,14 @@ export default function ContactsTab({ clientId, contacts, onRefresh }: Props) {
                 <Form.Item
                   name="lastName"
                   label="Last name"
-                  rules={[{ required: true, message: "Required" }]}
+                  rules={[
+                    { required: true, message: "Required" },
+                    { max: 50, message: "Last name cannot exceed 50 characters" },
+                  ]}
                 >
                   <Input
                     placeholder="e.g. Smith"
+                    maxLength={50}
                     onKeyDown={(e) => {
                       if (
                         !/^[A-Za-z\s-]$/.test(e.key) &&
@@ -979,8 +1095,15 @@ export default function ContactsTab({ clientId, contacts, onRefresh }: Props) {
                     }}
                   />
                 </Form.Item>
-                <Form.Item name="designation" label="Job designation">
-                  <Input placeholder="e.g. CTO, Hiring Manager" />
+                <Form.Item
+                  name="designation"
+                  label="Job designation"
+                  rules={[{ max: 100, message: "Job designation cannot exceed 100 characters" }]}
+                >
+                  <Input
+                    placeholder="e.g. CTO, Hiring Manager"
+                    maxLength={100}
+                  />
                 </Form.Item>
               </SectionCard>
 
@@ -1730,6 +1853,104 @@ export default function ContactsTab({ clientId, contacts, onRefresh }: Props) {
         /* Prevent horizontal overflow from edge-to-edge header bleed */
         .cd-tabs .ant-tabs-content-holder {
           overflow-x: hidden !important;
+        }
+
+        /* ── Container & Body for full-height stretch ── */
+        .contacts-tab-container {
+          display: flex !important;
+          flex-direction: column !important;
+          flex: 1 !important;
+          min-height: 100% !important;
+          padding: 4px 0 0 0 !important;
+          position: relative !important;
+        }
+        .contacts-tab-body {
+          flex: 1 0 auto !important;
+          padding-bottom: 16px !important;
+        }
+
+        /* ── Sticky pagination footer (fixed to bottom) ── */
+        .contacts-pagination-footer {
+          display: flex !important;
+          align-items: center !important;
+          justify-content: space-between !important;
+          gap: 12px !important;
+          padding: 10px 16px !important;
+          margin-top: auto !important;
+          margin-left: -12px !important;
+          margin-right: -12px !important;
+          margin-bottom: 0 !important;
+          flex-wrap: wrap !important;
+          position: sticky !important;
+          bottom: 0 !important;
+          left: 0 !important;
+          right: 0 !important;
+          background: var(--bg-pure-white) !important;
+          border-top: 1px solid var(--border-slate-200) !important;
+          z-index: 20 !important;
+          box-shadow: 0 -4px 16px rgba(15, 23, 42, 0.04) !important;
+        }
+        [data-theme="dark"] .contacts-pagination-footer {
+          background: #0B0F1A !important;
+          border-top-color: #1f2937 !important;
+        }
+        @media (max-width: 900px) {
+          .contacts-pagination-footer {
+            margin-left: -12px !important;
+            margin-right: -12px !important;
+            padding-left: 12px !important;
+            padding-right: 12px !important;
+          }
+        }
+        @media (max-width: 720px) {
+          .contacts-pagination-footer {
+            margin-left: -12px !important;
+            margin-right: -12px !important;
+            padding-left: 12px !important;
+            padding-right: 12px !important;
+          }
+        }
+
+        .contacts-pagination-footer .ant-pagination-item,
+        .contacts-pagination-footer .ant-pagination-prev .ant-pagination-item-link,
+        .contacts-pagination-footer .ant-pagination-next .ant-pagination-item-link {
+          border: 1px solid var(--border-slate-200) !important;
+          border-radius: 6px !important;
+          background: transparent !important;
+          color: var(--text-slate-500) !important;
+        }
+        .contacts-pagination-footer .ant-pagination-item-active {
+          background: #3b82f6 !important;
+          border-color: #3b82f6 !important;
+        }
+        .contacts-pagination-footer .ant-pagination-item-active a {
+          color: #fff !important;
+        }
+        .contacts-pagination-footer .ant-select-selector {
+          border: 1px solid var(--border-slate-200) !important;
+          border-radius: 6px !important;
+          background: transparent !important;
+          height: 28px !important;
+          font-size: 12px !important;
+        }
+        [data-theme="dark"] .contacts-pagination-footer .ant-pagination-item,
+        [data-theme="dark"] .contacts-pagination-footer .ant-pagination-prev .ant-pagination-item-link,
+        [data-theme="dark"] .contacts-pagination-footer .ant-pagination-next .ant-pagination-item-link {
+          border-color: #374151 !important;
+          background: #111827 !important;
+          color: #9ca3af !important;
+        }
+        [data-theme="dark"] .contacts-pagination-footer .ant-pagination-item-active {
+          background: #3b82f6 !important;
+          border-color: #3b82f6 !important;
+        }
+        [data-theme="dark"] .contacts-pagination-footer .ant-pagination-item-active a {
+          color: #fff !important;
+        }
+        [data-theme="dark"] .contacts-pagination-footer .ant-select-selector {
+          border-color: #374151 !important;
+          background: #111827 !important;
+          color: #e5e7eb !important;
         }
       `}} />
     </div>

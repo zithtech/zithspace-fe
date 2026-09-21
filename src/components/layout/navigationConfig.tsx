@@ -1189,14 +1189,14 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
     ],
     items: [
       {
-        key: "/accounts",
+        key: "accounts-group",
         label: "Accounts",
         icon: I(Landmark),
         requiredSubscriptionFeature: ["finance_accounts"],
         requiredPermission: Permissions.ACCOUNT_READ,
         children: [
           {
-            key: "/accounts",
+            key: "/accounts/accounts-dashboard",
             label: "Dashboard",
             icon: I(BarChart3),
             path: "/accounts/accounts-dashboard",
@@ -1211,7 +1211,14 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
             requiredSubscriptionFeature: ["finance_accounts_accounts_settings"],
             requiredPermission: Permissions.ACCOUNT_SETTING_READ,
           },
-
+          {
+            key: "/accounts/trash",
+            label: "Trash",
+            icon: I(Trash2),
+            path: "/accounts/trash",
+            requiredSubscriptionFeature: ["finance_accounts_accounts_dashboard"],
+            requiredPermission: Permissions.ACCOUNT_READ,
+          },
         ],
       },
       {

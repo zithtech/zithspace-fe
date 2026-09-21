@@ -68,7 +68,7 @@ export default function OpeningsListPanel({
   const [rows, setRows] = useState<OpeningListItem[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(20);
+  const [pageSize, setPageSize] = useState(15);
   const [loading, setLoading] = useState(false);
 
   const [search, setSearch] = useState('');

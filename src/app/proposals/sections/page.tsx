@@ -1,7 +1,7 @@
 'use client';
 
 import NoData from "@/components/common/NoData";
-import React, { useMemo, useState, useEffect } from 'react';
+import React, { useMemo, useState, useEffect, useCallback } from 'react';
 import {
   Button, Input, Select, Modal, Dropdown, Tooltip, message, Table,
 } from 'antd';
@@ -22,13 +22,14 @@ import { SectionComposerDrawer, ComposerPayload } from '@/components/proposals/l
 import {
   useProposalLibraryStore, LibrarySection, SectionCategory,
 } from '@/store/proposalLibraryStore';
+import { ProposalSectionService } from '@/services/proposalSectionService';
 import { usePermission } from '@/hooks/usePermission';
 import { useActivitySource } from '@/hooks/useActivitySource';
 import '../library.css';
 
 type SavedView = 'all' | 'global' | 'archived';
 
-const PAGE_SIZE_OPTIONS = [10, 20, 25, 50, 100];
+const PAGE_SIZE_OPTIONS = [10, 15, 20, 25, 50, 100];
 
 // Gradient for the card avatar, derived from the type's palette colour.
 const GRADIENTS: Record<string, [string, string]> = {
@@ -76,59 +77,98 @@ const MenuItem = ({ icon, tint, color, title, desc }: { icon: React.ReactNode; t
 );
 
 function SectionsContent() {
-  console.log("Forcing HMR reload for Sections");
   useActivitySource({ section: 'WORK', module: 'Proposals', page: 'SectionLibrary' });
   const router = useRouter();
   const [messageApi, holder] = message.useMessage();
   const [modal, modalHolder] = Modal.useModal();
   const { canCreateProposal, canUpdateProposal, canDeleteProposal } = usePermission();
 
-  const sections = useProposalLibraryStore((s) => s.sections);
   const templates = useProposalLibraryStore((s) => s.templates);
   const createSection = useProposalLibraryStore((s) => s.createSection);
   const updateSection = useProposalLibraryStore((s) => s.updateSection);
   const duplicateSection = useProposalLibraryStore((s) => s.duplicateSection);
   const archiveSection = useProposalLibraryStore((s) => s.archiveSection);
   const deleteSection = useProposalLibraryStore((s) => s.deleteSection);
-  const fetchSections = useProposalLibraryStore((s) => s.fetchSections);
-  const sectionsLoading = useProposalLibraryStore((s) => s.sectionsLoading);
-  const sectionsLoaded = useProposalLibraryStore((s) => s.sectionsLoaded);
+  const fetchTemplates = useProposalLibraryStore((s) => s.fetchTemplates);
 
-  const handleRefresh = () => {
-    fetchSections(true);
-  };
-
-  useEffect(() => { fetchSections(); }, [fetchSections]);
-
-  const usageCount = useMemo(() => {
-    const map: Record<string, number> = {};
-    templates.forEach((t) => t.sectionIds.forEach((id) => { map[id] = (map[id] || 0) + 1; }));
-    return map;
-  }, [templates]);
+  const [sectionsList, setSectionsList] = useState<LibrarySection[]>([]);
+  const [sectionsLoading, setSectionsLoading] = useState(false);
+  const [sectionsLoaded, setSectionsLoaded] = useState(false);
+  const [total, setTotal] = useState(0);
+  const [stats, setStats] = useState({
+    total: 0,
+    active: 0,
+    global: 0,
+    archived: 0,
+  });
 
   const [searchText, setSearchText] = useState('');
   const [savedView, setSavedView] = useState<SavedView>('all');
   const [catFilter, setCatFilter] = useState<SectionCategory | null>(null);
   const [view, setView] = useState<'grid' | 'list'>('grid');
   const [tablePage, setTablePage] = useState(1);
-  const [tablePageSize, setTablePageSize] = useState(20);
+  const [tablePageSize, setTablePageSize] = useState(15);
 
   const [composerOpen, setComposerOpen] = useState(false);
   const [editing, setEditing] = useState<LibrarySection | null>(null);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
 
+  const loadSections = useCallback(async () => {
+    setSectionsLoading(true);
+    try {
+      const res = await ProposalSectionService.list({
+        page: tablePage,
+        limit: tablePageSize,
+        search: searchText.trim() || undefined,
+        view: savedView,
+        category: catFilter || undefined,
+      });
+      setSectionsList(res.data || []);
+      if (res.pagination) {
+        setTotal(res.pagination.total);
+      }
+      if (res.stats) {
+        setStats(res.stats);
+      }
+      setSectionsLoaded(true);
+    } catch (err: any) {
+      messageApi.error(err?.message || 'Failed to load sections');
+    } finally {
+      setSectionsLoading(false);
+    }
+  }, [tablePage, tablePageSize, searchText, savedView, catFilter, messageApi]);
+
+  useEffect(() => {
+    loadSections();
+  }, [loadSections]);
+
+  useEffect(() => {
+    fetchTemplates();
+  }, [fetchTemplates]);
+
+  const handleRefresh = () => {
+    loadSections();
+    fetchTemplates(true);
+  };
+
+  const usageCount = useMemo(() => {
+    const map: Record<string, number> = {};
+    templates.forEach((t) => (t.sectionIds || []).forEach((id) => { map[id] = (map[id] || 0) + 1; }));
+    return map;
+  }, [templates]);
+
   // ── Counts ──────────────────────────────────────────────────────────
-  const activeCount = sections.filter((s) => !s.archived).length;
-  const globalCount = sections.filter((s) => s.isGlobal && !s.archived).length;
-  const archivedCount = sections.filter((s) => s.archived).length;
-  const usedSections = sections.filter((s) => !s.archived && (usageCount[s.id] || 0) > 0).length;
-  const categoriesUsed = new Set(sections.filter((s) => !s.archived).map((s) => s.category)).size;
+  const activeCount = stats.active;
+  const globalCount = stats.global;
+  const archivedCount = stats.archived;
+  const usedSections = sectionsList.filter((s) => !s.archived && (usageCount[s.id] || 0) > 0).length;
+  const categoriesUsed = new Set(sectionsList.filter((s) => !s.archived).map((s) => s.category)).size;
 
   const catCounts = useMemo(() => {
     const m: Record<string, number> = {};
-    sections.filter((s) => !s.archived).forEach((s) => { m[s.category] = (m[s.category] || 0) + 1; });
+    sectionsList.filter((s) => !s.archived).forEach((s) => { m[s.category] = (m[s.category] || 0) + 1; });
     return m;
-  }, [sections]);
+  }, [sectionsList]);
 
   const views: { key: SavedView; label: string; icon: React.ReactNode; color: string; count: number }[] = [
     { key: 'all', label: 'All Sections', icon: <BlockOutlined />, color: '#3B82F6', count: activeCount },
@@ -136,25 +176,11 @@ function SectionsContent() {
     { key: 'archived', label: 'Archived', icon: <InboxOutlined />, color: '#64748b', count: archivedCount },
   ];
 
-  // ── Filtering ───────────────────────────────────────────────────────
-  const filtered = useMemo(() => {
-    const q = searchText.trim().toLowerCase();
-    return sections.filter((s) => {
-      if (savedView === 'archived') { if (!s.archived) return false; }
-      else if (s.archived) return false;
-      if (savedView === 'global' && !s.isGlobal) return false;
-      if (catFilter && s.category !== catFilter) return false;
-      if (q && !`${s.name} ${s.description || ''} ${s.type} ${s.category}`.toLowerCase().includes(q)) return false;
-      return true;
-    });
-  }, [sections, searchText, savedView, catFilter]);
-
-  const total = filtered.length;
   const pageCount = Math.max(1, Math.ceil(total / tablePageSize));
   const safePage = Math.min(tablePage, pageCount);
   const pageStart = total === 0 ? 0 : (safePage - 1) * tablePageSize + 1;
   const pageEnd = Math.min(safePage * tablePageSize, total);
-  const paged = filtered.slice((safePage - 1) * tablePageSize, safePage * tablePageSize);
+  const paged = sectionsList;
 
   // ── Modal ───────────────────────────────────────────────────────────
   const openCreate = () => { setEditing(null); setComposerOpen(true); };
@@ -169,64 +195,73 @@ function SectionsContent() {
         messageApi.success('Section created');
       }
       setComposerOpen(false);
+      loadSections();
     } catch (e: any) {
       messageApi.error(e?.message || 'Could not save section');
     }
   };
 
-    const actionMenu = (s: LibrarySection): MenuProps => ({
-      className: 'pp-action-menu',
-      items: [
-        canUpdateProposal ? { key: 'edit', label: <MenuItem icon={<EditOutlined />} tint="rgba(59,130,246,0.10)" color="#3B82F6" title="Edit Section" desc="Update name, type & content" /> } : null,
-        canCreateProposal ? { key: 'duplicate', label: <MenuItem icon={<CopyOutlined />} tint="rgba(100,116,139,0.10)" color="#475569" title="Duplicate" desc="Create an editable copy" /> } : null,
-        canUpdateProposal ? {
-          key: 'archive',
-          label: <MenuItem
-            icon={s.archived ? <RollbackOutlined /> : <InboxOutlined />}
-            tint="rgba(16,185,129,0.10)" color="#059669"
-            title={s.archived ? 'Restore' : 'Archive'}
-            desc={s.archived ? 'Bring back to the library' : 'Hide from pickers'} />,
-        } : null,
-        (canDeleteProposal && !s.system) ? { type: 'divider' } : null,
-        (canDeleteProposal && !s.system) ? {
-          key: 'delete',
-          danger: true,
-          label: (
-            <ConfirmDialog
-              tone="danger"
-              icon={<DeleteOutlined style={{ fontSize: 15 }} />}
-              title="Delete Section?"
-              description={`"${s.name}" will be permanently removed and dropped from any templates that use it.`}
-              confirmText="Delete"
-              cancelText="Cancel"
-              placement="left"
-              onConfirm={async () => {
-                try {
-                  await deleteSection(s.id);
-                  messageApi.success('Section deleted');
-                } catch (e: any) {
-                  messageApi.error(e?.message || 'Could not delete section');
-                }
-              }}
-            >
-              <div onClick={(e) => e.stopPropagation()}>
-                <MenuItem icon={<DeleteOutlined />} tint="rgba(239,68,68,0.10)" color="#ef4444" title="Delete" desc="Permanently remove" />
-              </div>
-            </ConfirmDialog>
-          ),
-        } : null,
-      ].filter(Boolean) as MenuProps['items'],
-      onClick: async ({ key, domEvent }) => {
-        domEvent.stopPropagation();
-        try {
-          if (key === 'edit') openEdit(s);
-          else if (key === 'duplicate') { await duplicateSection(s.id); messageApi.success('Section duplicated'); }
-          else if (key === 'archive') { await archiveSection(s.id, !s.archived); messageApi.success(s.archived ? 'Section restored' : 'Section archived'); }
-        } catch (e: any) {
-          messageApi.error(e?.message || 'Action failed');
+  const actionMenu = (s: LibrarySection): MenuProps => ({
+    className: 'pp-action-menu',
+    items: [
+      canUpdateProposal ? { key: 'edit', label: <MenuItem icon={<EditOutlined />} tint="rgba(59,130,246,0.10)" color="#3B82F6" title="Edit Section" desc="Update name, type & content" /> } : null,
+      canCreateProposal ? { key: 'duplicate', label: <MenuItem icon={<CopyOutlined />} tint="rgba(100,116,139,0.10)" color="#475569" title="Duplicate" desc="Create an editable copy" /> } : null,
+      canUpdateProposal ? {
+        key: 'archive',
+        label: <MenuItem
+          icon={s.archived ? <RollbackOutlined /> : <InboxOutlined />}
+          tint="rgba(16,185,129,0.10)" color="#059669"
+          title={s.archived ? 'Restore' : 'Archive'}
+          desc={s.archived ? 'Bring back to the library' : 'Hide from pickers'} />,
+      } : null,
+      (canDeleteProposal && !s.system) ? { type: 'divider' } : null,
+      (canDeleteProposal && !s.system) ? {
+        key: 'delete',
+        danger: true,
+        label: (
+          <ConfirmDialog
+            tone="danger"
+            icon={<DeleteOutlined style={{ fontSize: 15 }} />}
+            title="Delete Section?"
+            description={`"${s.name}" will be permanently removed and dropped from any templates that use it.`}
+            confirmText="Delete"
+            cancelText="Cancel"
+            placement="left"
+            onConfirm={async () => {
+              try {
+                await deleteSection(s.id);
+                messageApi.success('Section deleted');
+                loadSections();
+              } catch (e: any) {
+                messageApi.error(e?.message || 'Could not delete section');
+              }
+            }}
+          >
+            <div onClick={(e) => e.stopPropagation()}>
+              <MenuItem icon={<DeleteOutlined />} tint="rgba(239,68,68,0.10)" color="#ef4444" title="Delete" desc="Permanently remove" />
+            </div>
+          </ConfirmDialog>
+        ),
+      } : null,
+    ].filter(Boolean) as MenuProps['items'],
+    onClick: async ({ key, domEvent }) => {
+      domEvent.stopPropagation();
+      try {
+        if (key === 'edit') openEdit(s);
+        else if (key === 'duplicate') {
+          await duplicateSection(s.id);
+          messageApi.success('Section duplicated');
+          loadSections();
+        } else if (key === 'archive') {
+          await archiveSection(s.id, !s.archived);
+          messageApi.success(s.archived ? 'Section restored' : 'Section archived');
+          loadSections();
         }
-      },
-    });
+      } catch (e: any) {
+        messageApi.error(e?.message || 'Action failed');
+      }
+    },
+  });
 
   const statCells = [
     { key: 'total', title: 'Total Sections', value: activeCount, icon: <BlockOutlined />, color: '#3B82F6', tint: 'var(--bg-blue-50)' },
@@ -557,7 +592,7 @@ function SectionsContent() {
                             <EditOutlined /> Edit
                           </button>
                           <span className="pc-foot-div" />
-                          <button type="button" className="pc-foot-item pc-timeline-btn" onClick={async (e) => { e.stopPropagation(); try { await duplicateSection(s.id); messageApi.success('Section duplicated'); } catch (err: any) { messageApi.error(err?.message || 'Duplicate failed'); } }}>
+                          <button type="button" className="pc-foot-item pc-timeline-btn" onClick={async (e) => { e.stopPropagation(); try { await duplicateSection(s.id); messageApi.success('Section duplicated'); loadSections(); } catch (err: any) { messageApi.error(err?.message || 'Duplicate failed'); } }}>
                             <CopyOutlined /> <span className="pc-timeline-view">Duplicate</span>
                           </button>
                         </div>

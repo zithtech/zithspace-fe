@@ -17,6 +17,8 @@ import {
   Table,
   Tag,
   Dropdown,
+  Pagination,
+  Typography,
 } from "antd";
 import {
   Plus,
@@ -197,6 +199,7 @@ export default function MeetingsTab({
   const c = useMemo(() => palette(theme as Mode), [theme]);
 
   const [items, setItems] = useState<MomListItem[]>([]);
+  const [totalCount, setTotalCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [createOpen, setCreateOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -208,6 +211,11 @@ export default function MeetingsTab({
   const [dateRange, setDateRange] = useState<[dayjs.Dayjs | null, dayjs.Dayjs | null] | null>(null);
   const [projectFilter, setProjectFilter] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<"list" | "card">("list");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(15);
+
+  const filtered = items;
+  const paginatedMeetings = items;
 
   const meetingActionMenu = (meeting: MomListItem) => ({
     className: "pp-action-pop",
@@ -260,12 +268,111 @@ export default function MeetingsTab({
     }
   });
 
-  const load = async () => {
+  const columns = [
+    {
+      title: "MOM #",
+      dataIndex: "momNumber",
+      key: "momNumber",
+      width: 110,
+      render: (v: string) => (
+        <span style={{ fontFamily: "ui-monospace, SFMono-Regular, monospace", fontSize: 11.5, color: c.textMuted }}>{v}</span>
+      ),
+    },
+    {
+      title: "Title",
+      dataIndex: "title",
+      key: "title",
+      render: (v: string, m: MomListItem) => (
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <span style={{ fontSize: 13.5, fontWeight: 600, color: c.text }}>{v}</span>
+          {m.status === "draft" && (
+            <Tag color="warning" style={{ fontSize: 10, margin: 0 }}>Draft</Tag>
+          )}
+          {m.visibility === "internal" && (
+            <Tag style={{ fontSize: 10, margin: 0, background: c.surfaceMuted, border: `1px solid ${c.border}`, color: c.textSubtle }}>Internal</Tag>
+          )}
+        </div>
+      ),
+    },
+    {
+      title: "Date",
+      dataIndex: "meetingDate",
+      key: "meetingDate",
+      width: 160,
+      render: (v: string) => (
+        <span style={{ fontSize: 12.5, color: c.textMuted, display: "inline-flex", gap: 5, alignItems: "center" }}>
+          <Clock size={12} />{fmtDate(v)}
+        </span>
+      ),
+    },
+    {
+      title: "Duration",
+      dataIndex: "durationMinutes",
+      key: "durationMinutes",
+      width: 100,
+      render: (v: number | null) => (
+        <span style={{ fontSize: 12.5, color: c.textSubtle }}>{v ? `${v} min` : "—"}</span>
+      ),
+    },
+    {
+      title: "Project",
+      dataIndex: "projectName",
+      key: "projectName",
+      width: 140,
+      render: (v: string | null) => v ? (
+        <span style={{ fontSize: 12, color: c.accentText, display: "inline-flex", gap: 4, alignItems: "center" }}>
+          <GitPullRequest size={11} />{v}
+        </span>
+      ) : <span style={{ color: c.textFaint }}>—</span>,
+    },
+    {
+      title: "Attendees",
+      dataIndex: "attendeeCount",
+      key: "attendeeCount",
+      width: 100,
+      render: (v: number) => (
+        <span style={{ fontSize: 12.5, color: c.textSubtle, display: "inline-flex", gap: 4, alignItems: "center" }}>
+          <Users size={12} />{v}
+        </span>
+      ),
+    },
+    {
+      title: "Actions",
+      key: "actions",
+      width: 72,
+      align: "right" as const,
+      fixed: "right" as const,
+      render: (_: any, m: MomListItem) => (
+        <Dropdown
+          menu={meetingActionMenu(m)}
+          overlayClassName="pp-action-pop"
+          trigger={["click"]}
+          placement="bottomRight"
+        >
+          <Button
+            type="text"
+            className="pp-icon-btn"
+            icon={<MoreHorizontal size={16} />}
+            onClick={(e) => e.stopPropagation()}
+          />
+        </Dropdown>
+      ),
+    },
+  ];
+
+  const load = async (page = currentPage, size = pageSize, search = searchTerm, project = projectFilter) => {
     setLoading(true);
     try {
-      const data = await momService.listForClient(clientId);
-      setItems(data || []);
-      onCountChange?.((data || []).length);
+      const res = await momService.listForClient(clientId, {
+        page,
+        limit: size,
+        search,
+        projectId: project || undefined,
+      });
+      setItems(res.data || []);
+      const total = res.meta?.total ?? (res.data || []).length;
+      setTotalCount(total);
+      onCountChange?.(total);
     } catch (err: any) {
       messageApi.error(`Failed to load meetings: ${err?.message}`);
     } finally {
@@ -277,7 +384,7 @@ export default function MeetingsTab({
     try {
       setRefreshing(true);
       await Promise.all([
-        load(),
+        load(currentPage, pageSize, searchTerm, projectFilter),
         onRefresh ? onRefresh() : Promise.resolve(),
       ]);
     } catch (err) {
@@ -288,9 +395,18 @@ export default function MeetingsTab({
   };
 
   useEffect(() => {
-    load();
+    load(currentPage, pageSize, searchTerm, projectFilter);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [clientId]);
+  }, [clientId, currentPage, pageSize, projectFilter]);
+
+  useEffect(() => {
+    const t = setTimeout(() => {
+      setCurrentPage(1);
+      load(1, pageSize, searchTerm, projectFilter);
+    }, 300);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchTerm]);
 
   // Real-time: when any MOM for this client changes (locally or elsewhere),
   // reload the list so staff in another tab / window stays in sync.
@@ -323,7 +439,7 @@ export default function MeetingsTab({
   };
 
   return (
-    <div style={{ padding: "4px 0 24px", color: c.text }}>
+    <div style={{ color: c.text }} className="meetings-tab-container">
       {contextHolder}
 
       {/* Header */}
@@ -430,32 +546,12 @@ export default function MeetingsTab({
       </div>
 
       {/* ── Content ── */}
-      {(() => {
-        // Filter items
-        const filtered = items.filter((m) => {
-          if (searchTerm.trim()) {
-            const q = searchTerm.toLowerCase();
-            if (
-              !m.title?.toLowerCase().includes(q) &&
-              !m.momNumber?.toLowerCase().includes(q) &&
-              !m.projectName?.toLowerCase().includes(q)
-            ) return false;
-          }
-          if (projectFilter && m.projectId !== projectFilter) return false;
-          if (dateRange && dateRange[0] && dateRange[1]) {
-            const d = dayjs(m.meetingDate);
-            if (d.isBefore(dateRange[0], "day") || d.isAfter(dateRange[1], "day")) return false;
-          }
-          return true;
-        });
-
-        if (loading) return (
+      <div className="meetings-tab-body">
+        {loading ? (
           <div style={{ padding: 48, textAlign: "center", border: `1px solid ${c.border}`, borderRadius: 12, background: c.surfaceElevated, color: c.textSubtle }}>
             Loading…
           </div>
-        );
-
-        if (items.length === 0) return (
+        ) : items.length === 0 ? (
           <div style={{ padding: 56, textAlign: "center", background: c.surfaceElevated, border: `1px dashed ${c.border}`, borderRadius: 14 }}>
             <div style={{ width: 56, height: 56, borderRadius: 14, background: c.accentBg, color: c.accentText, border: `1px solid ${c.accentBorder}`, display: "inline-flex", alignItems: "center", justifyContent: "center", marginBottom: 14 }}>
               <Calendar size={22} />
@@ -468,18 +564,13 @@ export default function MeetingsTab({
               <Button type="primary" icon={<Plus size={15} />} onClick={() => setCreateOpen(true)}>Log first meeting</Button>
             </div>
           </div>
-        );
-
-        if (filtered.length === 0) return (
+        ) : filtered.length === 0 ? (
           <div style={{ padding: 40, textAlign: "center", border: `1px dashed ${c.border}`, borderRadius: 12, color: c.textSubtle }}>
             No meetings match your filters.
           </div>
-        );
-
-        // ── CARD VIEW ──
-        if (viewMode === "card") return (
+        ) : viewMode === "card" ? (
           <div className="pp-grid">
-            {filtered.map((m) => {
+            {paginatedMeetings.map((m) => {
               const created = m.createdAt ? dayjs(m.createdAt) : null;
               return (
                 <div
@@ -600,129 +691,51 @@ export default function MeetingsTab({
               );
             })}
           </div>
-        );
-
-
-        // ── TABLE VIEW ──
-        const columns = [
-          {
-            title: "MOM #",
-            dataIndex: "momNumber",
-            key: "momNumber",
-            width: 110,
-            render: (v: string) => (
-              <span style={{ fontFamily: "ui-monospace, SFMono-Regular, monospace", fontSize: 11.5, color: c.textMuted }}>{v}</span>
-            ),
-          },
-          {
-            title: "Title",
-            dataIndex: "title",
-            key: "title",
-            render: (v: string, m: MomListItem) => (
-              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <span style={{ fontSize: 13.5, fontWeight: 600, color: c.text }}>{v}</span>
-                {m.status === "draft" && (
-                  <Tag color="warning" style={{ fontSize: 10, margin: 0 }}>Draft</Tag>
-                )}
-                {m.visibility === "internal" && (
-                  <Tag style={{ fontSize: 10, margin: 0, background: c.surfaceMuted, border: `1px solid ${c.border}`, color: c.textSubtle }}>Internal</Tag>
-                )}
-              </div>
-            ),
-          },
-          {
-            title: "Date",
-            dataIndex: "meetingDate",
-            key: "meetingDate",
-            width: 160,
-            render: (v: string) => (
-              <span style={{ fontSize: 12.5, color: c.textMuted, display: "inline-flex", gap: 5, alignItems: "center" }}>
-                <Clock size={12} />{fmtDate(v)}
-              </span>
-            ),
-          },
-          {
-            title: "Duration",
-            dataIndex: "durationMinutes",
-            key: "durationMinutes",
-            width: 100,
-            render: (v: number | null) => (
-              <span style={{ fontSize: 12.5, color: c.textSubtle }}>{v ? `${v} min` : "—"}</span>
-            ),
-          },
-          {
-            title: "Project",
-            dataIndex: "projectName",
-            key: "projectName",
-            width: 140,
-            render: (v: string | null) => v ? (
-              <span style={{ fontSize: 12, color: c.accentText, display: "inline-flex", gap: 4, alignItems: "center" }}>
-                <GitPullRequest size={11} />{v}
-              </span>
-            ) : <span style={{ color: c.textFaint }}>—</span>,
-          },
-          {
-            title: "Attendees",
-            dataIndex: "attendeeCount",
-            key: "attendeeCount",
-            width: 100,
-            render: (v: number) => (
-              <span style={{ fontSize: 12.5, color: c.textSubtle, display: "inline-flex", gap: 4, alignItems: "center" }}>
-                <Users size={12} />{v}
-              </span>
-            ),
-          },
-          // {
-          //   title: "Actions",
-          //   dataIndex: "openActionCount",
-          //   key: "actions",
-          //   width: 120,
-          //   render: (open: number, m: MomListItem) => (
-          //     <span style={{ fontSize: 12.5, display: "inline-flex", gap: 4, alignItems: "center", color: open > 0 ? c.warningText : c.textSubtle, fontWeight: open > 0 ? 600 : 400 }}>
-          //       <CheckSquare size={12} />{open} open · {m.actionCount} total
-          //     </span>
-          //   ),
-          // },
-          {
-            title: "Actions",
-            key: "actions",
-            width: 72,
-            align: "right" as const,
-            fixed: "right" as const,
-            render: (_: any, m: MomListItem) => (
-              <Dropdown
-                menu={meetingActionMenu(m)}
-                overlayClassName="pp-action-pop"
-                trigger={["click"]}
-                placement="bottomRight"
-              >
-                <Button
-                  type="text"
-                  className="pp-icon-btn"
-                  icon={<MoreHorizontal size={16} />}
-                  onClick={(e) => e.stopPropagation()}
-                />
-              </Dropdown>
-            ),
-          },
-        ];
-
-        return (
+        ) : (
           <div className="pp-table-wrap">
             <ZukvoLoadingOverlay loading={loading} message="">
-                <Table
-                              className="pp-table"
-                              dataSource={filtered}
-                              columns={columns}
-                              rowKey="id"
-                              pagination={{ pageSizeOptions: [10, 20, 25, 50, 100], pageSize: 20, hideOnSinglePage: true }}
-                              scroll={{ x: "max-content" }}
-                              onRow={(m) => ({ onClick: () => setOpenId(m.id), style: { cursor: "pointer" } })} locale={{ emptyText: <NoData /> }}
-                            />
-                </ZukvoLoadingOverlay>
+              <Table
+                className="pp-table"
+                dataSource={paginatedMeetings}
+                columns={columns}
+                rowKey="id"
+                pagination={false}
+                scroll={{ x: "max-content" }}
+                onRow={(m) => ({ onClick: () => setOpenId(m.id), style: { cursor: "pointer" } })}
+                locale={{ emptyText: <NoData /> }}
+              />
+            </ZukvoLoadingOverlay>
           </div>
-        );
-      })()}
+        )}
+      </div>
+
+      {totalCount > 0 && (
+        <div className="pm2-pagination meetings-pagination-footer">
+          <Typography.Text style={{ fontSize: 13, color: "var(--text-slate-500)" }}>
+            Showing{" "}
+            <span style={{ color: "var(--text-slate-700)", fontWeight: 700 }}>
+              {(currentPage - 1) * pageSize + 1}–
+              {Math.min(currentPage * pageSize, totalCount)}
+            </span>{" "}
+            of{" "}
+            <span style={{ color: "var(--text-slate-700)", fontWeight: 700 }}>
+              {totalCount}
+            </span>{" "}
+            meeting{totalCount !== 1 ? "s" : ""}
+          </Typography.Text>
+          <Pagination
+            current={currentPage}
+            pageSize={pageSize}
+            total={totalCount}
+            onChange={(page, size) => {
+              setCurrentPage(page);
+              setPageSize(size);
+            }}
+            showSizeChanger
+            pageSizeOptions={[10, 15, 20, 25, 50, 100]}
+          />
+        </div>
+      )}
 
       {/* Create / Edit modal */}
       <CreateMeetingModal
@@ -970,6 +983,104 @@ export default function MeetingsTab({
         }
         [data-theme="dark"] .pp-action-pop .ant-dropdown-menu-item-divider {
           background: var(--border-slate-800) !important;
+        }
+
+        /* ── Container & Body for full-height stretch ── */
+        .meetings-tab-container {
+          display: flex !important;
+          flex-direction: column !important;
+          flex: 1 !important;
+          min-height: 100% !important;
+          padding: 4px 0 0 0 !important;
+          position: relative !important;
+        }
+        .meetings-tab-body {
+          flex: 1 0 auto !important;
+          padding-bottom: 16px !important;
+        }
+
+        /* ── Sticky pagination footer (fixed to bottom) ── */
+        .meetings-pagination-footer {
+          display: flex !important;
+          align-items: center !important;
+          justify-content: space-between !important;
+          gap: 12px !important;
+          padding: 10px 16px !important;
+          margin-top: auto !important;
+          margin-left: -12px !important;
+          margin-right: -12px !important;
+          margin-bottom: 0 !important;
+          flex-wrap: wrap !important;
+          position: sticky !important;
+          bottom: 0 !important;
+          left: 0 !important;
+          right: 0 !important;
+          background: var(--bg-pure-white) !important;
+          border-top: 1px solid var(--border-slate-200) !important;
+          z-index: 20 !important;
+          box-shadow: 0 -4px 16px rgba(15, 23, 42, 0.04) !important;
+        }
+        [data-theme="dark"] .meetings-pagination-footer {
+          background: #0B0F1A !important;
+          border-top-color: #1f2937 !important;
+        }
+        @media (max-width: 900px) {
+          .meetings-pagination-footer {
+            margin-left: -12px !important;
+            margin-right: -12px !important;
+            padding-left: 12px !important;
+            padding-right: 12px !important;
+          }
+        }
+        @media (max-width: 720px) {
+          .meetings-pagination-footer {
+            margin-left: -12px !important;
+            margin-right: -12px !important;
+            padding-left: 12px !important;
+            padding-right: 12px !important;
+          }
+        }
+
+        .meetings-pagination-footer .ant-pagination-item,
+        .meetings-pagination-footer .ant-pagination-prev .ant-pagination-item-link,
+        .meetings-pagination-footer .ant-pagination-next .ant-pagination-item-link {
+          border: 1px solid var(--border-slate-200) !important;
+          border-radius: 6px !important;
+          background: transparent !important;
+          color: var(--text-slate-500) !important;
+        }
+        .meetings-pagination-footer .ant-pagination-item-active {
+          background: #3b82f6 !important;
+          border-color: #3b82f6 !important;
+        }
+        .meetings-pagination-footer .ant-pagination-item-active a {
+          color: #fff !important;
+        }
+        .meetings-pagination-footer .ant-select-selector {
+          border: 1px solid var(--border-slate-200) !important;
+          border-radius: 6px !important;
+          background: transparent !important;
+          height: 28px !important;
+          font-size: 12px !important;
+        }
+        [data-theme="dark"] .meetings-pagination-footer .ant-pagination-item,
+        [data-theme="dark"] .meetings-pagination-footer .ant-pagination-prev .ant-pagination-item-link,
+        [data-theme="dark"] .meetings-pagination-footer .ant-pagination-next .ant-pagination-item-link {
+          border-color: #374151 !important;
+          background: #111827 !important;
+          color: #9ca3af !important;
+        }
+        [data-theme="dark"] .meetings-pagination-footer .ant-pagination-item-active {
+          background: #3b82f6 !important;
+          border-color: #3b82f6 !important;
+        }
+        [data-theme="dark"] .meetings-pagination-footer .ant-pagination-item-active a {
+          color: #fff !important;
+        }
+        [data-theme="dark"] .meetings-pagination-footer .ant-select-selector {
+          border-color: #374151 !important;
+          background: #111827 !important;
+          color: #e5e7eb !important;
         }
       `}} />
     </div>

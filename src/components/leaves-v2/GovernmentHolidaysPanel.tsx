@@ -53,7 +53,7 @@ export default function GovernmentHolidaysPanel() {
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState<TypeFilter>('all');
   const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(20);
+  const [pageSize, setPageSize] = useState(15);
 
   useEffect(() => {
     if (!canReadLeaveHoliday) return;
@@ -294,7 +294,7 @@ export default function GovernmentHolidaysPanel() {
               className="lvgh-pagesize"
               value={pageSize}
               onChange={(v) => { setPageSize(v); setPage(1); }}
-              options={[10, 20, 25, 50, 100].map((n) => ({ value: n, label: `${n} / page` }))}
+              options={[10, 15, 20, 25, 50, 100].map((n) => ({ value: n, label: `${n} / page` }))}
               popupMatchSelectWidth={120}
             />
           </div>

@@ -37,7 +37,7 @@ const FREQ_LABEL: Record<LwfFrequency, string> = { monthly: 'Monthly', half_year
 
 const inr = new Intl.NumberFormat('en-IN', { maximumFractionDigits: 0 });
 const money = (n: number) => `₹${inr.format(Math.round(n))}`;
-const PAGE_SIZE_OPTIONS = [10, 20, 25, 50, 100];
+const PAGE_SIZE_OPTIONS = [10, 15, 20, 25, 50, 100];
 
 type View = 'pt' | 'lwf';
 type SlabDraft = { fromAmount: number; toAmount: number | null; monthlyAmount: number };
@@ -84,7 +84,7 @@ export default function StateStatutoryPanel() {
   const [debouncedSearch, setDebouncedSearch] = useState('');
 
   const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(20);
+  const [pageSize, setPageSize] = useState(15);
   const [totalPt, setTotalPt] = useState(0);
   const [totalLwf, setTotalLwf] = useState(0);
 

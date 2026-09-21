@@ -32,7 +32,7 @@ import { Table, Button, Dropdown, Tooltip, Select, Drawer, Avatar, Modal } from 
 import { LetterStatsCards, StatCellData } from '@/components/letters/LetterStatsCards';
 import { SnippetsOutlined, FileTextOutlined, CheckCircleOutlined, StarOutlined } from '@ant-design/icons';
 
-const PAGE_SIZE_OPTIONS = [10, 20, 25, 50, 100];
+const PAGE_SIZE_OPTIONS = [10, 15, 20, 25, 50, 100];
 import type { ColumnsType } from 'antd/es/table';
 import { AppstoreOutlined, UnorderedListOutlined, EllipsisOutlined, ReloadOutlined } from '@ant-design/icons';
 import ZukvoLoader from '@/components/common/ZukvoLoader';
@@ -74,11 +74,11 @@ export default function DocumentRepositoryPage() {
   const [filterPortalNode, setFilterPortalNode] = useState<Element | null>(null);
 
   const [tablePage, setTablePage] = useState(1);
-  const [tablePageSize, setTablePageSize] = useState(20);
+  const [tablePageSize, setTablePageSize] = useState(15);
+  const [total, setTotal] = useState(0);
 
-  const total = documents.length;
-  const pageCount = Math.ceil(total / tablePageSize) || 1;
-  const paginatedDocuments = documents.slice((tablePage - 1) * tablePageSize, tablePage * tablePageSize);
+  const paginatedDocuments = documents;
+  const pageCount = Math.max(1, Math.ceil(total / tablePageSize));
   const pageStart = total === 0 ? 0 : (tablePage - 1) * tablePageSize + 1;
   const pageEnd = Math.min(tablePage * tablePageSize, total);
 
@@ -136,16 +136,19 @@ export default function DocumentRepositoryPage() {
   const fetchData = async () => {
     try {
       setLoading(true);
-      const [docs, tpls, cats] = await Promise.all([
+      const [docsRes, tpls, cats] = await Promise.all([
         LettersService.getGeneratedLetters({
           templateId: selectedTemplateId || undefined,
           categoryId: selectedCategoryId || undefined,
           search: searchQuery || undefined,
+          limit: tablePageSize,
+          offset: (tablePage - 1) * tablePageSize,
         }),
         LettersService.getTemplates(),
         LettersService.getCategories(),
       ]);
-      setDocuments(docs);
+      setDocuments(docsRes.data || []);
+      setTotal(docsRes.total || 0);
       setTemplates(tpls.data || []);
       setCategories(cats);
     } catch (err: any) {
@@ -157,10 +160,10 @@ export default function DocumentRepositoryPage() {
 
   useEffect(() => {
     fetchData();
-  }, [selectedTemplateId, selectedCategoryId]);
+  }, [selectedTemplateId, selectedCategoryId, tablePage, tablePageSize]);
 
   const statCells: StatCellData[] = useMemo(() => {
-    const total = documents.length;
+    const totalCount = total;
     const thisWeekCount = documents.filter(d => {
       if (!d.generatedAt) return false;
       return (new Date().getTime() - new Date(d.generatedAt).getTime()) < 7 * 24 * 60 * 60 * 1000;
@@ -173,16 +176,20 @@ export default function DocumentRepositoryPage() {
     const genericTrend = [0, 2, 4, 3, 5, 4, 7];
 
     return [
-      { key: 'total', title: 'Total Generated', value: total, suffix: '', icon: <FileTextOutlined />, color: '#3b82f6', tint: 'rgba(59,130,246,0.10)', trend: genericTrend, delta: total },
+      { key: 'total', title: 'Total Generated', value: totalCount, suffix: '', icon: <FileTextOutlined />, color: '#3b82f6', tint: 'rgba(59,130,246,0.10)', trend: genericTrend, delta: totalCount },
       { key: 'this_week', title: 'This Week', value: thisWeekCount, suffix: '', icon: <CheckCircleOutlined />, color: '#10b981', tint: 'rgba(16,185,129,0.10)', trend: genericTrend, delta: thisWeekCount },
       { key: 'today', title: 'Today', value: todayCount, suffix: '', icon: <StarOutlined />, color: '#8b5cf6', tint: 'rgba(139,92,246,0.10)', trend: genericTrend, delta: todayCount },
-      { key: 'archived', title: 'In Repository', value: total, suffix: '', icon: <SnippetsOutlined />, color: '#f59e0b', tint: 'rgba(245,158,11,0.10)', trend: genericTrend, delta: total },
+      { key: 'archived', title: 'In Repository', value: totalCount, suffix: '', icon: <SnippetsOutlined />, color: '#f59e0b', tint: 'rgba(245,158,11,0.10)', trend: genericTrend, delta: totalCount },
     ];
-  }, [documents]);
+  }, [documents, total]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    fetchData();
+    if (tablePage === 1) {
+      fetchData();
+    } else {
+      setTablePage(1);
+    }
   };
 
   const handleDeleteDocument = async () => {
@@ -191,8 +198,8 @@ export default function DocumentRepositoryPage() {
       toast.loading('Deleting document record...', { id: 'del' });
       await LettersService.deleteGeneratedLetter(deleteDocId);
       toast.success('Generated document deleted', { id: 'del' });
-      setDocuments(documents.filter((d) => d.id !== deleteDocId));
       setDeleteDocId(null);
+      fetchData();
     } catch (err: any) {
       toast.error(err.message || 'Failed to delete document', { id: 'del' });
     }

@@ -277,12 +277,12 @@ export function SectionCard({
 }
 
 export const tablePaginationConfig = {
-  pageSize: 20,
+  pageSize: 15,
   showTotal: (total: number, range: [number, number]) => (
     <>Showing <strong>{range[0]}–{range[1]}</strong> of <strong>{total}</strong></>
   ),
   showSizeChanger: true,
-  pageSizeOptions: ['10', '20', '25', '50', '100']
+  pageSizeOptions: ['10', '15', '20', '25', '50', '100']
 };
 
 // ── Shared styles (render once per panel) ────────────────────────────────────

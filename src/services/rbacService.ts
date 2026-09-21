@@ -65,9 +65,13 @@ export class RBACService {
 
   /**
    * GET /api/rbac/roles
-   * Returns the roles array for the current tenant.
+   * Returns roles and optional pagination/stats for the current tenant.
    */
-  static async listRoles(): Promise<RBACRole[]> {
+  static async listRoles(params?: { page?: number; limit?: number; search?: string; type?: string }): Promise<any> {
+    if (params && (params.page || params.limit || params.search || params.type)) {
+      const res = await api.get<{ data: RBACRole[]; pagination?: any; stats?: any }>('/api/rbac/roles', { params });
+      return res;
+    }
     return api.get<RBACRole[]>('/api/rbac/roles');
   }
 

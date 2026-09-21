@@ -11,6 +11,8 @@ import {
   Globe,
   X,
   Copy,
+  FolderKanban,
+  Edit2,
 } from "lucide-react";
 import { Customer } from "@/services/customersService";
 
@@ -20,12 +22,14 @@ interface CustomerViewDrawerProps {
   open: boolean;
   onClose: () => void;
   customer: Customer | null;
+  onEdit?: (customer: Customer) => void;
 }
 
 const CustomerViewDrawer: FC<CustomerViewDrawerProps> = ({
   open,
   onClose,
   customer,
+  onEdit,
 }) => {
   if (!customer) return null;
 
@@ -147,15 +151,31 @@ const CustomerViewDrawer: FC<CustomerViewDrawerProps> = ({
               </div>
             </div>
           </div>
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="Close"
-            className="p-1.5 rounded-md transition-colors hover:bg-[var(--bg-slate-50)]"
-            style={{ color: "var(--text-secondary)" }}
-          >
-            <X size={18} />
-          </button>
+          <div className="flex items-center gap-1.5 flex-shrink-0">
+            {onEdit && (
+              <button
+                type="button"
+                onClick={() => onEdit(customer)}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-semibold transition-colors hover:bg-[var(--bg-slate-50)]"
+                style={{
+                  border: "1px solid var(--border-color)",
+                  color: "var(--text-primary)",
+                }}
+              >
+                <Edit2 size={13} />
+                <span>Edit</span>
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={onClose}
+              aria-label="Close"
+              className="p-1.5 rounded-md transition-colors hover:bg-[var(--bg-slate-50)]"
+              style={{ color: "var(--text-secondary)" }}
+            >
+              <X size={18} />
+            </button>
+          </div>
         </div>
 
         {/* BODY */}
@@ -250,6 +270,52 @@ const CustomerViewDrawer: FC<CustomerViewDrawerProps> = ({
                   {customer.country || "—"}
                 </div>
               </div>
+            </div>
+          </Section>
+
+          {/* Linked Projects */}
+          <Section
+            icon={FolderKanban}
+            title="Linked projects"
+            subtitle="Projects associated for invoice generation"
+          >
+            <div className="px-4 py-3.5">
+              {customer.projects && customer.projects.length > 0 ? (
+                <div className="flex flex-wrap gap-2">
+                  {customer.projects.map((proj) => (
+                    <div
+                      key={proj.id}
+                      className="inline-flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-[12px] font-semibold"
+                      style={{
+                        background: "var(--bg-slate-50)",
+                        color: "var(--text-primary)",
+                        border: "1px solid var(--border-color)",
+                      }}
+                    >
+                      {proj.code && (
+                        <span
+                          className="px-1.5 py-0.5 rounded text-[10px] font-bold"
+                          style={{
+                            background: "rgba(59,130,246,0.12)",
+                            color: "#2563eb",
+                            fontFamily: "ui-monospace, monospace",
+                          }}
+                        >
+                          {proj.code}
+                        </span>
+                      )}
+                      <span>{proj.name}</span>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div
+                  className="text-[12.5px]"
+                  style={{ color: "var(--text-secondary)" }}
+                >
+                  No projects linked directly. Edit customer to link projects.
+                </div>
+              )}
             </div>
           </Section>
         </div>

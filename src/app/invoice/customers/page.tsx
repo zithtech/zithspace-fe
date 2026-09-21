@@ -146,6 +146,17 @@ export default function InvoiceproCustomerPage() {
     return { all, active, inactive };
   }, [customers]);
 
+  const progressPct = useMemo(() => {
+    if (counts.all === 0) return 0;
+    return Math.round((counts.active / counts.all) * 100);
+  }, [counts]);
+
+  const activeViewTitle = useMemo(() => {
+    if (statusFilter === "active") return "Active";
+    if (statusFilter === "inactive") return "Inactive";
+    return "All Customers";
+  }, [statusFilter]);
+
   const total = totalCustomers || customers.length;
   const pageStart = total === 0 ? 0 : (currentPage - 1) * pageSize + 1;
   const pageEnd = Math.min(currentPage * pageSize, total);
@@ -409,29 +420,34 @@ export default function InvoiceproCustomerPage() {
       title: "CONTACT",
       key: "contact",
       render: (_: any, record: ServiceCustomer) => (
-        <div className="space-y-1">
-          <div
-            className="flex items-center gap-1.5 text-[12.5px]"
-            style={{ color: "var(--text-secondary)" }}
-          >
-            <Mail size={12} />
-            <span className="truncate">{record.email || "—"}</span>
-          </div>
-          <div
-            className="flex items-center gap-1.5 text-[12.5px]"
-            style={{ color: "var(--text-secondary)" }}
-          >
-            <Phone size={12} />
-            <span>{record.phone || "—"}</span>
-          </div>
+        <div className="flex flex-col gap-0.5 text-xs">
+          {record.email && (
+            <div className="flex items-center gap-1.5">
+              <Mail size={12} style={{ color: "var(--text-secondary)" }} />
+              <span style={{ color: "var(--text-primary)" }}>
+                {record.email}
+              </span>
+            </div>
+          )}
+          {record.phone && (
+            <div className="flex items-center gap-1.5">
+              <Phone size={12} style={{ color: "var(--text-secondary)" }} />
+              <span style={{ color: "var(--text-secondary)" }}>
+                {record.phone}
+              </span>
+            </div>
+          )}
+          {!record.email && !record.phone && (
+            <span style={{ color: "var(--text-secondary)" }}>—</span>
+          )}
         </div>
       ),
     },
     {
-      title: "TAX",
-      key: "tax",
+      title: "TAX INFO",
+      key: "taxInfo",
       render: (_: any, record: ServiceCustomer) => (
-        <div className="flex flex-col gap-1 text-[11.5px] tabular-nums">
+        <div className="flex flex-col gap-0.5 text-xs">
           <div className="flex items-center gap-1.5">
             <span
               className="px-1.5 py-0.5 rounded text-[9.5px] font-semibold"
@@ -441,10 +457,10 @@ export default function InvoiceproCustomerPage() {
                 border: "1px solid var(--border-color)",
               }}
             >
-              GST
+              GSTIN
             </span>
             <span style={{ color: "var(--text-primary)" }}>
-              {record.gstin || "—"}
+              {record.gstin || record.taxId || "—"}
             </span>
           </div>
           <div className="flex items-center gap-1.5">
@@ -499,8 +515,7 @@ export default function InvoiceproCustomerPage() {
     {
       title: "",
       key: "action",
-      width: 60,
-      fixed: "right" as const,
+      width: 50,
       align: "center" as const,
       render: (_: any, record: ServiceCustomer) => (
         <div onClick={(e) => e.stopPropagation()}>
@@ -669,57 +684,61 @@ export default function InvoiceproCustomerPage() {
 
           {/* Main View Area */}
           <div className="pp-body">
-            {/* Stat Cards */}
-            <div className="pp-stats pp-stats-3">
-              <div className="pp-stat-card">
-                <div className="pp-stat-top">
-                  <div className="pp-stat-left">
-                    <span className="pp-stat-icon" style={{ background: "rgba(59,130,246,0.1)", color: "#3B82F6" }}>
-                      <Users size={14} />
+            {/* ── Main Overview Banner (TicketList sprint head style) ── */}
+            <div className="tl-section-head tl-sprint-head-v2 tl-section-head--static invoice-overview-banner">
+              {/* Row 1: dot + title + status tags */}
+              <div className="tl-sprint-row1">
+                <div className="tl-sprint-title-block">
+                  <span
+                    className="tl-sprint-dot"
+                    style={{
+                      background: "#3b82f6",
+                      boxShadow: "0 0 0 3px rgba(59, 130, 246, 0.2)",
+                    }}
+                  />
+                  <Text
+                    className="tl-sprint-title"
+                    ellipsis={{ tooltip: `Customers — ${activeViewTitle}` }}
+                  >
+                    Customers — {activeViewTitle}
+                  </Text>
+                  <span className="tl-sprint-tags">
+                    <span className="tl-sprint-tag tl-sprint-tag-neutral">
+                      {counts.all} TOTAL
                     </span>
-                    <span className="pp-stat-label">Total Customers</span>
-                  </div>
-                </div>
-                <div className="pp-stat-bottom">
-                  <div className="pp-stat-value-wrap">
-                    <span className="pp-stat-value">{isLoading ? "—" : counts.all}</span>
-                  </div>
-                  <span className="pp-stat-period">All registered</span>
+                    {counts.active > 0 && (
+                      <span className="tl-sprint-tag tl-sprint-tag-active">
+                        {counts.active} ACTIVE
+                      </span>
+                    )}
+                    {counts.inactive > 0 && (
+                      <span className="tl-sprint-tag tl-sprint-tag-delayed">
+                        {counts.inactive} INACTIVE
+                      </span>
+                    )}
+                  </span>
                 </div>
               </div>
 
-              <div className="pp-stat-card">
-                <div className="pp-stat-top">
-                  <div className="pp-stat-left">
-                    <span className="pp-stat-icon" style={{ background: "rgba(16,185,129,0.1)", color: "#10b981" }}>
-                      <CheckCircle2 size={14} />
-                    </span>
-                    <span className="pp-stat-label">Active</span>
-                  </div>
-                </div>
-                <div className="pp-stat-bottom">
-                  <div className="pp-stat-value-wrap">
-                    <span className="pp-stat-value">{isLoading ? "—" : counts.active}</span>
-                  </div>
-                  <span className="pp-stat-period">Currently active</span>
-                </div>
+              {/* Row 2: customer count metrics */}
+              <div className="tl-sprint-row2">
+                <span className="tl-sprint-meta">
+                  <b>{counts.active}</b>/{counts.all} customers active
+                </span>
+                <span className="tl-sprint-meta">
+                  <b>{counts.inactive}</b> inactive
+                </span>
               </div>
 
-              <div className="pp-stat-card">
-                <div className="pp-stat-top">
-                  <div className="pp-stat-left">
-                    <span className="pp-stat-icon" style={{ background: "rgba(248,113,113,0.1)", color: "#f87171" }}>
-                      <Ban size={14} />
-                    </span>
-                    <span className="pp-stat-label">Inactive</span>
-                  </div>
+              {/* Row 3: wide progress bar + % */}
+              <div className="tl-sprint-row3">
+                <div className="tl-sprint-progress-bar">
+                  <div
+                    className="tl-sprint-progress-fill"
+                    style={{ width: `${Math.min(100, progressPct)}%` }}
+                  />
                 </div>
-                <div className="pp-stat-bottom">
-                  <div className="pp-stat-value-wrap">
-                    <span className="pp-stat-value">{isLoading ? "—" : counts.inactive}</span>
-                  </div>
-                  <span className="pp-stat-period">Deactivated</span>
-                </div>
+                <span className="tl-sprint-progress-pct">{progressPct}%</span>
               </div>
             </div>
 
@@ -882,19 +901,13 @@ export default function InvoiceproCustomerPage() {
                 })}
               </div>
             ) : (
-              <div
-                className="overflow-hidden"
-                style={{
-                  background: "var(--bg-pure-white)",
-                  border: "1px solid var(--border-slate-200)",
-                }}
-              >
+              <div className="pp-table-wrap">
                 <Table
                   rowKey="id"
+                  size="small"
                   columns={columns}
                   dataSource={pagedCustomers}
                   pagination={false}
-                  size="middle"
                   onRow={(record) => ({
                     onClick: (e: any) => {
                       if (e?.target?.closest?.('.ant-dropdown, .ant-btn, .ant-dropdown-menu, .pp-action-pop, button')) {
@@ -903,10 +916,11 @@ export default function InvoiceproCustomerPage() {
                       setSelectedCustomerForView(record);
                       setViewDrawerVisible(true);
                     },
-                    className: "cursor-pointer",
+                    className: "pp-row",
                   })}
-                  className="customers-table"
-                  scroll={{ x: 'max-content', y: 'calc(100vh - 325px)' }} locale={{ emptyText: <NoData /> }}
+                  className="saas-table tl-table pp-table customers-table"
+                  scroll={{ x: 'max-content' }}
+                  locale={{ emptyText: <NoData /> }}
                 />
               </div>
             )}
@@ -914,7 +928,7 @@ export default function InvoiceproCustomerPage() {
 
           {/* Sticky footer pagination */}
           {total > 0 && (
-            <div className="pp-footer pp-footer--sticky">
+            <div className="pp-footer">
               <div className="pp-footer-info">
                 Showing <strong>{pageStart}–{pageEnd}</strong> of <strong>{total}</strong>
               </div>
@@ -948,17 +962,19 @@ export default function InvoiceproCustomerPage() {
                   ›
                 </button>
                 <Select
-                  className="pp-pagesize"
                   value={pageSize}
-                  onChange={(v) => {
-                    setPageSize(v);
+                  onChange={(val) => {
+                    setPageSize(val);
                     setCurrentPage(1);
                   }}
-                  options={[10, 15, 20, 25, 50, 100].map((n) => ({
-                    value: n,
-                    label: `${n} / page`,
-                  }))}
-                  popupMatchSelectWidth={120}
+                  className="pp-pagesize"
+                  size="small"
+                  options={[
+                    { value: 10, label: "10 / page" },
+                    { value: 15, label: "15 / page" },
+                    { value: 25, label: "25 / page" },
+                    { value: 50, label: "50 / page" },
+                  ]}
                 />
               </div>
             </div>
@@ -966,18 +982,18 @@ export default function InvoiceproCustomerPage() {
         </main>
       </div>
 
+      {/* Drawer */}
       <CustomerDrawer
         open={isModalOpen}
-        loading={creating || updating}
-        customer={editingCustomer}
         onClose={() => {
           setIsModalOpen(false);
           setEditingCustomer(null);
+          form.resetFields();
         }}
+        customer={editingCustomer}
         onSave={handleSave}
+        loading={creating || updating}
       />
-
-
 
       <CustomerViewDrawer
         open={viewDrawerVisible}
@@ -986,9 +1002,12 @@ export default function InvoiceproCustomerPage() {
           setSelectedCustomerForView(null);
         }}
         customer={selectedCustomerForView}
-        onEdit={canUpdateInvoiceCustomer ? (cust) => handleEdit(cust) : undefined}
+        onEdit={(customer) => {
+          handleEdit(customer);
+        }}
       />
 
+      {/* Client Import Modal */}
       <ClientImportModal
         open={isClientImportModalOpen}
         onClose={() => setIsClientImportModalOpen(false)}
@@ -996,60 +1015,230 @@ export default function InvoiceproCustomerPage() {
         existingCustomers={customers}
       />
 
+      {/* Delete Confirmation Modal */}
+      <Modal
+        title={
+          <div className="flex items-center gap-2 text-red-600">
+            <AlertCircle size={20} />
+            <span>Delete Customer</span>
+          </div>
+        }
+        open={isDeleteModalOpen}
+        onOk={confirmDelete}
+        onCancel={() => {
+          setIsDeleteModalOpen(false);
+          setDeletingCustomerId(null);
+        }}
+        okText="Delete"
+        cancelText="Cancel"
+        okButtonProps={{ danger: true, loading: deleteCustomer.status === "pending" }}
+      >
+        <p>
+          Are you sure you want to delete this customer? This action cannot be
+          undone.
+        </p>
+      </Modal>
+
       <style jsx global>{`
+        /* --- TicketList sprint-head banner styles --- */
+        .invoice-overview-banner {
+          background: var(--bg-pure-white);
+          border-top: none;
+          border-left: none;
+          border-right: none;
+          border-bottom: 1px solid var(--border-slate-200);
+          border-radius: 0;
+          padding: 10px 24px 10px 14px;
+          margin: 0;
+          box-sizing: border-box;
+          flex-shrink: 0;
+        }
+        .invoice-overview-banner .tl-sprint-row1 {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 12px;
+          margin-bottom: 5px;
+        }
+        .invoice-overview-banner .tl-sprint-title-block {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          min-width: 0;
+          flex: 1;
+        }
+        .invoice-overview-banner .tl-sprint-dot {
+          width: 7px;
+          height: 7px;
+          border-radius: 50%;
+          flex-shrink: 0;
+        }
+        .invoice-overview-banner .tl-sprint-title {
+          font-size: 13px !important;
+          font-weight: 700 !important;
+          color: var(--text-slate-900) !important;
+          letter-spacing: -0.01em;
+          margin: 0 !important;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+        .invoice-overview-banner .tl-sprint-tags {
+          display: inline-flex;
+          align-items: center;
+          gap: 5px;
+          flex-shrink: 0;
+        }
+        .invoice-overview-banner .tl-sprint-tag {
+          font-size: 9.5px;
+          font-weight: 700;
+          letter-spacing: 0.04em;
+          text-transform: uppercase;
+          padding: 1.5px 6px;
+          border-radius: 4px;
+        }
+        .invoice-overview-banner .tl-sprint-tag-neutral {
+          background: var(--bg-slate-100);
+          color: var(--text-slate-600);
+          border: 1px solid var(--border-slate-200);
+        }
+        .invoice-overview-banner .tl-sprint-tag-active {
+          background: rgba(16, 185, 129, 0.1);
+          color: #10b981;
+          border: 1px solid rgba(16, 185, 129, 0.25);
+        }
+        .invoice-overview-banner .tl-sprint-tag-today {
+          background: rgba(59, 130, 246, 0.1);
+          color: #3b82f6;
+          border: 1px solid rgba(59, 130, 246, 0.25);
+        }
+        .invoice-overview-banner .tl-sprint-tag-delayed {
+          background: rgba(248, 113, 113, 0.1);
+          color: #f87171;
+          border: 1px solid rgba(248, 113, 113, 0.25);
+        }
+        .invoice-overview-banner .tl-sprint-row2 {
+          display: flex;
+          align-items: center;
+          gap: 14px;
+          margin-bottom: 6px;
+          flex-wrap: wrap;
+        }
+        .invoice-overview-banner .tl-sprint-meta {
+          display: inline-flex;
+          align-items: center;
+          gap: 4px;
+          font-size: 11px;
+          color: var(--text-slate-500);
+        }
+        .invoice-overview-banner .tl-sprint-meta b {
+          color: var(--text-slate-800);
+          font-weight: 700;
+        }
+        .invoice-overview-banner .tl-sprint-row3 {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          padding-left: 15px;
+        }
+        .invoice-overview-banner .tl-sprint-progress-bar {
+          flex: 1 1 auto;
+          position: relative;
+          height: 6px !important;
+          background: var(--bg-slate-100);
+          border-radius: 999px;
+          overflow: hidden;
+          min-width: 60px;
+        }
+        [data-theme='dark'] .invoice-overview-banner .tl-sprint-progress-bar { background: #1f2937 !important; }
+        .invoice-overview-banner .tl-sprint-progress-fill {
+          position: absolute;
+          inset: 0;
+          height: 100% !important;
+          background: linear-gradient(90deg, #3b82f6, #10b981) !important;
+          border-radius: 999px;
+          transition: width 0.4s ease;
+        }
+        .invoice-overview-banner .tl-sprint-progress-pct {
+          flex-shrink: 0;
+          font-size: 12px !important;
+          font-weight: 800 !important;
+          color: var(--text-slate-900) !important;
+          font-variant-numeric: tabular-nums;
+          min-width: 36px;
+          text-align: right;
+        }
+        [data-theme='dark'] .invoice-overview-banner .tl-sprint-progress-pct { color: #f1f5f9 !important; }
+
         .pp-shell {
           display: flex;
           margin: 0 -24px;
-          min-height: calc(100vh - 54px);
+          height: calc(100vh - 54px);
+          max-height: calc(100vh - 54px);
+          overflow: hidden;
           background: var(--bg-pure-white);
+          font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
         }
-        .pp-shell,
-        .pp-shell *,
-        .ant-table,
-        .ant-btn,
-        .ant-select,
-        .ant-picker,
-        .ant-input,
-        .ant-modal,
-        .ant-drawer,
-        .ant-tooltip,
-        .ant-popconfirm,
-        .ant-dropdown {
-          font-family: 'Plus Jakarta Sans', 'Inter', -apple-system, sans-serif !important;
-        }
+        [data-theme='dark'] .pp-shell { background: #0b0f12; }
 
         /* ---------------- Sidebar ---------------- */
         .pp-sidebar {
-          width: 264px;
+          width: 256px;
           flex-shrink: 0;
           border-right: 1px solid var(--border-slate-200);
           background: var(--bg-pure-white);
           display: flex;
           flex-direction: column;
-          padding: 14px 14px 0 38px;
-          position: sticky;
-          top: 0;
-          height: calc(100vh - 54px);
-          z-index: 31;
+          padding: 14px 14px 14px 34px;
+          box-sizing: border-box;
+          overflow: hidden;
         }
+        [data-theme='dark'] .pp-sidebar { background: #0f1419; border-right-color: #1f2937; }
         .pp-side-head {
-          display: flex; align-items: center; gap: 12px; padding: 2px 2px 14px; margin-bottom: 6px;
+          display: flex;
+          align-items: center;
+          gap: 9px;
+          padding: 0 4px 10px;
           border-bottom: 1px solid var(--border-slate-100);
+          margin-bottom: 10px;
         }
+        [data-theme='dark'] .pp-side-head { border-bottom-color: #1f2937; }
         .pp-side-logo {
-          flex-shrink: 0; display: flex; align-items: center; justify-content: center;
-          color: var(--text-slate-900);
+          width: 32px;
+          height: 32px;
+          border-radius: 8px;
+          background: var(--bg-blue-50);
+          color: #3b82f6;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          flex-shrink: 0;
         }
         .pp-side-head-text { display: flex; flex-direction: column; min-width: 0; }
-        .pp-side-title { font-size: 16px; font-weight: 800; color: var(--text-slate-900); letter-spacing: -0.025em; line-height: 1.1; }
+        .pp-side-title {
+          font-size: 13.5px;
+          font-weight: 700;
+          color: var(--text-slate-900);
+          letter-spacing: -0.01em;
+          line-height: 1.2;
+        }
+        [data-theme='dark'] .pp-side-title { color: #f1f5f9; }
         .pp-side-subtitle {
-          font-size: 10.5px; color: var(--text-slate-400); font-weight: 700; margin-top: 4px;
-          text-transform: uppercase; letter-spacing: 0.07em;
+          font-size: 10.5px;
+          color: var(--text-slate-400);
+          font-weight: 700;
+          margin-top: 3px;
+          text-transform: uppercase;
+          letter-spacing: 0.07em;
         }
         .pp-create-btn {
-          height: 35px !important; border-radius: 8px !important; font-weight: 600 !important; font-size: 12.5px !important;
+          height: 35px !important;
+          border-radius: 8px !important;
+          font-weight: 600 !important;
+          font-size: 12.5px !important;
           background: #3B82F6 !important;
-          border: none !important; box-shadow: none !important;
+          border: none !important;
+          box-shadow: none !important;
           margin-bottom: 12px;
           color: #fff !important;
         }
@@ -1059,112 +1248,233 @@ export default function InvoiceproCustomerPage() {
           flex: 1;
           overflow-y: auto;
           overflow-x: hidden;
-          margin: 0;
-          padding: 0;
+          margin: 0 -4px;
+          padding: 0 4px;
           scrollbar-width: none;
           -ms-overflow-style: none;
         }
-        .pp-side-scroll::-webkit-scrollbar {
-          display: none;
-        }
+        .pp-side-scroll::-webkit-scrollbar { display: none; }
         .pp-side-section-label {
-          font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em;
-          color: var(--text-slate-400); padding: 0 8px; margin: 16px 0 6px;
+          font-size: 10px;
+          font-weight: 700;
+          text-transform: uppercase;
+          letter-spacing: 0.07em;
+          color: var(--text-slate-400);
+          padding: 0 6px;
+          margin: 12px 0 6px;
         }
-        .pp-side-scroll > .pp-side-section-label:first-child { margin-top: 6px; }
+        .pp-side-scroll > .pp-side-section-label:first-child { margin-top: 4px; }
         .pp-side-list { display: flex; flex-direction: column; gap: 1px; }
         .pp-view-item {
-          display: flex; align-items: center; gap: 10px; width: 100%;
-          padding: 7px 10px; border-radius: 8px; border: none; background: transparent;
-          cursor: pointer; transition: background .12s ease; text-align: left;
+          display: flex;
+          align-items: center;
+          gap: 9px;
+          width: 100%;
+          padding: 6px 9px;
+          border-radius: 6px;
+          border: none;
+          background: transparent;
+          cursor: pointer;
+          transition: background .12s ease;
+          text-align: left;
         }
         .pp-view-item:hover { background: var(--bg-slate-50); }
+        [data-theme='dark'] .pp-view-item:hover { background: #1a222d; }
         .pp-view-item.is-active { background: var(--bg-blue-50); }
+        [data-theme='dark'] .pp-view-item.is-active { background: rgba(59,130,246,0.15); }
         .pp-view-item.is-active .pp-view-label { color: var(--text-slate-900); font-weight: 600; }
-        .pp-view-icon { font-size: 14px; width: 16px; display: inline-flex; justify-content: center; }
-        .pp-view-label { flex: 1; font-size: 13px; font-weight: 500; color: var(--text-slate-700); }
+        [data-theme='dark'] .pp-view-item.is-active .pp-view-label { color: #f1f5f9; }
+        .pp-view-icon { font-size: 13px; width: 15px; display: inline-flex; justify-content: center; }
+        .pp-view-label { flex: 1; font-size: 12.5px; font-weight: 500; color: var(--text-slate-700); }
+        [data-theme='dark'] .pp-view-label { color: #cbd5e1; }
         .pp-view-count {
-          font-size: 11.5px; font-weight: 600; color: var(--text-slate-400);
-          min-width: 18px; text-align: right;
+          font-size: 11px;
+          font-weight: 600;
+          color: var(--text-slate-400);
+          min-width: 16px;
+          text-align: right;
         }
         .pp-view-item.is-active .pp-view-count {
-          color: #3B82F6; font-weight: 700;
-          background: rgba(59,130,246,0.12); border-radius: 6px; padding: 1px 7px; min-width: 0;
+          color: #3B82F6;
+          font-weight: 700;
+          background: rgba(59,130,246,0.12);
+          border-radius: 5px;
+          padding: 1px 6px;
+          min-width: 0;
         }
         .pp-side-bottom-actions {
-          margin: auto -14px 0 -38px;
-          padding: 8px 14px 0 38px;
+          margin-top: auto;
+          padding-top: 8px;
           border-top: 1px solid var(--border-slate-100);
           background: var(--bg-pure-white);
         }
-        .pp-trash {
-          display: flex; align-items: center; gap: 10px; flex-shrink: 0; text-align: left;
-          margin: 0 -14px 0 -38px; padding: 0 0 0 38px;
-          height: 45px;
-          width: calc(100% + 52px);
-          border-top: 1px solid var(--border-slate-200);
-          background: transparent; color: var(--text-slate-600); font-size: 13px; font-weight: 500; cursor: pointer;
-          border-left: none; border-right: none; border-bottom: none;
-        }
-        .pp-trash:hover { color: #3B82F6; }
+        [data-theme='dark'] .pp-side-bottom-actions { background: #0f1419; border-top-color: #1f2937; }
 
         /* ---------------- Main ---------------- */
-        .pp-main { flex: 1; min-width: 0; padding: 8px 32px 0 20px; display: flex; flex-direction: column; }
-        .pp-body { flex: 1 0 auto; padding-bottom: 60px; min-width: 0; }
-        .pp-topbar { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; flex-wrap: wrap; }
+        .pp-main {
+          flex: 1;
+          min-width: 0;
+          padding: 0;
+          display: flex;
+          flex-direction: column;
+          height: 100%;
+          max-height: 100%;
+          overflow: hidden;
+          background: var(--bg-pure-white);
+        }
+        [data-theme='dark'] .pp-main { background: #0b0f12; }
+        .pp-topbar {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          padding: 8px 24px 8px 14px;
+          margin-bottom: 0;
+          border-bottom: 1px solid var(--border-slate-200);
+          flex-wrap: nowrap;
+          flex-shrink: 0;
+          background: var(--bg-pure-white);
+          box-sizing: border-box;
+        }
+        [data-theme='dark'] .pp-topbar { background: #0f1419; border-bottom-color: #1f2937; }
         .pp-search-wrap {
-          position: relative; flex: 1; max-width: 520px; min-width: 240px; display: flex; align-items: center;
-          height: 32px; border-radius: 8px; background: var(--bg-pure-white);
-          border: 1px solid var(--border-slate-200); padding: 0 10px;
+          position: relative;
+          flex: 1;
+          max-width: 380px;
+          min-width: 180px;
+          display: flex;
+          align-items: center;
+          height: 30px;
+          border-radius: 6px;
+          background: var(--bg-pure-white);
+          border: 1px solid var(--border-slate-200);
+          padding: 0 9px;
         }
+        [data-theme='dark'] .pp-search-wrap { background: #131a22; border-color: #1f2937; }
         .pp-search-wrap:focus-within { border-color: #93c5fd; box-shadow: 0 0 0 3px rgba(59,130,246,0.10); }
-        .pp-search-icon { color: var(--text-slate-400); font-size: 14px; }
+        .pp-search-icon { color: var(--text-slate-400); font-size: 13px; }
         .pp-search {
-          flex: 1; border: none; outline: none; background: transparent; margin-left: 9px;
-          font-size: 13px; color: var(--text-slate-900);
+          flex: 1;
+          border: none;
+          outline: none;
+          background: transparent;
+          margin-left: 8px;
+          font-size: 12.5px;
+          color: var(--text-slate-900);
         }
+        [data-theme='dark'] .pp-search { color: #f1f5f9; }
         .pp-search::placeholder { color: var(--text-slate-400); }
-        .pp-topbar-meta { display: flex; align-items: center; gap: 7px; font-size: 12px; color: var(--text-slate-500); white-space: nowrap; }
+        .pp-topbar-meta {
+          display: flex;
+          align-items: center;
+          gap: 7px;
+          font-size: 11.5px;
+          color: var(--text-slate-500);
+          white-space: nowrap;
+        }
         .pp-topbar-meta strong { color: var(--text-slate-700); font-weight: 700; }
-        .pp-pulse { width: 6px; height: 6px; border-radius: 50%; background: #10b981; display: inline-block; box-shadow: 0 0 0 3px rgba(16,185,129,0.18); margin-right: 5px; }
-        .pp-topbar-actions { display: flex; align-items: center; gap: 8px; margin-left: auto; }
+        [data-theme='dark'] .pp-topbar-meta strong { color: #f1f5f9; }
+        .pp-pulse {
+          width: 6px;
+          height: 6px;
+          border-radius: 50%;
+          background: #10b981;
+          display: inline-block;
+          box-shadow: 0 0 0 3px rgba(16,185,129,0.18);
+          margin-right: 4px;
+        }
+        .pp-topbar-actions {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          margin-left: auto;
+          flex-shrink: 0;
+        }
         .pp-ghost-btn {
-          width: 32px; height: 32px; border-radius: 8px; border: 1px solid var(--border-slate-200);
-          background: var(--bg-slate-50); color: var(--text-slate-700); cursor: pointer; font-size: 14px;
-          display: inline-flex; align-items: center; justify-content: center;
+          width: 30px;
+          height: 30px;
+          border-radius: 6px;
+          border: 1px solid var(--border-slate-200);
+          background: var(--bg-slate-50);
+          color: var(--text-slate-700);
+          cursor: pointer;
+          font-size: 13px;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
         }
         .pp-ghost-btn:hover { color: #3B82F6; border-color: #bfdbfe; }
+        .pp-divider { display: none; }
 
-        .pp-divider { height: 1px; background: var(--border-slate-200); margin: 0 -32px 10px -20px; }
-
-        /* Stat cards */
-        .pp-stats { display: grid; gap: 12px; margin-bottom: 14px; }
-        .pp-stats-3 { grid-template-columns: repeat(3, 1fr); }
-        .pp-stat-card {
-          background: var(--bg-pure-white); border: 1px solid var(--border-slate-200);
-          border-radius: 0; padding: 12px 14px; min-height: 92px;
-          display: flex; flex-direction: column; justify-content: space-between; gap: 10px;
-          box-shadow: 0 1px 2px rgba(15,23,42,0.04);
+        .pp-body {
+          flex: 1;
+          min-height: 0;
+          padding-bottom: 0;
+          min-width: 0;
+          display: flex;
+          flex-direction: column;
+          overflow: hidden;
         }
-        .pp-stat-top { display: flex; align-items: center; justify-content: space-between; }
-        .pp-stat-left { display: flex; align-items: center; gap: 8px; }
-        .pp-stat-icon { width: 26px; height: 26px; border-radius: 8px; display: inline-flex; align-items: center; justify-content: center; font-size: 13px; }
-        .pp-stat-label { font-size: 12px; font-weight: 600; color: var(--text-slate-600); }
-        .pp-stat-bottom { display: flex; align-items: flex-end; justify-content: space-between; gap: 8px; }
-        .pp-stat-value-wrap { display: flex; align-items: baseline; gap: 6px; }
-        .pp-stat-value { font-size: 23px; font-weight: 800; color: var(--text-slate-900); letter-spacing: -0.02em; line-height: 1; }
-        .pp-stat-period { font-size: 11px; color: var(--text-slate-400); font-weight: 500; }
 
-        /* Grid view cards (matching accounts dashboard) */
-        .pp-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+        /* Empty state */
+        .pp-empty {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          padding: 60px 20px;
+          text-align: center;
+        }
+        .pp-empty-orb {
+          width: 48px;
+          height: 48px;
+          border-radius: 12px;
+          background: var(--bg-blue-50);
+          color: #3b82f6;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          margin-bottom: 12px;
+        }
+        .pp-empty-title {
+          font-size: 14px;
+          font-weight: 700;
+          color: var(--text-slate-800);
+          margin-bottom: 4px;
+        }
+        .pp-empty-sub {
+          font-size: 12px;
+          color: var(--text-slate-400);
+          max-width: 320px;
+        }
+
+        /* Grid view cards */
+        .pp-grid {
+          display: grid;
+          grid-template-columns: repeat(2, 1fr);
+          gap: 8px;
+          padding: 10px 24px 10px 14px;
+          flex: 1;
+          min-height: 0;
+          overflow-y: auto;
+          box-sizing: border-box;
+          align-content: start;
+          align-items: start;
+          grid-auto-rows: max-content;
+        }
         .pp-grid-loading { padding: 40px; text-align: center; color: var(--text-slate-400); grid-column: 1 / -1; }
 
         .pc-card {
-          border: 1px solid var(--border-slate-200); border-radius: 0; background: var(--bg-pure-white);
-          cursor: pointer; overflow: hidden; display: flex; flex-direction: column;
+          border: 1px solid var(--border-slate-200);
+          border-radius: 0;
+          background: var(--bg-pure-white);
+          cursor: pointer;
+          overflow: hidden;
+          display: flex;
+          flex-direction: column;
           transition: box-shadow .15s ease, border-color .15s ease;
           height: 144px;
         }
+        [data-theme='dark'] .pc-card { background: #0f1419; border-color: #1f2937; }
         .pc-card:hover { box-shadow: 0 3px 12px rgba(15,23,42,0.06); border-color: #cbd5e1; }
 
         .pc-top { display: flex; align-items: flex-start; gap: 10px; padding: 10px 12px; height: 64px; overflow: hidden; }
@@ -1188,9 +1498,12 @@ export default function InvoiceproCustomerPage() {
         .pc-client-val { color: var(--text-slate-700); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
         .pc-foot { display: flex; flex-direction: column; padding: 0; border-top: 1px solid var(--border-slate-200); background: var(--bg-slate-50); height: 78px; justify-content: center; }
+        [data-theme='dark'] .pc-foot { background: #131a22; border-top-color: #1f2937; }
         .pc-foot-row { display: flex; align-items: center; gap: 8px; flex-wrap: nowrap; padding: 6px 12px; overflow: hidden; }
         .pc-foot-row + .pc-foot-row { border-top: 1px solid var(--border-slate-200); }
+        [data-theme='dark'] .pc-foot-row + .pc-foot-row { border-top-color: #1f2937; }
         .pc-foot-item { display: inline-flex; align-items: center; gap: 5px; font-size: 11.5px; color: var(--text-slate-700); overflow: hidden; white-space: nowrap; }
+        [data-theme='dark'] .pc-foot-item { color: #cbd5e1; }
         .pc-foot-key { font-size: 10.5px; font-weight: 600; color: var(--text-slate-400); }
         .pc-foot-val { font-size: 11.5px; color: var(--text-slate-700); overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
         .pc-foot-div { width: 1px; height: 11px; background: var(--border-slate-300, #cbd5e1); flex-shrink: 0; }
@@ -1198,55 +1511,182 @@ export default function InvoiceproCustomerPage() {
           background: none; border: none; cursor: pointer; padding: 0;
           color: #3B82F6; font-weight: 700; font-size: 11.5px;
         }
-        .pc-view-btn .anticon { font-size: 12px; }
         .pc-view-btn:hover { text-decoration: underline; }
-
-        .pc-status-tag { display: inline-flex; align-items: center; gap: 4px; height: 19px; padding: 0 7px; border-radius: 5px; font-size: 10.5px; font-weight: 700; }
 
         .pp-btn-primary {
           background: #3B82F6 !important; border: none !important;
           border-radius: 0 !important; font-weight: 600 !important;
         }
 
-        /* Empty + grid */
-
-
         @media (max-width: 700px) {
           .pp-grid { grid-template-columns: 1fr; }
         }
 
         /* Table */
-        .pp-table-wrap { background: var(--bg-pure-white); border: 1px solid var(--border-slate-200); border-radius: 0; overflow: hidden; }
-        .pp-table-wrap ::-webkit-scrollbar { display: none !important; }
-        .pp-table-wrap, .pp-table-wrap * { -ms-overflow-style: none !important; scrollbar-width: none !important; }
-        .customers-table, .customers-table.ant-table-wrapper, .customers-table .ant-table, .customers-table .ant-table-container, .customers-table .ant-table-content, .customers-table .ant-table-header, .customers-table .ant-table-body { background: transparent; font-size: 12px; border-radius: 0 !important; }
-        .customers-table .ant-table-thead > tr > th,
-        .customers-table .ant-table-thead > tr > td {
-          background: var(--bg-slate-50) !important; border-bottom: 1px solid var(--border-slate-200) !important;
-          font-size: 10px !important; font-weight: 700 !important; letter-spacing: 0.04em;
-          text-transform: uppercase; color: var(--text-slate-400) !important; padding: 6px 10px !important;
-          white-space: nowrap !important; border-radius: 0 !important;
-          border-start-start-radius: 0 !important; border-start-end-radius: 0 !important;
+        .pp-table-wrap {
+          background: var(--bg-pure-white);
+          border: none;
+          border-radius: 0;
+          overflow-y: auto;
+          overflow-x: auto;
+          flex: 1;
+          min-height: 0;
+          display: flex;
+          flex-direction: column;
+          margin: 0;
+          padding: 0;
+          -ms-overflow-style: none;
+          scrollbar-width: none;
         }
-        .customers-table .ant-table-tbody > tr > td { border-bottom: 1px solid var(--border-slate-100) !important; padding: 8px 10px !important; }
-        .customers-table .ant-table-tbody > tr:last-child > td { border-bottom: none !important; }
-        .customers-table .ant-table-tbody > tr:hover > td { background: var(--bg-slate-50) !important; }
+        .pp-table-wrap::-webkit-scrollbar,
+        .pp-table-wrap .ant-table-body::-webkit-scrollbar,
+        .pp-table-wrap .ant-table-content::-webkit-scrollbar {
+          width: 0;
+          height: 0;
+          display: none;
+        }
+        .pp-table-wrap .ant-table-body,
+        .pp-table-wrap .ant-table-content {
+          -ms-overflow-style: none;
+          scrollbar-width: none;
+        }
+        [data-theme='dark'] .pp-table-wrap { background: #0b0f12; }
+        .pp-table .ant-table-cell-scrollbar,
+        .tl-table .ant-table-cell-scrollbar {
+          display: none !important;
+          width: 0 !important;
+          padding: 0 !important;
+        }
+
+        .pp-table,
+        .pp-table.ant-table-wrapper,
+        .pp-table .ant-table,
+        .tl-table .ant-table,
+        .pp-table .ant-table-container,
+        .tl-table .ant-table-container {
+          background: transparent;
+          font-size: 12px;
+          border-radius: 0 !important;
+          border-start-start-radius: 0 !important;
+          border-start-end-radius: 0 !important;
+          border-end-start-radius: 0 !important;
+          border-end-end-radius: 0 !important;
+          height: 100% !important;
+          display: flex !important;
+          flex-direction: column !important;
+          width: 100% !important;
+        }
+        .pp-table .ant-table-header,
+        .tl-table .ant-table-header,
+        .pp-table .ant-table-thead,
+        .tl-table .ant-table-thead,
+        .pp-table .ant-table-thead > tr,
+        .tl-table .ant-table-thead > tr {
+          border-radius: 0 !important;
+          border-start-start-radius: 0 !important;
+          border-start-end-radius: 0 !important;
+          border-end-start-radius: 0 !important;
+          border-end-end-radius: 0 !important;
+        }
+        .pp-table .ant-table-body,
+        .tl-table .ant-table-body {
+          flex: 1 1 auto !important;
+          max-height: none !important;
+          overflow-y: auto !important;
+        }
+        .pp-table .ant-table-thead > tr > th,
+        .tl-table .ant-table-thead > tr > th,
+        .pp-table .ant-table-thead > tr > td,
+        .tl-table .ant-table-thead > tr > td {
+          background: var(--bg-slate-50) !important;
+          border-bottom: 1px solid var(--border-slate-200) !important;
+          font-size: 10px !important;
+          font-weight: 800 !important;
+          letter-spacing: 0.04em !important;
+          text-transform: uppercase !important;
+          color: var(--text-slate-500) !important;
+          padding: 5px 10px !important;
+          white-space: nowrap !important;
+          position: sticky !important;
+          top: 0 !important;
+          z-index: 10 !important;
+          border-radius: 0 !important;
+          border-start-start-radius: 0 !important;
+          border-start-end-radius: 0 !important;
+          border-end-start-radius: 0 !important;
+          border-end-end-radius: 0 !important;
+        }
+        .pp-table .ant-table-thead > tr > th::before,
+        .tl-table .ant-table-thead > tr > th::before {
+          display: none !important;
+        }
+        [data-theme='dark'] .pp-table .ant-table-thead > tr > th,
+        [data-theme='dark'] .tl-table .ant-table-thead > tr > th {
+          background: #0f1419 !important;
+          border-bottom-color: #1f2937 !important;
+          color: #94a3b8 !important;
+        }
+        .pp-table .ant-table-tbody > tr > td,
+        .tl-table .ant-table-tbody > tr > td {
+          border-bottom: 1px solid var(--border-slate-100) !important;
+          padding: 4px 10px !important;
+          font-size: 11.5px !important;
+          border-radius: 0 !important;
+        }
+        .pp-table .ant-table-cell,
+        .tl-table .ant-table-cell {
+          line-height: 1.3 !important;
+          border-radius: 0 !important;
+        }
+        [data-theme='dark'] .pp-table .ant-table-tbody > tr > td,
+        [data-theme='dark'] .tl-table .ant-table-tbody > tr > td {
+          border-bottom-color: #1f2937 !important;
+        }
+        .pp-table .ant-table-tbody > tr:last-child > td,
+        .tl-table .ant-table-tbody > tr:last-child > td {
+          border-bottom: none !important;
+        }
+        .pp-table .ant-table-tbody > tr.pp-row:hover > td,
+        .tl-table .ant-table-tbody > tr.pp-row:hover > td,
+        .pp-table .ant-table-tbody > tr:hover > td,
+        .tl-table .ant-table-tbody > tr:hover > td {
+          background: var(--bg-slate-50) !important;
+        }
+        [data-theme='dark'] .pp-table .ant-table-tbody > tr.pp-row:hover > td,
+        [data-theme='dark'] .tl-table .ant-table-tbody > tr.pp-row:hover > td,
+        [data-theme='dark'] .pp-table .ant-table-tbody > tr:hover > td,
+        [data-theme='dark'] .tl-table .ant-table-tbody > tr:hover > td {
+          background: #1e293b !important;
+        }
+        .pp-table .ant-table-tbody > tr.pp-row {
+          cursor: pointer;
+        }
+        .pp-table .ant-table-selection-column,
+        .tl-table .ant-table-selection-column {
+          padding-inline: 6px !important;
+        }
 
         /* Footer + pager */
         .pp-footer {
-          display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;
-          padding: 10px 14px; border-top: 1px solid var(--border-slate-200);
-        }
-        .pp-footer--sticky {
-          position: sticky; bottom: 0; z-index: 30;
-          margin: 8px -32px 0 -20px;
-          padding: 0 32px 0 20px;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          flex-wrap: wrap;
+          gap: 10px;
+          padding: 8px 24px 8px 14px;
           background: var(--bg-pure-white);
-          box-shadow: 0 -4px 14px rgba(15,23,42,0.05);
-          height: 45px;
+          border-top: 1px solid var(--border-slate-200);
+          box-sizing: border-box;
+          flex-shrink: 0;
+          margin-top: auto;
+          position: sticky;
+          bottom: 0;
+          z-index: 20;
         }
+        [data-theme='dark'] .pp-footer { background: #0f1419; border-top-color: #1f2937; }
         .pp-footer-info { font-size: 12px; color: var(--text-slate-500); }
         .pp-footer-info strong { color: var(--text-slate-700); font-weight: 700; }
+        [data-theme='dark'] .pp-footer-info strong { color: #f1f5f9; }
 
         .pp-pager { display: flex; align-items: center; gap: 3px; }
         .pp-pager-btn, .pp-pager-num {
@@ -1254,10 +1694,11 @@ export default function InvoiceproCustomerPage() {
           background: var(--bg-pure-white); color: var(--text-slate-600); cursor: pointer; font-size: 12.5px; font-weight: 600;
           display: inline-flex; align-items: center; justify-content: center;
         }
+        [data-theme='dark'] .pp-pager-btn, [data-theme='dark'] .pp-pager-num { background: #131a22; border-color: #1f2937; color: #cbd5e1; }
         .pp-pager-btn:disabled { opacity: 0.4; cursor: not-allowed; }
         .pp-pager-num.is-active { background: #3B82F6; border-color: #3B82F6; color: #fff; }
         .pp-pagesize { margin-left: 5px; }
-        .pp-pagesize .ant-select-selector { border-radius: 7px !important; height: 28px !important; }
+        .pp-pagesize .ant-select-selector { border-radius: 6px !important; height: 28px !important; }
 
         .pp-backdrop {
           display: none;
@@ -1293,22 +1734,41 @@ export default function InvoiceproCustomerPage() {
           .pp-sidebar.is-open { left: 0; }
           .pp-backdrop { display: block; }
           .pp-mobile-toggle { display: flex; }
-          .pp-stats { grid-template-columns: repeat(2, 1fr); }
-        }
-        @media (max-width: 600px) {
-          .pp-stats { grid-template-columns: 1fr; }
         }
 
-        .pp-segmented { display: inline-flex; border: 1px solid var(--border-slate-200); border-radius: 9px; overflow: hidden; background: var(--bg-pure-white); }
-        .pp-segmented button {
-          width: 32px; height: 32px; border: none; background: transparent; cursor: pointer;
-          color: var(--text-slate-400); font-size: 14px; display: inline-flex; align-items: center; justify-content: center;
+        .pp-segmented {
+          display: inline-flex;
+          border: 1px solid var(--border-slate-200);
+          border-radius: 8px;
+          overflow: hidden;
+          background: var(--bg-slate-50);
+          padding: 1px;
         }
-        .pp-segmented button.is-active { background: var(--bg-blue-50); color: #3B82F6; }
+        .pp-segmented button {
+          width: 28px;
+          height: 28px;
+          border: none;
+          background: transparent;
+          cursor: pointer;
+          color: var(--text-slate-400);
+          font-size: 13px;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          border-radius: 6px;
+          transition: all .15s ease;
+        }
+        .pp-segmented button.is-active {
+          background: var(--bg-pure-white);
+          color: #3B82F6;
+          box-shadow: 0 1px 3px rgba(15,23,42,0.08);
+        }
 
         /* Premium action dropdown */
         .pp-action-pop .ant-dropdown-menu {
-          padding: 6px; border-radius: 0; min-width: 236px;
+          padding: 6px;
+          border-radius: 0;
+          min-width: 236px;
           background: var(--bg-pure-white);
           border: 1px solid var(--border-slate-100);
           box-shadow: 0 16px 40px rgba(15,23,42,0.18), 0 2px 8px rgba(15,23,42,0.06), 0 0 0 1px rgba(15,23,42,0.03);
@@ -1321,7 +1781,9 @@ export default function InvoiceproCustomerPage() {
         .pp-action-pop * { scrollbar-width: none !important; -ms-overflow-style: none !important; }
         .pp-action-pop ::-webkit-scrollbar { display: none !important; }
         .pp-action-pop .ant-dropdown-menu-item {
-          padding: 0 !important; border-radius: 0 !important; margin: 1px 0;
+          padding: 0 !important;
+          border-radius: 0 !important;
+          margin: 1px 0;
           transition: background .12s ease;
         }
         .pp-action-pop .ant-dropdown-menu-item:hover { background: var(--bg-slate-50) !important; }
@@ -1329,8 +1791,14 @@ export default function InvoiceproCustomerPage() {
         .pp-action-pop .ant-dropdown-menu-title-content { line-height: 1.2; }
         .pp-menu-item { display: flex; align-items: center; gap: 11px; padding: 7px 9px; }
         .pp-menu-ic {
-          width: 30px; height: 30px; border-radius: 0; flex-shrink: 0;
-          display: inline-flex; align-items: center; justify-content: center; font-size: 14px;
+          width: 30px;
+          height: 30px;
+          border-radius: 0;
+          flex-shrink: 0;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 14px;
         }
         .pp-menu-text { display: flex; flex-direction: column; min-width: 0; }
         .pp-menu-title { font-size: 13px; font-weight: 600; color: var(--text-slate-900); letter-spacing: -0.01em; }

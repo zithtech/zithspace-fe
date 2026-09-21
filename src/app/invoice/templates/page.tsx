@@ -106,7 +106,7 @@ export default function InvoiceTemplatePage() {
   });
   const templates = response?.data ?? [];
   const totalTemplates = response?.total ?? 0;
-  
+
   const deleteMutation = useDeleteInvoiceTemplate();
 
   const handleEdit = (template: InvoiceTemplate) => {
@@ -128,6 +128,16 @@ export default function InvoiceTemplatePage() {
     const def = templates?.filter((t) => t.isDefault).length || 0;
     return { all, active, inactive, default: def };
   }, [templates]);
+
+  const progressPct = counts.all > 0 ? Math.round((counts.active / counts.all) * 100) : 0;
+  const activeViewTitle = useMemo(() => {
+    switch (statusFilter) {
+      case "active": return "Active Templates";
+      case "inactive": return "Inactive Templates";
+      case "default": return "Default Template";
+      default: return "All Templates";
+    }
+  }, [statusFilter]);
 
   const filteredTemplates = useMemo(() => {
     return (templates || []).filter((t) => {
@@ -513,7 +523,7 @@ export default function InvoiceTemplatePage() {
 
                   </button>
                 </Tooltip>
-                
+
               </div>
               <Tooltip title="Refresh">
                 <button type="button" className="pp-ghost-btn" onClick={() => refetch()}><ReloadOutlined spin={isLoading || isFetching} /></button>
@@ -521,78 +531,72 @@ export default function InvoiceTemplatePage() {
             </div>
           </div>
 
-          <div className="pp-divider" />
-
           {/* Main View Area */}
           <div className="pp-body">
-            {/* Stat Cards */}
-            <div className="pp-stats">
-              <div className="pp-stat-card">
-                <div className="pp-stat-top">
-                  <div className="pp-stat-left">
-                    <span className="pp-stat-icon" style={{ background: "rgba(59,130,246,0.1)", color: "#3B82F6" }}>
-                      <Layers size={14} />
+            {/* ── Main Overview Banner (TicketList sprint head style) ── */}
+            <div className="tl-section-head tl-sprint-head-v2 tl-section-head--static invoice-overview-banner">
+              {/* Row 1: dot + title + status tags */}
+              <div className="tl-sprint-row1">
+                <div className="tl-sprint-title-block">
+                  <span
+                    className="tl-sprint-dot"
+                    style={{
+                      background: "#3b82f6",
+                      boxShadow: "0 0 0 3px rgba(59, 130, 246, 0.2)",
+                    }}
+                  />
+                  <Text
+                    className="tl-sprint-title"
+                    ellipsis={{ tooltip: `Templates — ${activeViewTitle}` }}
+                  >
+                    Templates — {activeViewTitle}
+                  </Text>
+                  <span className="tl-sprint-tags">
+                    <span className="tl-sprint-tag tl-sprint-tag-neutral">
+                      {counts.all} TEMPLATES
                     </span>
-                    <span className="pp-stat-label">Total Templates</span>
-                  </div>
-                </div>
-                <div className="pp-stat-bottom">
-                  <div className="pp-stat-value-wrap">
-                    <span className="pp-stat-value">{isLoading ? "—" : counts.all}</span>
-                  </div>
-                  <span className="pp-stat-period">All templates</span>
+                    {counts.active > 0 && (
+                      <span className="tl-sprint-tag tl-sprint-tag-active">
+                        {counts.active} ACTIVE
+                      </span>
+                    )}
+                    {counts.default > 0 && (
+                      <span className="tl-sprint-tag tl-sprint-tag-today">
+                        {counts.default} DEFAULT
+                      </span>
+                    )}
+                    {counts.inactive > 0 && (
+                      <span className="tl-sprint-tag tl-sprint-tag-delayed">
+                        {counts.inactive} INACTIVE
+                      </span>
+                    )}
+                  </span>
                 </div>
               </div>
 
-              <div className="pp-stat-card">
-                <div className="pp-stat-top">
-                  <div className="pp-stat-left">
-                    <span className="pp-stat-icon" style={{ background: "rgba(16,185,129,0.1)", color: "#10b981" }}>
-                      <CheckCircle2 size={14} />
-                    </span>
-                    <span className="pp-stat-label">Active Templates</span>
-                  </div>
-                </div>
-                <div className="pp-stat-bottom">
-                  <div className="pp-stat-value-wrap">
-                    <span className="pp-stat-value">{isLoading ? "—" : counts.active}</span>
-                  </div>
-                  <span className="pp-stat-period">Active templates</span>
-                </div>
+              {/* Row 2: template counts */}
+              <div className="tl-sprint-row2">
+                <span className="tl-sprint-meta">
+                  <b>{counts.active}</b>/{counts.all} templates active
+                </span>
+                <span className="tl-sprint-meta">
+                  <b>{counts.inactive}</b> inactive
+                </span>
+                <span className="tl-sprint-meta">
+                  <Star size={12} style={{ color: '#f59e0b', marginTop: -1 }} />
+                  <b>{counts.default}</b> default
+                </span>
               </div>
 
-              <div className="pp-stat-card">
-                <div className="pp-stat-top">
-                  <div className="pp-stat-left">
-                    <span className="pp-stat-icon" style={{ background: "rgba(59,130,246,0.1)", color: "#3B82F6" }}>
-                      <Star size={14} />
-                    </span>
-                    <span className="pp-stat-label">Default Template</span>
-                  </div>
+              {/* Row 3: wide progress bar + % */}
+              <div className="tl-sprint-row3">
+                <div className="tl-sprint-progress-bar">
+                  <div
+                    className="tl-sprint-progress-fill"
+                    style={{ width: `${Math.min(100, progressPct)}%` }}
+                  />
                 </div>
-                <div className="pp-stat-bottom">
-                  <div className="pp-stat-value-wrap">
-                    <span className="pp-stat-value">{isLoading ? "—" : counts.default}</span>
-                  </div>
-                  <span className="pp-stat-period">Default template</span>
-                </div>
-              </div>
-
-              <div className="pp-stat-card">
-                <div className="pp-stat-top">
-                  <div className="pp-stat-left">
-                    <span className="pp-stat-icon" style={{ background: "rgba(100,116,139,0.1)", color: "#64748b" }}>
-                      <AlertCircle size={14} />
-                    </span>
-                    <span className="pp-stat-label">Inactive Templates</span>
-                  </div>
-                </div>
-                <div className="pp-stat-bottom">
-                  <div className="pp-stat-value-wrap">
-                    <span className="pp-stat-value">{isLoading ? "—" : counts.inactive}</span>
-                  </div>
-                  <span className="pp-stat-period">Inactive templates</span>
-                </div>
+                <span className="tl-sprint-progress-pct">{progressPct}%</span>
               </div>
             </div>
 
@@ -614,7 +618,7 @@ export default function InvoiceTemplatePage() {
               </div>
             ) : !pagedTemplates || pagedTemplates.length === 0 ? (
               <div className="pp-empty-wrapper">
-                <NoData 
+                <NoData
                   title={searchText || statusFilter !== "all" ? "No templates match your filters" : "No templates yet"}
                   description={
                     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px' }}>
@@ -823,8 +827,8 @@ export default function InvoiceTemplatePage() {
                   columns={columns}
                   dataSource={pagedTemplates}
                   pagination={false}
-                  className="pp-table"
-                  scroll={{ x: 1100, y: 'calc(100vh - 325px)' }}
+                  className="saas-table tl-table pp-table"
+                  scroll={{ x: 'max-content' }}
                   onRow={(record) => ({
                     onClick: () => {
                       if (canUseNewInvoice) {
@@ -840,7 +844,7 @@ export default function InvoiceTemplatePage() {
 
           {/* Sticky footer pagination */}
           {total > 0 && (
-            <div className="pp-footer pp-footer--sticky">
+            <div className="pp-footer">
               <div className="pp-footer-info">
                 Showing <strong>{pageStart}–{pageEnd}</strong> of <strong>{total}</strong>
               </div>
@@ -895,13 +899,13 @@ export default function InvoiceTemplatePage() {
 
         /* ---------------- Sidebar ---------------- */
         .pp-sidebar {
-          width: 264px;
+          width: 256px;
           flex-shrink: 0;
           border-right: 1px solid var(--border-slate-200);
           background: var(--bg-pure-white);
           display: flex;
           flex-direction: column;
-          padding: 14px 14px 0 38px;
+          padding: 14px 14px 0 34px;
           position: sticky;
           top: 0;
           height: calc(100vh - 54px);
@@ -976,10 +980,37 @@ export default function InvoiceTemplatePage() {
           align-items: center;
         }
 
+        .pp-shell {
+          display: flex;
+          margin: 0 -24px;
+          height: calc(100vh - 54px);
+          max-height: calc(100vh - 54px);
+          background: var(--bg-pure-white);
+          overflow: hidden;
+        }
+
         /* ---------------- Main ---------------- */
-        .pp-main { flex: 1; min-width: 0; padding: 8px 32px 0 20px; display: flex; flex-direction: column; }
-        .pp-body { flex: 1 0 auto; padding-bottom: 60px; min-width: 0; }
-        .pp-topbar { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; flex-wrap: wrap; }
+        .pp-main {
+          flex: 1;
+          min-width: 0;
+          padding: 0;
+          display: flex;
+          flex-direction: column;
+          height: 100%;
+          max-height: 100%;
+          overflow: hidden;
+          background: var(--bg-pure-white);
+        }
+        .pp-body {
+          flex: 1;
+          min-height: 0;
+          padding-bottom: 0;
+          min-width: 0;
+          display: flex;
+          flex-direction: column;
+          overflow: hidden;
+        }
+        .pp-topbar { display: flex; align-items: center; gap: 10px; padding: 8px 24px 8px 14px; margin-bottom: 0; border-bottom: 1px solid var(--border-slate-200); background: var(--bg-pure-white); flex-wrap: wrap; }
         .pp-search-wrap {
           position: relative; flex: 1; max-width: 520px; min-width: 240px; display: flex; align-items: center;
           height: 32px; border-radius: 8px; background: var(--bg-pure-white);
@@ -997,27 +1028,172 @@ export default function InvoiceTemplatePage() {
         .pp-pulse { width: 6px; height: 6px; border-radius: 50%; background: #10b981; display: inline-block; box-shadow: 0 0 0 3px rgba(16,185,129,0.18); margin-right: 5px; }
         .pp-topbar-actions { display: flex; align-items: center; gap: 8px; margin-left: auto; }
 
-        .pp-divider { height: 1px; background: var(--border-slate-200); margin: 0 -32px 10px -20px; }
+        .pp-divider { display: none; }
 
-        /* Stat cards */
-        .pp-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 14px; }
-        .pp-stat-card {
-          background: var(--bg-pure-white); border: 1px solid var(--border-slate-200);
-          border-radius: 0; padding: 12px 14px; min-height: 92px;
-          display: flex; flex-direction: column; justify-content: space-between; gap: 10px;
-          box-shadow: 0 1px 2px rgba(15,23,42,0.04);
+        /* Overview Banner (Sprint head v2 style) */
+        .invoice-overview-banner {
+          background: var(--bg-pure-white);
+          border-top: none;
+          border-left: none;
+          border-right: none;
+          border-bottom: 1px solid var(--border-slate-200);
+          border-radius: 0;
+          margin: 0;
         }
-        .pp-stat-top { display: flex; align-items: center; justify-content: space-between; }
-        .pp-stat-left { display: flex; align-items: center; gap: 8px; }
-        .pp-stat-icon { width: 26px; height: 26px; border-radius: 8px; display: inline-flex; align-items: center; justify-content: center; font-size: 13px; }
-        .pp-stat-label { font-size: 12px; font-weight: 600; color: var(--text-slate-600); }
-        .pp-stat-bottom { display: flex; align-items: flex-end; justify-content: space-between; gap: 8px; }
-        .pp-stat-value-wrap { display: flex; align-items: baseline; gap: 6px; }
-        .pp-stat-value { font-size: 23px; font-weight: 800; color: var(--text-slate-900); letter-spacing: -0.02em; line-height: 1; }
-        .pp-stat-period { font-size: 11px; color: var(--text-slate-400); font-weight: 500; }
+        .tl-sprint-head-v2 {
+          display: flex !important;
+          flex-direction: column;
+          gap: 6px;
+          padding: 10px 24px 10px 14px !important;
+        }
+        .tl-sprint-row1 {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 12px;
+          flex-wrap: wrap;
+        }
+        .tl-sprint-title-block {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          min-width: 0;
+          flex: 1 1 auto;
+        }
+        .tl-sprint-dot {
+          width: 7px;
+          height: 7px;
+          border-radius: 50%;
+          flex-shrink: 0;
+        }
+        .tl-sprint-title {
+          font-size: 14px !important;
+          font-weight: 800 !important;
+          color: var(--text-slate-900) !important;
+          letter-spacing: -0.01em;
+          max-width: 460px;
+        }
+        [data-theme='dark'] .tl-sprint-title { color: #f1f5f9 !important; }
+        .tl-sprint-tags {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          flex-shrink: 0;
+        }
+        .tl-sprint-tag {
+          display: inline-flex;
+          align-items: center;
+          height: 18px;
+          padding: 0 6px;
+          font-size: 9px;
+          font-weight: 800;
+          letter-spacing: 0.04em;
+          border-radius: 4px;
+          border: 1px solid transparent;
+          text-transform: uppercase;
+          line-height: 1;
+        }
+        .tl-sprint-tag-delayed {
+          background: transparent;
+          color: #ef4444;
+          border-color: rgba(239, 68, 68, 0.32);
+        }
+        .tl-sprint-tag-overdue {
+          background: transparent;
+          color: #fbbf24;
+          border-color: rgba(245, 158, 11, 0.32);
+        }
+        .tl-sprint-tag-today {
+          background: transparent;
+          color: #fbbf24;
+          border-color: rgba(245, 158, 11, 0.32);
+        }
+        .tl-sprint-tag-active {
+          background: transparent;
+          color: #10b981;
+          border-color: rgba(16, 185, 129, 0.32);
+        }
+        .tl-sprint-tag-neutral {
+          background: transparent;
+          color: var(--text-slate-500);
+          border-color: var(--border-slate-200);
+        }
+        [data-theme='dark'] .tl-sprint-tag-delayed {
+          background: transparent;
+          color: #fca5a5;
+        }
+        [data-theme='dark'] .tl-sprint-tag-neutral {
+          border-color: rgba(255, 255, 255, 0.12);
+        }
+        .tl-sprint-row2 {
+          display: flex;
+          align-items: center;
+          gap: 18px;
+          flex-wrap: wrap;
+          padding-left: 15px;
+        }
+        .tl-sprint-meta {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          font-size: 11.5px;
+          font-weight: 600;
+          color: var(--text-slate-500);
+          letter-spacing: -0.005em;
+        }
+        .tl-sprint-meta b {
+          color: var(--text-slate-900);
+          font-weight: 800;
+        }
+        [data-theme='dark'] .tl-sprint-meta { color: #94a3b8 !important; }
+        [data-theme='dark'] .tl-sprint-meta b { color: #f1f5f9 !important; }
+
+        .tl-sprint-row3 {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          padding-left: 15px;
+        }
+        .tl-sprint-progress-bar {
+          flex: 1 1 auto;
+          position: relative;
+          height: 6px;
+          background: var(--bg-slate-100);
+          border-radius: 999px;
+          overflow: hidden;
+          min-width: 60px;
+        }
+        [data-theme='dark'] .tl-sprint-progress-bar { background: #1f2937 !important; }
+        .tl-sprint-progress-fill {
+          position: absolute;
+          inset: 0;
+          background: linear-gradient(90deg, #3b82f6, #10b981);
+          border-radius: 999px;
+          transition: width 0.4s ease;
+        }
+        .tl-sprint-progress-pct {
+          flex-shrink: 0;
+          font-size: 12px;
+          font-weight: 800;
+          color: var(--text-slate-900);
+          font-variant-numeric: tabular-nums;
+          min-width: 36px;
+        }
+        [data-theme='dark'] .tl-sprint-progress-pct { color: #f1f5f9 !important; }
 
         /* Grid view cards (matching accounts dashboard) */
-        .pp-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+        .pp-grid {
+          display: grid;
+          grid-template-columns: repeat(2, 1fr);
+          gap: 8px;
+          padding: 10px 24px 10px 14px;
+          flex: 1;
+          min-height: 0;
+          overflow-y: auto;
+          align-content: start;
+          align-items: start;
+          grid-auto-rows: max-content;
+        }
         .pp-grid-loading { padding: 40px; text-align: center; color: var(--text-slate-400); grid-column: 1 / -1; }
 
         .pc-card {
@@ -1069,36 +1245,178 @@ export default function InvoiceTemplatePage() {
           border-radius: 0 !important; font-weight: 600 !important;
         }
 
-        /* Empty + grid */
-
-
         @media (max-width: 700px) {
           .pp-grid { grid-template-columns: 1fr; }
         }
 
         /* Table */
-        .pp-table-wrap { background: var(--bg-pure-white); border: 1px solid var(--border-slate-200); border-radius: 0; overflow: hidden; }
-        .pp-table-wrap ::-webkit-scrollbar { display: none !important; }
-        .pp-table-wrap, .pp-table-wrap * { -ms-overflow-style: none !important; scrollbar-width: none !important; }
-        .pp-table, .pp-table.ant-table-wrapper, .pp-table .ant-table, .pp-table .ant-table-container, .pp-table .ant-table-content, .pp-table .ant-table-header, .pp-table .ant-table-body { background: transparent; font-size: 12px; border-radius: 0 !important; }
-        .pp-table .ant-table-thead > tr > th,
-        .pp-table .ant-table-thead > tr > td {
-          background: var(--bg-slate-50) !important; border-bottom: 1px solid var(--border-slate-200) !important;
-          font-size: 10px !important; font-weight: 700 !important; letter-spacing: 0.04em;
-          text-transform: uppercase; color: var(--text-slate-400) !important; padding: 6px 10px !important;
-          white-space: nowrap !important; border-radius: 0 !important;
-          border-start-start-radius: 0 !important; border-start-end-radius: 0 !important;
+        .pp-table-wrap {
+          flex: 1;
+          min-height: 0;
+          display: flex;
+          flex-direction: column;
+          background: var(--bg-pure-white);
+          border: none;
+          border-radius: 0;
+          margin: 0;
+          padding: 0;
+          overflow-y: auto;
+          overflow-x: auto;
+          -ms-overflow-style: none;
+          scrollbar-width: none;
         }
-        .pp-table .ant-table-tbody > tr > td { border-bottom: 1px solid var(--border-slate-100) !important; padding: 8px 10px !important; }
-        .pp-table .ant-table-tbody > tr:last-child > td { border-bottom: none !important; }
-        .pp-table .ant-table-tbody > tr.pp-row:hover > td { background: var(--bg-slate-50) !important; }
-        .pp-table .ant-table-tbody > tr.pp-row { cursor: pointer; }
+        .pp-table-wrap::-webkit-scrollbar,
+        .pp-table-wrap .ant-table-body::-webkit-scrollbar,
+        .pp-table-wrap .ant-table-content::-webkit-scrollbar {
+          width: 0;
+          height: 0;
+          display: none;
+        }
+        .pp-table-wrap .ant-table-body,
+        .pp-table-wrap .ant-table-content {
+          -ms-overflow-style: none;
+          scrollbar-width: none;
+        }
+        .pp-table .ant-table-cell-scrollbar,
+        .tl-table .ant-table-cell-scrollbar {
+          display: none !important;
+          width: 0 !important;
+          padding: 0 !important;
+        }
+        .pp-table, .pp-table.ant-table-wrapper {
+          flex: 1;
+          min-height: 0;
+          display: flex;
+          flex-direction: column;
+          overflow: hidden;
+          background: transparent;
+          font-size: 12px;
+          border-radius: 0 !important;
+        }
+        .pp-table .ant-spin-nested-loading,
+        .pp-table.ant-table-wrapper,
+        .pp-table .ant-spin-container,
+        .pp-table .ant-table,
+        .tl-table .ant-table,
+        .pp-table .ant-table-container,
+        .tl-table .ant-table-container {
+          flex: 1;
+          min-height: 0;
+          display: flex;
+          flex-direction: column;
+          overflow: hidden;
+          background: transparent;
+          font-size: 12px;
+          border-radius: 0 !important;
+          border-start-start-radius: 0 !important;
+          border-start-end-radius: 0 !important;
+          border-end-start-radius: 0 !important;
+          border-end-end-radius: 0 !important;
+        }
+        .pp-table .ant-table-header,
+        .tl-table .ant-table-header,
+        .pp-table .ant-table-thead,
+        .tl-table .ant-table-thead,
+        .pp-table .ant-table-thead > tr,
+        .tl-table .ant-table-thead > tr {
+          border-radius: 0 !important;
+          border-start-start-radius: 0 !important;
+          border-start-end-radius: 0 !important;
+          border-end-start-radius: 0 !important;
+          border-end-end-radius: 0 !important;
+        }
+        .pp-table .ant-table-body,
+        .tl-table .ant-table-body,
+        .pp-table .ant-table-content,
+        .tl-table .ant-table-content {
+          flex: 1;
+          min-height: 0;
+          overflow-y: auto !important;
+        }
+        .pp-table .ant-table-thead > tr > th,
+        .tl-table .ant-table-thead > tr > th,
+        .pp-table .ant-table-thead > tr > td,
+        .tl-table .ant-table-thead > tr > td {
+          background: var(--bg-slate-50) !important;
+          border-bottom: 1px solid var(--border-slate-200) !important;
+          font-size: 10px !important;
+          font-weight: 800 !important;
+          letter-spacing: 0.04em !important;
+          text-transform: uppercase !important;
+          color: var(--text-slate-500) !important;
+          padding: 5px 10px !important;
+          white-space: nowrap !important;
+          position: sticky !important;
+          top: 0 !important;
+          z-index: 10 !important;
+          border-radius: 0 !important;
+          border-start-start-radius: 0 !important;
+          border-start-end-radius: 0 !important;
+          border-end-start-radius: 0 !important;
+          border-end-end-radius: 0 !important;
+        }
+        .pp-table .ant-table-thead > tr > th::before,
+        .tl-table .ant-table-thead > tr > th::before {
+          display: none !important;
+        }
+        [data-theme='dark'] .pp-table .ant-table-thead > tr > th,
+        [data-theme='dark'] .tl-table .ant-table-thead > tr > th {
+          background: #0f1419 !important;
+          border-bottom-color: #1f2937 !important;
+          color: #94a3b8 !important;
+        }
+        .pp-table .ant-table-tbody > tr > td,
+        .tl-table .ant-table-tbody > tr > td {
+          border-bottom: 1px solid var(--border-slate-100) !important;
+          padding: 4px 10px !important;
+          font-size: 11.5px !important;
+          border-radius: 0 !important;
+        }
+        .pp-table .ant-table-cell,
+        .tl-table .ant-table-cell {
+          line-height: 1.3 !important;
+          border-radius: 0 !important;
+        }
+        [data-theme='dark'] .pp-table .ant-table-tbody > tr > td,
+        [data-theme='dark'] .tl-table .ant-table-tbody > tr > td {
+          border-bottom-color: #1f2937 !important;
+        }
+        .pp-table .ant-table-tbody > tr:last-child > td,
+        .tl-table .ant-table-tbody > tr:last-child > td {
+          border-bottom: none !important;
+        }
+        .pp-table .ant-table-tbody > tr.pp-row:hover > td,
+        .tl-table .ant-table-tbody > tr.pp-row:hover > td,
+        .pp-table .ant-table-tbody > tr:hover > td,
+        .tl-table .ant-table-tbody > tr:hover > td {
+          background: var(--bg-slate-50) !important;
+        }
+        [data-theme='dark'] .pp-table .ant-table-tbody > tr.pp-row:hover > td,
+        [data-theme='dark'] .tl-table .ant-table-tbody > tr.pp-row:hover > td,
+        [data-theme='dark'] .pp-table .ant-table-tbody > tr:hover > td,
+        [data-theme='dark'] .tl-table .ant-table-tbody > tr:hover > td {
+          background: #1e293b !important;
+        }
+        .pp-table .ant-table-tbody > tr.pp-row {
+          cursor: pointer;
+        }
+        .pp-table .ant-table-selection-column,
+        .tl-table .ant-table-selection-column {
+          padding-inline: 6px !important;
+        }
 
         /* Footer + pager */
         .pp-footer {
           display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;
-          padding: 10px 14px; border-top: 1px solid var(--border-slate-200);
+          padding: 8px 24px 8px 14px; background: var(--bg-pure-white); border-top: 1px solid var(--border-slate-200);
+          box-sizing: border-box; flex-shrink: 0; margin-top: auto;
+          position: sticky; bottom: 0; z-index: 20;
         }
+        [data-theme='dark'] .pp-footer { background: #0f1419; border-top-color: #1f2937; }
+        .pp-footer-info { font-size: 12px; color: var(--text-slate-500); }
+        .pp-footer-info strong { color: var(--text-slate-700); font-weight: 700; }
+        [data-theme='dark'] .pp-footer-info strong { color: #f1f5f9; }
+        .pp-footer-sel { color: #3B82F6; font-weight: 600; }
         .pp-footer--sticky {
           position: sticky; bottom: 0; z-index: 30;
           margin: 8px -32px 0 -20px;
@@ -1194,6 +1512,6 @@ export default function InvoiceTemplatePage() {
           .pp-stats { grid-template-columns: 1fr; }
         }
       `}</style>
-    </MainLayout>
+    </MainLayout >
   );
 }

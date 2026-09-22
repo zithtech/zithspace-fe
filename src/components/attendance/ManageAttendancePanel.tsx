@@ -365,7 +365,7 @@ export default function ManageAttendancePanel() {
 
     form.setFieldsValue({
       member: record.member?.id,
-      date: record.date ? dayjs(record.date) : dayjs(),
+      date: record.date ? (typeof record.date === 'string' ? dayjs(record.date.split('T')[0]) : dayjs(record.date)) : dayjs(),
       status: record.status,
       notes: record.notes,
       timeline,
@@ -461,7 +461,7 @@ export default function ManageAttendancePanel() {
 
       const payload: any = {
         userId: values.member,
-        date: selectedDate.toISOString(),
+        date: selectedDate.format('YYYY-MM-DD'),
         status: values.status,
         notes: values.notes,
       };
@@ -558,7 +558,7 @@ export default function ManageAttendancePanel() {
       title: 'Date',
       dataIndex: 'date',
       key: 'date',
-      render: (v) => (v ? dayjs(v).format('MMM DD, YYYY') : '-'),
+      render: (v) => (v ? (typeof v === 'string' ? dayjs(v.split('T')[0]).format('MMM DD, YYYY') : dayjs(v).format('MMM DD, YYYY')) : '-'),
     },
     {
       title: 'Status',

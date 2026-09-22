@@ -275,6 +275,7 @@ const PerformanceReportService = {
     return unwrap<{ reports: GeneratedReport[]; periods: string[] }>(res.data) ?? { reports: [], periods: [] };
   },
 
+  /** Delete a generated report */
   async deleteGeneratedReport(id: string): Promise<void> {
     await apiClient.delete(`${BASE}/generated/${id}`);
   },
@@ -295,6 +296,16 @@ const PerformanceReportService = {
       },
     });
     return unwrap<ReportLeave[]>(res.data) ?? [];
+  },
+
+  /** Trigger automated report generation sweep on demand */
+  async triggerAutoGenerateSweep(): Promise<{ scannedTenants: number; generatedCount: number; failedCount: number }> {
+    const res = await apiClient.post(
+      `${BASE}/settings/trigger-auto-generate`,
+      {},
+      { timeout: 300000 }
+    );
+    return unwrap(res.data);
   },
 };
 

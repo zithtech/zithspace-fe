@@ -219,7 +219,7 @@ export default function StatutoryPanel() {
       )}
 
       <style jsx global>{`
-        .pvst-page { display: flex; flex-direction: column; gap: 14px; padding-bottom: 32px; }
+        .pvst-page { display: flex; flex-direction: column; flex: 1; min-height: 0; overflow-y: auto; gap: 14px; padding-bottom: 32px; }
         .pvst-header { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 14px; padding: 4px 2px 16px; border-bottom: 1px solid var(--border-slate-100); }
         .pvst-head-chip { width: 42px; height: 42px; border-radius: 11px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
         .pvst-head-text { flex: 1; min-width: 0; }
@@ -227,12 +227,12 @@ export default function StatutoryPanel() {
         .pvst-head-sub { font-size: 12.5px; color: var(--text-slate-500); margin-top: 2px; }
         .pvst-head-actions { display: flex; gap: 8px; flex-shrink: 0; }
         .pvst-loading { display: flex; justify-content: center; padding: 64px 0; }
-        .pvst-tabs { display: inline-flex; gap: 4px; padding: 4px; margin-bottom: 4px; background: var(--bg-slate-50); border: 1px solid var(--border-slate-200); border-radius: 12px; }
+        .pvst-tabs { display: inline-flex; gap: 4px; padding: 4px; margin-bottom: 4px; margin-left: 20px; margin-right: 20px; align-self: flex-start; background: var(--bg-slate-50); border: 1px solid var(--border-slate-200); border-radius: 12px; }
         .pvst-tab { display: inline-flex; align-items: center; gap: 8px; height: 38px; padding: 0 18px; border: none; background: transparent; border-radius: 9px; font-size: 13px; font-weight: 600; line-height: 1; white-space: nowrap; color: var(--text-slate-500); cursor: pointer; transition: color .15s ease, background .15s ease, box-shadow .15s ease; }
         .pvst-tab svg { flex-shrink: 0; }
         .pvst-tab:hover { color: var(--text-slate-800); }
         .pvst-tab.is-active { background: var(--bg-pure-white); color: var(--text-slate-900); box-shadow: 0 1px 2px rgba(15,23,42,0.10), 0 0 0 1px rgba(15,23,42,0.05); }
-        .pvst-sections { display: flex; flex-direction: column; gap: 14px; max-width: 880px; }
+        .pvst-sections { display: flex; flex-direction: column; gap: 14px; max-width: 880px; padding: 16px 20px 48px; }
         .pvst-card { border: 1px solid var(--border-slate-200); border-radius: 12px; background: var(--bg-pure-white); overflow: hidden; }
         .pvst-card-head { display: flex; align-items: center; gap: 11px; padding: 14px 16px; border-bottom: 1px solid var(--border-slate-100); }
         .pvst-card-chip { width: 32px; height: 32px; border-radius: 9px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; }

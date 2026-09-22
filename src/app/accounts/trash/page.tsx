@@ -948,30 +948,38 @@ export default function AccountTrashPage() {
 
           <div className="pp-divider" />
 
-          {/* Metric Stat Cards */}
-          <div className="pp-stats">
-            {statCells.map((s) => (
-              <div key={s.key} className="pp-stat-card">
-                <div className="pp-stat-top">
-                  <div className="pp-stat-left">
-                    <span className="pp-stat-icon" style={{ background: s.tint, color: s.color }}>
-                      {s.icon}
-                    </span>
-                    <span className="pp-stat-label">{s.title}</span>
-                  </div>
-                  {s.delta > 0 && (
-                    <span className="pp-stat-delta" style={{ color: s.color, background: s.tint }}>
-                      {s.delta} {s.deltaLabel}
-                    </span>
-                  )}
-                </div>
-                <div className="pp-stat-bottom">
-                  <div className="pp-stat-value-wrap">
-                    <div className="pp-stat-value">{s.value}</div>
-                  </div>
+          {/* Sprint Header (Stats) */}
+          <div className="pp-sprint-head-v2">
+            <div className="pp-sprint-row1">
+              <div className="pp-sprint-title-block">
+                <div className="pp-sprint-dot" style={{ background: '#ef4444' }} />
+                <h2 className="pp-sprint-title">Accounts — Deleted Items</h2>
+                <div className="pp-sprint-tags">
+                  <span className="pp-sprint-tag pp-sprint-tag-delayed" style={{ borderColor: 'rgba(239, 68, 68, 0.32)' }}>TRASH</span>
                 </div>
               </div>
-            ))}
+            </div>
+            <div className="pp-sprint-row2">
+              <span className="pp-sprint-meta">
+                <CalendarOutlined style={{ fontSize: 11 }} />
+                <span>All Time</span>
+              </span>
+              {statCells.map((s) => (
+                <span key={s.key} className="pp-sprint-meta">
+                  <span style={{ color: s.color, display: 'flex', alignItems: 'center' }}>{s.icon}</span>
+                  {s.title}: <b>{s.value}</b>
+                </span>
+              ))}
+            </div>
+            <div className="pp-sprint-row3">
+              <div className="pp-sprint-progress-bar">
+                <div
+                  className="pp-sprint-progress-fill"
+                  style={{ width: `100%`, background: 'linear-gradient(90deg, #ef4444, #fca5a5)' }}
+                />
+              </div>
+              <span className="pp-sprint-progress-pct">100%</span>
+            </div>
           </div>
 
           {/* Table / Grid Content */}
@@ -1651,7 +1659,8 @@ export default function AccountTrashPage() {
         .pp-shell {
           display: flex;
           margin: 0 -24px;
-          min-height: calc(100vh - 54px);
+          height: calc(100vh - 54px);
+          overflow: hidden;
           background: var(--bg-pure-white);
         }
         .pp-shell,
@@ -1755,9 +1764,9 @@ export default function AccountTrashPage() {
         .pp-clear-filters:hover { color: #3b82f6; }
 
         /* Main Content */
-        .pp-main { flex: 1; min-width: 0; padding: 8px 32px 0 20px; display: flex; flex-direction: column; }
-        .pp-body { flex: 1 0 auto; padding-bottom: 60px; }
-        .pp-topbar { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; flex-wrap: wrap; }
+        .pp-main { flex: 1; min-width: 0; padding: 8px 0 0 0; display: flex; flex-direction: column; overflow: hidden; }
+        .pp-body { flex: 1; min-height: 0; padding-bottom: 60px; overflow-y: auto; overflow-x: hidden; }
+        .pp-topbar { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; flex-wrap: wrap; padding: 0 32px 0 20px; flex-shrink: 0; }
         .pp-search-wrap {
           position: relative; flex: 1; max-width: 480px; min-width: 240px; display: flex; align-items: center;
           height: 32px; border-radius: 8px; background: var(--bg-pure-white);
@@ -1797,34 +1806,32 @@ export default function AccountTrashPage() {
         }
         .pp-ghost-btn:hover { color: #3b82f6; border-color: #bfdbfe; }
 
-        .pp-divider { height: 1px; background: var(--border-slate-200); margin: 0 -32px 10px -20px; }
+        .pp-divider { height: 1px; background: var(--border-slate-200); margin: 0 0 10px 0; flex-shrink: 0; }
 
-        /* Stat cards */
-        .pp-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 14px; }
-        .pp-stat-card {
-          background: var(--bg-pure-white); border: 1px solid var(--border-slate-200);
-          border-radius: 0; padding: 12px 14px; min-height: 92px;
-          display: flex; flex-direction: column; justify-content: space-between; gap: 10px;
-          box-shadow: 0 1px 2px rgba(15,23,42,0.04);
-        }
-        .pp-stat-top { display: flex; align-items: center; justify-content: space-between; }
-        .pp-stat-left { display: flex; align-items: center; gap: 8px; }
-        .pp-stat-icon { width: 26px; height: 26px; border-radius: 8px; display: inline-flex; align-items: center; justify-content: center; font-size: 13px; }
-        .pp-stat-label { font-size: 12px; font-weight: 600; color: var(--text-slate-600); }
-        .pp-stat-delta {
-          display: inline-flex; align-items: center; gap: 2px; font-size: 10.5px; font-weight: 700;
-          border-radius: 6px; padding: 1px 6px;
-        }
-        .pp-stat-bottom { display: flex; align-items: flex-end; justify-content: space-between; gap: 8px; }
-        .pp-stat-value-wrap { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; }
-        .pp-stat-value { font-size: 23px; font-weight: 800; color: var(--text-slate-900); letter-spacing: -0.02em; line-height: 1; }
+        /* Sprint Header (Stats) */
+        .pp-sprint-head-v2 { display: flex; flex-direction: column; gap: 2px; padding: 8px 20px 10px; background: var(--bg-pure-white); border-bottom: 1px solid var(--border-slate-200); margin-bottom: 0px; flex-shrink: 0; }
+        .pp-sprint-row1 { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; margin-bottom: 2px; }
+        .pp-sprint-title-block { display: flex; align-items: center; gap: 6px; min-width: 0; flex: 1 1 auto; }
+        .pp-sprint-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+        .pp-sprint-title { font-size: 13px !important; font-weight: 800 !important; color: var(--text-slate-900) !important; letter-spacing: -0.01em; margin: 0; }
+        .pp-sprint-tags { display: inline-flex; align-items: center; gap: 4px; flex-shrink: 0; }
+        .pp-sprint-tag { display: inline-flex; align-items: center; height: 16px; padding: 0 4px; font-size: 9px; font-weight: 800; letter-spacing: 0.04em; border-radius: 4px; border: 1px solid transparent; text-transform: uppercase; line-height: 1; }
+        .pp-sprint-tag-delayed { background: transparent; color: #ef4444; border-color: rgba(239, 68, 68, 0.32); }
+        .pp-sprint-row2 { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; padding-left: 14px; margin-bottom: 4px; }
+        .pp-sprint-meta { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; font-weight: 600; color: var(--text-slate-500); letter-spacing: -0.005em; }
+        .pp-sprint-meta b { color: var(--text-slate-900); font-weight: 800; }
+        .pp-sprint-row3 { display: flex; align-items: center; gap: 10px; padding-left: 14px; }
+        .pp-sprint-progress-bar { flex: 1 1 auto; position: relative; height: 5px; background: var(--bg-slate-100); border-radius: 999px; overflow: hidden; min-width: 60px; }
+        .pp-sprint-progress-fill { position: absolute; inset: 0; border-radius: 999px; transition: width 0.4s ease; }
+        .pp-sprint-progress-pct { flex-shrink: 0; font-size: 11px; font-weight: 800; color: var(--text-slate-900); font-variant-numeric: tabular-nums; min-width: 32px; }
 
         /* Table */
-        .pp-table-wrap { background: var(--bg-pure-white); border: 1px solid var(--border-slate-200); border-radius: 0; overflow: hidden; }
+        .pp-table-wrap { background: var(--bg-pure-white); border: none; border-bottom: 1px solid var(--border-slate-200); border-radius: 0; overflow: visible; }
         .pp-table-wrap ::-webkit-scrollbar { display: none !important; }
         .pp-table-wrap, .pp-table-wrap * { -ms-overflow-style: none !important; scrollbar-width: none !important; }
-        .pp-table .ant-table, .pp-table .ant-table-container, .pp-table .ant-table-content { background: transparent; font-size: 12px; border-radius: 0 !important; }
+        .pp-table .ant-table, .pp-table .ant-table-container, .pp-table .ant-table-content { background: transparent; font-size: 12px; border-radius: 0 !important; overflow: visible !important; }
         .pp-table .ant-table-thead > tr > th {
+          position: sticky; top: 0; z-index: 10;
           background: var(--bg-slate-50) !important; border-bottom: 1px solid var(--border-slate-200) !important;
           font-size: 10px !important; font-weight: 700 !important; letter-spacing: 0.04em;
           text-transform: uppercase; color: var(--text-slate-400) !important; padding: 6px 10px !important;
@@ -1891,7 +1898,7 @@ export default function AccountTrashPage() {
         }
         .pp-empty-title { font-size: 16px; font-weight: 700; color: var(--text-slate-900); }
         .pp-empty-sub { font-size: 13px; color: var(--text-slate-400); margin-top: 4px; }
-        .pp-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+        .pp-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; padding: 16px 20px; }
 
         .pc-card {
           border: 1px solid var(--border-slate-200); border-radius: 0; background: var(--bg-pure-white);

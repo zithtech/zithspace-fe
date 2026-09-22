@@ -88,8 +88,8 @@ export default function MyPayslipsPanel({ hideSidebarToggle }: { hideSidebarTogg
               <Button type="primary" icon={<DownloadOutlined />} href={latest.fileUrl} target="_blank" size="large">Download payslip</Button>
             </div>
           )}
-          <div className="mps-table-wrap">
-            <Table rowKey="id" size="small" className="mps-table" columns={columns} dataSource={rows} pagination={false} scroll={{ x: 'max-content' }} locale={{ emptyText: <NoData /> }} />
+          <div className="pv-table-wrap">
+            <Table rowKey="id" size="small" columns={columns} dataSource={rows} pagination={false} scroll={{ x: 'max-content' }} locale={{ emptyText: <NoData /> }} />
           </div>
         </>
       )}

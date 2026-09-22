@@ -375,7 +375,7 @@ export default function PayRunPanel() {
         </div>
       </div>
 
-      <div className="pvr-table-wrap">
+      <div className="pv-table-wrap">
         {runs.length === 0 && !loading
           ? <div style={{ padding: 48 }}><NoData description="No pay runs yet — create one to get started" /></div>
           : <ZukvoLoadingOverlay loading={loading} message="">

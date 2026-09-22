@@ -9,6 +9,7 @@ import ProtectedRoute from '@/components/common/ProtectedRoute';
 import { useAuth } from '@/context/AuthContext';
 import { usePermission } from '@/hooks/usePermission';
 import { PAYROLL_NAV_ITEMS, canAccessPayrollItem } from '@/components/payroll-v2/navItems';
+import { PvStyles } from '@/components/payroll-v2/ui';
 
 // Shared master-detail shell for every /payroll-v2/* route. The left rail is
 // rendered here once; sub-route pages render into {children}. Active state is
@@ -121,12 +122,15 @@ export default function PayrollV2Layout({ children }: { children: React.ReactNod
             <div className="pv-content">{children}</div>
           </main>
         </div>
+        
+        <PvStyles />
 
         <style jsx global>{`
           .pv-shell {
             display: flex;
             margin: 0 -8px;
-            min-height: calc(100vh - 64px);
+            height: calc(100vh - 54px);
+            overflow: hidden;
             background: var(--bg-pure-white);
           }
           /* ---------------- Sidebar ---------------- */
@@ -181,8 +185,29 @@ export default function PayrollV2Layout({ children }: { children: React.ReactNod
             border: 1px solid var(--border-slate-200); border-radius: 5px; padding: 1px 5px;
           }
           /* ---------------- Main ---------------- */
-          .pv-main { flex: 1; min-width: 0; padding: 8px 18px 0; display: flex; flex-direction: column; }
-          .pv-content { flex: 1; min-height: 0; padding: 4px 4px 0; display: flex; flex-direction: column; }
+          .pv-main { flex: 1; min-width: 0; padding: 0; display: flex; flex-direction: column; overflow: hidden; }
+          .pv-content { flex: 1; min-height: 0; padding: 0; display: flex; flex-direction: column; overflow: hidden; }
+          
+          /* Automatically give padding to any filter bar rendered in a panel */
+          .pv-content [class$="-filters"] {
+            padding-top: 6px;
+            padding-left: 20px;
+            padding-right: 20px;
+          }
+
+          /* Fix tabs layout and padding */
+          .pv-content .ant-tabs {
+            display: flex; flex-direction: column; flex: 1; min-height: 0; overflow: hidden;
+          }
+          .pv-content .ant-tabs > .ant-tabs-nav {
+            padding: 0 20px;
+            margin-bottom: 12px;
+          }
+          .pv-content .ant-tabs > .ant-tabs-content-holder,
+          .pv-content .ant-tabs > .ant-tabs-content-holder > .ant-tabs-content,
+          .pv-content .ant-tabs > .ant-tabs-content-holder > .ant-tabs-content > .ant-tabs-tabpane-active {
+            display: flex; flex-direction: column; flex: 1; min-height: 0; overflow: hidden;
+          }
 
           /* Every payroll-v2 page header sticks to the top of the scroll area so
              the title + Reset/Save actions stay visible while the body scrolls.
@@ -196,8 +221,9 @@ export default function PayrollV2Layout({ children }: { children: React.ReactNod
             z-index: 20;
             background: var(--bg-pure-white);
             box-shadow: 0 6px 16px -14px rgba(15, 23, 42, 0.4);
-            margin-left: -22px;
-            margin-right: -22px;
+            margin-left: 0 !important;
+            margin-right: 0 !important;
+            padding-top: 16px;
             padding-left: 22px;
             padding-right: 22px;
           }

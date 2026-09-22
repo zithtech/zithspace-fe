@@ -222,21 +222,36 @@ export interface StatCell {
   tint: string;
 }
 
-export function StatCards({ cells }: { cells: StatCell[] }) {
+export function StatCards({ cells, title = "Reimbursement Overview", tag = "LIVE", dotColor = "#3b82f6", progressPct = "100%" }: { cells: StatCell[], title?: string, tag?: string, dotColor?: string, progressPct?: string }) {
   return (
-    <div className="rvp-stats">
-      {cells.map((c) => (
-        <div className="rvp-stat-card" key={c.label}>
-          <span className="rvp-stat-icon" style={{ background: c.tint, color: c.color }}>
-            {c.icon}
-          </span>
-          <div className="rvp-stat-body">
-            <div className="rvp-stat-value">{c.value}</div>
-            <div className="rvp-stat-label">{c.label}</div>
-            {c.hint && <div className="rvp-stat-hint">{c.hint}</div>}
+    <div className="rvp-sprint-header-v2">
+      <div className="rvp-sprint-row1">
+        <div className="rvp-sprint-title-block">
+          <div className="rvp-sprint-dot" style={{ background: dotColor }} />
+          <h2 className="rvp-sprint-title">{title}</h2>
+          <div className="rvp-sprint-tags">
+            <span className="rvp-sprint-tag rvp-sprint-tag-active">{tag}</span>
           </div>
         </div>
-      ))}
+      </div>
+      <div className="rvp-sprint-row2">
+        {cells.map((c) => (
+          <span key={c.label} className="rvp-sprint-meta">
+            <span style={{ color: c.color, display: 'flex', alignItems: 'center' }}>{c.icon}</span>
+            {c.label}: <b>{c.value}</b>
+            {c.hint && <span style={{ color: 'var(--text-slate-400)', marginLeft: 4, fontWeight: 400 }}>{c.hint}</span>}
+          </span>
+        ))}
+      </div>
+      <div className="rvp-sprint-row3">
+        <div className="rvp-sprint-progress-bar">
+          <div
+            className="rvp-sprint-progress-fill"
+            style={{ width: progressPct, background: 'linear-gradient(90deg, #3b82f6, #6366f1)' }}
+          />
+        </div>
+        <span className="rvp-sprint-progress-pct">{progressPct}</span>
+      </div>
     </div>
   );
 }
@@ -289,10 +304,10 @@ export const tablePaginationConfig = {
 export function RmbStyles() {
   return (
     <style jsx global>{`
-      .rvp { display: flex; flex-direction: column; min-height: 0; flex: 1; }
+      .rvp { display: flex; flex-direction: column; min-height: 0; flex: 1; overflow: hidden; }
       .rvp-header {
         display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap;
-        padding: 16px 0 20px !important; border-bottom: 1px solid var(--border-slate-100); margin-bottom: 20px;
+        padding: 16px 20px 20px !important; border-bottom: 1px solid var(--border-slate-100); margin-bottom: 0px;
         position: sticky; top: 0; z-index: 30; background: var(--bg-pure-white);
       }
       .rvp-head-about { display: flex; align-items: center; gap: 10px; min-width: 0; }
@@ -313,50 +328,46 @@ export function RmbStyles() {
       .rvp-head-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
       .rvp-head-actions .ant-btn { height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; }
       .rvp-search.ant-input-affix-wrapper { width: 240px; height: 32px; border-radius: 8px; }
-      .rvp-stats {
-        display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 16px;
-      }
-      @media (max-width: 1024px) {
-        .rvp-stats { grid-template-columns: repeat(2, 1fr); }
-      }
-      @media (max-width: 640px) {
-        .rvp-stats { grid-template-columns: 1fr; }
-      }
-      .rvp-stat-card {
-        display: flex; align-items: center; gap: 12px; padding: 14px 16px; border-radius: 0;
-        border: 1px solid var(--border-slate-200); background: var(--bg-pure-white);
-      }
-      .rvp-stat-icon {
-        width: 38px; height: 38px; border-radius: 10px; display: flex; align-items: center;
-        justify-content: center; font-size: 17px; flex-shrink: 0;
-      }
-      .rvp-stat-body { min-width: 0; }
-      .rvp-stat-value { font-size: 20px; font-weight: 800; color: var(--text-slate-900); line-height: 1.1; }
-      .rvp-stat-label { font-size: 12px; font-weight: 600; color: var(--text-slate-600); margin-top: 2px; }
-      .rvp-stat-hint { font-size: 10.5px; color: var(--text-slate-400); margin-top: 1px; }
-      .rvp-filters { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; }
+      /* Sprint Header (Stats) */
+      .rvp-sprint-header-v2 { display: flex; flex-direction: column; gap: 2px; padding: 8px 20px 10px; background: var(--bg-pure-white); border-bottom: 1px solid var(--border-slate-200); margin-bottom: 0px; flex-shrink: 0; }
+      .rvp-sprint-row1 { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; margin-bottom: 2px; }
+      .rvp-sprint-title-block { display: flex; align-items: center; gap: 6px; min-width: 0; flex: 1 1 auto; }
+      .rvp-sprint-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+      .rvp-sprint-title { font-size: 13px !important; font-weight: 800 !important; color: var(--text-slate-900) !important; letter-spacing: -0.01em; margin: 0; }
+      .rvp-sprint-tags { display: inline-flex; align-items: center; gap: 4px; flex-shrink: 0; }
+      .rvp-sprint-tag { display: inline-flex; align-items: center; height: 16px; padding: 0 4px; font-size: 9px; font-weight: 800; letter-spacing: 0.04em; border-radius: 4px; border: 1px solid transparent; text-transform: uppercase; line-height: 1; }
+      .rvp-sprint-tag-active { background: transparent; color: #34d399; border-color: rgba(16, 185, 129, 0.32); }
+      .rvp-sprint-row2 { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; padding-left: 14px; margin-bottom: 4px; }
+      .rvp-sprint-meta { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; font-weight: 600; color: var(--text-slate-500); letter-spacing: -0.005em; }
+      .rvp-sprint-meta b { color: var(--text-slate-900); font-weight: 800; }
+      .rvp-sprint-row3 { display: flex; align-items: center; gap: 10px; padding-left: 14px; }
+      .rvp-sprint-progress-bar { flex: 1 1 auto; position: relative; height: 5px; background: var(--bg-slate-100); border-radius: 999px; overflow: hidden; min-width: 60px; }
+      .rvp-sprint-progress-fill { position: absolute; inset: 0; border-radius: 999px; transition: width 0.4s ease; }
+      .rvp-filters { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; padding: 0 20px; }
       .rvp-filter-count { font-size: 12px; color: var(--text-slate-500); margin-left: auto; }
-      .rvp > .ant-tabs { display: flex; flex-direction: column; flex: 1; min-height: 0; }
+      .rvp > .ant-tabs { display: flex; flex-direction: column; flex: 1; min-height: 0; overflow: hidden; }
+      .rvp > .ant-tabs > .ant-tabs-nav { padding: 0 20px; margin-bottom: 12px; }
       .rvp > .ant-tabs > .ant-tabs-content-holder,
       .rvp > .ant-tabs > .ant-tabs-content-holder > .ant-tabs-content,
       .rvp > .ant-tabs > .ant-tabs-content-holder > .ant-tabs-content > .ant-tabs-tabpane-active {
-        display: flex; flex-direction: column; flex: 1; min-height: 0;
+        display: flex; flex-direction: column; flex: 1; min-height: 0; overflow: hidden;
       }
       .rvp-table-wrap {
-        display: flex; flex-direction: column; flex: 1; min-height: 0;
+        display: flex; flex-direction: column; flex: 1; min-height: 0; overflow: hidden;
       }
-      .rvp-table-wrap .ant-table-wrapper { display: flex; flex-direction: column; flex: 1; min-height: 0; }
-      .rvp-table-wrap .ant-spin-nested-loading { display: flex; flex-direction: column; flex: 1; min-height: 0; }
-      .rvp-table-wrap .ant-spin-container { display: flex; flex-direction: column; flex: 1; min-height: 0; }
+      .rvp-table-wrap .ant-table-wrapper { display: flex; flex-direction: column; flex: 1; min-height: 0; overflow: hidden; }
+      .rvp-table-wrap .ant-spin-nested-loading { display: flex; flex-direction: column; flex: 1; min-height: 0; overflow: hidden; }
+      .rvp-table-wrap .ant-spin-container { display: flex; flex-direction: column; flex: 1; min-height: 0; overflow: hidden; }
       .rvp-table-wrap .ant-table {
-        flex: 0 1 auto; overflow: auto;
+        flex: 1 1 auto; overflow: hidden; display: flex; flex-direction: column;
         background: var(--bg-pure-white);
         border: 1px solid var(--border-slate-200);
         border-radius: 0 !important;
-        margin-bottom: 24px;
+        margin-bottom: 0;
       }
+      .rvp-table-wrap .ant-table-container { overflow: hidden !important; display: flex; flex-direction: column; flex: 1; min-height: 0; }
+      .rvp-table-wrap .ant-table-content { overflow-y: auto !important; overflow-x: auto !important; flex: 1; min-height: 0; }
       .rvp-table-wrap .ant-table table { min-width: 800px; }
-      .rvp-table-wrap .ant-table-container,
       .rvp-table-wrap .ant-table-thead > tr > th:first-child,
       .rvp-table-wrap .ant-table-thead > tr > th:last-child {
         border-radius: 0 !important;
@@ -364,7 +375,9 @@ export function RmbStyles() {
       
       /* Ticket style table headers for ALL v2 tables (in rv-shell and drawers) */
       .rvp-table-wrap .ant-table-thead > tr > th,
-      .ant-drawer-content .ant-table-thead > tr > th {
+      .ant-drawer-content .ant-table-thead > tr > th,
+      .ant-table-thead > tr > th {
+        position: sticky; top: 0; z-index: 10;
         padding: 5px 10px !important;
         font-size: 10px !important;
         font-weight: 800 !important;
@@ -373,6 +386,7 @@ export function RmbStyles() {
         text-transform: uppercase;
         letter-spacing: 0.04em;
         text-align: left !important;
+        border-bottom: 1px solid var(--border-slate-200) !important;
         /* Remove vertical separator lines between header cells */
         border-inline-end: none !important;
       }
@@ -403,14 +417,12 @@ export function RmbStyles() {
       }
 
       .rvp-table-wrap .ant-pagination {
-
-        margin: auto -32px 0 -32px !important;
-        padding: 12px 32px;
+        margin: 0 !important;
+        padding: 12px 20px;
         background: var(--bg-pure-white);
         border-top: 1px solid var(--border-slate-200);
-        position: sticky; bottom: 0; z-index: 20;
         display: flex; align-items: center;
-        box-shadow: 0 -4px 14px rgba(15, 23, 42, 0.03);
+        flex-shrink: 0;
       }
       .rvp-table-wrap .ant-pagination-total-text { margin-right: auto; color: var(--text-slate-500); font-size: 13px; }
       .rvp-empty { padding: 48px; text-align: center; color: var(--text-slate-400); }

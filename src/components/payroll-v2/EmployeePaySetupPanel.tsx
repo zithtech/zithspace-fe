@@ -10,6 +10,7 @@ import {
   CloseCircleOutlined, UserOutlined, TeamOutlined, CheckCircleOutlined, DollarOutlined, StopOutlined,
   IdcardOutlined, HistoryOutlined, PieChartOutlined,
 } from '@ant-design/icons';
+import { StatCards } from '@/components/payroll-v2/ui';
 import { usePermission } from '@/hooks/usePermission';
 import { SearchableDropdown } from '@/components/common/SearchableDropdown';
 import ConfirmDialog from '@/components/common/ConfirmDialog';
@@ -313,14 +314,7 @@ export default function EmployeePaySetupPanel() {
         </div>
       </div>
 
-      <div className="pvep-stats">
-        {statCells.map((s) => (
-          <div key={s.key} className="pvep-stat-card">
-            <div className="pvep-stat-left"><span className="pvep-stat-icon" style={{ background: s.tint, color: s.color }}>{s.icon}</span><span className="pvep-stat-label">{s.title}</span></div>
-            <div className="pvep-stat-value-wrap"><span className="pvep-stat-value">{s.value}</span><span className="pvep-stat-period">{s.period}</span></div>
-          </div>
-        ))}
-      </div>
+      <StatCards cells={statCells.map(s => ({ label: s.title, value: s.value, icon: s.icon, color: s.color, tint: s.tint }))} />
 
       <div className="pvep-filters">
         <span className="pvep-filter-label"><FilterOutlined /> Filter</span>
@@ -331,9 +325,9 @@ export default function EmployeePaySetupPanel() {
         {hasFilters && <button type="button" className="pvep-clear" onClick={() => { setSearch(''); setStatusFilter('all'); }}><CloseCircleOutlined /> Clear</button>}
       </div>
 
-      <div className="pvep-table-wrap">
+      <div className="pv-table-wrap">
         <ZukvoLoadingOverlay loading={loading} message="">
-          <Table rowKey={(r) => r.employee.value} size="small" className="pvep-table" columns={columns} dataSource={pagedRows} pagination={false} onRow={() => ({ className: 'pvep-row' })} scroll={{ x: 'max-content' }} locale={{ emptyText: <NoData /> }} />
+          <Table rowKey={(r) => r.employee.value} size="small" columns={columns} dataSource={pagedRows} pagination={false} onRow={() => ({ className: 'pvep-row' })} scroll={{ x: 'max-content' }} locale={{ emptyText: <NoData /> }} />
         </ZukvoLoadingOverlay>
       </div>
 
@@ -489,7 +483,7 @@ export default function EmployeePaySetupPanel() {
         .pvep-table .ant-table-tbody > tr.pvep-row:hover > td { background: var(--bg-slate-50) !important; }
 
         .pvep-footer { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; height: 52px; box-sizing: border-box; }
-        .pvep-footer--sticky { position: sticky; bottom: 0; z-index: 20; margin: auto -22px 0; padding: 0 22px; background: var(--bg-pure-white); border-top: 1px solid var(--border-slate-200); box-shadow: 0 -4px 14px rgba(15,23,42,0.05); }
+        .pvep-footer--sticky { position: sticky; bottom: 0; z-index: 20; margin: 0; padding: 0 22px; background: var(--bg-pure-white); border-top: 1px solid var(--border-slate-200); box-shadow: 0 -4px 14px rgba(15,23,42,0.05); }
         .pvep-footer-info { font-size: 12px; color: var(--text-slate-500); }
         .pvep-footer-info strong { color: var(--text-slate-700); font-weight: 700; }
         .pvep-pager { display: flex; align-items: center; gap: 3px; }

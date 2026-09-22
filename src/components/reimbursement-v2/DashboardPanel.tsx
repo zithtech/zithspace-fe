@@ -77,7 +77,7 @@ export default function DashboardPanel() {
       ]} />
 
       {summary && summary.byStatus.length > 0 && (
-        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 16 }}>
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', padding: '16px 20px 0' }}>
           {summary.byStatus.map((b) => (
             <span key={b.status} style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '6px 12px', border: '1px solid var(--border-slate-200)', borderRadius: 999 }}>
               <StatusTag status={b.status} /> <b>{b.count}</b> <span style={{ color: 'var(--text-slate-500)' }}>{money(b.total)}</span>
@@ -104,6 +104,10 @@ export default function DashboardPanel() {
       </Row>
       <RmbStyles />
       <style>{`
+        .rvp-dashboard-cards {
+          flex: 1; min-height: 0; overflow-y: auto; overflow-x: hidden;
+          padding-top: 16px; padding-bottom: 24px; padding-left: 20px; padding-right: 20px;
+        }
         .rvp-dashboard-cards .ant-table {
           border-radius: 0 !important;
         }

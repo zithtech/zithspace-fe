@@ -1,13 +1,14 @@
 "use client";
 
 import NoData from "@/components/common/NoData";
-import React, { useState, useEffect } from "react";
-import { Table, Tag, Badge, Card, notification, Button, Input } from "antd";
+import React, { useState, useEffect, useMemo } from "react";
+import { Table, Tag, Badge, Card, notification, Button, Input, Pagination, Typography } from "antd";
 import { FileText, Receipt, RefreshCw, Search, LayoutGrid, List } from "lucide-react";
-import { api } from "@/lib/axios";
+import { api, apiClient } from "@/lib/axios";
 import dayjs from "dayjs";
 import { TimeTrackingHeader } from "@/components/time-tracking/TimeTrackingHeader";
 import { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
+import { currencySymbol } from "@/utils/currencies";
 
 interface InvoicesTabProps {
   clientId: string;
@@ -38,16 +39,26 @@ const fromBackendStatus = (status: string): string => {
 
 export default function InvoicesTab({ clientId, onRefresh }: InvoicesTabProps) {
   const [invoices, setInvoices] = useState<any[]>([]);
+  const [totalCount, setTotalCount] = useState(0);
   const [loading, setLoading] = useState(false);
   const [notify, contextHolder] = notification.useNotification();
   const [searchTerm, setSearchTerm] = useState("");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(15);
 
-  const fetchInvoices = async () => {
+  const fetchInvoices = async (page = currentPage, size = pageSize, search = searchTerm) => {
     setLoading(true);
     try {
-      const data = await api.get(`/api/clients-v2/${clientId}/invoices`);
-      setInvoices(data || []);
+      const qs = new URLSearchParams();
+      qs.append("page", String(page));
+      qs.append("limit", String(size));
+      if (search.trim()) qs.append("search", search.trim());
+      const res = await apiClient.get(`/api/clients-v2/${clientId}/invoices?${qs.toString()}`);
+      const data = res.data?.data || [];
+      const meta = res.data?.meta || { total: data.length };
+      setInvoices(Array.isArray(data) ? data : []);
+      setTotalCount(meta.total ?? (Array.isArray(data) ? data.length : 0));
     } catch (error) {
       console.error("Error fetching invoices:", error);
       notify.error({
@@ -65,7 +76,7 @@ export default function InvoicesTab({ clientId, onRefresh }: InvoicesTabProps) {
     try {
       setRefreshing(true);
       await Promise.all([
-        fetchInvoices(),
+        fetchInvoices(currentPage, pageSize, searchTerm),
         onRefresh(),
       ]);
     } catch (error) {
@@ -76,17 +87,20 @@ export default function InvoicesTab({ clientId, onRefresh }: InvoicesTabProps) {
   };
 
   useEffect(() => {
-    fetchInvoices();
-  }, [clientId]);
+    fetchInvoices(currentPage, pageSize, searchTerm);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [clientId, currentPage, pageSize]);
 
-  const filteredInvoices = invoices.filter((invoice) => {
-    const num = invoice.invoiceNumber || "";
-    const cust = invoice.customerName || "";
-    return (
-      num.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      cust.toLowerCase().includes(searchTerm.toLowerCase())
-    );
-  });
+  useEffect(() => {
+    const t = setTimeout(() => {
+      setCurrentPage(1);
+      fetchInvoices(1, pageSize, searchTerm);
+    }, 300);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchTerm]);
+
+  const paginatedInvoices = invoices;
 
   const columns = [
     {
@@ -151,10 +165,10 @@ export default function InvoicesTab({ clientId, onRefresh }: InvoicesTabProps) {
     {
       title: "AMOUNT",
       dataIndex: "grandTotal",
-      width: 120,
-      render: (v: number) => (
+      width: 160,
+      render: (v: number, record: any) => (
         <div className="font-bold" style={{ color: 'var(--text-primary)' }}>
-          ${Number(v || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+          {currencySymbol(record?.currency)}{Number(v || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
         </div>
       ),
     },
@@ -214,7 +228,7 @@ export default function InvoicesTab({ clientId, onRefresh }: InvoicesTabProps) {
   ];
 
   return (
-    <div style={{ animation: "fadeIn 0.3s ease-in-out" }}>
+    <div style={{ animation: "fadeIn 0.3s ease-in-out" }} className="invoices-tab-container">
       {contextHolder}
       
       <div className="cd-tab-sticky-head">
@@ -263,113 +277,143 @@ export default function InvoicesTab({ clientId, onRefresh }: InvoicesTabProps) {
         <div className="ptab-divider" />
       </div>
 
-      {viewMode === "list" ? (
-        <div className="pp-table-wrap">
-          <ZukvoLoadingOverlay loading={loading} message="">
-                  <Table
-                              dataSource={filteredInvoices}
-                              columns={columns}
-                              rowKey="id"
-                              pagination={{ pageSizeOptions: [10, 20, 25, 50, 100], pageSize: 20, hideOnSinglePage: true }}
-                              className="pp-table"
-                              scroll={{ x: "max-content" }}
-                              locale={{
-                                emptyText: <NoData description={(
-                                                                        <div className="ptab-empty">
-                                                                          <div className="ptab-empty-icon">
-                                                                            <Receipt size={26} />
-                                                                          </div>
-                                                                          <div className="ptab-empty-title">No Invoices Found</div>
-                                                                          <div className="ptab-empty-desc">
-                                                                            There are no portal-visible invoices for this client yet.
-                                                                          </div>
-                                                                        </div>
-                                                                      )} />,
-                              }}
-                            />
-                  </ZukvoLoadingOverlay>
-        </div>
-      ) : (
-        <div className="pp-grid">
-          {loading ? (
-            <div style={{ gridColumn: "1 / -1", padding: "40px", textAlign: "center", color: "var(--text-slate-400)" }}>Loading invoices...</div>
-          ) : filteredInvoices.length === 0 ? (
-            <div className="ptab-empty-wrapper">
-              <div className="ptab-empty" style={{ background: "var(--bg-pure-white)", border: "1px solid var(--border-slate-200)", padding: "40px 24px" }}>
-                <div className="ptab-empty-icon">
-                  <Receipt size={26} />
-                </div>
-                <div className="ptab-empty-title">No Invoices Found</div>
-                <div className="ptab-empty-desc">
-                  There are no portal-visible invoices for this client yet.
+      <div className="invoices-tab-body">
+        {viewMode === "list" ? (
+          <div className="pp-table-wrap">
+            <ZukvoLoadingOverlay loading={loading} message="">
+              <Table
+                dataSource={paginatedInvoices}
+                columns={columns}
+                rowKey="id"
+                pagination={false}
+                className="pp-table"
+                scroll={{ x: "max-content" }}
+                locale={{
+                  emptyText: <NoData description={(
+                    <div className="ptab-empty">
+                      <div className="ptab-empty-icon">
+                        <Receipt size={26} />
+                      </div>
+                      <div className="ptab-empty-title">No Invoices Found</div>
+                      <div className="ptab-empty-desc">
+                        There are no portal-visible invoices for this client yet.
+                      </div>
+                    </div>
+                  )} />,
+                }}
+              />
+            </ZukvoLoadingOverlay>
+          </div>
+        ) : (
+          <div className="pp-grid">
+            {loading ? (
+              <div style={{ gridColumn: "1 / -1", padding: "40px", textAlign: "center", color: "var(--text-slate-400)" }}>Loading invoices...</div>
+            ) : invoices.length === 0 ? (
+              <div className="ptab-empty-wrapper">
+                <div className="ptab-empty" style={{ background: "var(--bg-pure-white)", border: "1px solid var(--border-slate-200)", padding: "40px 24px" }}>
+                  <div className="ptab-empty-icon">
+                    <Receipt size={26} />
+                  </div>
+                  <div className="ptab-empty-title">No Invoices Found</div>
+                  <div className="ptab-empty-desc">
+                    There are no portal-visible invoices for this client yet.
+                  </div>
                 </div>
               </div>
-            </div>
-          ) : (
-            filteredInvoices.map((invoice) => {
-              const displayStatus = invoice.isOverdue ? 'OVERDUE' : fromBackendStatus(invoice.status);
-              return (
-                <div key={invoice.id} className="pc-card">
-                  <div className="pc-top">
-                    <div className="pc-avatar" style={{ background: "#3b82f6", color: "#fff", borderRadius: "50%" }}>
-                      {invoice.invoiceNumber?.charAt(0) || "I"}
-                    </div>
-                    <div className="pc-identity-body">
-                      <div className="pc-title" style={{ display: "flex", alignItems: "center", gap: "6px", flexWrap: "wrap" }}>
-                        <span>{invoice.invoiceNumber}</span>
-                        <Tag
-                          color={getStatusColor(displayStatus)}
-                          style={{ borderRadius: 6, fontWeight: 600, border: 0, fontSize: "10px", padding: "1px 6px", display: "inline-flex", alignItems: "center", gap: 3 }}
-                        >
-                          {displayStatus.replace('_', ' ')}
-                        </Tag>
+            ) : (
+              paginatedInvoices.map((invoice) => {
+                const displayStatus = invoice.isOverdue ? 'OVERDUE' : fromBackendStatus(invoice.status);
+                return (
+                  <div key={invoice.id} className="pc-card">
+                    <div className="pc-top">
+                      <div className="pc-avatar" style={{ background: "#3b82f6", color: "#fff", borderRadius: "50%" }}>
+                        {invoice.invoiceNumber?.charAt(0) || "I"}
                       </div>
-                      <div className="pc-client-line">
-                        <span className="pc-client-key">Customer:</span>
-                        <span className="pc-client-val">{invoice.customerName || "—"}</span>
+                      <div className="pc-identity-body">
+                        <div className="pc-title" style={{ display: "flex", alignItems: "center", gap: "6px", flexWrap: "wrap" }}>
+                          <span>{invoice.invoiceNumber}</span>
+                          <Tag
+                            color={getStatusColor(displayStatus)}
+                            style={{ borderRadius: 6, fontWeight: 600, border: 0, fontSize: "10px", padding: "1px 6px", display: "inline-flex", alignItems: "center", gap: 3 }}
+                          >
+                            {displayStatus.replace('_', ' ')}
+                          </Tag>
+                        </div>
+                        <div className="pc-client-line">
+                          <span className="pc-client-key">Customer:</span>
+                          <span className="pc-client-val">{invoice.customerName || "—"}</span>
+                        </div>
                       </div>
                     </div>
-                  </div>
 
-                  <div className="pc-foot">
-                    <div className="pc-foot-row">
-                      <span className="pc-foot-item">
-                        <span className="pc-foot-key">Date:</span>
-                        <span className="pc-foot-val">{invoice.invoiceDate ? dayjs(invoice.invoiceDate).format("MMM DD, YYYY") : "—"}</span>
-                      </span>
-                      <span className="pc-foot-div" />
-                      <span className="pc-foot-item">
-                        <span className="pc-foot-key">Due Date:</span>
-                        <span
-                          className="pc-foot-val"
-                          style={{ color: invoice.isOverdue ? "#ef4444" : "var(--text-slate-700)", fontWeight: invoice.isOverdue ? 600 : 500 }}
-                        >
-                          {invoice.dueDate ? dayjs(invoice.dueDate).format("MMM DD, YYYY") : "—"}
+                    <div className="pc-foot">
+                      <div className="pc-foot-row">
+                        <span className="pc-foot-item">
+                          <span className="pc-foot-key">Date:</span>
+                          <span className="pc-foot-val">{invoice.invoiceDate ? dayjs(invoice.invoiceDate).format("MMM DD, YYYY") : "—"}</span>
                         </span>
-                      </span>
-                    </div>
+                        <span className="pc-foot-div" />
+                        <span className="pc-foot-item">
+                          <span className="pc-foot-key">Due Date:</span>
+                          <span
+                            className="pc-foot-val"
+                            style={{ color: invoice.isOverdue ? "#ef4444" : "var(--text-slate-700)", fontWeight: invoice.isOverdue ? 600 : 500 }}
+                          >
+                            {invoice.dueDate ? dayjs(invoice.dueDate).format("MMM DD, YYYY") : "—"}
+                          </span>
+                        </span>
+                      </div>
 
-                    <div className="pc-foot-row" style={{ justifyContent: "space-between", alignItems: "center" }}>
-                      <span className="pc-foot-item" style={{ fontSize: "13px", fontWeight: 700, color: "var(--text-slate-900)" }}>
-                        ${Number(invoice.grandTotal || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                      </span>
-                      <span>
-                        {(!invoice.clientStatus || invoice.clientStatus === "UNPAID") ? (
-                          <Tag color="error" style={{ margin: 0, fontWeight: 600, border: "none", borderRadius: 6, fontSize: "10px" }}>UNPAID</Tag>
-                        ) : invoice.clientStatus === "PARTIALLY_PAID" ? (
-                          <Tag color="warning" style={{ margin: 0, fontWeight: 600, border: "none", borderRadius: 6, fontSize: "10px" }}>PARTIALLY PAID</Tag>
-                        ) : invoice.clientStatus === "PAID" ? (
-                          <Tag color="success" style={{ margin: 0, fontWeight: 600, border: "none", borderRadius: 6, fontSize: "10px" }}>PAID</Tag>
-                        ) : (
-                          <Tag style={{ margin: 0, fontWeight: 600, border: "none", borderRadius: 6, fontSize: "10px" }}>{invoice.clientStatus}</Tag>
-                        )}
-                      </span>
+                      <div className="pc-foot-row" style={{ justifyContent: "space-between", alignItems: "center" }}>
+                        <span className="pc-foot-item" style={{ fontSize: "13px", fontWeight: 700, color: "var(--text-slate-900)" }}>
+                          {currencySymbol(invoice?.currency)}{Number(invoice.grandTotal || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </span>
+                        <span>
+                          {(!invoice.clientStatus || invoice.clientStatus === "UNPAID") ? (
+                            <Tag color="error" style={{ margin: 0, fontWeight: 600, border: "none", borderRadius: 6, fontSize: "10px" }}>UNPAID</Tag>
+                          ) : invoice.clientStatus === "PARTIALLY_PAID" ? (
+                            <Tag color="warning" style={{ margin: 0, fontWeight: 600, border: "none", borderRadius: 6, fontSize: "10px" }}>PARTIALLY PAID</Tag>
+                          ) : invoice.clientStatus === "PAID" ? (
+                            <Tag color="success" style={{ margin: 0, fontWeight: 600, border: "none", borderRadius: 6, fontSize: "10px" }}>PAID</Tag>
+                          ) : (
+                            <Tag style={{ margin: 0, fontWeight: 600, border: "none", borderRadius: 6, fontSize: "10px" }}>{invoice.clientStatus}</Tag>
+                          )}
+                        </span>
+                      </div>
                     </div>
                   </div>
-                </div>
-              );
-            })
-          )}
+                );
+              })
+            )}
+          </div>
+        )}
+      </div>
+
+      {!loading && totalCount > 0 && (
+        <div className="pm2-pagination invoices-pagination-footer">
+          <Typography.Text style={{ fontSize: 13, color: "var(--text-slate-500)" }}>
+            Showing{" "}
+            <span style={{ color: "var(--text-slate-700)", fontWeight: 700 }}>
+              {(currentPage - 1) * pageSize + 1}–
+              {Math.min(currentPage * pageSize, totalCount)}
+            </span>{" "}
+            of{" "}
+            <span style={{ color: "var(--text-slate-700)", fontWeight: 700 }}>
+              {totalCount}
+            </span>{" "}
+            invoice{totalCount !== 1 ? "s" : ""}
+          </Typography.Text>
+          <Pagination
+            current={currentPage}
+            pageSize={pageSize}
+            total={totalCount}
+            onChange={(page, size) => {
+              setCurrentPage(page);
+              setPageSize(size);
+            }}
+            showSizeChanger
+            pageSizeOptions={[10, 15, 20, 25, 50, 100]}
+          />
         </div>
       )}
 
@@ -535,6 +579,104 @@ export default function InvoicesTab({ clientId, onRefresh }: InvoicesTabProps) {
         }
         [data-theme="dark"] .pc-foot-div {
           background: var(--border-slate-800);
+        }
+
+        /* ── Container & Body for full-height stretch ── */
+        .invoices-tab-container {
+          display: flex !important;
+          flex-direction: column !important;
+          flex: 1 !important;
+          min-height: 100% !important;
+          padding: 4px 0 0 0 !important;
+          position: relative !important;
+        }
+        .invoices-tab-body {
+          flex: 1 0 auto !important;
+          padding-bottom: 16px !important;
+        }
+
+        /* ── Sticky pagination footer (fixed to bottom) ── */
+        .invoices-pagination-footer {
+          display: flex !important;
+          align-items: center !important;
+          justify-content: space-between !important;
+          gap: 12px !important;
+          padding: 10px 16px !important;
+          margin-top: auto !important;
+          margin-left: -12px !important;
+          margin-right: -12px !important;
+          margin-bottom: 0 !important;
+          flex-wrap: wrap !important;
+          position: sticky !important;
+          bottom: 0 !important;
+          left: 0 !important;
+          right: 0 !important;
+          background: var(--bg-pure-white) !important;
+          border-top: 1px solid var(--border-slate-200) !important;
+          z-index: 20 !important;
+          box-shadow: 0 -4px 16px rgba(15, 23, 42, 0.04) !important;
+        }
+        [data-theme="dark"] .invoices-pagination-footer {
+          background: #0B0F1A !important;
+          border-top-color: #1f2937 !important;
+        }
+        @media (max-width: 900px) {
+          .invoices-pagination-footer {
+            margin-left: -12px !important;
+            margin-right: -12px !important;
+            padding-left: 12px !important;
+            padding-right: 12px !important;
+          }
+        }
+        @media (max-width: 720px) {
+          .invoices-pagination-footer {
+            margin-left: -12px !important;
+            margin-right: -12px !important;
+            padding-left: 12px !important;
+            padding-right: 12px !important;
+          }
+        }
+
+        .invoices-pagination-footer .ant-pagination-item,
+        .invoices-pagination-footer .ant-pagination-prev .ant-pagination-item-link,
+        .invoices-pagination-footer .ant-pagination-next .ant-pagination-item-link {
+          border: 1px solid var(--border-slate-200) !important;
+          border-radius: 6px !important;
+          background: transparent !important;
+          color: var(--text-slate-500) !important;
+        }
+        .invoices-pagination-footer .ant-pagination-item-active {
+          background: #3b82f6 !important;
+          border-color: #3b82f6 !important;
+        }
+        .invoices-pagination-footer .ant-pagination-item-active a {
+          color: #fff !important;
+        }
+        .invoices-pagination-footer .ant-select-selector {
+          border: 1px solid var(--border-slate-200) !important;
+          border-radius: 6px !important;
+          background: transparent !important;
+          height: 28px !important;
+          font-size: 12px !important;
+        }
+        [data-theme="dark"] .invoices-pagination-footer .ant-pagination-item,
+        [data-theme="dark"] .invoices-pagination-footer .ant-pagination-prev .ant-pagination-item-link,
+        [data-theme="dark"] .invoices-pagination-footer .ant-pagination-next .ant-pagination-item-link {
+          border-color: #374151 !important;
+          background: #111827 !important;
+          color: #9ca3af !important;
+        }
+        [data-theme="dark"] .invoices-pagination-footer .ant-pagination-item-active {
+          background: #3b82f6 !important;
+          border-color: #3b82f6 !important;
+        }
+        [data-theme="dark"] .invoices-pagination-footer .ant-pagination-item-active a {
+          color: #fff !important;
+        }
+        [data-theme="dark"] .invoices-pagination-footer .ant-select-selector {
+          border-color: #374151 !important;
+          background: #111827 !important;
+          color: #e5e7eb !important;
         }
       `}} />
     </div>

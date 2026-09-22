@@ -1,50 +1,46 @@
 "use client";
+
 import ZukvoLoader from "@/components/common/ZukvoLoader";
-
-
 import React, { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import {
   Input,
+  Empty,
   Pagination,
-  Select,
   DatePicker,
   Modal,
   Form,
   notification,
-  Row as AntRow,
-  Col,
-  Divider,
+  Button,
+  Space,
+  Tooltip,
   Typography,
+  Select,
 } from "antd";
+import {
+  FilterOutlined,
+  ExpandAltOutlined,
+  CloseOutlined,
+  ReloadOutlined,
+} from "@ant-design/icons";
 import dayjs, { Dayjs } from "dayjs";
 import quarterOfYear from "dayjs/plugin/quarterOfYear";
 import {
+  LifeBuoy,
   Search,
-  ChevronRight,
   Plus,
   MessageCircle,
   Send,
   AlertTriangle,
   Clock,
-  LifeBuoy,
-  X,
   Folder,
-  CalendarRange,
-  SlidersHorizontal,
+  Calendar,
   LayoutGrid,
   List as ListIcon,
-  Target,
-  Activity,
-  ArrowUpRight,
-  Calendar,
+  CheckCircle2,
+  ChevronRight,
+  ShieldAlert,
 } from "lucide-react";
-
-dayjs.extend(quarterOfYear);
-
-const { Title, Text } = Typography;
-const { RangePicker } = DatePicker;
-
 import {
   portalTicketService,
   PortalTicketListItem,
@@ -59,25 +55,33 @@ import {
   PRIORITY_META,
   STATUS_META,
   fmtRelative,
+  fmtDate,
 } from "./_ticketUi";
+import TicketFilterPill, {
+  FilterPillOption,
+} from "@/components/projects/TicketFilterPill";
 import { AttachmentPicker } from "@/app/portal/_components/AttachmentPicker";
 
-const INDIGO = "#4f46e5";
-const INDIGO_BG = "#eef2ff";
-const INDIGO_BORDER = "#c7d2fe";
-const INDIGO_TEXT = "#4338ca";
-const SURFACE_TINTED = "#fafbff";
+dayjs.extend(quarterOfYear);
 
-const FILTER_TABS: { key: string; label: string }[] = [
-  { key: "ALL", label: "All" },
-  { key: "new", label: "New" },
-  { key: "in_progress", label: "In progress" },
-  { key: "waiting_on_client", label: "Waiting on you" },
-  { key: "resolved", label: "Resolved" },
-  { key: "closed", label: "Closed" },
+const { RangePicker } = DatePicker;
+
+const STATUS_FILTER_OPTIONS: FilterPillOption[] = [
+  { value: "new", label: "New" },
+  { value: "in_progress", label: "In Progress" },
+  { value: "waiting_on_client", label: "Waiting on you" },
+  { value: "resolved", label: "Resolved" },
+  { value: "closed", label: "Closed" },
 ];
 
-const CATEGORY_OPTIONS: { value: TicketCategory; label: string }[] = [
+const PRIORITY_FILTER_OPTIONS: FilterPillOption[] = [
+  { value: "low", label: "Low" },
+  { value: "medium", label: "Medium" },
+  { value: "high", label: "High" },
+  { value: "critical", label: "Critical" },
+];
+
+const CATEGORY_FILTER_OPTIONS: FilterPillOption[] = [
   { value: "bug", label: "Bug" },
   { value: "enhancement", label: "Enhancement" },
   { value: "support", label: "Support" },
@@ -86,15 +90,21 @@ const CATEGORY_OPTIONS: { value: TicketCategory; label: string }[] = [
   { value: "other", label: "Other" },
 ];
 
-const PRIORITY_OPTIONS: { value: TicketPriority; label: string }[] = [
+const CATEGORY_FORM_OPTIONS: { value: TicketCategory; label: string }[] = [
+  { value: "bug", label: "Bug" },
+  { value: "enhancement", label: "Enhancement" },
+  { value: "support", label: "Support" },
+  { value: "infra", label: "Infra issue" },
+  { value: "access", label: "Access request" },
+  { value: "other", label: "Other" },
+];
+
+const PRIORITY_FORM_OPTIONS: { value: TicketPriority; label: string }[] = [
   { value: "low", label: "Low" },
   { value: "medium", label: "Medium" },
   { value: "high", label: "High" },
   { value: "critical", label: "Critical" },
 ];
-
-type ViewMode = "card" | "list";
-const VIEW_STORAGE_KEY = "portal.tickets.view";
 
 function fmtDateShort(iso: string | null | undefined): string {
   if (!iso) return "—";
@@ -108,60 +118,41 @@ function fmtDateShort(iso: string | null | undefined): string {
   }
 }
 
-function daysBetween(iso: string | null | undefined): number | null {
-  if (!iso) return null;
-  const d = new Date(iso);
-  if (isNaN(d.getTime())) return null;
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  d.setHours(0, 0, 0, 0);
-  return Math.round((d.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
-}
-
-/* --------------------------------------------------------------- */
-
 export default function PortalTicketsPage() {
   const [items, setItems] = useState<PortalTicketListItem[]>([]);
   const [meta, setMeta] = useState<PortalTicketMeta | null>(null);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [status, setStatus] = useState<string>("ALL");
+  const [priority, setPriority] = useState<string>("ALL");
+  const [category, setCategory] = useState<string>("ALL");
   const [projectId, setProjectId] = useState<string | undefined>(undefined);
   const [search, setSearch] = useState("");
   const [datePicked, setDatePicked] = useState<
     [Dayjs | null, Dayjs | null] | null
   >(null);
+  const [viewMode, setViewMode] = useState<"table" | "card">("table");
   const [page, setPage] = useState(1);
-  const [view, setView] = useState<ViewMode>("card");
+  const [isFilterRowOpen, setIsFilterRowOpen] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
-  const limit = 20;
+  const [limit, setLimit] = useState(15);
   const [notify, contextHolder] = notification.useNotification();
-
-  useEffect(() => {
-    try {
-      const stored = localStorage.getItem(VIEW_STORAGE_KEY);
-      if (stored === "card" || stored === "list") setView(stored);
-    } catch {}
-  }, []);
-
-  const setViewPersist = (v: ViewMode) => {
-    setView(v);
-    try {
-      localStorage.setItem(VIEW_STORAGE_KEY, v);
-    } catch {}
-  };
 
   const fromIso = datePicked?.[0]
     ? datePicked[0]!.format("YYYY-MM-DD")
     : undefined;
   const toIso = datePicked?.[1] ? datePicked[1]!.format("YYYY-MM-DD") : undefined;
 
-  const load = async () => {
-    setLoading(true);
+  const load = async (isRefresh = false) => {
+    if (isRefresh) setRefreshing(true);
+    else setLoading(true);
     try {
       const res = await portalTicketService.list({
         page,
         limit,
         status: status === "ALL" ? undefined : status,
+        category: category === "ALL" ? undefined : category,
+        priority: priority === "ALL" ? undefined : priority,
         search: search || undefined,
         projectId,
         from: fromIso,
@@ -174,13 +165,14 @@ export default function PortalTicketsPage() {
       setMeta(null);
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   };
 
   useEffect(() => {
     load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page, status, projectId, fromIso, toIso]);
+  }, [page, limit, status, category, priority, projectId, fromIso, toIso]);
 
   useEffect(() => {
     const t = setTimeout(() => {
@@ -191,19 +183,69 @@ export default function PortalTicketsPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [search]);
 
-  // Featured: tickets waiting on the client (action needed)
-  const hasAnyFilter =
-    status !== "ALL" || !!projectId || !!search || !!fromIso || !!toIso;
-  const featured = useMemo(() => {
-    if (hasAnyFilter || page !== 1) return [];
-    return items.filter((t) => t.status === "waiting_on_client");
-  }, [items, hasAnyFilter, page]);
+  const activeFilterCount = useMemo(() => {
+    let count = 0;
+    if (status !== "ALL") count++;
+    if (priority !== "ALL") count++;
+    if (category !== "ALL") count++;
+    if (projectId) count++;
+    if (datePicked && (datePicked[0] || datePicked[1])) count++;
+    return count;
+  }, [status, priority, category, projectId, datePicked]);
 
-  const restItems = useMemo(() => {
-    if (featured.length === 0) return items;
-    const ids = new Set(featured.map((t) => t.id));
-    return items.filter((t) => !ids.has(t.id));
-  }, [items, featured]);
+  const filtered = useMemo(() => {
+    let result = items;
+    if (priority !== "ALL") {
+      result = result.filter((t) => t.priority === priority);
+    }
+    if (category !== "ALL") {
+      result = result.filter((t) => t.category === category);
+    }
+    return result;
+  }, [items, priority, category]);
+
+  const projectFilterOptions: FilterPillOption[] = useMemo(() => {
+    if (!meta?.projects) return [];
+    return meta.projects.map((proj) => ({
+      value: proj.id,
+      label: proj.code ? `${proj.name} (${proj.code})` : proj.name,
+    }));
+  }, [meta?.projects]);
+
+  const total = meta?.total ?? filtered.length;
+  const counts = meta?.counts || ({} as Record<string, number>);
+  const waitingOnYouCount = counts.waiting_on_client || items.filter((t) => t.status === "waiting_on_client").length;
+  const inProgressCount = counts.in_progress || items.filter((t) => t.status === "in_progress").length;
+  const newCount = counts.new || items.filter((t) => t.status === "new").length;
+  const resolvedCount = counts.resolved || items.filter((t) => t.status === "resolved").length;
+  const closedCount = counts.closed || items.filter((t) => t.status === "closed").length;
+  const completedPct = total > 0 ? Math.round(((resolvedCount + closedCount) / total) * 100) : 0;
+
+  const activeStatusLabel = useMemo(() => {
+    if (status === "ALL") return "All tickets";
+    const found = STATUS_FILTER_OPTIONS.find((s) => s.value === status);
+    return found ? found.label : "All tickets";
+  }, [status]);
+
+  const rangePresets: { label: string; value: [Dayjs, Dayjs] }[] = [
+    { label: "Last 7 days", value: [dayjs().subtract(6, "day"), dayjs()] },
+    { label: "Last 30 days", value: [dayjs().subtract(29, "day"), dayjs()] },
+    {
+      label: "This month",
+      value: [dayjs().startOf("month"), dayjs().endOf("month")],
+    },
+    {
+      label: "Last month",
+      value: [
+        dayjs().subtract(1, "month").startOf("month"),
+        dayjs().subtract(1, "month").endOf("month"),
+      ],
+    },
+    {
+      label: "This quarter",
+      value: [dayjs().startOf("quarter"), dayjs().endOf("quarter")],
+    },
+  ];
 
   return (
     <div
@@ -211,1102 +253,1230 @@ export default function PortalTicketsPage() {
         height: "100vh",
         overflowY: "auto",
         backgroundColor: "#ffffff",
+        display: "flex",
+        flexDirection: "column",
+        width: "100%",
       }}
     >
       {contextHolder}
 
-      {/* Header */}
-      <div
-        className="saas-header-container portal-tickets-header-container"
-        style={{
-          position: "sticky",
-          top: 0,
-          zIndex: 100,
-          padding: "20px 40px 20px 40px",
-          marginBottom: 0,
-          backgroundColor: "#ffffff",
-          borderBottom: "1px solid rgba(0, 0, 0, 0.05)",
-        }}
-      >
-        <AntRow justify="space-between" align="middle" gutter={[16, 16]}>
-          <Col flex="1 1 auto" style={{ minWidth: 0 }}>
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 12,
-                flexWrap: "wrap",
-              }}
-            >
-              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <div
-                  style={{
-                    width: 32,
-                    height: 32,
-                    borderRadius: 8,
-                    display: "inline-flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    background:
-                      "linear-gradient(135deg, rgba(79, 70, 229, 0.18), rgba(67, 56, 202, 0.08))",
-                    color: INDIGO,
-                    border: `1px solid ${INDIGO_BORDER}`,
-                  }}
-                >
-                  <LifeBuoy size={17} color={INDIGO} />
-                </div>
-                <Title
-                  level={4}
-                  className="portal-mom-header-title"
-                  style={{
-                    margin: 0,
-                    fontWeight: 800,
-                    color: "var(--text-slate-900)",
-                    letterSpacing: "-0.01em",
-                  }}
-                >
-                  Support tickets
-                </Title>
-              </div>
-
-              <Divider
-                type="vertical"
-                style={{
-                  height: 20,
-                  borderColor: "rgba(0, 0, 0, 0.08)",
-                  margin: "0 12px",
-                }}
-              />
-
-              <div>
-                <Text
-                  className="portal-mom-header-desc"
-                  style={{
-                    fontSize: 12,
-                    color: "var(--text-slate-600)",
-                    fontWeight: 600,
-                  }}
-                >
-                  Raise a ticket, track our response, and keep everything in one
-                  thread. SLA targets shown for every priority.
-                </Text>
-              </div>
-            </div>
-          </Col>
-          <Col flex="0 0 auto">
-            <button
-              onClick={() => setCreateOpen(true)}
-              className="premium-new-cta"
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                gap: 7,
-                padding: "8px 14px",
-                background: INDIGO,
-                color: "#ffffff",
-                border: "none",
-                borderRadius: 8,
-                fontSize: 12.5,
-                fontWeight: 600,
-                cursor: "pointer",
-                transition: "background 140ms ease",
-              }}
-            >
-              <Plus size={14} />
-              Raise ticket
-            </button>
-          </Col>
-        </AntRow>
-      </div>
-
-      <div
-        className="portal-tickets-content-container"
-        style={{ padding: "20px 40px 56px", maxWidth: 1280 }}
-      >
-        {/* Tabs + view toggle */}
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            gap: 12,
-            flexWrap: "wrap",
-            alignItems: "center",
-            marginBottom: 10,
-          }}
-        >
-          <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-            {FILTER_TABS.map((tab) => {
-              const active = status === tab.key;
-              const count =
-                tab.key === "ALL"
-                  ? meta?.total
-                  : meta?.counts?.[tab.key as never];
-              return (
-                <button
-                  key={tab.key}
-                  className="premium-filter-tab"
-                  data-active={active ? "true" : "false"}
-                  onClick={() => {
-                    setStatus(tab.key);
-                    setPage(1);
-                  }}
-                  style={{
-                    display: "inline-flex",
-                    alignItems: "center",
-                    gap: 6,
-                    padding: "6px 11px",
-                    background: active ? INDIGO : p.surfaceElevated,
-                    color: active ? "#ffffff" : p.textMuted,
-                    border: `1px solid ${active ? INDIGO : p.border}`,
-                    borderRadius: 999,
-                    fontSize: 12,
-                    fontWeight: 600,
-                    letterSpacing: "0.01em",
-                    cursor: "pointer",
-                    transition: "all 120ms ease",
-                  }}
-                >
-                  {tab.label}
-                  {count != null && count > 0 && (
-                    <span
-                      style={{
-                        fontSize: 10.5,
-                        fontWeight: 700,
-                        padding: "0 6px",
-                        borderRadius: 999,
-                        background: active
-                          ? "rgba(255,255,255,0.18)"
-                          : p.neutralBg,
-                        color: active ? "#ffffff" : p.textSubtle,
-                        fontVariantNumeric: "tabular-nums",
-                      }}
-                    >
-                      {count}
-                    </span>
-                  )}
-                </button>
-              );
-            })}
-          </div>
-          <ViewToggle view={view} onChange={setViewPersist} />
+      {/* ── Top Header Toolbar matching unified client portal layout ── */}
+      <div className="pm2-toolbar saas-header-container sc-header">
+        <div className="pm2-head-id">
+          <span className="pm2-head-ic">
+            <LifeBuoy size={16} />
+          </span>
+          <span className="pm2-head-text">
+            <span className="pm2-head-title">Support Tickets</span>
+            <span className="pm2-head-sub">OVERSEE ISSUES & INQUIRIES</span>
+          </span>
         </div>
 
-        {/* Filter bar */}
-        <FilterBar
-          search={search}
-          onSearchChange={setSearch}
-          projects={meta?.projects || []}
-          projectId={projectId}
-          onProjectChange={(v) => {
-            setProjectId(v);
-            setPage(1);
-          }}
-          datePicked={datePicked}
-          onDateChange={(r) => {
-            setDatePicked(r);
-            setPage(1);
-          }}
-        />
+        <div className="sc-header-controls">
+          <Input
+            placeholder="Quick search ticket # or subject..."
+            prefix={
+              <Search
+                size={13}
+                style={{ color: "var(--text-slate-400)", marginRight: 4 }}
+              />
+            }
+            className="saas-input"
+            style={{
+              maxWidth: 280,
+              borderRadius: 8,
+              height: 32,
+              background: "transparent",
+              fontSize: 12.5,
+            }}
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            allowClear
+          />
 
-        {/* Active filter chips */}
-        <ActiveFilterChips
-          search={search}
-          onClearSearch={() => setSearch("")}
-          projectName={
-            projectId
-              ? meta?.projects.find((pr) => pr.id === projectId)?.name
-              : undefined
-          }
-          onClearProject={() => {
-            setProjectId(undefined);
-            setPage(1);
-          }}
-          datePicked={datePicked}
-          onClearDateRange={() => {
-            setDatePicked(null);
-            setPage(1);
-          }}
-          statusFilter={status !== "ALL" ? status : undefined}
-          onClearStatus={() => {
-            setStatus("ALL");
-            setPage(1);
-          }}
-        />
-
-        {/* Featured: waiting on you */}
-        {!loading && featured.length > 0 && (
-          <div style={{ marginBottom: 18 }}>
-            <SectionLabel
-              icon={AlertTriangle}
-              label="Needs your attention"
-              count={featured.length}
+          <Space.Compact className="ticket-filter-group">
+            <Button
+              icon={<FilterOutlined />}
+              className={activeFilterCount > 0 ? "saas-tag-blue" : ""}
+              style={{ height: 32, fontWeight: 600, fontSize: 12 }}
+              onClick={() => setIsFilterRowOpen((v) => !v)}
+            >
+              Filters {activeFilterCount > 0 && `(${activeFilterCount})`}
+            </Button>
+            <Button
+              icon={<ExpandAltOutlined />}
+              style={{ height: 32 }}
+              aria-label="Expand filters"
+              onClick={() => setIsFilterRowOpen((v) => !v)}
             />
+          </Space.Compact>
+
+          {/* View Toggle */}
+          <div
+            className="premium-view-toggle"
+            role="group"
+            aria-label="View mode"
+          >
+            <button
+              type="button"
+              data-active={viewMode === "table" ? "true" : "false"}
+              onClick={() => setViewMode("table")}
+              title="Table View"
+            >
+              <ListIcon size={13} />
+            </button>
+            <button
+              type="button"
+              data-active={viewMode === "card" ? "true" : "false"}
+              onClick={() => setViewMode("card")}
+              title="Card View"
+            >
+              <LayoutGrid size={13} />
+            </button>
+          </div>
+        </div>
+
+        <Space size={10} className="sc-header-right">
+          <Button
+            type="primary"
+            icon={<Plus size={14} />}
+            onClick={() => setCreateOpen(true)}
+            style={{
+              height: 32,
+              borderRadius: 8,
+              fontWeight: 600,
+              fontSize: 12.5,
+              background: "#3b82f6",
+              border: "none",
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 4,
+            }}
+          >
+            Raise ticket
+          </Button>
+
+          <Tooltip title="Refresh tickets">
+            <Button
+              icon={<ReloadOutlined spin={refreshing} />}
+              onClick={() => load(true)}
+              disabled={loading}
+              style={{
+                width: 32,
+                height: 32,
+                borderRadius: 8,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            />
+          </Tooltip>
+        </Space>
+      </div>
+
+      {/* ── Inline filter row (when opened) ── */}
+      {isFilterRowOpen && (
+        <div className="tl-filter-row">
+          <div className="tl-filter-row-label">
+            <FilterOutlined style={{ fontSize: 11 }} />
+            <span>Filters</span>
+            <span className="tl-filter-row-count">{activeFilterCount}</span>
+          </div>
+
+          <div className="tl-filter-row-pills">
+            {/* Status Pill */}
+            <TicketFilterPill
+              icon={<CheckCircle2 size={12} />}
+              label="Status"
+              value={status === "ALL" ? "" : status}
+              options={STATUS_FILTER_OPTIONS}
+              onChange={(val: any) => {
+                setStatus(val || "ALL");
+                setPage(1);
+              }}
+              itemNoun="statuses"
+              multiple={false}
+            />
+
+            {/* Priority Pill */}
+            <TicketFilterPill
+              icon={<ShieldAlert size={12} />}
+              label="Priority"
+              value={priority === "ALL" ? "" : priority}
+              options={PRIORITY_FILTER_OPTIONS}
+              onChange={(val: any) => {
+                setPriority(val || "ALL");
+              }}
+              itemNoun="priorities"
+              multiple={false}
+            />
+
+            {/* Category Pill */}
+            <TicketFilterPill
+              icon={<LifeBuoy size={12} />}
+              label="Category"
+              value={category === "ALL" ? "" : category}
+              options={CATEGORY_FILTER_OPTIONS}
+              onChange={(val: any) => {
+                setCategory(val || "ALL");
+              }}
+              itemNoun="categories"
+              multiple={false}
+            />
+
+            {/* Project Pill */}
+            {projectFilterOptions.length > 0 && (
+              <TicketFilterPill
+                icon={<Folder size={12} />}
+                label="Project"
+                value={projectId || ""}
+                options={projectFilterOptions}
+                onChange={(val: any) => {
+                  setProjectId(val || undefined);
+                  setPage(1);
+                }}
+                itemNoun="projects"
+                multiple={false}
+              />
+            )}
+
+            {/* Date Range Picker */}
+            <RangePicker
+              value={datePicked}
+              onChange={(dates) => {
+                setDatePicked(dates as [Dayjs | null, Dayjs | null] | null);
+                setPage(1);
+              }}
+              presets={rangePresets}
+              className="premium-rangepicker"
+              style={{ height: 28, borderRadius: 6, fontSize: 12 }}
+              placeholder={["Start", "End"]}
+              format="DD MMM YY"
+              suffixIcon={<Calendar size={12} color={p.textFaint} />}
+              allowClear
+            />
+          </div>
+
+          <div className="tl-filter-row-actions">
+            {activeFilterCount > 0 && (
+              <button
+                type="button"
+                className="tl-filter-row-reset"
+                onClick={() => {
+                  setStatus("ALL");
+                  setPriority("ALL");
+                  setCategory("ALL");
+                  setProjectId(undefined);
+                  setDatePicked(null);
+                  setPage(1);
+                }}
+              >
+                <ReloadOutlined style={{ fontSize: 10 }} />
+                Reset
+              </button>
+            )}
+            <button
+              type="button"
+              className="tl-filter-row-close"
+              onClick={() => setIsFilterRowOpen(false)}
+              aria-label="Close filters"
+              title="Close filters"
+            >
+              <CloseOutlined style={{ fontSize: 10 }} />
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ── Main Overview Banner (Sprint head style) ── */}
+      <div className="tl-section-head tl-sprint-head-v2 tl-section-head--static">
+        <div className="tl-sprint-row1">
+          <div className="tl-sprint-title-block">
+            <span
+              className="tl-sprint-dot"
+              style={{
+                background: "#3b82f6",
+                boxShadow: "0 0 0 3px rgba(59, 130, 246, 0.2)",
+              }}
+            />
+            <span className="tl-sprint-title pm2-banner-title">
+              Support Overview — {activeStatusLabel}
+            </span>
+            <span className="tl-sprint-tags">
+              <span className="tl-sprint-tag tl-sprint-tag-neutral">
+                {total} TICKETS
+              </span>
+              {waitingOnYouCount > 0 && (
+                <span className="tl-sprint-tag tl-sprint-tag-delayed">
+                  {waitingOnYouCount} WAITING ON YOU
+                </span>
+              )}
+              {inProgressCount > 0 && (
+                <span className="tl-sprint-tag tl-sprint-tag-active">
+                  {inProgressCount} IN PROGRESS
+                </span>
+              )}
+              {newCount > 0 && (
+                <span className="tl-sprint-tag tl-sprint-tag-neutral">
+                  {newCount} NEW
+                </span>
+              )}
+              {(resolvedCount > 0 || closedCount > 0) && (
+                <span className="tl-sprint-tag tl-sprint-tag-active">
+                  {resolvedCount + closedCount} RESOLVED
+                </span>
+              )}
+            </span>
+          </div>
+        </div>
+
+        <div className="tl-sprint-row2">
+          <span className="tl-sprint-meta">
+            <span className="pm2-pulse-dot" />
+            <b>{filtered.length}</b>{" "}
+            {filtered.length === 1 ? "result" : "results"} on this page
+          </span>
+          {waitingOnYouCount > 0 && (
+            <span className="tl-sprint-meta" style={{ color: "#d97706" }}>
+              <b>{waitingOnYouCount}</b> action required
+            </span>
+          )}
+          <span className="tl-sprint-meta">
+            <b>{inProgressCount}</b> in progress
+          </span>
+          <span className="tl-sprint-meta">
+            <b>{newCount}</b> new
+          </span>
+          <span className="tl-sprint-meta">
+            <b>{resolvedCount + closedCount}</b> closed / resolved
+          </span>
+        </div>
+
+        <div className="tl-sprint-row3">
+          <div className="tl-sprint-progress-bar">
+            <div
+              className="tl-sprint-progress-fill"
+              style={{ width: `${Math.min(100, completedPct)}%` }}
+            />
+          </div>
+          <span className="tl-sprint-progress-pct">{completedPct}%</span>
+        </div>
+      </div>
+
+      {/* ── Main Content Container ── */}
+      <div
+        className="portal-tickets-content"
+        style={{
+          padding: 0,
+          width: "100%",
+          flex: "1 0 auto",
+        }}
+      >
+        {loading ? (
+          <div style={{ padding: 60, textAlign: "center" }}>
+            <ZukvoLoader size="md" />
+          </div>
+        ) : filtered.length === 0 ? (
+          <div style={{ padding: 56, textAlign: "center" }}>
+            <Empty
+              image={Empty.PRESENTED_IMAGE_SIMPLE}
+              description={
+                <span style={{ color: p.textSubtle }}>
+                  {search || activeFilterCount > 0
+                    ? "No tickets match your filter criteria."
+                    : "No support tickets raised yet."}
+                </span>
+              }
+            >
+              <Button
+                type="primary"
+                icon={<Plus size={14} />}
+                onClick={() => setCreateOpen(true)}
+                style={{
+                  marginTop: 12,
+                  borderRadius: 8,
+                  fontWeight: 600,
+                  fontSize: 12.5,
+                  background: "#3b82f6",
+                  border: "none",
+                }}
+              >
+                Raise a ticket
+              </Button>
+            </Empty>
+          </div>
+        ) : viewMode === "table" ? (
+          /* Table View */
+          <div
+            className="pm-table-wrap"
+            style={{
+              background: "#ffffff",
+              overflowX: "auto",
+            }}
+          >
+            {/* Table Header */}
             <div
               style={{
                 display: "grid",
                 gridTemplateColumns:
-                  featured.length === 1
-                    ? "1fr"
-                    : "repeat(auto-fit, minmax(440px, 1fr))",
+                  "minmax(240px, 2fr) 130px 110px 120px 140px 120px",
+                minWidth: 900,
                 gap: 12,
+                padding: "7px 16px",
+                background: "var(--bg-slate-50, #f8fafc)",
+                borderBottom: "1px solid var(--border-slate-200, #e2e8f0)",
+                fontSize: 10,
+                fontWeight: 800,
+                color: "var(--text-slate-400, #94a3b8)",
+                textTransform: "uppercase",
+                letterSpacing: "0.04em",
+                alignItems: "center",
               }}
             >
-              {featured.map((t) => (
-                <FeaturedTicketCard key={t.id} ticket={t} />
+              <div>TICKET # / SUBJECT</div>
+              <div>STATUS</div>
+              <div>PRIORITY</div>
+              <div>CATEGORY</div>
+              <div>PROJECT</div>
+              <div>UPDATED</div>
+            </div>
+
+            <div>
+              {filtered.map((ticket, idx) => (
+                <TicketTableRow
+                  key={ticket.id}
+                  ticket={ticket}
+                  isLast={idx === filtered.length - 1}
+                />
               ))}
             </div>
           </div>
-        )}
-
-        {!loading && featured.length > 0 && restItems.length > 0 && (
-          <SectionLabel
-            icon={LifeBuoy}
-            label="All tickets"
-            count={restItems.length}
-          />
-        )}
-
-        {/* Body */}
-        {loading ? (
-          <div
-            style={{
-              padding: 60,
-              textAlign: "center",
-              background: p.surfaceElevated,
-              border: `1px solid ${p.border}`,
-              borderRadius: 12,
-            }}
-          >
-            <ZukvoLoader size="md" />
-          </div>
-        ) : items.length === 0 ? (
-          <EmptyState
-            title={
-              search
-                ? `No tickets match "${search}"`
-                : status !== "ALL"
-                ? "Nothing in this status"
-                : "No tickets yet"
-            }
-            body={
-              search
-                ? "Try a different search term or clear filters above."
-                : "Raise a ticket when something needs attention. We respond based on the priority you choose."
-            }
-            ctaLabel="Raise your first ticket"
-            onCta={() => setCreateOpen(true)}
-          />
-        ) : restItems.length === 0 ? null : view === "card" ? (
+        ) : (
+          /* Card View */
           <div
             style={{
               display: "grid",
-              gridTemplateColumns: "repeat(auto-fill, minmax(360px, 1fr))",
-              gap: 12,
+              gridTemplateColumns: "repeat(auto-fill, minmax(340px, 1fr))",
+              gap: 14,
+              padding: "16px 24px",
             }}
           >
-            {restItems.map((t) => (
-              <TicketCardCompact key={t.id} ticket={t} />
+            {filtered.map((ticket) => (
+              <TicketCard key={ticket.id} ticket={ticket} />
             ))}
           </div>
-        ) : (
-          <TicketList items={restItems} />
         )}
+      </div>
 
-        {meta && meta.total > limit && (
-          <div
-            style={{
-              marginTop: 18,
-              display: "flex",
-              justifyContent: "flex-end",
-            }}
-          >
-            <Pagination
-              current={page}
-              pageSize={limit}
-              total={meta.total}
-              onChange={setPage}
-              showSizeChanger={false}
-            />
-          </div>
-        )}
+      {/* ── Fixed Sticky Bottom Footer ── */}
+      <div
+        className="portal-tickets-pagination-footer"
+        style={{
+          position: "sticky",
+          bottom: 0,
+          left: 0,
+          right: 0,
+          zIndex: 20,
+          background: "#ffffff",
+          borderTop: `1px solid ${p.border}`,
+          boxShadow: "0 -4px 16px rgba(15, 23, 42, 0.04)",
+          padding: "10px 24px",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          flexWrap: "wrap",
+          gap: 12,
+          marginTop: "auto",
+        }}
+      >
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <Typography.Text style={{ fontSize: 13, color: p.textSubtle }}>
+            Showing{" "}
+            <span style={{ color: p.text, fontWeight: 700 }}>
+              {filtered.length > 0 ? (page - 1) * limit + 1 : 0}–
+              {Math.min(page * limit, total)}
+            </span>{" "}
+            of <span style={{ color: p.text, fontWeight: 700 }}>{total}</span>{" "}
+            ticket{total !== 1 ? "s" : ""}
+          </Typography.Text>
+        </div>
 
-        <RaiseTicketModal
-          open={createOpen}
-          onClose={() => setCreateOpen(false)}
-          notify={notify}
-          onCreated={() => {
-            setCreateOpen(false);
+        <Pagination
+          current={page}
+          pageSize={limit}
+          total={total}
+          showSizeChanger
+          pageSizeOptions={["10", "15", "20", "25", "50", "100"]}
+          onChange={(p, size) => {
+            setPage(p);
+            if (size && size !== limit) {
+              setLimit(size);
+            }
+          }}
+          onShowSizeChange={(current, size) => {
             setPage(1);
-            load();
+            setLimit(size);
           }}
         />
-
-        <style jsx global>{`
-          .portal-mom-header-container,
-          [data-theme='dark'] .portal-mom-header-container,
-          [data-theme='dark'] .saas-header-container.portal-mom-header-container,
-          .saas-header-container.portal-mom-header-container {
-            background: #ffffff !important;
-            border-bottom: 1px solid #e2e8f0 !important;
-          }
-          .portal-mom-header-title {
-            color: #0f172a !important;
-          }
-          .portal-mom-header-desc {
-            color: #475569 !important;
-          }
-
-          .ant-input, .ant-select-selector, .ant-input-affix-wrapper, .ant-input-textarea, textarea.ant-input {
-            background-color: #ffffff !important;
-            color: #0f172a !important;
-            border-color: #cbd5e1 !important;
-          }
-          .ant-input::placeholder, .ant-select-selection-placeholder {
-            color: #94a3b8 !important;
-          }
-          .ant-select-selection-item {
-            color: #0f172a !important;
-          }
-          .ant-input-affix-wrapper .ant-input {
-            background-color: transparent !important;
-            color: #0f172a !important;
-          }
-          .ant-input-affix-wrapper:hover, .ant-input:hover, .ant-select-selector:hover {
-            border-color: #cbd5e1 !important;
-          }
-          .ant-input-affix-wrapper-focused, .ant-input-focused, .ant-select-focused .ant-select-selector {
-            border-color: #4f46e5 !important;
-            box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.1) !important;
-          }
-          .ant-select-arrow {
-            color: #94a3b8 !important;
-          }
-
-          .premium-new-cta:hover {
-            background: #4338ca !important;
-          }
-
-          /* Premium search input */
-          .premium-search:hover {
-            border-color: #cbd5e1 !important;
-          }
-          .premium-search[data-focused='true']:hover {
-            border-color: #4f46e5 !important;
-          }
-          .premium-search input::placeholder {
-            color: #94a3b8;
-            font-weight: 500;
-          }
-
-          /* Premium select */
-          .premium-select .ant-select-selector {
-            height: 34px !important;
-            padding: 0 11px !important;
-            border-radius: 8px !important;
-            border-color: #e5e7eb !important;
-            display: flex;
-            align-items: center;
-          }
-          .premium-select .ant-select-selection-search-input,
-          .premium-select .ant-select-selection-item,
-          .premium-select .ant-select-selection-placeholder {
-            line-height: 32px !important;
-            font-size: 13px !important;
-            font-weight: 500 !important;
-          }
-          .premium-select.ant-select-focused .ant-select-selector,
-          .premium-select .ant-select-selector:hover {
-            border-color: #a5b4fc !important;
-          }
-          .premium-select.ant-select-focused .ant-select-selector {
-            border-color: #4f46e5 !important;
-            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.12) !important;
-          }
-          .premium-select .ant-select-arrow {
-            right: 11px;
-          }
-
-          /* Premium range picker */
-          .premium-rangepicker.ant-picker {
-            height: 34px !important;
-            padding: 0 11px !important;
-            border-radius: 8px !important;
-            border-color: #e5e7eb !important;
-          }
-          .premium-rangepicker.ant-picker:hover {
-            border-color: #a5b4fc !important;
-          }
-          .premium-rangepicker.ant-picker-focused {
-            border-color: #4f46e5 !important;
-            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.12) !important;
-          }
-          .premium-rangepicker .ant-picker-input > input {
-            font-size: 13px !important;
-            font-weight: 500 !important;
-            color: #0f172a !important;
-          }
-          .premium-rangepicker .ant-picker-input > input::placeholder {
-            color: #94a3b8 !important;
-            font-weight: 500 !important;
-          }
-          .premium-rangepicker .ant-picker-range-separator {
-            padding: 0 6px !important;
-          }
-          .ant-picker-presets > ul > li {
-            font-size: 12.5px !important;
-            font-weight: 500 !important;
-            color: #475569 !important;
-            border-radius: 6px !important;
-          }
-          .ant-picker-presets > ul > li:hover {
-            background: #eef2ff !important;
-            color: #4338ca !important;
-          }
-
-          /* Filter chips */
-          .premium-filter-chip button:hover {
-            background: rgba(67, 56, 202, 0.12) !important;
-          }
-          .premium-clear-all:hover {
-            text-decoration: underline;
-          }
-          .premium-filter-tab[data-active='false']:hover {
-            border-color: #a5b4fc !important;
-            color: #4338ca !important;
-          }
-
-          /* Ticket card */
-          .premium-ticket-card {
-            position: relative;
-          }
-          .premium-ticket-card::before {
-            content: "";
-            position: absolute;
-            left: 0;
-            top: 0;
-            bottom: 0;
-            width: 2px;
-            background: transparent;
-            border-radius: 10px 0 0 10px;
-            transition: background 120ms ease;
-          }
-          .premium-ticket-card[data-state='waiting_on_client']::before {
-            background: #d97706;
-          }
-          .premium-ticket-card[data-state='resolved']::before,
-          .premium-ticket-card[data-state='closed']::before {
-            background: #a7f3d0;
-          }
-          .premium-ticket-card[data-state='in_progress']::before,
-          .premium-ticket-card[data-state='in_review']::before {
-            background: #4f46e5;
-          }
-          .premium-ticket-card[data-sla='breached']::before {
-            background: #dc2626 !important;
-          }
-          .premium-ticket-card:hover {
-            border-color: #a5b4fc !important;
-          }
-          .premium-ticket-card:hover .premium-ticket-arrow {
-            transform: translateX(2px);
-            color: #4f46e5;
-          }
-          .premium-ticket-arrow {
-            transition: transform 140ms ease, color 140ms ease;
-          }
-
-          /* Row hover */
-          .premium-ticket-row {
-            transition: background 120ms ease;
-          }
-          .premium-ticket-row:hover {
-            background: #fafbff;
-          }
-          .premium-ticket-row:hover .premium-ticket-arrow {
-            transform: translateX(2px);
-            color: #4f46e5;
-          }
-
-          /* Featured */
-          .premium-featured-ticket:hover {
-            border-color: #f59e0b !important;
-          }
-          .premium-featured-ticket:hover .premium-featured-cta {
-            background: #4338ca;
-            gap: 6px;
-          }
-
-          /* View toggle */
-          .premium-view-toggle {
-            display: inline-flex;
-            background: #ffffff;
-            border: 1px solid #e5e7eb;
-            border-radius: 8px;
-            padding: 2px;
-          }
-          .premium-view-toggle button {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            width: 28px;
-            height: 24px;
-            background: transparent;
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
-            color: #94a3b8;
-            transition: all 120ms ease;
-          }
-          .premium-view-toggle button:hover {
-            color: #4338ca;
-          }
-          .premium-view-toggle button[data-active='true'] {
-            background: #eef2ff;
-            color: #4338ca;
-          }
-
-          @media (max-width: 640px) {
-            .portal-tickets-header-container,
-            .saas-header-container.portal-tickets-header-container {
-              padding: 12px 16px !important;
-            }
-            .portal-tickets-content-container {
-              padding: 16px 16px 40px !important;
-            }
-          }
-
-          .portal-tickets-modal-grid {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 10px;
-          }
-          @media (max-width: 600px) {
-            .portal-tickets-modal-grid {
-              grid-template-columns: 1fr !important;
-            }
-          }
-        `}</style>
       </div>
+
+      <RaiseTicketModal
+        open={createOpen}
+        onClose={() => setCreateOpen(false)}
+        notify={notify}
+        onCreated={() => {
+          setCreateOpen(false);
+          setPage(1);
+          load();
+        }}
+      />
+
+      <style jsx global>{`
+        /* ── Header Toolbar ── */
+        .pm2-toolbar.sc-header {
+          position: sticky;
+          top: 0;
+          z-index: 100;
+          height: auto;
+          min-height: 0;
+          margin: 0;
+          padding: 10px 24px;
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          flex-wrap: wrap;
+          background: #ffffff;
+          border-bottom: 1px solid #e2e8f0;
+          flex-shrink: 0;
+        }
+        .sc-header-controls {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          flex: 1;
+          min-width: 0;
+        }
+        .sc-header-right {
+          flex-shrink: 0;
+        }
+
+        .pm2-head-id {
+          display: flex;
+          align-items: center;
+          gap: 9px;
+          min-width: 0;
+          flex-shrink: 0;
+        }
+        .pm2-head-ic {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          flex-shrink: 0;
+          width: 32px;
+          height: 32px;
+          border-radius: 8px;
+          font-size: 14px;
+          color: #3b82f6;
+          background: rgba(59, 130, 246, 0.1);
+          border: 1px solid rgba(59, 130, 246, 0.18);
+        }
+        .pm2-head-text {
+          display: flex;
+          flex-direction: column;
+          min-width: 0;
+        }
+        .pm2-head-title {
+          font-size: 13.5px;
+          font-weight: 800;
+          color: #0f172a;
+          letter-spacing: -0.01em;
+          line-height: 1.2;
+        }
+        .pm2-head-sub {
+          font-size: 9.5px;
+          font-weight: 700;
+          letter-spacing: 0.08em;
+          text-transform: uppercase;
+          color: #94a3b8;
+          margin-top: 1px;
+        }
+
+        /* ── Overview Banner ── */
+        .tl-section-head {
+          padding: 10px 24px;
+          background: #f8fafc;
+          border-bottom: 1px solid #e2e8f0;
+          flex-shrink: 0;
+        }
+        .tl-sprint-head-v2 {
+          display: flex;
+          flex-direction: column;
+          gap: 6px;
+        }
+        .tl-sprint-row1 {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 12px;
+          flex-wrap: wrap;
+        }
+        .tl-sprint-title-block {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          min-width: 0;
+          flex: 1 1 auto;
+        }
+        .tl-sprint-dot {
+          width: 7px;
+          height: 7px;
+          border-radius: 50%;
+          flex-shrink: 0;
+        }
+        .pm2-banner-title {
+          font-size: 13.5px;
+          font-weight: 800;
+          color: #0f172a;
+          letter-spacing: -0.01em;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+        .tl-sprint-tags {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          flex-shrink: 0;
+        }
+        .tl-sprint-tag {
+          display: inline-flex;
+          align-items: center;
+          height: 18px;
+          padding: 0 6px;
+          font-size: 9px;
+          font-weight: 800;
+          letter-spacing: 0.04em;
+          border-radius: 4px;
+          border: 1px solid transparent;
+          text-transform: uppercase;
+          line-height: 1;
+        }
+        .tl-sprint-tag-active {
+          background: transparent;
+          color: #10b981;
+          border-color: rgba(16, 185, 129, 0.32);
+        }
+        .tl-sprint-tag-neutral {
+          background: transparent;
+          color: #64748b;
+          border-color: rgba(100, 116, 139, 0.32);
+        }
+        .tl-sprint-tag-delayed {
+          background: transparent;
+          color: #d97706;
+          border-color: rgba(217, 119, 6, 0.32);
+        }
+
+        .tl-sprint-row2 {
+          display: flex;
+          align-items: center;
+          gap: 18px;
+          flex-wrap: wrap;
+          padding-left: 15px;
+        }
+        .tl-sprint-meta {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          font-size: 11.5px;
+          font-weight: 600;
+          color: #64748b;
+          letter-spacing: -0.005em;
+        }
+        .tl-sprint-meta b {
+          color: #0f172a;
+          font-weight: 800;
+        }
+        .pm2-pulse-dot {
+          width: 6px;
+          height: 6px;
+          border-radius: 50%;
+          background: #10b981;
+          display: inline-block;
+          box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.2);
+        }
+
+        .tl-sprint-row3 {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          padding-left: 15px;
+        }
+        .tl-sprint-progress-bar {
+          flex: 1 1 auto;
+          position: relative;
+          height: 6px;
+          background: #f1f5f9;
+          border-radius: 999px;
+          overflow: hidden;
+          min-width: 60px;
+        }
+        .tl-sprint-progress-fill {
+          position: absolute;
+          inset: 0;
+          background: linear-gradient(90deg, #3b82f6, #2563eb);
+          border-radius: 999px;
+          transition: width 0.4s ease;
+        }
+        .tl-sprint-progress-pct {
+          flex-shrink: 0;
+          font-size: 12px;
+          font-weight: 800;
+          color: #0f172a;
+          font-variant-numeric: tabular-nums;
+          min-width: 36px;
+          text-align: right;
+        }
+
+        /* ── Inline Filter Row ── */
+        .tl-filter-row {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          padding: 8px 24px;
+          background: #f8fafc;
+          border-bottom: 1px solid #e2e8f0;
+          flex-shrink: 0;
+        }
+        .tl-filter-row-label {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          font-size: 10.5px;
+          font-weight: 800;
+          color: #64748b;
+          text-transform: uppercase;
+          letter-spacing: 0.08em;
+          flex-shrink: 0;
+        }
+        .tl-filter-row-count {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          min-width: 18px;
+          height: 18px;
+          padding: 0 6px;
+          background: #ffffff;
+          border: 1px solid #cbd5e1;
+          color: #475569;
+          border-radius: 999px;
+          font-size: 10px;
+          font-weight: 800;
+          letter-spacing: 0;
+          font-variant-numeric: tabular-nums;
+        }
+        .tl-filter-row-pills {
+          flex: 1 1 auto;
+          min-width: 0;
+          display: flex;
+          flex-wrap: wrap;
+          align-items: center;
+          gap: 6px;
+        }
+        .tl-filter-row-actions {
+          flex-shrink: 0;
+          display: inline-flex;
+          align-items: center;
+          gap: 4px;
+        }
+        .tl-filter-row-reset {
+          display: inline-flex;
+          align-items: center;
+          gap: 5px;
+          height: 28px;
+          padding: 0 10px;
+          background: transparent;
+          border: 1px dashed #cbd5e1;
+          border-radius: 6px;
+          font-family: inherit;
+          font-size: 11px;
+          font-weight: 700;
+          color: #64748b;
+          cursor: pointer;
+          transition: all 0.12s ease;
+        }
+        .tl-filter-row-reset:hover {
+          color: #1d4ed8;
+          border-color: rgba(59, 130, 246, 0.45);
+          background: rgba(59, 130, 246, 0.06);
+          border-style: solid;
+        }
+        .tl-filter-row-close {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          width: 28px;
+          height: 28px;
+          background: transparent;
+          border: 1px solid #e2e8f0;
+          border-radius: 6px;
+          color: #64748b;
+          cursor: pointer;
+          transition: all 0.12s ease;
+        }
+        .tl-filter-row-close:hover {
+          color: #0f172a;
+          background: #ffffff;
+          border-color: #94a3b8;
+        }
+
+        .saas-tag-blue {
+          background: #eff6ff !important;
+          color: #1d4ed8 !important;
+          border-color: #bfdbfe !important;
+        }
+
+        /* ── View Toggle ── */
+        .premium-view-toggle {
+          display: inline-flex;
+          background: #ffffff;
+          border: 1px solid #e2e8f0;
+          border-radius: 6px;
+          padding: 2px;
+        }
+        .premium-view-toggle button {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          width: 26px;
+          height: 26px;
+          border: none;
+          background: transparent;
+          color: #64748b;
+          border-radius: 4px;
+          cursor: pointer;
+          transition: all 120ms ease;
+        }
+        .premium-view-toggle button:hover {
+          color: #0f172a;
+          background: #f1f5f9;
+        }
+        .premium-view-toggle button[data-active='true'] {
+          background: #eff6ff;
+          color: #1d4ed8;
+        }
+
+        /* Card hover */
+        .pm2-card {
+          transition: all 140ms ease;
+        }
+        .pm2-card:hover {
+          border-color: #cbd5e1 !important;
+          box-shadow: 0 4px 12px rgba(15, 23, 42, 0.06);
+          transform: translateY(-1px);
+        }
+
+        /* Row hover */
+        .pm2-table-row {
+          transition: background 120ms ease;
+        }
+        .pm2-table-row:hover {
+          background: #f8fafc !important;
+        }
+
+        .portal-tickets-pagination-footer .ant-pagination-item,
+        .portal-tickets-pagination-footer .ant-pagination-prev .ant-pagination-item-link,
+        .portal-tickets-pagination-footer .ant-pagination-next .ant-pagination-item-link {
+          border: 1px solid var(--border-slate-200, #e2e8f0) !important;
+          border-radius: 6px !important;
+          background: transparent !important;
+          color: var(--text-slate-500, #64748b) !important;
+        }
+        .portal-tickets-pagination-footer .ant-pagination-item-active {
+          background: #3b82f6 !important;
+          border-color: #3b82f6 !important;
+        }
+        .portal-tickets-pagination-footer .ant-pagination-item-active a {
+          color: #ffffff !important;
+        }
+
+        .portal-tickets-modal-grid {
+          display: grid;
+          grid-template-columns: repeat(3, 1fr);
+          gap: 10px;
+        }
+        @media (max-width: 600px) {
+          .portal-tickets-modal-grid {
+            grid-template-columns: 1fr !important;
+          }
+        }
+      `}</style>
     </div>
   );
 }
 
 /* --------------------------------------------------------------- */
+/*  Table Row Component (Edge-to-edge, NO Actions Column)          */
+/* --------------------------------------------------------------- */
 
-function ViewToggle({
-  view,
-  onChange,
+function TicketTableRow({
+  ticket,
+  isLast,
 }: {
-  view: ViewMode;
-  onChange: (v: ViewMode) => void;
+  ticket: PortalTicketListItem;
+  isLast: boolean;
 }) {
-  return (
-    <div className="premium-view-toggle" role="group" aria-label="View mode">
-      <button
-        type="button"
-        data-active={view === "card" ? "true" : "false"}
-        onClick={() => onChange("card")}
-        title="Card view"
-        aria-label="Card view"
-      >
-        <LayoutGrid size={13} />
-      </button>
-      <button
-        type="button"
-        data-active={view === "list" ? "true" : "false"}
-        onClick={() => onChange("list")}
-        title="List view"
-        aria-label="List view"
-      >
-        <ListIcon size={13} />
-      </button>
-    </div>
-  );
-}
+  const isWaiting = ticket.status === "waiting_on_client";
+  const breached =
+    ticket.sla.firstResponseBreached || ticket.sla.resolutionBreached;
 
-function SectionLabel({
-  icon: Icon,
-  label,
-  count,
-}: {
-  icon: any;
-  label: string;
-  count?: number;
-}) {
   return (
-    <div
+    <Link
+      href={`/portal/tickets/${ticket.id}`}
+      className="pm2-table-row"
       style={{
-        display: "flex",
+        display: "grid",
+        gridTemplateColumns:
+          "minmax(240px, 2fr) 130px 110px 120px 140px 120px",
+        minWidth: 900,
+        gap: 12,
+        padding: "8px 16px",
         alignItems: "center",
-        gap: 8,
-        marginBottom: 10,
+        borderBottom: isLast ? "none" : "1px solid #f1f5f9",
+        textDecoration: "none",
+        color: "inherit",
+        cursor: "pointer",
       }}
     >
-      <Icon size={13} color={INDIGO} />
-      <span
-        style={{
-          fontSize: 11,
-          fontWeight: 700,
-          color: p.textMuted,
-          textTransform: "uppercase",
-          letterSpacing: "0.09em",
-        }}
-      >
-        {label}
-      </span>
-      {count != null && (
-        <span
+      {/* 1. Ticket # / Subject */}
+      <div style={{ display: "flex", alignItems: "center", gap: 12, minWidth: 0 }}>
+        <div
           style={{
-            fontSize: 10.5,
-            fontWeight: 700,
-            color: p.textSubtle,
-            padding: "0 6px",
-            background: p.neutralBg,
-            borderRadius: 999,
-            fontVariantNumeric: "tabular-nums",
+            width: 26,
+            height: 26,
+            borderRadius: 6,
+            flexShrink: 0,
+            display: "inline-flex",
+            alignItems: "center",
+            justifyContent: "center",
+            color: isWaiting ? "#d97706" : "#3B82F6",
+            background: isWaiting ? "#fef3c7" : "rgba(59, 130, 246, 0.08)",
+            border: `1px solid ${
+              isWaiting ? "#fde68a" : "rgba(59, 130, 246, 0.16)"
+            }`,
           }}
         >
-          {count}
+          <LifeBuoy size={13} />
+        </div>
+        <div style={{ display: "flex", flexDirection: "column", minWidth: 0 }}>
+          <span
+            style={{
+              fontSize: 13,
+              fontWeight: 700,
+              color: "#0f172a",
+              lineHeight: 1.25,
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              whiteSpace: "nowrap",
+            }}
+            title={ticket.subject}
+          >
+            {ticket.subject}
+          </span>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 6,
+              marginTop: 1,
+            }}
+          >
+            <span
+              style={{
+                fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
+                fontSize: 10,
+                color: "#64748b",
+                fontWeight: 600,
+              }}
+            >
+              {ticket.ticketNumber}
+            </span>
+            {isWaiting && (
+              <span
+                style={{
+                  fontSize: 9.5,
+                  padding: "0 5px",
+                  background: "#fffbeb",
+                  border: "1px solid #fde68a",
+                  color: "#92400e",
+                  borderRadius: 4,
+                  fontWeight: 700,
+                  textTransform: "uppercase",
+                }}
+              >
+                Waiting on you
+              </span>
+            )}
+            {breached && (
+              <span
+                style={{
+                  fontSize: 9.5,
+                  padding: "0 5px",
+                  background: "#fef2f2",
+                  border: "1px solid #fecaca",
+                  color: "#b91c1c",
+                  borderRadius: 4,
+                  fontWeight: 700,
+                  textTransform: "uppercase",
+                }}
+              >
+                SLA breach
+              </span>
+            )}
+            <span
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 3,
+                fontSize: 10,
+                color: "#94a3b8",
+                fontWeight: 600,
+              }}
+            >
+              <MessageCircle size={10} />
+              {ticket.messageCount}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* 2. Status */}
+      <div>
+        <StatusPill status={ticket.status} compact />
+      </div>
+
+      {/* 3. Priority */}
+      <div>
+        <PriorityChip priority={ticket.priority} compact />
+      </div>
+
+      {/* 4. Category */}
+      <div>
+        <CategoryChip category={ticket.category} compact />
+      </div>
+
+      {/* 5. Project */}
+      <div style={{ minWidth: 0 }}>
+        {ticket.projectName ? (
+          <span
+            style={{
+              fontSize: 12,
+              fontWeight: 600,
+              color: "#334155",
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 5,
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              whiteSpace: "nowrap",
+              maxWidth: "100%",
+            }}
+            title={ticket.projectName}
+          >
+            <Folder size={11} color="#94a3b8" />
+            {ticket.projectName}
+          </span>
+        ) : (
+          <span style={{ fontSize: 12, color: "#94a3b8" }}>—</span>
+        )}
+      </div>
+
+      {/* 6. Updated */}
+      <div>
+        <span style={{ fontSize: 12, color: "#64748b", fontWeight: 500 }}>
+          {fmtRelative(ticket.lastActivityAt)}
         </span>
-      )}
-      <div
-        style={{
-          flex: 1,
-          height: 1,
-          background: p.neutralBorder,
-          marginLeft: 2,
-        }}
-      />
-    </div>
+      </div>
+    </Link>
   );
 }
 
-function FilterBar({
-  search,
-  onSearchChange,
-  projects,
-  projectId,
-  onProjectChange,
-  datePicked,
-  onDateChange,
-}: {
-  search: string;
-  onSearchChange: (v: string) => void;
-  projects: { id: string; name: string; code: string | null }[];
-  projectId: string | undefined;
-  onProjectChange: (v: string | undefined) => void;
-  datePicked: [Dayjs | null, Dayjs | null] | null;
-  onDateChange: (r: [Dayjs | null, Dayjs | null] | null) => void;
-}) {
-  const [searchFocused, setSearchFocused] = useState(false);
-  const today = dayjs();
-  const rangePresets: { label: string; value: [Dayjs, Dayjs] }[] = [
-    { label: "Last 7 days", value: [today.subtract(6, "day"), today] },
-    { label: "Last 30 days", value: [today.subtract(29, "day"), today] },
-    { label: "This month", value: [today.startOf("month"), today.endOf("month")] },
-    {
-      label: "Last month",
-      value: [
-        today.subtract(1, "month").startOf("month"),
-        today.subtract(1, "month").endOf("month"),
-      ],
-    },
-    { label: "This quarter", value: [today.startOf("quarter"), today.endOf("quarter")] },
-    { label: "Next 30 days", value: [today, today.add(30, "day")] },
-  ];
+/* --------------------------------------------------------------- */
+/*  Card Component                                                 */
+/* --------------------------------------------------------------- */
+
+function TicketCard({ ticket }: { ticket: PortalTicketListItem }) {
+  const isWaiting = ticket.status === "waiting_on_client";
+  const breached =
+    ticket.sla.firstResponseBreached || ticket.sla.resolutionBreached;
 
   return (
-    <div
+    <Link
+      href={`/portal/tickets/${ticket.id}`}
+      className="pm2-card"
       style={{
         display: "flex",
-        gap: 8,
-        alignItems: "stretch",
-        flexWrap: "wrap",
-        marginBottom: 10,
+        flexDirection: "column",
+        justifyContent: "space-between",
+        gap: 12,
+        padding: "16px 18px",
+        background: "#ffffff",
+        border: `1px solid ${isWaiting ? "#fde68a" : "#e2e8f0"}`,
+        borderRadius: 10,
+        textDecoration: "none",
+        color: "inherit",
+        cursor: "pointer",
+        position: "relative",
       }}
     >
+      {/* Top row: Icon + Number + Status */}
       <div
-        className="premium-search"
-        data-focused={searchFocused ? "true" : "false"}
         style={{
-          flex: "1 1 280px",
-          minWidth: 240,
-          maxWidth: 480,
-          display: "inline-flex",
+          display: "flex",
           alignItems: "center",
+          justifyContent: "space-between",
           gap: 8,
-          height: 34,
-          padding: "0 10px 0 12px",
-          background: p.surface,
-          border: `1px solid ${searchFocused ? INDIGO : p.border}`,
-          borderRadius: 8,
-          boxShadow: searchFocused
-            ? "0 0 0 3px rgba(99, 102, 241, 0.12)"
-            : "none",
-          transition: "border-color 140ms ease, box-shadow 140ms ease",
         }}
       >
-        <Search
-          size={14}
-          color={searchFocused ? INDIGO : p.textFaint}
-          style={{ flexShrink: 0, transition: "color 140ms ease" }}
-        />
-        <input
-          value={search}
-          onChange={(e) => onSearchChange(e.target.value)}
-          onFocus={() => setSearchFocused(true)}
-          onBlur={() => setSearchFocused(false)}
-          placeholder="Search ticket # or subject…"
-          style={{
-            flex: 1,
-            minWidth: 0,
-            height: "100%",
-            border: "none",
-            outline: "none",
-            background: "transparent",
-            color: p.text,
-            fontSize: 13,
-            fontWeight: 500,
-          }}
-        />
-        {search && (
-          <button
-            type="button"
-            onClick={() => onSearchChange("")}
-            aria-label="Clear search"
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <div
             style={{
-              flexShrink: 0,
-              width: 18,
-              height: 18,
-              padding: 0,
+              width: 28,
+              height: 28,
+              borderRadius: 6,
               display: "inline-flex",
               alignItems: "center",
               justifyContent: "center",
-              background: p.neutralBg,
-              border: "none",
-              borderRadius: 999,
-              color: p.textSubtle,
-              cursor: "pointer",
+              color: isWaiting ? "#d97706" : "#3B82F6",
+              background: isWaiting ? "#fef3c7" : "rgba(59, 130, 246, 0.08)",
+              border: `1px solid ${
+                isWaiting ? "#fde68a" : "rgba(59, 130, 246, 0.16)"
+              }`,
             }}
           >
-            <X size={11} />
-          </button>
-        )}
-        <kbd
-          aria-hidden
-          style={{
-            flexShrink: 0,
-            display: search ? "none" : "inline-flex",
-            alignItems: "center",
-            justifyContent: "center",
-            height: 18,
-            minWidth: 22,
-            padding: "0 5px",
-            background: p.surfaceMuted,
-            border: `1px solid ${p.border}`,
-            borderRadius: 4,
-            color: p.textFaint,
-            fontSize: 10,
-            fontWeight: 600,
-            fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
-          }}
-        >
-          /
-        </kbd>
-      </div>
-
-      <Select
-        allowClear
-        showSearch
-        placeholder={
+            <LifeBuoy size={14} />
+          </div>
           <span
             style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: 6,
-              color: p.textSubtle,
-              fontWeight: 500,
+              fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
+              fontSize: 11,
+              fontWeight: 700,
+              color: "#64748b",
             }}
           >
-            <Folder size={13} color={p.textFaint} />
-            {projects.length > 0
-              ? `All projects · ${projects.length}`
-              : "Projects"}
+            {ticket.ticketNumber}
           </span>
-        }
-        suffixIcon={<Folder size={13} color={p.textFaint} />}
-        value={projectId}
-        onChange={(v) => onProjectChange(v)}
-        optionFilterProp="label"
-        className="premium-select"
-        style={{ width: 220, height: 34 }}
-        options={projects.map((proj) => ({
-          value: proj.id,
-          label: proj.code ? `${proj.name} · ${proj.code}` : proj.name,
-        }))}
-        notFoundContent={
-          <div style={{ padding: 8, fontSize: 12, color: p.textSubtle }}>
-            No projects available
-          </div>
-        }
-      />
+        </div>
 
-      <RangePicker
-        value={datePicked as any}
-        onChange={(r) => onDateChange(r as any)}
-        format="MMM D, YYYY"
-        allowEmpty={[true, true]}
-        placeholder={["From", "To"]}
-        className="premium-rangepicker"
-        suffixIcon={<CalendarRange size={13} color={p.textFaint} />}
-        separator={<span style={{ color: p.textFaint }}>→</span>}
-        presets={rangePresets}
-        style={{ height: 34 }}
-      />
-    </div>
-  );
-}
+        <StatusPill status={ticket.status} compact />
+      </div>
 
-function ActiveFilterChips({
-  search,
-  onClearSearch,
-  projectName,
-  onClearProject,
-  datePicked,
-  onClearDateRange,
-  statusFilter,
-  onClearStatus,
-}: {
-  search: string;
-  onClearSearch: () => void;
-  projectName: string | undefined;
-  onClearProject: () => void;
-  datePicked: [Dayjs | null, Dayjs | null] | null;
-  onClearDateRange: () => void;
-  statusFilter: string | undefined;
-  onClearStatus: () => void;
-}) {
-  const hasDates = !!(datePicked && (datePicked[0] || datePicked[1]));
-  const any = !!search || !!projectName || hasDates || !!statusFilter;
-  if (!any) return null;
+      {/* Title */}
+      <div>
+        <div
+          style={{
+            fontSize: 14,
+            fontWeight: 700,
+            color: "#0f172a",
+            lineHeight: 1.35,
+            overflow: "hidden",
+            display: "-webkit-box",
+            WebkitLineClamp: 2,
+            WebkitBoxOrient: "vertical",
+          }}
+          title={ticket.subject}
+        >
+          {ticket.subject}
+        </div>
+      </div>
 
-  const dateLabel = hasDates
-    ? `${datePicked?.[0] ? datePicked[0].format("MMM D") : "Any"} → ${
-        datePicked?.[1] ? datePicked[1].format("MMM D, YYYY") : "Any"
-      }`
-    : "";
+      {/* Chips: Category, Priority, SLA breach */}
+      <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+        <CategoryChip category={ticket.category} compact />
+        <PriorityChip priority={ticket.priority} compact />
+        {isWaiting && (
+          <span
+            style={{
+              fontSize: 10,
+              padding: "1px 7px",
+              background: "#fffbeb",
+              border: "1px solid #fde68a",
+              color: "#92400e",
+              borderRadius: 999,
+              fontWeight: 700,
+              textTransform: "uppercase",
+            }}
+          >
+            Waiting on you
+          </span>
+        )}
+        {breached && (
+          <span
+            style={{
+              fontSize: 10,
+              padding: "1px 7px",
+              background: "#fef2f2",
+              border: "1px solid #fecaca",
+              color: "#b91c1c",
+              borderRadius: 999,
+              fontWeight: 700,
+              textTransform: "uppercase",
+            }}
+          >
+            SLA breach
+          </span>
+        )}
+      </div>
 
-  return (
-    <div
-      style={{
-        display: "flex",
-        gap: 6,
-        alignItems: "center",
-        flexWrap: "wrap",
-        marginBottom: 14,
-      }}
-    >
-      <span
-        style={{
-          display: "inline-flex",
-          alignItems: "center",
-          gap: 4,
-          fontSize: 11,
-          fontWeight: 700,
-          color: p.textSubtle,
-          textTransform: "uppercase",
-          letterSpacing: "0.07em",
-          marginRight: 2,
-        }}
-      >
-        <SlidersHorizontal size={11} />
-        Active
-      </span>
-      {statusFilter && (
-        <FilterChip
-          icon={Activity}
-          label={`Status: ${statusFilter.replace(/_/g, " ")}`}
-          onClear={onClearStatus}
-        />
-      )}
-      {projectName && (
-        <FilterChip
-          icon={Folder}
-          label={`Project: ${projectName}`}
-          onClear={onClearProject}
-        />
-      )}
-      {hasDates && (
-        <FilterChip
-          icon={CalendarRange}
-          label={dateLabel}
-          onClear={onClearDateRange}
-        />
-      )}
-      {search && (
-        <FilterChip
-          icon={Search}
-          label={`"${search}"`}
-          onClear={onClearSearch}
-        />
-      )}
-      <button
-        type="button"
-        onClick={() => {
-          if (search) onClearSearch();
-          if (projectName) onClearProject();
-          if (hasDates) onClearDateRange();
-          if (statusFilter) onClearStatus();
-        }}
-        className="premium-clear-all"
-        style={{
-          marginLeft: 4,
-          padding: "2px 8px",
-          background: "transparent",
-          border: "none",
-          color: INDIGO_TEXT,
-          fontSize: 11.5,
-          fontWeight: 600,
-          cursor: "pointer",
-        }}
-      >
-        Clear all
-      </button>
-    </div>
-  );
-}
-
-function FilterChip({
-  icon: Icon,
-  label,
-  onClear,
-}: {
-  icon: any;
-  label: string;
-  onClear: () => void;
-}) {
-  return (
-    <span
-      className="premium-filter-chip"
-      style={{
-        display: "inline-flex",
-        alignItems: "center",
-        gap: 5,
-        padding: "3px 4px 3px 9px",
-        background: INDIGO_BG,
-        border: `1px solid ${INDIGO_BORDER}`,
-        color: INDIGO_TEXT,
-        borderRadius: 999,
-        fontSize: 11.5,
-        fontWeight: 600,
-        lineHeight: 1.2,
-      }}
-    >
-      <Icon size={10} />
-      <span
-        style={{
-          maxWidth: 180,
-          overflow: "hidden",
-          textOverflow: "ellipsis",
-          whiteSpace: "nowrap",
-        }}
-      >
-        {label}
-      </span>
-      <button
-        type="button"
-        onClick={onClear}
-        aria-label="Remove filter"
-        style={{
-          width: 16,
-          height: 16,
-          padding: 0,
-          display: "inline-flex",
-          alignItems: "center",
-          justifyContent: "center",
-          background: "transparent",
-          border: "none",
-          borderRadius: 999,
-          color: INDIGO_TEXT,
-          cursor: "pointer",
-        }}
-      >
-        <X size={10} />
-      </button>
-    </span>
-  );
-}
-
-function EmptyState({
-  title,
-  body,
-  ctaLabel,
-  onCta,
-}: {
-  title: string;
-  body: string;
-  ctaLabel?: string;
-  onCta?: () => void;
-}) {
-  return (
-    <div
-      style={{
-        padding: 56,
-        textAlign: "center",
-        background: SURFACE_TINTED,
-        border: `1px dashed ${p.neutralBorder}`,
-        borderRadius: 12,
-      }}
-    >
+      {/* Footer: Project & Details */}
       <div
         style={{
-          width: 40,
-          height: 40,
-          borderRadius: 10,
-          background: p.surface,
-          border: `1px solid ${p.border}`,
-          display: "inline-flex",
+          display: "flex",
           alignItems: "center",
-          justifyContent: "center",
-          marginBottom: 12,
+          justifyContent: "space-between",
+          paddingTop: 10,
+          borderTop: "1px solid #f1f5f9",
+          fontSize: 11,
+          color: "#64748b",
         }}
       >
-        <Target size={18} color={p.textFaint} />
-      </div>
-      <div style={{ fontSize: 13.5, fontWeight: 600, color: p.text }}>
-        {title}
-      </div>
-      <div style={{ fontSize: 12, color: p.textSubtle, marginTop: 4 }}>
-        {body}
-      </div>
-      {ctaLabel && onCta && (
-        <div style={{ marginTop: 14 }}>
-          <button
-            onClick={onCta}
-            className="premium-new-cta"
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: 7,
-              padding: "8px 14px",
-              background: INDIGO,
-              color: "#ffffff",
-              border: "none",
-              borderRadius: 8,
-              fontSize: 12.5,
-              fontWeight: 600,
-              cursor: "pointer",
-            }}
-          >
-            <Plus size={14} />
-            {ctaLabel}
-          </button>
+        <div style={{ display: "flex", alignItems: "center", gap: 4, minWidth: 0 }}>
+          {ticket.projectName && (
+            <span
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 4,
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                whiteSpace: "nowrap",
+                fontWeight: 600,
+                color: "#334155",
+                maxWidth: 160,
+              }}
+            >
+              <Folder size={11} color="#94a3b8" />
+              {ticket.projectName}
+            </span>
+          )}
         </div>
-      )}
-    </div>
+
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <span style={{ display: "inline-flex", alignItems: "center", gap: 3 }}>
+            <MessageCircle size={11} color="#94a3b8" />
+            {ticket.messageCount}
+          </span>
+          <span style={{ fontWeight: 500 }}>
+            {fmtRelative(ticket.lastActivityAt)}
+          </span>
+        </div>
+      </div>
+    </Link>
   );
 }
 
+/* --------------------------------------------------------------- */
+/*  Pill and Chip Helpers                                          */
 /* --------------------------------------------------------------- */
 
 function StatusPill({
@@ -1401,621 +1571,8 @@ function CategoryChip({
   );
 }
 
-function SlaBadge({ ticket }: { ticket: PortalTicketListItem }) {
-  const breached =
-    ticket.sla.firstResponseBreached || ticket.sla.resolutionBreached;
-  if (!breached) return null;
-  return (
-    <span
-      style={{
-        display: "inline-flex",
-        alignItems: "center",
-        gap: 3,
-        padding: "1px 7px",
-        background: p.dangerBg,
-        border: `1px solid ${p.dangerBorder}`,
-        color: p.dangerText,
-        borderRadius: 999,
-        fontSize: 10.5,
-        fontWeight: 700,
-        textTransform: "uppercase",
-        letterSpacing: "0.05em",
-      }}
-    >
-      <AlertTriangle size={10} />
-      SLA breach
-    </span>
-  );
-}
-
-function FeaturedTicketCard({ ticket }: { ticket: PortalTicketListItem }) {
-  const days = daysBetween(ticket.dueDate);
-  const pri = PRIORITY_META[ticket.priority] || PRIORITY_META.medium;
-  const priTone = TONE[pri.tone];
-  return (
-    <Link
-      href={`/portal/tickets/${ticket.id}`}
-      className="premium-featured-ticket"
-      style={{
-        position: "relative",
-        display: "flex",
-        flexDirection: "column",
-        gap: 12,
-        padding: "16px 18px 16px 22px",
-        background: "linear-gradient(180deg, #fffbeb 0%, #ffffff 70%)",
-        border: `1px solid ${p.warningBorder}`,
-        borderRadius: 12,
-        textDecoration: "none",
-        color: "inherit",
-        overflow: "hidden",
-        transition: "border-color 140ms ease",
-      }}
-    >
-      <div
-        style={{
-          position: "absolute",
-          left: 0,
-          top: 0,
-          bottom: 0,
-          width: 3,
-          background: `linear-gradient(180deg, ${p.warning}, #f97316)`,
-        }}
-      />
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          gap: 12,
-          alignItems: "flex-start",
-        }}
-      >
-        <div style={{ minWidth: 0, flex: 1 }}>
-          <div
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: 8,
-              marginBottom: 6,
-              flexWrap: "wrap",
-            }}
-          >
-            <span
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                gap: 5,
-                padding: "3px 9px",
-                background: p.warningBg,
-                border: `1px solid ${p.warningBorder}`,
-                color: p.warningText,
-                borderRadius: 999,
-                fontSize: 10.5,
-                fontWeight: 700,
-                textTransform: "uppercase",
-                letterSpacing: "0.07em",
-              }}
-            >
-              <Clock size={10} />
-              Waiting on you
-            </span>
-            <span
-              style={{
-                fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
-                fontSize: 11.5,
-                padding: "1px 7px",
-                background: p.surfaceMuted,
-                border: `1px solid ${p.border}`,
-                borderRadius: 6,
-                color: p.textMuted,
-                fontWeight: 600,
-              }}
-            >
-              {ticket.ticketNumber}
-            </span>
-            <span
-              style={{
-                padding: "1px 7px",
-                background: priTone.bg,
-                border: `1px solid ${priTone.border}`,
-                color: priTone.text,
-                borderRadius: 999,
-                fontSize: 10.5,
-                fontWeight: 600,
-              }}
-            >
-              {pri.label}
-            </span>
-            <SlaBadge ticket={ticket} />
-          </div>
-          <div
-            style={{
-              fontSize: 15,
-              fontWeight: 700,
-              color: p.text,
-              letterSpacing: "-0.01em",
-              lineHeight: 1.35,
-              display: "-webkit-box",
-              WebkitLineClamp: 2,
-              WebkitBoxOrient: "vertical",
-              overflow: "hidden",
-            }}
-          >
-            {ticket.subject}
-          </div>
-          {ticket.projectName && (
-            <div
-              style={{
-                marginTop: 4,
-                fontSize: 11.5,
-                color: p.textSubtle,
-                fontWeight: 600,
-                display: "inline-flex",
-                alignItems: "center",
-                gap: 4,
-              }}
-            >
-              <Folder size={11} color={p.textFaint} />
-              {ticket.projectName}
-            </div>
-          )}
-        </div>
-        <span
-          className="premium-featured-cta"
-          style={{
-            display: "inline-flex",
-            alignItems: "center",
-            gap: 4,
-            padding: "6px 11px",
-            background: INDIGO,
-            color: "#ffffff",
-            borderRadius: 7,
-            fontSize: 11.5,
-            fontWeight: 600,
-            flexShrink: 0,
-            transition: "background 140ms ease, gap 140ms ease",
-          }}
-        >
-          Reply
-          <ArrowUpRight size={12} />
-        </span>
-      </div>
-
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))",
-          gap: 0,
-          background: p.surface,
-          border: `1px solid ${p.border}`,
-          borderRadius: 8,
-          overflow: "hidden",
-        }}
-      >
-        <FeaturedStat
-          icon={MessageCircle}
-          label="Messages"
-          value={String(ticket.messageCount)}
-          tone={p.text}
-        />
-        <FeaturedStat
-          icon={Calendar}
-          label={
-            days != null && days >= 0
-              ? "Due in"
-              : days != null && days < 0
-              ? "Overdue"
-              : "Due"
-          }
-          value={
-            days == null
-              ? fmtDateShort(ticket.dueDate)
-              : days > 0
-              ? `${days}d`
-              : days === 0
-              ? "today"
-              : `${-days}d`
-          }
-          tone={
-            days != null && days < 0
-              ? p.dangerText
-              : days != null && days <= 1
-              ? p.warningText
-              : p.text
-          }
-          divider
-        />
-        <FeaturedStat
-          icon={Clock}
-          label="Updated"
-          value={fmtRelative(ticket.lastActivityAt)}
-          tone={p.textMuted}
-          divider
-        />
-      </div>
-    </Link>
-  );
-}
-
-function FeaturedStat({
-  icon: Icon,
-  label,
-  value,
-  tone,
-  divider,
-}: {
-  icon: any;
-  label: string;
-  value: string;
-  tone: string;
-  divider?: boolean;
-}) {
-  return (
-    <div
-      style={{
-        padding: "9px 12px",
-        borderLeft: divider ? `1px solid ${p.border}` : "none",
-        minWidth: 0,
-      }}
-    >
-      <div
-        style={{
-          display: "inline-flex",
-          alignItems: "center",
-          gap: 4,
-          fontSize: 9.5,
-          fontWeight: 700,
-          color: p.textSubtle,
-          textTransform: "uppercase",
-          letterSpacing: "0.08em",
-        }}
-      >
-        <Icon size={10} />
-        {label}
-      </div>
-      <div
-        style={{
-          marginTop: 2,
-          fontSize: 13,
-          fontWeight: 700,
-          color: tone,
-          letterSpacing: "-0.01em",
-          fontVariantNumeric: "tabular-nums",
-          whiteSpace: "nowrap",
-          overflow: "hidden",
-          textOverflow: "ellipsis",
-        }}
-      >
-        {value}
-      </div>
-    </div>
-  );
-}
-
-function TicketCardCompact({ ticket }: { ticket: PortalTicketListItem }) {
-  const breached =
-    ticket.sla.firstResponseBreached || ticket.sla.resolutionBreached;
-  return (
-    <Link
-      href={`/portal/tickets/${ticket.id}`}
-      className="premium-ticket-card"
-      data-state={ticket.status}
-      data-sla={breached ? "breached" : "ok"}
-      style={{
-        display: "flex",
-        flexDirection: "column",
-        gap: 10,
-        padding: "13px 14px 13px 16px",
-        background: p.surfaceElevated,
-        border: `1px solid ${p.border}`,
-        borderRadius: 10,
-        textDecoration: "none",
-        color: "inherit",
-        transition: "border-color 140ms ease",
-      }}
-    >
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          gap: 8,
-          alignItems: "flex-start",
-        }}
-      >
-        <div style={{ minWidth: 0, flex: 1 }}>
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 6,
-              flexWrap: "wrap",
-            }}
-          >
-            <span
-              style={{
-                fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
-                fontSize: 11,
-                padding: "1px 6px",
-                background: p.surfaceMuted,
-                border: `1px solid ${p.border}`,
-                borderRadius: 5,
-                color: p.textMuted,
-                fontWeight: 600,
-              }}
-            >
-              {ticket.ticketNumber}
-            </span>
-            <CategoryChip category={ticket.category} compact />
-            <PriorityChip priority={ticket.priority} compact />
-            <SlaBadge ticket={ticket} />
-          </div>
-          <div
-            style={{
-              marginTop: 5,
-              fontSize: 13.5,
-              fontWeight: 700,
-              color: p.text,
-              letterSpacing: "-0.005em",
-              lineHeight: 1.35,
-              display: "-webkit-box",
-              WebkitLineClamp: 2,
-              WebkitBoxOrient: "vertical",
-              overflow: "hidden",
-            }}
-          >
-            {ticket.subject}
-          </div>
-        </div>
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "flex-end",
-            gap: 6,
-            flexShrink: 0,
-          }}
-        >
-          <StatusPill status={ticket.status} compact />
-          <ChevronRight
-            size={13}
-            color={p.textFaint}
-            className="premium-ticket-arrow"
-          />
-        </div>
-      </div>
-
-      {ticket.projectName && (
-        <div
-          style={{
-            fontSize: 11.5,
-            color: p.textMuted,
-            display: "inline-flex",
-            alignItems: "center",
-            gap: 4,
-            fontWeight: 500,
-          }}
-        >
-          <Folder size={10} color={p.textFaint} />
-          {ticket.projectName}
-        </div>
-      )}
-
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          gap: 8,
-          fontSize: 11,
-          color: p.textSubtle,
-          flexWrap: "wrap",
-          paddingTop: 8,
-          borderTop: `1px dashed ${p.neutralBorder}`,
-        }}
-      >
-        <span
-          style={{
-            display: "inline-flex",
-            gap: 4,
-            alignItems: "center",
-            fontWeight: 500,
-          }}
-        >
-          <MessageCircle size={10} />
-          {ticket.messageCount} message{ticket.messageCount === 1 ? "" : "s"}
-        </span>
-        {ticket.dueDate && (
-          <span
-            style={{
-              display: "inline-flex",
-              gap: 4,
-              alignItems: "center",
-              fontWeight: 500,
-            }}
-          >
-            <Calendar size={10} />
-            {fmtDateShort(ticket.dueDate)}
-          </span>
-        )}
-        <span
-          style={{
-            display: "inline-flex",
-            gap: 4,
-            alignItems: "center",
-            fontWeight: 500,
-          }}
-        >
-          <Clock size={10} />
-          {fmtRelative(ticket.lastActivityAt)}
-        </span>
-      </div>
-    </Link>
-  );
-}
-
-function TicketList({ items }: { items: PortalTicketListItem[] }) {
-  return (
-    <div
-      style={{
-        background: p.surface,
-        border: `1px solid ${p.border}`,
-        borderRadius: 10,
-        overflowX: "auto",
-      }}
-    >
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns:
-            "100px minmax(200px, 1.8fr) 110px 90px 100px 80px 16px",
-          minWidth: 700,
-          gap: 10,
-          padding: "8px 16px",
-          background: p.surfaceMuted,
-          borderBottom: `1px solid ${p.border}`,
-          fontSize: 10,
-          fontWeight: 700,
-          color: p.textSubtle,
-          textTransform: "uppercase",
-          letterSpacing: "0.08em",
-        }}
-      >
-        <div>Ticket #</div>
-        <div>Subject</div>
-        <div>Status</div>
-        <div>Priority</div>
-        <div>Category</div>
-        <div>Updated</div>
-        <div />
-      </div>
-      {items.map((t, idx) => (
-        <TicketRow key={t.id} ticket={t} isLast={idx === items.length - 1} />
-      ))}
-    </div>
-  );
-}
-
-function TicketRow({
-  ticket,
-  isLast,
-}: {
-  ticket: PortalTicketListItem;
-  isLast: boolean;
-}) {
-  const breached =
-    ticket.sla.firstResponseBreached || ticket.sla.resolutionBreached;
-  return (
-    <Link
-      href={`/portal/tickets/${ticket.id}`}
-      className="premium-ticket-row"
-      style={{
-        display: "grid",
-        gridTemplateColumns:
-          "100px minmax(200px, 1.8fr) 110px 90px 100px 80px 16px",
-        minWidth: 700,
-        gap: 10,
-        padding: "11px 16px",
-        alignItems: "center",
-        borderBottom: isLast ? "none" : `1px solid ${p.border}`,
-        textDecoration: "none",
-        color: "inherit",
-      }}
-    >
-      <div>
-        <span
-          style={{
-            fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
-            fontSize: 11.5,
-            padding: "1px 7px",
-            background: p.surfaceMuted,
-            border: `1px solid ${p.border}`,
-            borderRadius: 5,
-            color: p.textMuted,
-            fontWeight: 600,
-          }}
-        >
-          {ticket.ticketNumber}
-        </span>
-      </div>
-      <div style={{ minWidth: 0 }}>
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 6,
-            flexWrap: "wrap",
-          }}
-        >
-          <span
-            style={{
-              fontSize: 13,
-              fontWeight: 700,
-              color: p.text,
-              letterSpacing: "-0.005em",
-              overflow: "hidden",
-              textOverflow: "ellipsis",
-              whiteSpace: "nowrap",
-              maxWidth: "100%",
-            }}
-          >
-            {ticket.subject}
-          </span>
-          {breached && <SlaBadge ticket={ticket} />}
-        </div>
-        {ticket.projectName && (
-          <div
-            style={{
-              marginTop: 2,
-              fontSize: 11,
-              color: p.textSubtle,
-              display: "inline-flex",
-              alignItems: "center",
-              gap: 6,
-            }}
-          >
-            <span
-              style={{ display: "inline-flex", gap: 3, alignItems: "center" }}
-            >
-              <Folder size={10} />
-              {ticket.projectName}
-            </span>
-            <span style={{ color: p.textFaint }}>·</span>
-            <span
-              style={{ display: "inline-flex", gap: 3, alignItems: "center" }}
-            >
-              <MessageCircle size={10} />
-              {ticket.messageCount}
-            </span>
-          </div>
-        )}
-      </div>
-      <div>
-        <StatusPill status={ticket.status} compact />
-      </div>
-      <div>
-        <PriorityChip priority={ticket.priority} compact />
-      </div>
-      <div>
-        <CategoryChip category={ticket.category} compact />
-      </div>
-      <div
-        style={{
-          fontSize: 11,
-          color: p.textSubtle,
-          fontWeight: 500,
-        }}
-      >
-        {fmtRelative(ticket.lastActivityAt)}
-      </div>
-      <ChevronRight
-        size={14}
-        color={p.textFaint}
-        className="premium-ticket-arrow"
-      />
-    </Link>
-  );
-}
-
 /* ====================================================================== */
-/*  Raise Ticket modal                                                     */
+/*  Raise Ticket Modal                                                     */
 /* ====================================================================== */
 
 function RaiseTicketModal({
@@ -2104,7 +1661,7 @@ function RaiseTicketModal({
       styles={{
         mask: { backgroundColor: "rgba(15,23,42,0.45)" },
         content: {
-          background: p.surfaceElevated,
+          background: "#ffffff",
           border: `1px solid ${p.border}`,
           padding: 0,
           overflow: "hidden",
@@ -2127,9 +1684,9 @@ function RaiseTicketModal({
             width: 38,
             height: 38,
             borderRadius: 9,
-            background: INDIGO_BG,
-            color: INDIGO_TEXT,
-            border: `1px solid ${INDIGO_BORDER}`,
+            background: "rgba(59, 130, 246, 0.1)",
+            color: "#2563eb",
+            border: "1px solid rgba(59, 130, 246, 0.2)",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
@@ -2149,8 +1706,8 @@ function RaiseTicketModal({
               lineHeight: 1.5,
             }}
           >
-            We&apos;ll respond based on the priority you choose. Critical
-            issues get a 1-hour first-response target.
+            We&apos;ll respond based on the priority you choose. Critical issues
+            get a 1-hour first-response target.
           </div>
         </div>
       </div>
@@ -2165,7 +1722,9 @@ function RaiseTicketModal({
           <Form.Item
             name="subject"
             label={
-              <span style={{ fontSize: 12.5, color: p.textMuted }}>Subject</span>
+              <span style={{ fontSize: 12.5, color: p.textMuted, fontWeight: 600 }}>
+                Subject
+              </span>
             }
             rules={[{ required: true, message: "Subject is required" }]}
           >
@@ -2176,35 +1735,33 @@ function RaiseTicketModal({
             />
           </Form.Item>
 
-          <div
-            className="portal-tickets-modal-grid"
-          >
+          <div className="portal-tickets-modal-grid">
             <Form.Item
               name="category"
               label={
-                <span style={{ fontSize: 12.5, color: p.textMuted }}>
+                <span style={{ fontSize: 12.5, color: p.textMuted, fontWeight: 600 }}>
                   Category
                 </span>
               }
               rules={[{ required: true }]}
             >
-              <Select options={CATEGORY_OPTIONS} />
+              <Select options={CATEGORY_FORM_OPTIONS} />
             </Form.Item>
             <Form.Item
               name="priority"
               label={
-                <span style={{ fontSize: 12.5, color: p.textMuted }}>
+                <span style={{ fontSize: 12.5, color: p.textMuted, fontWeight: 600 }}>
                   Priority
                 </span>
               }
               rules={[{ required: true }]}
             >
-              <Select options={PRIORITY_OPTIONS} />
+              <Select options={PRIORITY_FORM_OPTIONS} />
             </Form.Item>
             <Form.Item
               name="projectId"
               label={
-                <span style={{ fontSize: 12.5, color: p.textMuted }}>
+                <span style={{ fontSize: 12.5, color: p.textMuted, fontWeight: 600 }}>
                   Project (optional)
                 </span>
               }
@@ -2214,7 +1771,7 @@ function RaiseTicketModal({
                 placeholder="—"
                 options={projects.map((proj) => ({
                   value: proj.id,
-                  label: proj.code ? `${proj.name} · ${proj.code}` : proj.name,
+                  label: proj.code ? `${proj.name} (${proj.code})` : proj.name,
                 }))}
               />
             </Form.Item>
@@ -2223,7 +1780,7 @@ function RaiseTicketModal({
           <Form.Item
             name="body"
             label={
-              <span style={{ fontSize: 12.5, color: p.textMuted }}>
+              <span style={{ fontSize: 12.5, color: p.textMuted, fontWeight: 600 }}>
                 Details
               </span>
             }
@@ -2243,11 +1800,12 @@ function RaiseTicketModal({
               style={{
                 fontSize: 12.5,
                 color: p.textMuted,
+                fontWeight: 600,
                 marginBottom: 6,
               }}
             >
               Attachments{" "}
-              <span style={{ color: p.textFaint, fontSize: 11.5 }}>
+              <span style={{ color: p.textFaint, fontSize: 11.5, fontWeight: 400 }}>
                 · optional · 10 MB each
               </span>
             </div>
@@ -2289,13 +1847,12 @@ function RaiseTicketModal({
             <button
               type="submit"
               disabled={submitting}
-              className="premium-new-cta"
               style={{
                 display: "inline-flex",
                 alignItems: "center",
                 gap: 6,
                 padding: "8px 14px",
-                background: INDIGO,
+                background: "#3b82f6",
                 color: "#ffffff",
                 border: "none",
                 borderRadius: 8,

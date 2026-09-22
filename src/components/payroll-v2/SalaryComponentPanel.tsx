@@ -118,7 +118,7 @@ const slugifyCode = (name: string): string =>
     .replace(/^_+|_+$/g, '')
     .slice(0, 40);
 
-const PAGE_SIZE_OPTIONS = [10, 20, 25, 50, 100];
+const PAGE_SIZE_OPTIONS = [10, 15, 20, 25, 50, 100];
 
 const TRENDS: Record<string, number[]> = {
   total: [3, 5, 4, 6, 7, 6, 8],
@@ -235,7 +235,7 @@ export default function SalaryComponentPanel() {
   // pagination
   const [total, setTotal] = useState(0);
   const [tablePage, setTablePage] = useState(1);
-  const [tablePageSize, setTablePageSize] = useState(20);
+  const [tablePageSize, setTablePageSize] = useState(15);
 
   // drawer
   const [drawerOpen, setDrawerOpen] = useState(false);

@@ -76,6 +76,7 @@ interface CustomerDraft {
   taxId?: string | null;
   gstin?: string | null;
   pan?: string | null;
+  projectIds?: string[] | null;
 }
 
 interface Totals {
@@ -164,7 +165,10 @@ export default function InvoiceNewinvoicePage() {
   // Reset isFormReady when moving to a different invoice to prevent stale data hydration
   useEffect(() => {
     setIsFormReady(false);
-  }, [editInvoiceId]);
+    return () => {
+      form.resetFields();
+    };
+  }, [editInvoiceId, form]);
 
   // Handle templateId from query params (for direct selection from templates page)
   useEffect(() => {
@@ -256,17 +260,18 @@ export default function InvoiceNewinvoicePage() {
     console.log('Invoice detail loaded:', invoiceDetail);
     console.log('Items to set:', invoiceDetail?.lineItems);
 
-    if (editInvoiceId && invoiceDetail) {
-      // Prepare mapped items with proper numeric values
-      const mappedItems = invoiceDetail.lineItems?.length > 0
-        ? invoiceDetail.lineItems.map((i: any) => ({
+    if (editInvoiceId && invoiceDetail && !isFormReady) {
+      // Prepare mapped items with proper numeric values (checking both lineItems and items)
+      const rawItems = (invoiceDetail.lineItems || (invoiceDetail as any).items || []);
+      const mappedItems = rawItems.length > 0
+        ? rawItems.map((i: any) => ({
           id: i.id,
-          itemName: i.itemName || "",
+          itemName: i.itemName || i.item || "",
           description: i.description || "",
           projectId: i.projectId || null,
-          quantity: Number(i.quantity) || 1,
-          rate: Number(i.rate) || 0,
-          taxRate: Number(i.taxRate) || 0,
+          quantity: Number(i.quantity ?? i.qty) || 1,
+          rate: Number(i.rate ?? i.price) || 0,
+          taxRate: Number(i.taxRate ?? i.tax) || 0,
           extraFields: Object.fromEntries(
             Object.entries(i.extraFields || {}).filter(([key]) => key !== 'projectName')
           ),
@@ -298,36 +303,16 @@ export default function InvoiceNewinvoicePage() {
 
       console.log('HYDRATING FORM WITH VALUES:', fv.invoiceNumber);
 
-      // For edit mode, always ensure line items are properly set
-      // Check if line items are missing or empty in the form
-      const currentLineItems = form.getFieldValue("lineItems");
-      const needsLineItemsUpdate = !currentLineItems ||
-        currentLineItems.length === 0 ||
-        (currentLineItems.length === 1 && !currentLineItems[0].itemName);
+      form.setFieldsValue(fv);
 
-      // Update form if it's not ready, if invoice number is empty, or if line items need to be populated
-      if (!isFormReady || form.getFieldValue("invoiceNumber") === "" || needsLineItemsUpdate) {
-        console.log('Setting form values - Form ready:', !isFormReady, 'Empty invoice:', form.getFieldValue("invoiceNumber") === "", 'Needs line items:', needsLineItemsUpdate);
-        form.setFieldsValue(fv);
-
-        if (invoiceDetail.templateId) {
-          setTemplateId(invoiceDetail.templateId);
-        }
-
-        form.validateFields();
-        setIsFormReady(true);
-      } else {
-        console.log('Form already ready and line items exist, skipping overwrite to prevent data loss.');
-        // Still ensure line items are properly set if they exist
-        if (mappedItems.length > 0 && needsLineItemsUpdate) {
-          console.log('Updating line items only');
-          form.setFieldValue("lineItems", mappedItems);
-        }
+      if (invoiceDetail.templateId) {
+        setTemplateId(invoiceDetail.templateId);
       }
 
+      setIsFormReady(true);
       setIsTaxInclusive(invoiceDetail.taxInclusive || false);
       setDiscountValue(Number(invoiceDetail.discountTotal || invoiceDetail.discount) || 0);
-    } else if (!editInvoiceId) {
+    } else if (!editInvoiceId && !isFormReady) {
       // Logic for NEW invoices only
       const currentItems = form.getFieldValue("lineItems");
       if (!currentItems || currentItems.length === 0) {
@@ -343,7 +328,7 @@ export default function InvoiceNewinvoicePage() {
       }
       setIsFormReady(true);
     }
-  }, [editInvoiceId, invoiceDetail, form]);
+  }, [editInvoiceId, invoiceDetail, form, isFormReady]);
 
   const formatAddress = (address?: {
     building_name?: string;
@@ -511,6 +496,7 @@ export default function InvoiceNewinvoicePage() {
       taxId: draft.taxId ?? undefined,
       gstin: draft.gstin ?? undefined,
       pan: draft.pan ?? undefined,
+      projectIds: draft.projectIds ?? undefined,
     };
 
     try {
@@ -1741,6 +1727,9 @@ export default function InvoiceNewinvoicePage() {
               city: values.city ?? null,
               country: values.country ?? null,
               taxId: values.taxId ?? null,
+              gstin: values.gstin ?? null,
+              pan: values.pan ?? null,
+              projectIds: values.projectIds || [],
             });
 
             setShowApplyModal(true);

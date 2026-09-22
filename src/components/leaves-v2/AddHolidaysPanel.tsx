@@ -29,7 +29,7 @@ import LeaveV2Service, { Holiday, HolidayInput, HolidayType, HolidayRule } from 
 const { RangePicker } = DatePicker;
 const PALETTE = { blue: '#3B82F6', green: '#10B981', red: '#EF4444', grey: '#94A3B8' } as const;
 const TINT = { blue: 'rgba(59,130,246,0.10)', green: 'rgba(16,185,129,0.10)', red: 'rgba(239,68,68,0.10)', grey: 'rgba(148,163,184,0.12)' } as const;
-const PAGE_SIZE_OPTIONS = [10, 20, 25, 50, 100];
+const PAGE_SIZE_OPTIONS = [10, 15, 20, 25, 50, 100];
 import { drawerFormStyles as formStyles, SectionCard } from "@/components/common/DrawerSection";
 import { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
 
@@ -80,7 +80,7 @@ export default function AddHolidaysPanel() {
   const [typeFilter, setTypeFilter] = useState<TypeFilter>('all');
   const [yearFilter, setYearFilter] = useState<number>(dayjs().year());
   const [tablePage, setTablePage] = useState(1);
-  const [tablePageSize, setTablePageSize] = useState(20);
+  const [tablePageSize, setTablePageSize] = useState(15);
 
   // drawer
   const [open, setOpen] = useState(false);

@@ -63,11 +63,50 @@ export interface PortalEnvDetail extends PortalEnvListItem {
   deployments: PortalEnvDeployment[];
 }
 
+export interface PortalEnvStats {
+  total: number;
+  production: number;
+  operational: number;
+  sslValid: number;
+  totalDeploys: number;
+}
+
+export interface PortalEnvMeta {
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+  stats?: PortalEnvStats;
+  projects?: { id: string; name: string; code: string | null }[];
+}
+
 export const portalEnvironmentsService = {
-  list() {
-    return portalApi.get<PortalEnvListItem[]>(
-      `/api/client-portal/environments`,
+  async list(params: {
+    page?: number;
+    limit?: number;
+    search?: string;
+    kind?: string;
+    status?: string;
+    projectId?: string;
+  } = {}) {
+    const qs = new URLSearchParams();
+    Object.entries(params).forEach(([k, v]) => {
+      if (v != null && v !== "") qs.append(k, String(v));
+    });
+    const res: any = await portalApi.get(
+      `/api/client-portal/environments${qs.toString() ? `?${qs.toString()}` : ""}`
     );
+    // Support both raw array or { data, meta }
+    if (Array.isArray(res)) {
+      return {
+        data: res as PortalEnvListItem[],
+        meta: { total: res.length, page: 1, limit: res.length, totalPages: 1 } as PortalEnvMeta,
+      };
+    }
+    return {
+      data: (res?.data || []) as PortalEnvListItem[],
+      meta: (res?.meta || null) as PortalEnvMeta | null,
+    };
   },
   detail(id: string) {
     return portalApi.get<PortalEnvDetail>(

@@ -55,6 +55,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useActivitySource } from "@/hooks/useActivitySource";
 import ConfirmDialog from "@/components/common/ConfirmDialog";
 import { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
+import { currencySymbol } from "@/utils/currencies";
 
 const { Title } = Typography;
 const { RangePicker } = DatePicker;
@@ -128,7 +129,7 @@ export default function InvoiceTrashPage() {
     [dayjs.Dayjs | null, dayjs.Dayjs | null] | null
   >(null);
   const [statusFilter, setStatusFilter] = useState<string | null>(null);
-  const [pagination, setPagination] = useState({ page: 1, limit: 20 });
+  const [pagination, setPagination] = useState({ page: 1, limit: 15 });
 
   useEffect(() => {
     const handler = setTimeout(() => {
@@ -492,14 +493,14 @@ export default function InvoiceTrashPage() {
     {
       title: "AMOUNT",
       dataIndex: "grandTotal",
-      width: 130,
+      width: 160,
       align: "right",
-      render: (v) => (
+      render: (v, record: any) => (
         <span
           className="text-[12px] font-semibold tabular-nums"
           style={{ color: "var(--text-primary)" }}
         >
-          ${Number(v || 0).toLocaleString()}
+          {currencySymbol(record?.currency)}{Number(v || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
         </span>
       ),
     },
@@ -717,7 +718,7 @@ export default function InvoiceTrashPage() {
               <StatTile
                 label="Total amount"
                 value={
-                  isLoading ? "—" : `$${totalAmount.toLocaleString()}`
+                  isLoading ? "—" : `${currencySymbol(invoices[0]?.currency)}${totalAmount.toLocaleString(undefined, { maximumFractionDigits: 0 })}`
                 }
                 icon={Inbox}
                 color="#64748b"
@@ -1031,7 +1032,7 @@ export default function InvoiceTrashPage() {
                 className="pp-pagesize"
                 value={pagination.limit}
                 onChange={(v) => setPagination({ page: 1, limit: v })}
-                options={[10, 20, 25, 50, 100].map((n) => ({
+                options={[10, 15, 20, 25, 50, 100].map((n) => ({
                   value: n,
                   label: `${n} / page`,
                 }))}
@@ -1241,7 +1242,7 @@ export default function InvoiceTrashPage() {
                     className="text-[14px] font-semibold mt-0.5 tabular-nums"
                     style={{ color: "var(--text-primary)" }}
                   >
-                    ${Number(invoiceToDelete.grandTotal || 0).toLocaleString()}
+                    {currencySymbol(invoiceToDelete.currency)}{Number(invoiceToDelete.grandTotal || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </div>
                 </div>
               </div>
@@ -1371,7 +1372,7 @@ export default function InvoiceTrashPage() {
                     className="tabular-nums"
                     style={{ color: "var(--text-secondary)" }}
                   >
-                    ${Number(inv.grandTotal || 0).toLocaleString()}
+                    {currencySymbol(inv.currency)}{Number(inv.grandTotal || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </span>
                 </div>
               ))}

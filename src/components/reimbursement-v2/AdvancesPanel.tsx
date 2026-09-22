@@ -12,7 +12,7 @@ import {
 import { usePermission } from '@/hooks/usePermission';
 import ConfirmDialog from '@/components/common/ConfirmDialog';
 import ReimbursementV2Service, { Advance } from '@/services/reimbursementV2Service';
-import { PALETTE, TINT, PanelHeader, StatCards, RmbStyles, money, fmtDate, StatusTag, CurrencySelect, currencySymbol, preventInvalidNumberKeys } from './ui';
+import { PALETTE, TINT, PanelHeader, StatCards, RmbStyles, money, fmtDate, StatusTag, CurrencySelect, currencySymbol, preventInvalidNumberKeys, tablePaginationConfig } from './ui';
 import { drawerFormStyles as formStyles, commonDrawerProps, SectionCard } from '@/components/common/DrawerSection';
 import { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
 
@@ -27,7 +27,7 @@ export default function AdvancesPanel() {
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState(20);
+  const [pageSize, setPageSize] = useState(15);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [form] = Form.useForm();
@@ -132,15 +132,15 @@ export default function AdvancesPanel() {
       <div className="rvp-table-wrap">
         <Table rowKey="id" size="middle" loading={loading} columns={columns} dataSource={rows}
           pagination={{
+            ...tablePaginationConfig,
             current: currentPage,
             pageSize,
             total,
-            showSizeChanger: true,
-            pageSizeOptions: ['10', '20', '50', '100'],
             showTotal: (t) => `${t} advances`,
             onChange: (page, size) => {
               setCurrentPage(page);
               setPageSize(size ?? pageSize);
+              load(page, size ?? pageSize);
             },
           }} locale={{ emptyText: <NoData /> }} />
       </div>

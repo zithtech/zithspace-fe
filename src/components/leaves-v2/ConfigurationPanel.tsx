@@ -282,7 +282,7 @@ export default function ConfigurationPanel() {
                       <div>
                         <div className="lvc-mini-head">Details {result.details.length >= 1000 && <span style={{ color: PALETTE.grey, fontWeight: 400 }}>(first 1000)</span>}</div>
                         {result.details.length === 0 ? <NoData description="No grants" /> :
-                          <Table rowKey={(d) => `${d.userId}-${d.leaveTypeId}-${d.periodKey}`} size="small" pagination={{ pageSizeOptions: [10, 20, 25, 50, 100], defaultPageSize: 20, hideOnSinglePage: true }} columns={detailCols} dataSource={result.details} className="lvc-table" scroll={{ x: 'max-content' }} locale={{ emptyText: <NoData /> }} />}
+                          <Table rowKey={(d) => `${d.userId}-${d.leaveTypeId}-${d.periodKey}`} size="small" pagination={{ pageSizeOptions: [10, 15, 20, 25, 50, 100], defaultPageSize: 15, hideOnSinglePage: true }} columns={detailCols} dataSource={result.details} className="lvc-table" scroll={{ x: 'max-content' }} locale={{ emptyText: <NoData /> }} />}
                       </div>
                     </div>
                   </div>
@@ -303,7 +303,7 @@ export default function ConfigurationPanel() {
                       className="lvc-table"
                       columns={policyCols}
                       dataSource={policies}
-                      pagination={{ pageSizeOptions: [10, 20, 25, 50, 100], defaultPageSize: 20, hideOnSinglePage: true }}
+                      pagination={{ pageSizeOptions: [10, 15, 20, 25, 50, 100], defaultPageSize: 15, hideOnSinglePage: true }}
                       scroll={{ x: 'max-content' }}
                       expandable={{ expandedRowRender: expandedPolicy, onExpand: onExpandPolicy, rowExpandable: (r) => r.lineCount > 0 }}
                       locale={{ emptyText: <NoData description={'No active policies'} /> }}

@@ -21,6 +21,8 @@ import {
   Row,
   Col,
   Avatar,
+  Pagination,
+  Typography,
 } from "antd";
 import {
   Plus,
@@ -180,6 +182,7 @@ export default function ChangeRequestsTab({ clientId, projects = [], onRefresh }
   const { canUpdateClient, canDeleteClient } = usePermission();
 
   const [items, setItems] = useState<CrListItem[]>([]);
+  const [totalCount, setTotalCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [createOpen, setCreateOpen] = useState(false);
   const [openId, setOpenId] = useState<string | null>(null);
@@ -193,11 +196,21 @@ export default function ChangeRequestsTab({ clientId, projects = [], onRefresh }
   const [selectedProject, setSelectedProject] = useState("all");
   const [selectedStatus, setSelectedStatus] = useState("all");
   const [viewMode, setViewMode] = useState<"list" | "grid">("grid");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(15);
 
-  const load = async () => {
+  const load = async (page = currentPage, size = pageSize, search = searchTerm, project = selectedProject, status = selectedStatus) => {
     setLoading(true);
     try {
-      setItems(await crService.listForClient(clientId));
+      const res = await crService.listForClient(clientId, {
+        page,
+        limit: size,
+        search,
+        projectId: project,
+        status,
+      });
+      setItems(res.data);
+      setTotalCount(res.meta?.total ?? res.data.length);
     } catch (err: any) {
       messageApi.error(`Failed to load change requests: ${err?.message}`);
     } finally {
@@ -234,7 +247,7 @@ export default function ChangeRequestsTab({ clientId, projects = [], onRefresh }
     try {
       setRefreshing(true);
       await Promise.all([
-        load(),
+        load(currentPage, pageSize, searchTerm, selectedProject, selectedStatus),
         onRefresh ? onRefresh() : Promise.resolve(),
       ]);
     } catch (err) {
@@ -245,9 +258,18 @@ export default function ChangeRequestsTab({ clientId, projects = [], onRefresh }
   };
 
   useEffect(() => {
-    load();
+    load(currentPage, pageSize, searchTerm, selectedProject, selectedStatus);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [clientId]);
+  }, [clientId, currentPage, pageSize, selectedProject, selectedStatus]);
+
+  useEffect(() => {
+    const t = setTimeout(() => {
+      setCurrentPage(1);
+      load(1, pageSize, searchTerm, selectedProject, selectedStatus);
+    }, 300);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchTerm]);
 
   const crActionMenu = (cr: any) => ({
     className: "pp-action-pop",
@@ -491,28 +513,10 @@ export default function ChangeRequestsTab({ clientId, projects = [], onRefresh }
     },
   ];
 
-  const filteredItems = items.filter((item) => {
-    const search = searchTerm.toLowerCase();
-    const matchesSearch =
-      (item.subject || "").toLowerCase().includes(search) ||
-      (item.crNumber || "").toLowerCase().includes(search) ||
-      (item.projectName || "").toLowerCase().includes(search);
-
-    let matchesProject = true;
-    if (selectedProject !== "all") {
-      matchesProject = item.projectId === selectedProject;
-    }
-
-    let matchesStatus = true;
-    if (selectedStatus !== "all") {
-      matchesStatus = item.status === selectedStatus;
-    }
-
-    return matchesSearch && matchesProject && matchesStatus;
-  });
+  const paginatedItems = items;
 
   return (
-    <div style={{ padding: "4px 0 24px", color: c.text }}>
+    <div style={{ color: c.text }} className="cr-tab-container">
       {contextHolder}
       {modalContextHolder}
 
@@ -612,7 +616,7 @@ export default function ChangeRequestsTab({ clientId, projects = [], onRefresh }
         <div className="ptab-divider" />
       </div>
 
-      <div>
+      <div className="cr-tab-body">
       {loading ? (
         <div
           style={{
@@ -626,7 +630,7 @@ export default function ChangeRequestsTab({ clientId, projects = [], onRefresh }
         >
           Loading…
         </div>
-      ) : filteredItems.length === 0 ? (
+      ) : items.length === 0 ? (
         <div
           style={{
             padding: 56,
@@ -683,7 +687,7 @@ export default function ChangeRequestsTab({ clientId, projects = [], onRefresh }
       ) : viewMode === "list" ? (
         <div className="pp-table-wrap">
           <Table
-            dataSource={filteredItems}
+            dataSource={paginatedItems}
             columns={columns}
             rowKey="id"
             pagination={false}
@@ -697,7 +701,7 @@ export default function ChangeRequestsTab({ clientId, projects = [], onRefresh }
         </div>
       ) : (
         <div className="pp-grid">
-          {filteredItems.map((cr) => {
+          {paginatedItems.map((cr) => {
             const st = STATUS_META[cr.status] || STATUS_META.submitted;
             const pri = PRIORITY_META[cr.priority] || PRIORITY_META.medium;
             const estimateText = cr.estimatedCost
@@ -850,6 +854,34 @@ export default function ChangeRequestsTab({ clientId, projects = [], onRefresh }
         </div>
       )}
       </div>
+
+      {totalCount > 0 && (
+        <div className="pm2-pagination cr-pagination-footer">
+          <Typography.Text style={{ fontSize: 13, color: "var(--text-slate-500)" }}>
+            Showing{" "}
+            <span style={{ color: "var(--text-slate-700)", fontWeight: 700 }}>
+              {(currentPage - 1) * pageSize + 1}–
+              {Math.min(currentPage * pageSize, totalCount)}
+            </span>{" "}
+            of{" "}
+            <span style={{ color: "var(--text-slate-700)", fontWeight: 700 }}>
+              {totalCount}
+            </span>{" "}
+            change request{totalCount !== 1 ? "s" : ""}
+          </Typography.Text>
+          <Pagination
+            current={currentPage}
+            pageSize={pageSize}
+            total={totalCount}
+            onChange={(page, size) => {
+              setCurrentPage(page);
+              setPageSize(size);
+            }}
+            showSizeChanger
+            pageSizeOptions={[10, 15, 20, 25, 50, 100]}
+          />
+        </div>
+      )}
 
       <CreateCrModal
         open={createOpen}
@@ -1302,6 +1334,104 @@ export default function ChangeRequestsTab({ clientId, projects = [], onRefresh }
         /* Prevent horizontal overflow from edge-to-edge header bleed */
         .cd-tabs .ant-tabs-content-holder {
           overflow-x: hidden !important;
+        }
+
+        /* ── Container & Body for full-height stretch ── */
+        .cr-tab-container {
+          display: flex !important;
+          flex-direction: column !important;
+          flex: 1 !important;
+          min-height: 100% !important;
+          padding: 4px 0 0 0 !important;
+          position: relative !important;
+        }
+        .cr-tab-body {
+          flex: 1 0 auto !important;
+          padding-bottom: 16px !important;
+        }
+
+        /* ── Sticky pagination footer (fixed to bottom) ── */
+        .cr-pagination-footer {
+          display: flex !important;
+          align-items: center !important;
+          justify-content: space-between !important;
+          gap: 12px !important;
+          padding: 10px 16px !important;
+          margin-top: auto !important;
+          margin-left: -12px !important;
+          margin-right: -12px !important;
+          margin-bottom: 0 !important;
+          flex-wrap: wrap !important;
+          position: sticky !important;
+          bottom: 0 !important;
+          left: 0 !important;
+          right: 0 !important;
+          background: var(--bg-pure-white) !important;
+          border-top: 1px solid var(--border-slate-200) !important;
+          z-index: 20 !important;
+          box-shadow: 0 -4px 16px rgba(15, 23, 42, 0.04) !important;
+        }
+        [data-theme="dark"] .cr-pagination-footer {
+          background: #0B0F1A !important;
+          border-top-color: #1f2937 !important;
+        }
+        @media (max-width: 900px) {
+          .cr-pagination-footer {
+            margin-left: -12px !important;
+            margin-right: -12px !important;
+            padding-left: 12px !important;
+            padding-right: 12px !important;
+          }
+        }
+        @media (max-width: 720px) {
+          .cr-pagination-footer {
+            margin-left: -12px !important;
+            margin-right: -12px !important;
+            padding-left: 12px !important;
+            padding-right: 12px !important;
+          }
+        }
+
+        .cr-pagination-footer .ant-pagination-item,
+        .cr-pagination-footer .ant-pagination-prev .ant-pagination-item-link,
+        .cr-pagination-footer .ant-pagination-next .ant-pagination-item-link {
+          border: 1px solid var(--border-slate-200) !important;
+          border-radius: 6px !important;
+          background: transparent !important;
+          color: var(--text-slate-500) !important;
+        }
+        .cr-pagination-footer .ant-pagination-item-active {
+          background: #3b82f6 !important;
+          border-color: #3b82f6 !important;
+        }
+        .cr-pagination-footer .ant-pagination-item-active a {
+          color: #fff !important;
+        }
+        .cr-pagination-footer .ant-select-selector {
+          border: 1px solid var(--border-slate-200) !important;
+          border-radius: 6px !important;
+          background: transparent !important;
+          height: 28px !important;
+          font-size: 12px !important;
+        }
+        [data-theme="dark"] .cr-pagination-footer .ant-pagination-item,
+        [data-theme="dark"] .cr-pagination-footer .ant-pagination-prev .ant-pagination-item-link,
+        [data-theme="dark"] .cr-pagination-footer .ant-pagination-next .ant-pagination-item-link {
+          border-color: #374151 !important;
+          background: #111827 !important;
+          color: #9ca3af !important;
+        }
+        [data-theme="dark"] .cr-pagination-footer .ant-pagination-item-active {
+          background: #3b82f6 !important;
+          border-color: #3b82f6 !important;
+        }
+        [data-theme="dark"] .cr-pagination-footer .ant-pagination-item-active a {
+          color: #fff !important;
+        }
+        [data-theme="dark"] .cr-pagination-footer .ant-select-selector {
+          border-color: #374151 !important;
+          background: #111827 !important;
+          color: #e5e7eb !important;
         }
       `}} />
     </div>

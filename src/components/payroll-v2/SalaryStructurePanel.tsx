@@ -69,7 +69,7 @@ const money = (n: number) => `₹${inr.format(Math.round(n))}`;
 const slugifyCode = (name: string): string =>
   (name || '').trim().toUpperCase().replace(/[^A-Z0-9]+/g, '_').replace(/^_+|_+$/g, '').slice(0, 40);
 
-const PAGE_SIZE_OPTIONS = [10, 20, 25, 50, 100];
+const PAGE_SIZE_OPTIONS = [10, 15, 20, 25, 50, 100];
 
 // A draft line in the drawer editor (carries component meta for display).
 interface DraftLine {
@@ -137,7 +137,7 @@ export default function SalaryStructurePanel() {
   // pagination
   const [total, setTotal] = useState(0);
   const [tablePage, setTablePage] = useState(1);
-  const [tablePageSize, setTablePageSize] = useState(20);
+  const [tablePageSize, setTablePageSize] = useState(15);
 
   // drawer
   const [drawerOpen, setDrawerOpen] = useState(false);

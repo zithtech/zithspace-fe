@@ -177,7 +177,7 @@ export default function InvoiceSettingPage() {
   const [isMobileOpen, setIsMobileOpen] = useState(false);
 
   const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState(20);
+  const [pageSize, setPageSize] = useState(15);
 
   const { data: savedSettingsData, isLoading, isError, error, refetch, isFetching } = useSettingsProfiles({
     page: currentPage,
@@ -209,6 +209,8 @@ export default function InvoiceSettingPage() {
   ];
 
   const handleEdit = (id: string) => {
+    setViewDrawerVisible(false);
+    setSelectedProfileForView(null);
     const s = settingsList.find((s) => s.id === id);
     if (!s) return;
 
@@ -943,16 +945,21 @@ export default function InvoiceSettingPage() {
                         canUpdateInvoiceSetting && {
                           key: "edit",
                           label: ppMenuLabel('Edit', 'Modify settings', <Edit size={14} />, '#64748b', 'rgba(100,116,139,0.12)'),
-                          onClick: () => handleEdit(setting.id),
+                          onClick: (info: any) => {
+                            info?.domEvent?.stopPropagation();
+                            handleEdit(setting.id);
+                          },
                         },
                         canUpdateInvoiceSetting && {
                           key: "status_toggle",
                           label: ppMenuLabel(setting.isActive ? "Deactivate" : "Activate", 'Toggle status', <Power size={14} />, '#64748b', 'rgba(100,116,139,0.12)'),
-                          onClick: () =>
+                          onClick: (info: any) => {
+                            info?.domEvent?.stopPropagation();
                             activateMutation.mutate({
                               id: setting.id,
                               isActive: !setting.isActive,
-                            }),
+                            });
+                          },
                         },
                         canDeleteInvoiceSetting && { type: "divider" },
                         canDeleteInvoiceSetting && {
@@ -1020,7 +1027,10 @@ export default function InvoiceSettingPage() {
                             </div>
                             <Dropdown
                               overlayClassName="pp-action-pop"
-                              menu={{ items: menuItems as any }}
+                              menu={{
+                                items: menuItems as any,
+                                onClick: (e) => e.domEvent?.stopPropagation(),
+                              }}
                               trigger={["click"]}
                             >
                               <button
@@ -1139,7 +1149,7 @@ export default function InvoiceSettingPage() {
                     setPageSize(v);
                     setCurrentPage(1);
                   }}
-                  options={[10, 20, 25, 50, 100].map((n) => ({
+                  options={[10, 15, 20, 25, 50, 100].map((n) => ({
                     value: n,
                     label: `${n} / page`,
                   }))}
@@ -1151,11 +1161,78 @@ export default function InvoiceSettingPage() {
         </main>
       </div>
 
-      {/* CREATE MODE — fixed overlay */}
+      {/* CREATE MODE — full content view */}
       {mode === "create" && (
         <div style={{ position: "absolute", inset: 0, zIndex: 50, background: "var(--bg-pure-white)", overflow: "hidden", display: "flex", flexDirection: "column" }}>
+          {/* TOP BAR FOR CREATE MODE */}
           <div
-            className="flex-1 min-h-0 px-8 pt-6 pb-24"
+            className="flex-shrink-0 px-8 py-3.5 border-b flex items-center justify-between"
+            style={{
+              borderColor: "var(--border-color)",
+              background: "var(--bg-secondary)",
+            }}
+          >
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={() => {
+                  resetDraft();
+                  setMode("view");
+                }}
+                className="w-8 h-8 rounded-lg flex items-center justify-center transition-colors hover:bg-slate-200/60 dark:hover:bg-slate-700/60"
+                style={{
+                  border: "1px solid var(--border-color)",
+                  background: "var(--bg-pure-white)",
+                  color: "var(--text-secondary)",
+                }}
+              >
+                <ArrowLeft size={16} />
+              </button>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h2 className="text-base font-bold m-0" style={{ color: "var(--text-primary)" }}>
+                    {editingId ? "Edit Settings Profile" : "Create Settings Profile"}
+                  </h2>
+                  <span
+                    className="text-[11px] font-semibold px-2 py-0.5 rounded-full"
+                    style={{
+                      background: "rgba(59,130,246,0.1)",
+                      color: "#2563eb",
+                      border: "1px solid rgba(59,130,246,0.2)",
+                    }}
+                  >
+                    Step {currentStep + 1} of 3
+                  </span>
+                </div>
+                <p className="text-[11px] m-0" style={{ color: "var(--text-secondary)" }}>
+                  {editingId
+                    ? `Editing profile: ${draft.general.companyName || "Untitled"}`
+                    : "Configure company details, invoice numbering, and payment options"}
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <Button
+                onClick={() => {
+                  resetDraft();
+                  setMode("view");
+                }}
+                style={{
+                  borderRadius: 8,
+                  height: 34,
+                  fontWeight: 500,
+                  fontSize: 13,
+                }}
+              >
+                Exit
+              </Button>
+            </div>
+          </div>
+
+          {/* MAIN FORM BODY */}
+          <div
+            className="flex-1 min-h-0 px-8 py-5"
             style={{ display: "flex", flexDirection: "column", flex: 1, minHeight: 0 }}
           >
             <div
@@ -1318,112 +1395,168 @@ export default function InvoiceSettingPage() {
                 </div>
               </section>
             </div>
+          </div>
 
-            {/* FOOTER ACTION BAR */}
-            <div
-              className="fixed bottom-0 left-0 right-0 z-30 backdrop-blur-md border-t"
-              style={{
-                background:
-                  "color-mix(in oklab, var(--bg-secondary) 92%, transparent)",
-                borderColor: "var(--border-color)",
-              }}
-            >
-              <div className="px-8 py-3 flex items-center justify-between gap-4 max-w-[1600px] mx-auto">
+          {/* FOOTER ACTION BAR */}
+          <div
+            className="flex-shrink-0 border-t z-20"
+            style={{
+              background: "var(--bg-secondary)",
+              borderColor: "var(--border-color)",
+              boxShadow: "0 -2px 12px rgba(0,0,0,0.03)",
+            }}
+          >
+            <div className="px-8 py-3.5 flex items-center justify-between gap-4 max-w-[1600px] mx-auto w-full">
+              <div className="flex items-center gap-3">
+                <div className="flex items-center gap-1.5">
+                  {[0, 1, 2].map((idx) => (
+                    <div
+                      key={idx}
+                      className="h-1.5 rounded-full transition-all duration-300"
+                      style={{
+                        width: currentStep === idx ? 22 : 6,
+                        background:
+                          currentStep === idx
+                            ? "#2563eb"
+                            : idx < currentStep
+                            ? "#10b981"
+                            : "var(--border-color)",
+                      }}
+                    />
+                  ))}
+                </div>
                 <div
-                  className="text-[12px]"
+                  className="text-[13px] font-medium flex items-center gap-1.5"
                   style={{ color: "var(--text-secondary)" }}
                 >
-                  Step{" "}
+                  <span>Step</span>
                   <span
-                    className="font-semibold"
+                    className="font-bold text-[13px]"
                     style={{ color: "var(--text-primary)" }}
                   >
                     {currentStep + 1}
-                  </span>{" "}
-                  of 3
+                  </span>
+                  <span>of</span>
+                  <span
+                    className="font-bold text-[13px]"
+                    style={{ color: "var(--text-primary)" }}
+                  >
+                    3
+                  </span>
+                  <span className="text-slate-300 dark:text-slate-600 mx-1">·</span>
+                  <span className="font-semibold" style={{ color: "var(--text-primary)" }}>
+                    {STEP_LABELS[currentStep]}
+                  </span>
                 </div>
+              </div>
 
-                <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2.5">
+                <Button
+                  onClick={() => {
+                    resetDraft();
+                    setMode("view");
+                  }}
+                  style={{
+                    borderRadius: 8,
+                    height: 38,
+                    fontWeight: 500,
+                  }}
+                >
+                  Cancel
+                </Button>
+
+                <Button
+                  disabled={currentStep === 0}
+                  icon={<ChevronLeft size={16} />}
+                  onClick={() => setCurrentStep((s) => s - 1)}
+                  style={{
+                    borderRadius: 8,
+                    height: 38,
+                    fontWeight: 600,
+                    display: "inline-flex",
+                    alignItems: "center",
+                  }}
+                >
+                  Previous
+                </Button>
+
+                {editingId && currentStep < 2 && (
                   <Button
-                    disabled={currentStep === 0}
-                    icon={<ArrowLeft size={14} />}
-                    onClick={() => setCurrentStep((s) => s - 1)}
+                    icon={<CheckCircle2 size={15} />}
+                    loading={updateMutation.isPending}
+                    onClick={() =>
+                      persistDraft({
+                        closeOnSuccess: false,
+                        label: STEP_LABELS[currentStep],
+                      })
+                    }
                     style={{
                       borderRadius: 8,
-                      height: 36,
+                      height: 38,
                       fontWeight: 600,
+                      display: "inline-flex",
+                      alignItems: "center",
                     }}
                   >
-                    Previous
+                    Save {STEP_LABELS[currentStep]}
                   </Button>
+                )}
 
-                  {editingId && currentStep < 2 && (
-                    <Button
-                      icon={<CheckCircle2 size={14} />}
-                      loading={updateMutation.isPending}
-                      onClick={() =>
-                        persistDraft({
-                          closeOnSuccess: false,
-                          label: STEP_LABELS[currentStep],
-                        })
-                      }
-                      style={{
-                        borderRadius: 8,
-                        height: 36,
-                        fontWeight: 600,
-                      }}
-                    >
-                      Save {STEP_LABELS[currentStep].toLowerCase()}
-                    </Button>
-                  )}
-                  {currentStep < 2 ? (
-                    <Button
-                      type="primary"
-                      onClick={async () => {
-                        if (currentStep === 0) {
-                          try {
-                            await generalFormRef.current?.validateFields();
-                            setCurrentStep(1);
-                          } catch {
-                            message.error("Please fill required fields");
-                          }
-                        } else {
-                          setCurrentStep((s) => s + 1);
+                {currentStep < 2 ? (
+                  <Button
+                    type="primary"
+                    onClick={async () => {
+                      if (currentStep === 0) {
+                        try {
+                          await generalFormRef.current?.validateFields();
+                          setCurrentStep(1);
+                        } catch {
+                          message.error("Please fill required fields");
                         }
-                      }}
-                      style={{
-                        borderRadius: 8,
-                        height: 36,
-                        fontWeight: 600,
-                        background: "#2563eb",
-                      }}
-                    >
-                      Next step
-                      <ChevronRight size={14} style={{ marginLeft: 4 }} />
-                    </Button>
-                  ) : (
-                    <Button
-                      type="primary"
-                      icon={<CheckCircle2 size={14} />}
-                      loading={
-                        createMutation.isPending || updateMutation.isPending
+                      } else {
+                        setCurrentStep((s) => s + 1);
                       }
-                      onClick={() => persistDraft({ closeOnSuccess: true })}
-                      style={{
-                        borderRadius: 8,
-                        height: 36,
-                        fontWeight: 600,
-                        background: "#10b981",
-                      }}
-                    >
-                      {editingId ? "Update profile" : "Save & finish"}
-                    </Button>
-                  )}
-                </div>
+                    }}
+                    style={{
+                      borderRadius: 8,
+                      height: 38,
+                      fontWeight: 600,
+                      background: "#2563eb",
+                      display: "inline-flex",
+                      alignItems: "center",
+                      boxShadow: "0 2px 8px rgba(37,99,235,0.25)",
+                    }}
+                  >
+                    Next step
+                    <ChevronRight size={16} style={{ marginLeft: 4 }} />
+                  </Button>
+                ) : (
+                  <Button
+                    type="primary"
+                    icon={<CheckCircle2 size={16} />}
+                    loading={
+                      createMutation.isPending || updateMutation.isPending
+                    }
+                    onClick={() => persistDraft({ closeOnSuccess: true })}
+                    style={{
+                      borderRadius: 8,
+                      height: 38,
+                      fontWeight: 600,
+                      background: "#10b981",
+                      borderColor: "#10b981",
+                      display: "inline-flex",
+                      alignItems: "center",
+                      boxShadow: "0 2px 8px rgba(16,185,129,0.25)",
+                    }}
+                  >
+                    {editingId ? "Update profile" : "Save & finish"}
+                  </Button>
+                )}
               </div>
             </div>
           </div>
-        </div>)}
+        </div>
+      )}
 
       {/* PROFILE VIEW DRAWER */}
       <Drawer

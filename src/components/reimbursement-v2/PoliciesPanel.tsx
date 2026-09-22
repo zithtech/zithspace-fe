@@ -42,7 +42,7 @@ export default function PoliciesPanel() {
   const [rows, setRows] = useState<ReimbursementPolicyListItem[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
-  const [limit, setLimit] = useState(20);
+  const [limit, setLimit] = useState(15);
   const [cats, setCats] = useState<ExpenseCategory[]>([]);
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState('');
@@ -83,6 +83,9 @@ export default function PoliciesPanel() {
     const handler = setTimeout(() => setDebouncedSearch(search), 300);
     return () => clearTimeout(handler);
   }, [search]);
+
+  // Reset to page 1 on search change
+  useEffect(() => { setPage(1); }, [debouncedSearch]);
 
   const load = useCallback(async (p = page, l = limit, s = debouncedSearch) => {
     setLoading(true);
@@ -220,6 +223,7 @@ export default function PoliciesPanel() {
             onChange: (p, s) => {
               setPage(p);
               setLimit(s ?? limit);
+              load(p, s ?? limit);
             },
           }} locale={{ emptyText: <NoData /> }} />
       </div>

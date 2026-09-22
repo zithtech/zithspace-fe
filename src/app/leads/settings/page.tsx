@@ -1,7 +1,7 @@
 "use client";
 
 import NoData from "@/components/common/NoData";
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import MainLayout from "@/components/layout/MainLayout";
 import ProtectedRoute from "@/components/common/ProtectedRoute";
 import {
@@ -551,9 +551,9 @@ export default function LeadSettingsPage() {
     const [filterMode, setFilterMode] = useState<"all" | "active" | "hidden">("all");
     const [view, setView] = useState<"list" | "grid">("grid");
     const [tablePage, setTablePage] = useState(1);
-    const [tablePageSize, setTablePageSize] = useState(20);
+    const [tablePageSize, setTablePageSize] = useState(15);
 
-    const PAGE_SIZE_OPTIONS = [10, 20, 25, 50, 100];
+    const PAGE_SIZE_OPTIONS = [10, 15, 20, 25, 50, 100];
 
     useEffect(() => {
         setTablePage(1);
@@ -563,6 +563,12 @@ export default function LeadSettingsPage() {
         statuses,
         actions,
         platforms,
+        statusesPagination,
+        actionsPagination,
+        platformsPagination,
+        statusesStats,
+        actionsStats,
+        platformsStats,
         fetchStatuses,
         fetchActions,
         fetchPlatforms,
@@ -582,17 +588,27 @@ export default function LeadSettingsPage() {
     const [actionDataSource, setActionDataSource] = useState<any[]>([]);
     const [platformDataSource, setPlatformDataSource] = useState<any[]>([]);
 
+    const reloadData = useCallback(() => {
+        const params = {
+            page: tablePage,
+            limit: tablePageSize,
+            search: searchText.trim() || undefined,
+            filter: filterMode !== 'all' ? filterMode : undefined,
+        };
+        if (activeTab === "1") fetchStatuses(params);
+        else if (activeTab === "2") fetchActions(params);
+        else fetchPlatforms(params);
+    }, [activeTab, tablePage, tablePageSize, searchText, filterMode, fetchStatuses, fetchActions, fetchPlatforms]);
+
     useEffect(() => {
-        fetchStatuses();
-        fetchActions();
-        fetchPlatforms();
-    }, [fetchStatuses, fetchActions, fetchPlatforms]);
+        reloadData();
+    }, [reloadData]);
 
     useEffect(() => {
         setDataSource(statuses.map((s, i) => ({
             key: s.id,
             id: s.id,
-            sno: i + 1,
+            sno: (tablePage - 1) * tablePageSize + i + 1,
             statusName: s.name,
             category: s.category,
             appliesTo: s.applies_to?.join(", "),
@@ -603,13 +619,13 @@ export default function LeadSettingsPage() {
             isActive: s.is_active,
             order: s.order,
         })));
-    }, [statuses]);
+    }, [statuses, tablePage, tablePageSize]);
 
     useEffect(() => {
         setActionDataSource(actions.map((a, i) => ({
             key: a.id,
             id: a.id,
-            sno: i + 1,
+            sno: (tablePage - 1) * tablePageSize + i + 1,
             actionName: a.name,
             type: a.type,
             icon: a.icon,
@@ -617,13 +633,13 @@ export default function LeadSettingsPage() {
             isActive: a.is_active,
             created: new Date(a.createdAt || Date.now()).toLocaleDateString(),
         })));
-    }, [actions]);
+    }, [actions, tablePage, tablePageSize]);
 
     useEffect(() => {
         setPlatformDataSource(platforms.map((p, i) => ({
             key: p.id,
             id: p.id,
-            sno: i + 1,
+            sno: (tablePage - 1) * tablePageSize + i + 1,
             name: p.name,
             code: p.code,
             type: p.type,
@@ -634,7 +650,7 @@ export default function LeadSettingsPage() {
             // `color` keyed for the "Themed" stat — platforms count as themed when they have a logo.
             color: p.logo_url ? '#3b82f6' : undefined,
         })));
-    }, [platforms]);
+    }, [platforms, tablePage, tablePageSize]);
 
     // Derive the immutable code (Upwork → UPWORK, "Own Website" → OWN_WEBSITE).
     const derivePlatformCode = (name: string) =>
@@ -791,6 +807,7 @@ export default function LeadSettingsPage() {
         try {
             await Promise.all(newData.map((item, i) => updateStatus(item.id, { order: i })));
             message.success("Order Updated");
+            reloadData();
         } catch (error) {
             message.error("Failed to update order");
         }
@@ -820,6 +837,7 @@ export default function LeadSettingsPage() {
             }
             await updateStatus(id, { [backendField]: value });
             message.success("Status Updated");
+            reloadData();
         } catch (error) {
             message.error("Failed to update status");
         }
@@ -829,6 +847,7 @@ export default function LeadSettingsPage() {
         try {
             await updateAction(id, { is_active: value });
             message.success("Action Updated");
+            reloadData();
         } catch (error) {
             message.error("Failed to update action");
         }
@@ -923,6 +942,7 @@ export default function LeadSettingsPage() {
             setIsDrawerOpen(false);
             setEditingId(null);
             form.resetFields();
+            reloadData();
         } catch (error: any) {
             console.error("Validation or API Failed:", error);
             const errorMessage = error.response?.data?.error || error.message || "An unexpected error occurred";
@@ -971,79 +991,14 @@ export default function LeadSettingsPage() {
         { value: "link", label: <span style={{ display: "flex", alignItems: "center", gap: 8 }}><LinkOutlined /> Link</span> },
     ];
 
-    const filteredStatuses = useMemo(
-        () => dataSource
-            .filter(d =>
-                d.statusName?.toLowerCase().includes(searchText.toLowerCase()) ||
-                d.category?.toLowerCase().includes(searchText.toLowerCase())
-            )
-            .filter(d => {
-                if (filterMode === "active") return d.isActive;
-                if (filterMode === "hidden") return !d.isActive;
-                return true;
-            }),
-        [dataSource, searchText, filterMode]
-    );
-
-    const filteredActions = useMemo(
-        () => actionDataSource
-            .filter(d =>
-                d.actionName?.toLowerCase().includes(searchText.toLowerCase()) ||
-                d.type?.toLowerCase().includes(searchText.toLowerCase())
-            )
-            .filter(d => {
-                if (filterMode === "active") return d.isActive;
-                if (filterMode === "hidden") return !d.isActive;
-                return true;
-            }),
-        [actionDataSource, searchText, filterMode]
-    );
-
-    const filteredPlatforms = useMemo(
-        () => platformDataSource
-            .filter(d => {
-                if (!searchText.trim()) return true;
-                const q = searchText.toLowerCase();
-                return (
-                    d.name?.toLowerCase().includes(q) ||
-                    d.code?.toLowerCase().includes(q) ||
-                    d.url?.toLowerCase().includes(q) ||
-                    d.type?.toLowerCase().includes(q)
-                );
-            })
-            .filter(d => {
-                if (filterMode === "active") return d.isActive;
-                if (filterMode === "hidden") return !d.isActive;
-                return true;
-            }),
-        [platformDataSource, searchText, filterMode]
-    );
-
-    const filteredItems = useMemo(() => {
-        if (activeTab === "1") return filteredStatuses;
-        if (activeTab === "2") return filteredActions;
-        return filteredPlatforms;
-    }, [activeTab, filteredStatuses, filteredActions, filteredPlatforms]);
-
-    const total = filteredItems.length;
+    const total = activeTab === "1" ? statusesPagination.total : activeTab === "2" ? actionsPagination.total : platformsPagination.total;
     const pageStart = total === 0 ? 0 : (tablePage - 1) * tablePageSize + 1;
     const pageEnd = Math.min(tablePage * tablePageSize, total);
     const pageCount = Math.max(1, Math.ceil(total / tablePageSize));
 
-    const pagedStatuses = useMemo(() => {
-        if (activeTab !== "1") return [];
-        return filteredStatuses.slice((tablePage - 1) * tablePageSize, tablePage * tablePageSize);
-    }, [filteredStatuses, tablePage, tablePageSize, activeTab]);
-
-    const pagedActions = useMemo(() => {
-        if (activeTab !== "2") return [];
-        return filteredActions.slice((tablePage - 1) * tablePageSize, tablePage * tablePageSize);
-    }, [filteredActions, tablePage, tablePageSize, activeTab]);
-
-    const pagedPlatforms = useMemo(() => {
-        if (activeTab !== "3") return [];
-        return filteredPlatforms.slice((tablePage - 1) * tablePageSize, tablePage * tablePageSize);
-    }, [filteredPlatforms, tablePage, tablePageSize, activeTab]);
+    const pagedStatuses = dataSource;
+    const pagedActions = actionDataSource;
+    const pagedPlatforms = platformDataSource;
 
     const categoryMeta = [
         { key: "1" as const, label: "Pipeline Statuses", icon: <Activity size={16} />, accent: "#3b82f6", description: "Stages your leads flow through — color, default and final markers." },
@@ -1053,23 +1008,26 @@ export default function LeadSettingsPage() {
 
     const currentCat = categoryMeta.find(c => c.key === activeTab) || categoryMeta[0];
     const currentItems = activeTab === "1" ? dataSource : activeTab === "2" ? actionDataSource : platformDataSource;
-    const currentActive = currentItems.filter((i: any) => i.isActive).length;
-    const currentHidden = currentItems.length - currentActive;
+    const currentTotal = activeTab === "1" ? (statusesStats?.total ?? total) : activeTab === "2" ? (actionsStats?.total ?? total) : (platformsStats?.total ?? total);
+    const currentActive = activeTab === "1" ? (statusesStats?.active ?? currentItems.filter((i: any) => i.isActive).length) : activeTab === "2" ? (actionsStats?.active ?? currentItems.filter((i: any) => i.isActive).length) : (platformsStats?.active ?? currentItems.filter((i: any) => i.isActive).length);
+    const currentHidden = Math.max(0, currentTotal - currentActive);
     const currentThemed = currentItems.filter((i: any) => !!i.color).length;
 
     const stats = useMemo(() => {
-        const activeStatuses = statuses.filter(s => s.is_active).length;
-        const finalStages = statuses.filter(s => s.is_final_stage).length;
-        const activeActions = actions.filter(a => a.is_active).length;
+        const statusCount = statusesStats?.total ?? statusesPagination.total;
+        const activeStatuses = statusesStats?.active ?? statuses.filter(s => s.is_active).length;
+        const finalStages = statusesStats?.final ?? statuses.filter(s => s.is_final_stage).length;
+        const actionCount = actionsStats?.total ?? actionsPagination.total;
+        const activeActions = actionsStats?.active ?? actions.filter(a => a.is_active).length;
         return {
-            statusCount: statuses.length,
+            statusCount,
             activeStatuses,
             finalStages,
-            actionCount: actions.length,
+            actionCount,
             activeActions,
             defaultStatusName: statuses.find(s => s.is_default)?.name || "—",
         };
-    }, [statuses, actions]);
+    }, [statuses, actions, statusesStats, actionsStats, statusesPagination.total, actionsPagination.total]);
 
     const statusColumns = [
         {
@@ -1211,6 +1169,7 @@ export default function LeadSettingsPage() {
                                 try {
                                     await deleteStatus(record.id);
                                     message.success("Status deleted successfully");
+                                    reloadData();
                                 } catch (error) {
                                     message.error("Failed to delete status");
                                 }
@@ -1307,6 +1266,7 @@ export default function LeadSettingsPage() {
                                 try {
                                     await deleteAction(record.id);
                                     message.success("Action removed successfully");
+                                    reloadData();
                                 } catch (error) {
                                     message.error("Failed to remove action");
                                 }
@@ -1398,6 +1358,7 @@ export default function LeadSettingsPage() {
                         try {
                             await updatePlatform(record.id, { is_active: checked });
                             message.success("Platform updated");
+                            reloadData();
                         } catch {
                             message.error("Failed to update platform");
                         }
@@ -1430,6 +1391,7 @@ export default function LeadSettingsPage() {
                                 try {
                                     await deletePlatform(record.id);
                                     message.success("Platform deleted");
+                                    reloadData();
                                 } catch {
                                     message.error("Failed to delete platform");
                                 }
@@ -1612,7 +1574,7 @@ export default function LeadSettingsPage() {
                                     <button type="button" className={view === 'list' ? 'is-active' : ''} onClick={() => setView('list')} aria-label="List view"><UnorderedListOutlined /></button>
                                 </div>
                                 <Tooltip title="Refresh">
-                                    <button type="button" className="pp-ghost-btn" onClick={() => { fetchStatuses(); fetchActions(); fetchPlatforms(); }}><ReloadOutlined spin={loading} /></button>
+                                    <button type="button" className="pp-ghost-btn" onClick={() => reloadData()}><ReloadOutlined spin={loading} /></button>
                                 </Tooltip>
                             </div>
                         </div>
@@ -1725,6 +1687,7 @@ export default function LeadSettingsPage() {
                                                                                             try {
                                                                                                 await deleteStatus(item.id);
                                                                                                 message.success("Status deleted successfully");
+                                                                                                reloadData();
                                                                                             } catch (error) {
                                                                                                 message.error("Failed to delete status");
                                                                                             }
@@ -1875,6 +1838,7 @@ export default function LeadSettingsPage() {
                                                                                         try {
                                                                                             await deleteAction(item.id);
                                                                                             message.success("Action removed successfully");
+                                                                                            reloadData();
                                                                                         } catch (error) {
                                                                                             message.error("Failed to remove action");
                                                                                         }
@@ -1977,6 +1941,7 @@ export default function LeadSettingsPage() {
                                                                                             try {
                                                                                                 await deletePlatform(item.id);
                                                                                                 message.success("Platform deleted");
+                                                                                                reloadData();
                                                                                             } catch {
                                                                                                 message.error("Failed to delete platform");
                                                                                             }

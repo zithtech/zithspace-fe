@@ -148,7 +148,7 @@ const AreaSparkline = ({ values, color }: { values: number[]; color: string }) =
   );
 };
 
-const PAGE_SIZE_OPTIONS = [10, 20, 25, 50, 100];
+const PAGE_SIZE_OPTIONS = [10, 15, 20, 25, 50, 100];
 
 // Decorative sparkline shapes (no per-status time-series exists yet).
 const TRENDS: Record<string, number[]> = {
@@ -192,7 +192,7 @@ export default function ManageAttendancePanel() {
 
   // pagination (server-side)
   const [tablePage, setTablePage] = useState(1);
-  const [tablePageSize, setTablePageSize] = useState(20);
+  const [tablePageSize, setTablePageSize] = useState(15);
 
   // drawer
   const [drawerOpen, setDrawerOpen] = useState(false);

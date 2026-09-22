@@ -35,7 +35,7 @@ import { SnippetsOutlined, FileTextOutlined, CheckCircleOutlined, StarOutlined }
 import AiCreateTemplateModal from '@/components/letters/AiCreateTemplateModal';
 import { ThunderboltOutlined } from '@ant-design/icons';
 
-const PAGE_SIZE_OPTIONS = [10, 20, 25, 50, 100];
+const PAGE_SIZE_OPTIONS = [10, 15, 20, 25, 50, 100];
 import type { ColumnsType } from 'antd/es/table';
 import { AppstoreOutlined, UnorderedListOutlined, EllipsisOutlined, ReloadOutlined } from '@ant-design/icons';
 import ZukvoLoader from '@/components/common/ZukvoLoader';
@@ -106,7 +106,7 @@ export default function TemplateManagementPage() {
   const [filterPortalNode, setFilterPortalNode] = useState<Element | null>(null);
 
   const [tablePage, setTablePage] = useState(1);
-  const [tablePageSize, setTablePageSize] = useState(20);
+  const [tablePageSize, setTablePageSize] = useState(15);
   const [total, setTotal] = useState(0);
   const [stats, setStats] = useState<any>({ total: 0, globalCount: 0, activeCount: 0, recentCount: 0 });
 
@@ -197,7 +197,7 @@ export default function TemplateManagementPage() {
   const loadStructures = async () => {
     try {
       const res = await LettersService.getStructures();
-      setStructures(res);
+      setStructures(Array.isArray(res) ? res : (res as any).data || []);
     } catch (err: any) {
       toast.error(err.message || 'Failed to load structures');
     }

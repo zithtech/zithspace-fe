@@ -63,7 +63,7 @@ import {
 } from "lucide-react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useTenant } from "@/context/TenantContext";
-import { api } from "@/lib/axios";
+import { api, apiClient } from "@/lib/axios";
 import MainLayout from "@/components/layout/MainLayout";
 import ProtectedRoute from "@/components/common/ProtectedRoute";
 import { usePermission } from "@/hooks/usePermission";
@@ -546,19 +546,19 @@ export default function ClientV2DetailsPage() {
     const id = params.id as string;
     if (!id) return;
     Promise.allSettled([
-      teamService.listForClient(id).then((d) => setTeamCount(d.length)).catch(() => { }),
-      momService.listForClient(id).then((d) => setMeetingsCount((d || []).length)).catch(() => { }),
-      clientPortalService.listForClient(id).then((d) => setPortalCount((d || []).length)).catch(() => { }),
-      environmentsService.listForClient(id).then((d) => setEnvsCount(d.length)).catch(() => { }),
+      teamService.listForClient(id, { limit: 1 }).then((d) => setTeamCount(d.meta?.total ?? d.data?.length ?? 0)).catch(() => { }),
+      momService.listForClient(id, { limit: 1 }).then((d) => setMeetingsCount(d.meta?.total ?? d.data?.length ?? 0)).catch(() => { }),
+      clientPortalService.listForClient(id, { limit: 1 }).then((d) => setPortalCount(d.meta?.total ?? d.data?.length ?? 0)).catch(() => { }),
+      environmentsService.listForClient(id, { limit: 1 }).then((d) => setEnvsCount(d.meta?.total ?? d.data?.length ?? 0)).catch(() => { }),
       staffPortalTicketService
         .list({ clientId: id, limit: 1 })
         .then(({ meta }) => setTicketsCount(meta.total))
         .catch(() => { }),
-      crService.listForClient(id).then((d) => setCrCount((d || []).length)).catch(() => { }),
-      approvalsService.listForClient(id).then((d) => setApprovalsCount((d || []).length)).catch(() => { }),
-      milestoneService.list(id).then((d) => setMilestonesCount((d || []).length)).catch(() => { }),
-      releaseService.list(id).then((d) => setReleasesCount((d || []).length)).catch(() => { }),
-      api.get(`/api/clients-v2/${id}/invoices`).then((d: any) => setInvoicesCount((d || []).length)).catch(() => { }),
+      crService.listForClient(id, { limit: 1 }).then((d) => setCrCount(d.meta?.total ?? d.data?.length ?? 0)).catch(() => { }),
+      approvalsService.listForClient(id, { limit: 1 }).then((d) => setApprovalsCount(d.meta?.total ?? d.data?.length ?? 0)).catch(() => { }),
+      milestoneService.list(id, { limit: 1 }).then((d) => setMilestonesCount(d.meta?.total ?? d.data?.length ?? 0)).catch(() => { }),
+      releaseService.list(id, { limit: 1 }).then((d) => setReleasesCount(d.meta?.total ?? d.data?.length ?? 0)).catch(() => { }),
+      apiClient.get(`/api/clients-v2/${id}/invoices?limit=1`).then((res: any) => setInvoicesCount(res.data?.meta?.total ?? res.data?.data?.length ?? 0)).catch(() => { }),
     ]);
   }, [params.id]);
 
@@ -1719,7 +1719,7 @@ export default function ClientV2DetailsPage() {
             .cd-page {
               margin: 0 -8px;
               background: var(--bg-pure-white);
-              min-height: calc(100vh - 64px);
+              min-height: calc(100vh - 60px);
               padding: 0;
               display: flex;
               flex-direction: column;
@@ -2091,11 +2091,17 @@ export default function ClientV2DetailsPage() {
               width: 220px;
               background: transparent;
               border-right: 1px solid var(--border-slate-200);
-              z-index: 1;
+              z-index: 30;
               pointer-events: none;
             }
             [data-theme="dark"] .cd-tabs.ant-tabs::before {
               border-right-color: var(--border-slate-700, #374151);
+            }
+            .cd-tabs .pm2-pagination {
+              border-left: 1px solid var(--border-slate-200) !important;
+            }
+            [data-theme="dark"] .cd-tabs .pm2-pagination {
+              border-left-color: var(--border-slate-700, #374151) !important;
             }
             .cd-tabs.ant-tabs > .ant-tabs-nav {
               position: sticky !important;
@@ -2217,11 +2223,30 @@ export default function ClientV2DetailsPage() {
               min-width: 0;
               border-left: none !important;
               padding: 0 12px !important;
+              display: flex !important;
+              flex-direction: column !important;
+              min-height: 100% !important;
             }
-            .cd-tabs .ant-tabs-content,
-            .cd-tabs .ant-tabs-tabpane {
+            .cd-tabs .ant-tabs-content {
               margin: 0 !important;
               padding: 0 !important;
+              flex: 1 !important;
+              display: flex !important;
+              flex-direction: column !important;
+              height: 100% !important;
+              min-height: 100% !important;
+            }
+            .cd-tabs .ant-tabs-tabpane-active {
+              flex: 1 !important;
+              display: flex !important;
+              flex-direction: column !important;
+              height: 100% !important;
+              min-height: 100% !important;
+              margin: 0 !important;
+              padding: 0 !important;
+            }
+            .cd-tabs .ant-tabs-tabpane-hidden {
+              display: none !important;
             }
             .cd-tab-count {
               display: inline-flex;
@@ -2253,7 +2278,11 @@ export default function ClientV2DetailsPage() {
             }
             .cd-tab-pane {
               animation: cd-fade-in 0.3s ease;
-              padding: 0 0 16px 0;
+              padding: 0 !important;
+              flex: 1 !important;
+              display: flex !important;
+              flex-direction: column !important;
+              min-height: 100% !important;
             }
             html body .contacts-header-wrap .saas-header-container,
             html body .projects-header-wrap .saas-header-container,

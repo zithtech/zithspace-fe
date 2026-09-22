@@ -1,5 +1,5 @@
 import { Customer } from "@/services/customersService";
-import { Drawer, Form, Input, Switch, Button } from "antd";
+import { Drawer, Form, Input, Switch, Button, Select } from "antd";
 import { useEffect } from "react";
 import {
   Building2,
@@ -11,7 +11,9 @@ import {
   UserPlus,
   X,
   IdCard,
+  FolderKanban,
 } from "lucide-react";
+import { useAllProjects } from "@/hooks/useGlobalData";
 
 type Props = {
   open: boolean;
@@ -35,6 +37,9 @@ export default function CustomerDrawer({
   onSave,
 }: Props) {
   const [form] = Form.useForm();
+  const { data: allProjects = [], isLoading: loadingProjects } = useAllProjects({
+    enabled: open,
+  });
 
   useEffect(() => {
     if (!open) return;
@@ -51,10 +56,11 @@ export default function CustomerDrawer({
         gstin: customer.gstin,
         pan: customer.pan,
         isActive: customer.isActive ?? true,
+        projectIds: customer.projectIds || customer.projects?.map((p) => p.id) || [],
       });
     } else {
       form.resetFields();
-      form.setFieldsValue({ isActive: true });
+      form.setFieldsValue({ isActive: true, projectIds: [] });
     }
   }, [open, customer, form]);
 
@@ -473,7 +479,7 @@ export default function CustomerDrawer({
             </div>
           </div>
 
-          {/* STATUS */}
+          {/* PROJECTS */}
           <div
             className="customer-drawer-card rounded-none overflow-hidden"
             style={{
@@ -483,6 +489,60 @@ export default function CustomerDrawer({
           >
             <SectionHeader
               num="04"
+              title="Project linkage"
+              subtitle="Associate projects for invoice creation"
+            />
+            <div className="px-5 py-5 space-y-3">
+              <Form.Item
+                name="projectIds"
+                label="Linked projects"
+                style={{ marginBottom: 0 }}
+              >
+                <Select
+                  mode="multiple"
+                  allowClear
+                  showSearch
+                  loading={loadingProjects}
+                  placeholder={
+                    loadingProjects
+                      ? "Loading projects..."
+                      : "Select project(s) to link (optional)"
+                  }
+                  filterOption={(input, option) =>
+                    ((option?.label as string) || "")
+                      .toLowerCase()
+                      .includes(input.toLowerCase())
+                  }
+                  options={allProjects.map((p) => ({
+                    value: p.value,
+                    label: p.code ? `${p.label} (${p.code})` : p.label,
+                  }))}
+                  style={{ width: "100%" }}
+                  className="customer-project-select"
+                />
+              </Form.Item>
+              <div
+                className="text-[11px] leading-relaxed flex items-start gap-1.5 pt-1"
+                style={{ color: "var(--text-secondary)" }}
+              >
+                <span className="text-[12px] leading-none mt-0.5">ℹ️</span>
+                <span>
+                  When creating an invoice for this customer, these linked projects will appear in the invoice project dropdown.
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* STATUS */}
+          <div
+            className="customer-drawer-card rounded-none overflow-hidden"
+            style={{
+              background: "var(--bg-secondary)",
+              border: "1px solid var(--border-color)",
+            }}
+          >
+            <SectionHeader
+              num="05"
               title="Visibility"
               subtitle="Profile state"
             />

@@ -48,6 +48,7 @@ import { PipelineService } from '@/services/pipelineService';
 import { commonDrawerProps, drawerFormStyles, SectionCard } from '@/components/common/DrawerSection';
 import SearchableDropdown from '@/components/common/SearchableDropdown';
 import { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
+import { StatCards } from "@/components/onboarding/ui";
 
 // ── Module palette: blue / green / red / grey / gold (status only) ───────────
 const PALETTE = {
@@ -588,29 +589,23 @@ function InvitesContent() {
       </div>
 
       {/* ── STAT CARDS ──────────────────────────────────────────────────── */}
-      <div className="onbi-stats">
-        {[
+      {/* ── STAT CARDS ──────────────────────────────────────────────────── */}
+      <StatCards
+        title="Invites Overview"
+        statusText="ACTIVE"
+        cells={[
           { key: 'total', label: 'Total Invites', value: apiStats.total, icon: <Mail size={14} />, color: PALETTE.blue, tint: TINT.blue, period: 'sent' },
           { key: 'invited', label: 'Awaiting', value: apiStats.invited, icon: <Link2 size={14} />, color: PALETTE.blue, tint: TINT.blue, period: 'not started' },
           { key: 'submitted', label: 'Submitted', value: apiStats.submitted, icon: <ShieldCheck size={14} />, color: PALETTE.gold, tint: TINT.gold, period: 'to activate' },
           { key: 'completed', label: 'Completed', value: apiStats.completed, icon: <CheckCircle2 size={14} />, color: PALETTE.green, tint: TINT.green, period: 'active' },
-        ].map((s) => (
-          <div key={s.key} className="onbi-stat-card">
-            <div className="onbi-stat-top">
-              <div className="onbi-stat-left">
-                <span className="onbi-stat-icon" style={{ background: s.tint, color: s.color }}>
-                  {s.icon}
-                </span>
-                <span className="onbi-stat-label">{s.label}</span>
-              </div>
-            </div>
-            <div className="onbi-stat-bottom">
-              <span className="onbi-stat-value">{s.value}</span>
-              <span className="onbi-stat-period">{s.period}</span>
-            </div>
-          </div>
-        ))}
-      </div>
+        ].map((s) => ({
+          label: s.label,
+          value: <>{s.value} <span style={{ fontSize: 11, fontWeight: 500, color: 'var(--text-slate-400)' }}>{s.period}</span></>,
+          icon: s.icon,
+          color: s.color,
+          tint: s.tint
+        }))}
+      />
 
       {/* ── TABLE ───────────────────────────────────────────────────────── */}
       <div className="onbi-table-wrap">
@@ -1017,7 +1012,7 @@ function InvitesContent() {
         /* Header */
         .onbi-header {
           display: flex; align-items: center; justify-content: space-between; gap: 16px;
-          margin: -12px -22px 14px; padding: 12px 24px 14px 28px; border-bottom: 1px solid var(--border-slate-200);
+          margin: 0 0 14px 0; padding: 12px 20px 14px 20px; border-bottom: 1px solid var(--border-slate-200);
           background: var(--bg-pure-white);
           position: sticky; top: 0; z-index: 30;
         }
@@ -1085,8 +1080,8 @@ function InvitesContent() {
           align-items: center;
           justify-content: space-between;
           gap: 12px;
-          margin: auto -22px 0;
-          padding: 6px 28px;
+          margin: auto 0 0;
+          padding: 6px 20px;
           background: var(--bg-pure-white);
           border-top: 1px solid var(--border-slate-100);
           box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.02);

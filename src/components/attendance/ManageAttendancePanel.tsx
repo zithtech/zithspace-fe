@@ -63,20 +63,7 @@ interface LiveStatus {
 const { RangePicker } = DatePicker;
 
 // ── Module palette: blue / green / red / grey only ──────────────────────────
-const PALETTE = {
-  blue: '#3B82F6',
-  green: '#10B981',
-  amber: '#F59E0B',
-  red: '#EF4444',
-  grey: '#94A3B8',
-} as const;
-const TINT = {
-  blue: 'rgba(59,130,246,0.10)',
-  green: 'rgba(16,185,129,0.10)',
-  amber: 'rgba(245,158,11,0.12)',
-  red: 'rgba(239,68,68,0.10)',
-  grey: 'rgba(148,163,184,0.12)',
-} as const;
+import { PALETTE, TINT, StatCards } from '@/components/attendance/ui';
 
 type StatusValue = 'present' | 'late' | 'absent';
 
@@ -735,25 +722,18 @@ export default function ManageAttendancePanel() {
       </div>
 
       {/* ── 2) STAT CARDS ─────────────────────────────────────────────────────── */}
-      <div className="att-stats">
-        {statCells.map((s) => (
-          <div key={s.key} className="att-stat-card">
-            <div className="att-stat-top">
-              <div className="att-stat-left">
-                <span className="att-stat-icon" style={{ background: s.tint, color: s.color }}>{s.icon}</span>
-                <span className="att-stat-label">{s.title}</span>
-              </div>
-            </div>
-            <div className="att-stat-bottom">
-              <div className="att-stat-value-wrap">
-                <span className="att-stat-value">{s.value}</span>
-                <span className="att-stat-period">{s.period}</span>
-              </div>
-              <div className="att-stat-spark"><AreaSparkline values={s.trend} color={s.color} /></div>
-            </div>
-          </div>
-        ))}
-      </div>
+            <StatCards
+        title="Attendance Overview"
+        statusText="LIVE"
+        cells={statCells.map(s => ({
+          label: s.title,
+          value: <>{s.value} <span style={{ fontSize: 11, fontWeight: 500, color: 'var(--text-slate-400)' }}>{s.period}</span></>,
+          icon: s.icon,
+          color: s.color,
+          tint: s.tint
+        }))}
+      />
+      <div style={{ padding: '0 20px', flexShrink: 0 }}>
 
       {/* ── 3) FILTERS ────────────────────────────────────────────────────────── */}
       <div className="att-filters">
@@ -810,6 +790,7 @@ export default function ManageAttendancePanel() {
       </div>
 
       {/* ── 4) TABLE ──────────────────────────────────────────────────────────── */}
+      </div>
       <div className="att-table-wrap" style={{ overflowX: 'auto' }}>
         <ZukvoLoadingOverlay loading={loading} message="">
           <Table

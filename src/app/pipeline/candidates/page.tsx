@@ -21,7 +21,13 @@ import {
   Check,
   Zap,
   RotateCw,
+  Users,
+  CheckCircle2,
+  XCircle,
+  Clock,
+  UserCheck,
 } from 'lucide-react';
+import { StatCards, PALETTE, TINT } from '@/components/pipeline/ui';
 import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
 import { PositionService, Position } from '@/services/positionService';
@@ -265,11 +271,11 @@ export default function CandidatesPage() {
   const pageStart = total === 0 ? 0 : (tablePage - 1) * tablePageSize + 1;
   const pageEnd = Math.min(tablePage * tablePageSize, total);
 
-  const stats = [
-    { label: "Total Candidates", value: statsData.total || total, color: "#3b82f6", bg: "rgba(59,130,246,0.1)" },
-    { label: "Interview", value: statsData.interview, color: "#f59e0b", bg: "rgba(245,158,11,0.1)" },
-    { label: "Hired", value: statsData.hired, color: "#10b981", bg: "rgba(16,185,129,0.1)" },
-    { label: "Rejected", value: statsData.rejected, color: "#ef4444", bg: "rgba(239,68,68,0.1)" }
+  const statCells = [
+    { label: "Total Candidates", value: statsData.total || total, icon: <Users size={14} />, color: PALETTE.blue, tint: TINT.blue },
+    { label: "Interview", value: statsData.interview, icon: <Clock size={14} />, color: PALETTE.amber, tint: TINT.amber },
+    { label: "Hired", value: statsData.hired, icon: <UserCheck size={14} />, color: PALETTE.green, tint: TINT.green },
+    { label: "Rejected", value: statsData.rejected, icon: <XCircle size={14} />, color: PALETTE.red, tint: TINT.red }
   ];
 
   return (
@@ -326,29 +332,13 @@ export default function CandidatesPage() {
         </div>
       </div>
 
-      <div className="pl-divider" />
+      <StatCards
+        title="Candidate Overview"
+        statusText="ACTIVE"
+        cells={statCells}
+      />
 
-      <div className="pp-stats py-4">
-        {stats.map((s) => (
-          <div key={s.label} className="pp-stat-card">
-            <div className="pp-stat-top">
-              <div className="pp-stat-left">
-                <span className="pp-stat-icon" style={{ background: s.bg, color: s.color }}>
-                  <LayoutGrid size={12} />
-                </span>
-                <span className="pp-stat-label">{s.label}</span>
-              </div>
-            </div>
-            <div className="pp-stat-bottom">
-              <div className="pp-stat-value-wrap">
-                <span className="pp-stat-value">{s.value}</span>
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      <div className="flex flex-wrap items-center gap-4 pb-4 border-b border-slate-200 dark:border-slate-800">
+      <div className="flex flex-wrap items-center gap-4 py-3 px-5 border-b border-slate-200 dark:border-slate-800">
         <div className="text-xs font-bold text-slate-500 uppercase tracking-wider">Filters</div>
         <div className="w-48">
           <SearchableDropdown
@@ -400,7 +390,7 @@ export default function CandidatesPage() {
       <div className="pl-body">
         <ZukvoLoadingOverlay loading={loading} message="">
           {viewMode === "table" ? (
-            <div className="pp-table-wrap">
+            <div className="pip-table-wrap">
               <Table
                 size="small"
                 columns={columns}

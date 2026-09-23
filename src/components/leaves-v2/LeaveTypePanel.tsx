@@ -46,6 +46,7 @@ import LeaveV2Service, {
   LeaveTypeV2,
 } from '@/services/leaveV2Service';
 import { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
+import { StatCards } from './ui';
 
 const { TextArea } = Input;
 
@@ -404,25 +405,17 @@ export default function LeaveTypePanel() {
       </div>
 
       {/* ── 2) STAT CARDS (square — exact Proposal stat-card UI) ─────────────── */}
-      <div className="lvt-stats">
-        {statCells.map((s) => (
-          <div key={s.key} className="lvt-stat-card">
-            <div className="lvt-stat-top">
-              <div className="lvt-stat-left">
-                <span className="lvt-stat-icon" style={{ background: s.tint, color: s.color }}>{s.icon}</span>
-                <span className="lvt-stat-label">{s.title}</span>
-              </div>
-            </div>
-            <div className="lvt-stat-bottom">
-              <div className="lvt-stat-value-wrap">
-                <span className="lvt-stat-value">{s.value}</span>
-                <span className="lvt-stat-period">{s.period}</span>
-              </div>
-              <div className="lvt-stat-spark"><AreaSparkline values={s.trend} color={s.color} /></div>
-            </div>
-          </div>
-        ))}
-      </div>
+            <StatCards
+        title="Leave Overview"
+        statusText="LIVE"
+        cells={statCells.map(s => ({
+          label: s.title,
+          value: <>{s.value} <span style={{ fontSize: 11, fontWeight: 500, color: 'var(--text-slate-400)' }}>{s.period}</span></>,
+          icon: s.icon,
+          color: s.color,
+          tint: s.tint
+        }))}
+      />
 
       {/* ── 3) FILTERS ──────────────────────────────────────────────────────── */}
       <div className="lvt-filters">
@@ -476,7 +469,7 @@ export default function LeaveTypePanel() {
       </div>
 
       {/* ── 4) TABLE (Proposal table UI) ────────────────────────────────────── */}
-      <div className="lvt-table-wrap">
+      <div className="lv-table-wrap">
         <ZukvoLoadingOverlay loading={loading} message="">
           <Table
             rowKey="id"

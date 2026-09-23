@@ -20,7 +20,7 @@ import { LettersService, DocumentStructure } from '@/services/lettersService';
 import { usePermission } from '@/hooks/usePermission';
 import { toast } from 'react-hot-toast';
 import { Table, Button, Tooltip, Select, Modal, Dropdown, Avatar } from 'antd';
-import { LetterStatsCards, StatCellData } from '@/components/letters/LetterStatsCards';
+import { StatCards, PALETTE, TINT } from '@/components/letters/ui';
 import { SnippetsOutlined, FileTextOutlined, CheckCircleOutlined, StarOutlined, AppstoreOutlined, UnorderedListOutlined, ReloadOutlined, EditOutlined, DeleteOutlined, EyeOutlined, MoreOutlined, EllipsisOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import ZukvoLoader from '@/components/common/ZukvoLoader';
@@ -106,24 +106,19 @@ export default function StructuresManagementPage() {
     fetchData();
   }, [tablePage, tablePageSize]);
 
-  const statCells: StatCellData[] = useMemo(() => {
-    const totalCount = total;
-    const globalCount = structures.filter(s => s.tenantId === 'GLOBAL').length;
-    const recentCount = structures.filter(s => {
-      if (!s.createdAt && !s.updatedAt) return false;
-      const d = new Date(s.createdAt || s.updatedAt);
-      return (new Date().getTime() - d.getTime()) < 7 * 24 * 60 * 60 * 1000;
-    }).length;
+  const globalCount = useMemo(() => structures.filter(s => s.tenantId === 'GLOBAL').length, [structures]);
+  const recentCount = useMemo(() => structures.filter(s => {
+    if (!s.createdAt && !s.updatedAt) return false;
+    const d = new Date(s.createdAt || s.updatedAt);
+    return (new Date().getTime() - d.getTime()) < 7 * 24 * 60 * 60 * 1000;
+  }).length, [structures]);
 
-    const genericTrend = [0, 2, 4, 3, 5, 4, 7];
-
-    return [
-      { key: 'total', title: 'Total Structures', value: totalCount, suffix: '', icon: <Layers size={18} />, color: '#3b82f6', tint: 'rgba(59,130,246,0.10)', trend: genericTrend, delta: totalCount },
-      { key: 'global', title: 'Global Structures', value: globalCount, suffix: '', icon: <StarOutlined />, color: '#8b5cf6', tint: 'rgba(139,92,246,0.10)', trend: genericTrend, delta: globalCount },
-      { key: 'recent', title: 'New This Week', value: recentCount, suffix: '', icon: <FileTextOutlined />, color: '#f59e0b', tint: 'rgba(245,158,11,0.10)', trend: genericTrend, delta: recentCount },
-      { key: 'active', title: 'Active Structures', value: totalCount, suffix: '', icon: <CheckCircleOutlined />, color: '#10b981', tint: 'rgba(16,185,129,0.10)', trend: genericTrend, delta: totalCount },
-    ];
-  }, [structures, total]);
+  const statCells = useMemo(() => [
+    { label: 'Total Structures', value: total, icon: <Layers size={15} />, color: PALETTE.blue, tint: TINT.blue },
+    { label: 'Global Structures', value: globalCount, icon: <StarOutlined />, color: PALETTE.violet, tint: TINT.violet },
+    { label: 'New This Week', value: recentCount, icon: <FileTextOutlined />, color: PALETTE.amber, tint: TINT.amber },
+    { label: 'Active Structures', value: total, icon: <CheckCircleOutlined />, color: PALETTE.green, tint: TINT.green },
+  ], [total, globalCount, recentCount]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -268,10 +263,13 @@ export default function StructuresManagementPage() {
         </div>
       </div>
 
-      <div style={{ padding: '14px 24px 32px', flex: 1, overflow: 'hidden', minWidth: 0, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
+      <StatCards
+        title="Custom Formats Overview"
+        statusText="ACTIVE"
+        cells={statCells}
+      />
 
-        <LetterStatsCards statCells={statCells} />
-
+      <div className="doc-table-wrap">
         {/* Structures List */}
         {loading ? (
           <div style={{ padding: '60px 0', textAlign: 'center', color: 'var(--text-slate-600)', fontSize: '15px' }}>
@@ -293,21 +291,20 @@ export default function StructuresManagementPage() {
             </div>
           } />
         ) : view === 'list' ? (
-          <div className="att-table-wrap" style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
-            <Table
-              rowKey="id"
-              size="small"
-              className="att-table flex-table"
-              columns={columns}
-              dataSource={paginatedStructures}
-              pagination={false}
-              onRow={() => ({ className: 'att-row' })}
-              scroll={{ x: 'max-content', y: '100%' }} locale={{ emptyText: <NoData /> }}
-            />
-          </div>
+          <Table
+            rowKey="id"
+            size="small"
+            className="att-table flex-table"
+            columns={columns}
+            dataSource={paginatedStructures}
+            pagination={false}
+            onRow={() => ({ className: 'att-row' })}
+            scroll={{ x: 'max-content', y: '100%' }}
+            locale={{ emptyText: <NoData /> }}
+          />
         ) : (
-          <div style={{ flex: 1, overflowY: 'auto', minHeight: 0, paddingRight: '4px', marginRight: '-4px' }}>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '16px', paddingBottom: '16px' }}>
+          <div style={{ flex: 1, overflowY: 'auto', minHeight: 0 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '16px', padding: '16px' }}>
               {paginatedStructures.map((s) => (
                 <div key={s.id} className="pc-card">
                   <div className="pc-top" style={{ position: 'relative' }}>
@@ -377,29 +374,29 @@ export default function StructuresManagementPage() {
             </div>
           </div>
         )}
-      </div>
 
-      {total > 0 && (
-        <div className="pp-footer pp-footer--sticky">
-          <div className="pp-footer-info">
-            Showing <strong>{pageStart}–{pageEnd}</strong> of <strong>{total}</strong>
+        {total > 0 && (
+          <div className="pp-footer pp-footer--sticky">
+            <div className="pp-footer-info">
+              Showing <strong>{pageStart}–{pageEnd}</strong> of <strong>{total}</strong>
+            </div>
+            <div className="pp-pager">
+              <button type="button" className="pp-pager-btn" disabled={tablePage <= 1} onClick={() => setTablePage((p) => Math.max(1, p - 1))}>‹</button>
+              {Array.from({ length: pageCount }, (_, i) => i + 1).slice(Math.max(0, tablePage - 3), Math.max(0, tablePage - 3) + 5).map((p) => (
+                <button key={p} type="button" className={`pp-pager-num ${p === tablePage ? 'is-active' : ''}`} onClick={() => setTablePage(p)}>{p}</button>
+              ))}
+              <button type="button" className="pp-pager-btn" disabled={tablePage >= pageCount} onClick={() => setTablePage((p) => Math.min(pageCount, p + 1))}>›</button>
+              <Select
+                className="pp-pagesize"
+                value={tablePageSize}
+                onChange={(v) => { setTablePageSize(v); setTablePage(1); }}
+                options={PAGE_SIZE_OPTIONS.map((n) => ({ value: n, label: `${n} / page` }))}
+                popupMatchSelectWidth={120}
+              />
+            </div>
           </div>
-          <div className="pp-pager">
-            <button type="button" className="pp-pager-btn" disabled={tablePage <= 1} onClick={() => setTablePage((p) => Math.max(1, p - 1))}>‹</button>
-            {Array.from({ length: pageCount }, (_, i) => i + 1).slice(Math.max(0, tablePage - 3), Math.max(0, tablePage - 3) + 5).map((p) => (
-              <button key={p} type="button" className={`pp-pager-num ${p === tablePage ? 'is-active' : ''}`} onClick={() => setTablePage(p)}>{p}</button>
-            ))}
-            <button type="button" className="pp-pager-btn" disabled={tablePage >= pageCount} onClick={() => setTablePage((p) => Math.min(pageCount, p + 1))}>›</button>
-            <Select
-              className="pp-pagesize"
-              value={tablePageSize}
-              onChange={(v) => { setTablePageSize(v); setTablePage(1); }}
-              options={PAGE_SIZE_OPTIONS.map((n) => ({ value: n, label: `${n} / page` }))}
-              popupMatchSelectWidth={120}
-            />
-          </div>
-        </div>
-      )}
+        )}
+      </div>
 
       {/* Preview Modal */}
       <Modal

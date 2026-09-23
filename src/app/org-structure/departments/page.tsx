@@ -371,7 +371,7 @@ export default function DepartmentsPage() {
             style={{
               borderBottom: "1px solid var(--border-slate-200)",
               padding: "9.5px 32px",
-              marginBottom: 8,
+              marginBottom: 0,
               position: 'sticky',
               top: 0,
               zIndex: 100,
@@ -404,6 +404,7 @@ export default function DepartmentsPage() {
           />
 
           <OrgModuleScaffold<Department>
+            title="Departments Overview"
             search={searchText}
             onSearchChange={setSearchText}
             searchPlaceholder="Search by name, code, or employment type..."

@@ -282,7 +282,7 @@ export default function SettingsPanel() {
     });
 
   return (
-    <div className="omp">
+    <div className="omp" style={{ padding: '0 20px 20px 20px' }}>
       <OpeningStyles />
 
       <PanelHeader

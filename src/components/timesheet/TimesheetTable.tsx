@@ -1,6 +1,7 @@
 "use client";
 
 import NoData from "@/components/common/NoData";
+import StatCards from "@/components/common/StatCards";
 import {
   Card,
   Typography,
@@ -647,8 +648,7 @@ export default function TimesheetsTab({ goToSubmitTimesheet, teamMode, approvalM
 
       {/* ============================ MAIN CONTENT ============================ */}
       <main className="ts-main">
-        <div className="ts-body">
-          <div className="ts-header-sticky">
+        <div className="ts-header-fixed">
             <div className="ts-topbar">
               <button
                 className="ts-mobile-trigger"
@@ -697,14 +697,35 @@ export default function TimesheetsTab({ goToSubmitTimesheet, teamMode, approvalM
               </div>
             </div>
 
-            <div className="ts-divider" />
             {/* Stats Cards */}
-            <div className="ts-stats">
-              <StatBox label="Total Timesheets" value={viewCounts.all} icon={FileText} color="#3b82f6" subText="All Time" />
-              <StatBox label="Pending" value={viewCounts.submitted} icon={Clock} color="#f59e0b" subText="All Time" />
-              <StatBox label="Approved" value={viewCounts.approved} icon={CheckCircle2} color="#10b981" subText="All Time" />
-              <StatBox label="Rejected" value={viewCounts.rejected} icon={AlertCircle} color="#ef4444" subText="All Time" />
-            </div>
+            <StatCards
+              cards={[
+                {
+                  label: "Total Timesheets",
+                  value: viewCounts.all,
+                  icon: <FileText size={16} />,
+                  color: "#3b82f6",
+                },
+                {
+                  label: "Pending",
+                  value: viewCounts.submitted,
+                  icon: <Clock size={16} />,
+                  color: "#f59e0b",
+                },
+                {
+                  label: "Approved",
+                  value: viewCounts.approved,
+                  icon: <CheckCircle2 size={16} />,
+                  color: "#10b981",
+                },
+                {
+                  label: "Rejected",
+                  value: viewCounts.rejected,
+                  icon: <AlertCircle size={16} />,
+                  color: "#ef4444",
+                },
+              ]}
+            />
           </div>
 
           {(() => {
@@ -716,164 +737,166 @@ export default function TimesheetsTab({ goToSubmitTimesheet, teamMode, approvalM
 
             return (
               <>
-                {/* List View */}
-                {displayMode === 'list' && (
-                  <div className="ts-table-wrap">
-                    <ZukvoLoadingOverlay loading={isLoading} message="">
-                            <Table
-                                                  className="ts-table"
-                                                  columns={columns}
-                                                  dataSource={pagedData}
-                                                  rowKey="key"
-                                                  size="middle"
-                                                  pagination={false}
-                                                  scroll={{ x: 'max-content' }} locale={{ emptyText: <NoData /> }}
-                                                />
-                            </ZukvoLoadingOverlay>
-                  </div>
-                )}
+                <div className="ts-scroll-content">
+                  {/* List View */}
+                  {displayMode === 'list' && (
+                    <div className="ts-table-wrap">
+                      <ZukvoLoadingOverlay loading={isLoading} message="">
+                              <Table
+                                                    className="ts-table"
+                                                    columns={columns}
+                                                    dataSource={pagedData}
+                                                    rowKey="key"
+                                                    size="middle"
+                                                    pagination={false}
+                                                    scroll={{ x: 'max-content' }} locale={{ emptyText: <NoData /> }}
+                                                  />
+                              </ZukvoLoadingOverlay>
+                    </div>
+                  )}
 
-                {/* Grid View */}
-                {displayMode === 'grid' && (
-                  <div className="ts-grid">
-                    {pagedData.map((record) => {
-                      const config = getStatusConfig(record.status);
-                      const start = dayjs(record.weekStart).day(0);
-                      const end = dayjs(record.weekStart).day(6);
+                  {/* Grid View */}
+                  {displayMode === 'grid' && (
+                    <div className="ts-grid">
+                      {pagedData.map((record) => {
+                        const config = getStatusConfig(record.status);
+                        const start = dayjs(record.weekStart).day(0);
+                        const end = dayjs(record.weekStart).day(6);
 
-                      const menuItems: any[] = [
-                        {
-                          key: "preview",
-                          label: <div className="ts-menu-item"><div className="ts-menu-ic" style={{ background: "rgba(59,130,246,0.12)", color: "#3B82F6" }}><EyeOutlined /></div><div className="ts-menu-text"><span className="ts-menu-title">Preview</span><span className="ts-menu-desc">View timesheet</span></div></div>,
-                          onClick: () => { setPreviewId(record.key); setPreviewOpen(true); },
-                        },
-                        { type: "divider" },
-                      ];
-
-                      if (approvalMode && record.status === "SUBMITTED") {
-                        menuItems.push(
+                        const menuItems: any[] = [
                           {
-                            key: "approve",
-                            label: <div className="ts-menu-item"><div className="ts-menu-ic" style={{ background: "rgba(16,185,129,0.12)", color: "#10b981" }}><CheckCircle2 size={16} /></div><div className="ts-menu-text"><span className="ts-menu-title">Approve</span><span className="ts-menu-desc">Approve timesheet</span></div></div>,
-                            onClick: () => handleApprove(record.key),
+                            key: "preview",
+                            label: <div className="ts-menu-item"><div className="ts-menu-ic" style={{ background: "rgba(59,130,246,0.12)", color: "#3B82F6" }}><EyeOutlined /></div><div className="ts-menu-text"><span className="ts-menu-title">Preview</span><span className="ts-menu-desc">View timesheet</span></div></div>,
+                            onClick: () => { setPreviewId(record.key); setPreviewOpen(true); },
                           },
-                          {
-                            key: "reject",
-                            label: <div className="ts-menu-item"><div className="ts-menu-ic" style={{ background: "rgba(239,68,68,0.12)", color: "#ef4444" }}><AlertCircle size={16} /></div><div className="ts-menu-text"><span className="ts-menu-title">Reject</span><span className="ts-menu-desc">Reject timesheet</span></div></div>,
-                            onClick: () => {
-                              setTargetActionId(record.key);
-                              setRejectModalOpen(true);
+                          { type: "divider" },
+                        ];
+
+                        if (approvalMode && record.status === "SUBMITTED") {
+                          menuItems.push(
+                            {
+                              key: "approve",
+                              label: <div className="ts-menu-item"><div className="ts-menu-ic" style={{ background: "rgba(16,185,129,0.12)", color: "#10b981" }}><CheckCircle2 size={16} /></div><div className="ts-menu-text"><span className="ts-menu-title">Approve</span><span className="ts-menu-desc">Approve timesheet</span></div></div>,
+                              onClick: () => handleApprove(record.key),
                             },
-                          },
-                          { type: "divider" }
-                        );
-                      }
+                            {
+                              key: "reject",
+                              label: <div className="ts-menu-item"><div className="ts-menu-ic" style={{ background: "rgba(239,68,68,0.12)", color: "#ef4444" }}><AlertCircle size={16} /></div><div className="ts-menu-text"><span className="ts-menu-title">Reject</span><span className="ts-menu-desc">Reject timesheet</span></div></div>,
+                              onClick: () => {
+                                setTargetActionId(record.key);
+                                setRejectModalOpen(true);
+                              },
+                            },
+                            { type: "divider" }
+                          );
+                        }
 
-                      if (!approvalMode) {
-                        menuItems.push(
-                          {
-                            key: "edit",
-                            label: <div className="ts-menu-item"><div className="ts-menu-ic" style={{ background: "rgba(100,116,139,0.12)", color: "#64748b" }}><EditOutlined /></div><div className="ts-menu-text"><span className="ts-menu-title">Edit</span><span className="ts-menu-desc">Modify timesheet</span></div></div>,
-                            disabled: !canUpdateTimesheet || ["APPROVED", "REJECTED"].includes(record.status),
-                            onClick: () => goToSubmitTimesheet(record.key, "edit"),
-                          },
-                          {
-                            key: "delete",
-                            danger: true,
-                            label: (
-                              <ConfirmDialog
-                                tone="danger"
-                                icon={<DeleteOutlined />}
-                                title="Delete Timesheet?"
-                                description="Are you sure you want to permanently delete this timesheet? All recorded hours will be removed."
-                                confirmText="Yes, delete it"
-                                cancelText="Cancel"
-                                onConfirm={async () => {
-                                  await deleteMutation.mutateAsync(record.key);
-                                  message.success("Timesheet deleted successfully!");
-                                }}
-                              >
-                                <div
-                                  className="ts-menu-item"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
+                        if (!approvalMode) {
+                          menuItems.push(
+                            {
+                              key: "edit",
+                              label: <div className="ts-menu-item"><div className="ts-menu-ic" style={{ background: "rgba(100,116,139,0.12)", color: "#64748b" }}><EditOutlined /></div><div className="ts-menu-text"><span className="ts-menu-title">Edit</span><span className="ts-menu-desc">Modify timesheet</span></div></div>,
+                              disabled: !canUpdateTimesheet || ["APPROVED", "REJECTED"].includes(record.status),
+                              onClick: () => goToSubmitTimesheet(record.key, "edit"),
+                            },
+                            {
+                              key: "delete",
+                              danger: true,
+                              label: (
+                                <ConfirmDialog
+                                  tone="danger"
+                                  icon={<DeleteOutlined />}
+                                  title="Delete Timesheet?"
+                                  description="Are you sure you want to permanently delete this timesheet? All recorded hours will be removed."
+                                  confirmText="Yes, delete it"
+                                  cancelText="Cancel"
+                                  onConfirm={async () => {
+                                    await deleteMutation.mutateAsync(record.key);
+                                    message.success("Timesheet deleted successfully!");
                                   }}
                                 >
-                                  <div className="ts-menu-ic" style={{ background: "rgba(239,68,68,0.12)", color: "#ef4444" }}><DeleteOutlined /></div>
-                                  <div className="ts-menu-text"><span className="ts-menu-title">Delete</span><span className="ts-menu-desc">Remove timesheet</span></div>
-                                </div>
-                              </ConfirmDialog>
-                            ),
-                            disabled: !canDeleteTimesheet && !canManageTimesheets,
-                          }
-                        );
-                      }
+                                  <div
+                                    className="ts-menu-item"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                    }}
+                                  >
+                                    <div className="ts-menu-ic" style={{ background: "rgba(239,68,68,0.12)", color: "#ef4444" }}><DeleteOutlined /></div>
+                                    <div className="ts-menu-text"><span className="ts-menu-title">Delete</span><span className="ts-menu-desc">Remove timesheet</span></div>
+                                  </div>
+                                </ConfirmDialog>
+                              ),
+                              disabled: !canDeleteTimesheet && !canManageTimesheets,
+                            }
+                          );
+                        }
 
-                      return (
-                        <div key={record.key} className="tc-card">
-                          <div className="tc-top">
-                            <div className="tc-avatar" style={{ background: "var(--bg-slate-100)", color: "var(--text-slate-600)" }}>
-                              <Calendar size={14} />
+                        return (
+                          <div key={record.key} className="tc-card">
+                            <div className="tc-top">
+                              <div className="tc-avatar" style={{ background: "var(--bg-slate-100)", color: "var(--text-slate-600)" }}>
+                                <Calendar size={14} />
+                              </div>
+                              <div className="tc-identity-body">
+                                <div className="tc-title">{start.format("MMM DD")} - {end.format("MMM DD, YYYY")}</div>
+                                <div className="tc-client-line">
+                                  <span className="tc-client-key">Hours:</span>
+                                  <span className="tc-client-val">{record.totalHours}</span>
+                                </div>
+                              </div>
+                              <Dropdown
+                                trigger={["click"]}
+                                overlayClassName="ts-action-pop"
+                                menu={{ items: menuItems }}
+                              >
+                                <button className="tc-actions"><MoreVertical size={14} /></button>
+                              </Dropdown>
                             </div>
-                            <div className="tc-identity-body">
-                              <div className="tc-title">{start.format("MMM DD")} - {end.format("MMM DD, YYYY")}</div>
-                              <div className="tc-client-line">
-                                <span className="tc-client-key">Hours:</span>
-                                <span className="tc-client-val">{record.totalHours}</span>
+                            <div className="tc-foot">
+                              <div className="tc-foot-row">
+                                <span className="tc-foot-item">
+                                  <span className="tc-foot-key">Created At:</span>
+                                  <span className="tc-foot-val">{dayjs(record.createdAt || record.weekStart).format('MMM DD, YYYY')}</span>
+                                </span>
+                                <span className="tc-foot-div" />
+                                <span className="tc-foot-item">
+                                  <span className="tc-foot-key">Created By:</span>
+                                  <span className="tc-foot-val">{record.employeeName || "System"}</span>
+                                </span>
+                                <span className="tc-foot-div" />
+                                <span className="tc-foot-item">
+                                  <span className="tc-foot-key">Updated:</span>
+                                  <span className="tc-foot-val">{dayjs(record.createdAt || record.weekStart).format('MMM DD, YYYY')}</span>
+                                </span>
+                              </div>
+                              <div className="tc-foot-row">
+                                <span className="tc-foot-item">
+                                  <span className="tc-foot-key">Status:</span>
+                                  <span className="tc-status-tag" style={{ background: config.bg, color: config.color, border: `1px solid ${config.border}` }}>
+                                    {config.icon} {config.label}
+                                  </span>
+                                </span>
+                                <span className="tc-foot-div" />
+                                <span className="tc-foot-item">
+                                  <span className="tc-foot-key">Leaves:</span>
+                                  <span className="tc-foot-val">{record.leave} Days</span>
+                                </span>
+                                <span className="tc-foot-div" />
+                                <span className="tc-foot-item">
+                                  <span className="tc-foot-key">Approver:</span>
+                                  <span className="tc-foot-val">{(record.approvedBy as any)?.name || "Pending"}</span>
+                                </span>
                               </div>
                             </div>
-                            <Dropdown
-                              trigger={["click"]}
-                              overlayClassName="ts-action-pop"
-                              menu={{ items: menuItems }}
-                            >
-                              <button className="tc-actions"><MoreVertical size={14} /></button>
-                            </Dropdown>
                           </div>
-                          <div className="tc-foot">
-                            <div className="tc-foot-row">
-                              <span className="tc-foot-item">
-                                <span className="tc-foot-key">Created At:</span>
-                                <span className="tc-foot-val">{dayjs(record.createdAt || record.weekStart).format('MMM DD, YYYY')}</span>
-                              </span>
-                              <span className="tc-foot-div" />
-                              <span className="tc-foot-item">
-                                <span className="tc-foot-key">Created By:</span>
-                                <span className="tc-foot-val">{record.employeeName || "System"}</span>
-                              </span>
-                              <span className="tc-foot-div" />
-                              <span className="tc-foot-item">
-                                <span className="tc-foot-key">Updated:</span>
-                                <span className="tc-foot-val">{dayjs(record.createdAt || record.weekStart).format('MMM DD, YYYY')}</span>
-                              </span>
-                            </div>
-                            <div className="tc-foot-row">
-                              <span className="tc-foot-item">
-                                <span className="tc-foot-key">Status:</span>
-                                <span className="tc-status-tag" style={{ background: config.bg, color: config.color, border: `1px solid ${config.border}` }}>
-                                  {config.icon} {config.label}
-                                </span>
-                              </span>
-                              <span className="tc-foot-div" />
-                              <span className="tc-foot-item">
-                                <span className="tc-foot-key">Leaves:</span>
-                                <span className="tc-foot-val">{record.leave} Days</span>
-                              </span>
-                              <span className="tc-foot-div" />
-                              <span className="tc-foot-item">
-                                <span className="tc-foot-key">Approver:</span>
-                                <span className="tc-foot-val">{(record.approvedBy as any)?.name || "Pending"}</span>
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })}
-                    {total === 0 && !isLoading && (
-                      <div className="ts-grid-loading">No timesheets found.</div>
-                    )}
-                  </div>
-                )}
+                        );
+                      })}
+                      {total === 0 && !isLoading && (
+                        <div className="ts-grid-loading">No timesheets found.</div>
+                      )}
+                    </div>
+                  )}
+                </div>
 
                 {/* Sticky footer pagination */}
                 {total > 0 && (
@@ -900,7 +923,6 @@ export default function TimesheetsTab({ goToSubmitTimesheet, teamMode, approvalM
               </>
             );
           })()}
-        </div>
       </main>
 
       {/* MODALS AND DRAWERS */}
@@ -1222,8 +1244,8 @@ export default function TimesheetsTab({ goToSubmitTimesheet, teamMode, approvalM
         }
         .pp-footer--sticky {
           position: sticky; bottom: 0; z-index: 30;
-          margin: auto -32px 0 -20px;
-          padding: 0 32px 0 20px;
+          margin: auto 0 0 0;
+          padding: 0 24px;
           background: var(--bg-pure-white);
           box-shadow: 0 -4px 14px rgba(15,23,42,0.05);
           height: 45px;
@@ -1241,19 +1263,18 @@ export default function TimesheetsTab({ goToSubmitTimesheet, teamMode, approvalM
         .pp-pagesize .ant-select-selector { border-radius: 7px !important; height: 28px !important; }
 
         /* ---------------- Main ---------------- */
-        .ts-main { flex: 1; min-width: 0; padding: 8px 32px 0 20px; display: flex; flex-direction: column; }
-        .ts-body { flex: 1 0 auto; padding-bottom: 0px; min-width: 0; display: flex; flex-direction: column; }
-        .ts-header-sticky {
-          display: contents;
-        }
+        .ts-main { flex: 1; min-width: 0; padding: 0; display: flex; flex-direction: column; height: calc(100vh - 54px); overflow: hidden; }
+        .ts-header-fixed { flex-shrink: 0; z-index: 30; background: var(--bg-pure-white); }
+        .ts-scroll-content { flex: 1; min-height: 0; overflow-y: auto; scrollbar-width: none; }
+        .ts-scroll-content::-webkit-scrollbar { display: none; }
         .ts-topbar { 
           display: flex; align-items: center; gap: 10px; flex-wrap: wrap; 
-          position: sticky; top: 0; z-index: 30;
           background: var(--bg-pure-white);
-          padding: 16px 32px 16px 20px;
-          margin: -8px -32px 10px -20px;
+          padding: 16px 24px;
+          margin: 0;
           border-bottom: 1px solid var(--border-slate-200);
         }
+        [data-theme="dark"] .ts-header-fixed { background: #0B0F1A !important; }
         [data-theme="dark"] .ts-topbar { background: #0B0F1A !important; border-bottom-color: #374151 !important; }
         .ts-mobile-trigger {
           display: none; width: 32px; height: 32px; border-radius: 8px; border: 1px solid var(--border-slate-200);
@@ -1302,7 +1323,7 @@ export default function TimesheetsTab({ goToSubmitTimesheet, teamMode, approvalM
         .ts-stat-spark { opacity: 0.95; }
 
         /* Table */
-        .ts-table-wrap { background: transparent; border: 1px solid var(--border-slate-200); border-radius: 0; overflow: hidden; margin-bottom: 24px; }
+        .ts-table-wrap { background: transparent; border: none; border-bottom: 1px solid var(--border-slate-200); border-radius: 0; overflow: hidden; margin-bottom: 0; }
         .ts-table-wrap ::-webkit-scrollbar { display: none !important; }
         .ts-table-wrap, .ts-table-wrap * { -ms-overflow-style: none !important; scrollbar-width: none !important; }
         .ts-table, .ts-table.ant-table-wrapper, .ts-table .ant-table, .ts-table .ant-table-container, .ts-table .ant-table-content, .ts-table .ant-table-header, .ts-table .ant-table-body { background: transparent; font-size: 12px; border-radius: 0 !important; }
@@ -1319,7 +1340,7 @@ export default function TimesheetsTab({ goToSubmitTimesheet, teamMode, approvalM
         .ts-table .ant-table-tbody > tr:hover > td { background: var(--bg-slate-50) !important; }
         
         /* Grid view cards */
-        .ts-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-bottom: 24px; }
+        .ts-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; padding: 16px 24px; margin-bottom: 0; }
         .ts-grid-loading { padding: 40px; text-align: center; color: var(--text-slate-400); grid-column: 1 / -1; }
 
         .tc-card {

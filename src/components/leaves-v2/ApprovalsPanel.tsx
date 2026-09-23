@@ -24,8 +24,7 @@ import ConfirmDialog from '@/components/common/ConfirmDialog';
 import LeaveV2Service, { LeaveRequest } from '@/services/leaveV2Service';
 import { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
 
-const PALETTE = { blue: '#3B82F6', green: '#10B981', red: '#EF4444', grey: '#94A3B8' } as const;
-const TINT = { blue: 'rgba(59,130,246,0.10)', green: 'rgba(16,185,129,0.10)', red: 'rgba(239,68,68,0.10)', grey: 'rgba(148,163,184,0.12)' } as const;
+import { PALETTE, TINT, StatCards } from '@/components/leaves-v2/ui';
 const PAGE_SIZE_OPTIONS = [10, 15, 20, 25, 50, 100];
 
 type StatusFilter = 'all' | 'pending' | 'approved' | 'rejected' | 'cancelled' | 'withdrawn' | 'withdrawal_requests';
@@ -340,20 +339,17 @@ export default function ApprovalsPanel() {
         </div>
       </div>
 
-      <div className="lvap-stats">
-        {statCells.map((s) => (
-          <div key={s.key} className="lvap-stat-card">
-            <div className="lvap-stat-top">
-              <span className="lvap-stat-icon" style={{ background: s.tint, color: s.color }}>{s.icon}</span>
-              <span className="lvap-stat-label">{s.title}</span>
-            </div>
-            <div className="lvap-stat-bottom">
-              <span className="lvap-stat-value">{s.value}</span>
-              <span className="lvap-stat-period">{s.period}</span>
-            </div>
-          </div>
-        ))}
-      </div>
+            <StatCards
+        title="Leave Overview"
+        statusText="LIVE"
+        cells={statCells.map(s => ({
+          label: s.title,
+          value: <>{s.value} <span style={{ fontSize: 11, fontWeight: 500, color: 'var(--text-slate-400)' }}>{s.period}</span></>,
+          icon: s.icon,
+          color: s.color,
+          tint: s.tint
+        }))}
+      />
 
       <div className="lvap-filters">
         <span className="lvap-filter-label"><FilterOutlined /> Filter</span>
@@ -398,7 +394,7 @@ export default function ApprovalsPanel() {
         {hasFilters && <button type="button" className="lvap-clear" onClick={clearFilters}><CloseCircleOutlined /> Clear</button>}
       </div>
 
-      <div className="lvap-table-wrap">
+      <div className="lv-table-wrap">
         <ZukvoLoadingOverlay loading={loading} message="">
           <Table
             rowKey="id"
@@ -407,7 +403,7 @@ export default function ApprovalsPanel() {
             columns={columns}
             dataSource={paged}
             pagination={false}
-            scroll={{ x: 'max-content', y: 'calc(100vh - 460px)' }}
+            scroll={{ x: 'max-content' }}
             expandable={{ expandedRowRender: expandedRow, expandRowByClick: true, columnWidth: 32 }}
             onRow={() => ({ className: 'lvap-row' })} locale={{ emptyText: <NoData /> }}
           />

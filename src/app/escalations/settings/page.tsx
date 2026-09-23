@@ -56,6 +56,7 @@ import {
 } from '@ant-design/icons';
 import MainLayout from '@/components/layout/MainLayout';
 import ConfirmDialog from '@/components/common/ConfirmDialog';
+import StatCards from '@/components/common/StatCards';
 import { useAuth } from '@/context/AuthContext';
 import { usePermission } from '@/hooks/usePermission';
 import { useRouter } from 'next/navigation';
@@ -818,6 +819,8 @@ export default function EscalationSettingsPage() {
       title: 'Category',
       dataIndex: 'name',
       key: 'name',
+      onHeaderCell: () => ({ style: { paddingLeft: 24 } }),
+      onCell: () => ({ style: { paddingLeft: 24 } }),
       render: (name: string, record: EscalationCategory) => (
         <div className="es-row-main">
           <span
@@ -847,7 +850,9 @@ export default function EscalationSettingsPage() {
       title: 'Actions',
       key: 'actions',
       width: 100,
-      align: 'right' as const,
+      align: 'center' as const,
+      onHeaderCell: () => ({ style: { textAlign: 'center' as const } }),
+      onCell: () => ({ style: { textAlign: 'center' as const } }),
       render: (_: any, record: EscalationCategory) =>
         canManageEscalations && (
           <div className="es-row-actions">
@@ -880,6 +885,8 @@ export default function EscalationSettingsPage() {
       title: 'Priority',
       dataIndex: 'name',
       key: 'name',
+      onHeaderCell: () => ({ style: { paddingLeft: 24 } }),
+      onCell: () => ({ style: { paddingLeft: 24 } }),
       render: (name: string, record: EscalationPriority) => (
         <div className="es-row-main">
           <span
@@ -926,7 +933,9 @@ export default function EscalationSettingsPage() {
       title: 'Actions',
       key: 'actions',
       width: 100,
-      align: 'right' as const,
+      align: 'center' as const,
+      onHeaderCell: () => ({ style: { textAlign: 'center' as const } }),
+      onCell: () => ({ style: { textAlign: 'center' as const } }),
       render: (_: any, record: EscalationPriority) =>
         canManageEscalations && (
           <div className="es-row-actions">
@@ -959,6 +968,8 @@ export default function EscalationSettingsPage() {
       title: 'Status',
       dataIndex: 'name',
       key: 'name',
+      onHeaderCell: () => ({ style: { paddingLeft: 24 } }),
+      onCell: () => ({ style: { paddingLeft: 24 } }),
       render: (name: string, record: EscalationStatus) => (
         <div className="es-row-main">
           <span
@@ -1002,7 +1013,9 @@ export default function EscalationSettingsPage() {
       title: 'Actions',
       key: 'actions',
       width: 100,
-      align: 'right' as const,
+      align: 'center' as const,
+      onHeaderCell: () => ({ style: { textAlign: 'center' as const } }),
+      onCell: () => ({ style: { textAlign: 'center' as const } }),
       render: (_: any, record: EscalationStatus) =>
         canManageEscalations && (
           <div className="es-row-actions">
@@ -1029,6 +1042,30 @@ export default function EscalationSettingsPage() {
         ),
     },
   ];
+
+  const statCells = useMemo(() => [
+    {
+      title: "Categories",
+      value: stats.categoriesTotal,
+      icon: <BlockOutlined />,
+      color: "#3b82f6",
+      sparkline: getStylizedTrend(stats.categoriesTotal),
+    },
+    {
+      title: "Priorities",
+      value: stats.prioritiesTotal,
+      icon: <FireOutlined />,
+      color: "#ef4444",
+      sparkline: getStylizedTrend(stats.prioritiesTotal),
+    },
+    {
+      title: "Statuses",
+      value: stats.statusesTotal,
+      icon: <CheckSquareOutlined />,
+      color: "#10b981",
+      sparkline: getStylizedTrend(stats.statusesTotal),
+    }
+  ], [stats]);
 
   /* ----------------------------- Active section --------------------------- */
 
@@ -1170,53 +1207,7 @@ export default function EscalationSettingsPage() {
           <div className="es-divider" />
 
           {/* Stats overview */}
-          <div className="es-stats" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
-            <StatCard
-              label="Categories"
-              value={stats.categoriesTotal}
-              icon={<TagsOutlined />}
-              accent="#3b82f6"
-              subtle="Issue type buckets"
-              loading={loading && stats.categoriesTotal === 0}
-              chart={
-                stats.categoriesTotal > 0 ? (
-                  <Sparkline data={getStylizedTrend(stats.categoriesTotal)} color="#3b82f6" />
-                ) : null
-              }
-            />
-
-            <StatCard
-              label="Priorities"
-              value={stats.prioritiesTotal}
-              icon={<FireOutlined />}
-              accent="#ef4444"
-              subtle={
-                stats.prioritiesTotal > 0
-                  ? `Avg weight ${stats.prioritiesAvgWeight}`
-                  : 'No priorities yet'
-              }
-              loading={loading && stats.prioritiesTotal === 0}
-              chart={
-                stats.prioritiesTotal > 0 ? (
-                  <Sparkline data={getStylizedTrend(stats.prioritiesTotal)} color="#ef4444" />
-                ) : null
-              }
-            />
-
-            <StatCard
-              label="Statuses"
-              value={stats.statusesTotal}
-              icon={<FlagOutlined />}
-              accent="#10b981"
-              subtle="Lifecycle stages"
-              loading={loading && stats.statusesTotal === 0}
-              chart={
-                stats.statusesTotal > 0 ? (
-                  <Sparkline data={getStylizedTrend(stats.statusesTotal)} color="#10b981" />
-                ) : null
-              }
-            />
-          </div>
+          <StatCards cards={statCells} />
 
           {/* Switcher + content card */}
           {/* Table / Panel */}
@@ -1565,9 +1556,9 @@ export default function EscalationSettingsPage() {
       </div>
 
       <style jsx global>{`
-        .es-shell { display: flex; margin: 0 -16px; min-height: calc(100vh - 64px); background: var(--bg-pure-white); }
+        .es-shell { display: flex; margin: 0 -8px; min-height: calc(100vh - 64px); background: var(--bg-pure-white); }
         .es-sidebar { width: 240px; flex-shrink: 0; border-right: 1px solid var(--border-slate-200); background: var(--bg-pure-white); display: flex; flex-direction: column; position: sticky; top: 0; height: calc(100vh - 64px); }
-        .es-sidebar-top { padding: 14px 14px 12px 18px; }
+        .es-sidebar-top { padding: 14px 14px 12px 14px; }
         .es-side-head { display: flex; align-items: center; gap: 10px; padding-bottom: 14px; margin-bottom: 6px; border-bottom: 1px solid var(--border-slate-100); }
         .es-side-logo { flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
         .es-side-logo .anticon { font-size: 24px !important; color: var(--text-slate-900) !important; }
@@ -1577,7 +1568,7 @@ export default function EscalationSettingsPage() {
         .es-create-btn { height: 32px !important; border-radius: 8px !important; font-weight: 600 !important; font-size: 12.5px !important; background: #3B82F6 !important; border: none !important; box-shadow: none !important; margin-bottom: 4px; }
         .es-create-btn:hover { background: #2563EB !important; }
         .es-create-btn .anticon { font-size: 12px !important; }
-        .es-side-scroll { flex: 1; min-height: 0; overflow-y: auto; padding: 10px 10px 6px 16px; scrollbar-width: none; -ms-overflow-style: none; }
+        .es-side-scroll { flex: 1; min-height: 0; overflow-y: auto; padding: 10px 14px 6px 14px; scrollbar-width: none; -ms-overflow-style: none; }
         .es-side-scroll::-webkit-scrollbar { width: 0; height: 0; display: none; }
         .es-side-section-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; color: var(--text-slate-400); padding: 0 8px; margin: 16px 0 6px; }
         .es-side-scroll > .es-side-section-label:first-child { margin-top: 6px; }
@@ -1590,9 +1581,9 @@ export default function EscalationSettingsPage() {
         .es-view-label { flex: 1; font-size: 13px; font-weight: 500; color: var(--text-slate-700); }
         .es-view-count { font-size: 11.5px; font-weight: 600; color: var(--text-slate-400); min-width: 18px; text-align: right; }
         .es-view-item.is-active .es-view-count { color: #3B82F6; font-weight: 700; background: rgba(59,130,246,0.12); border-radius: 6px; padding: 1px 7px; min-width: 0; }
-        .es-main { flex: 1; min-width: 0; padding: 8px 18px 0; display: flex; flex-direction: column; }
+        .es-main { flex: 1; min-width: 0; padding: 8px 0 0 0; display: flex; flex-direction: column; }
         .es-body { flex: 1 0 auto; }
-        .es-topbar { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+        .es-topbar { display: flex; align-items: center; gap: 10px; padding: 12px 24px 8px 24px; margin-bottom: 12px; }
         .es-search-wrap {
           position: relative; flex: 1; max-width: 520px; display: flex; align-items: center;
           height: 32px; border-radius: 8px; background: var(--bg-pure-white);
@@ -1617,7 +1608,7 @@ export default function EscalationSettingsPage() {
         .es-topbar-actions { display: flex; align-items: center; gap: 8px; margin-left: auto; }
         .es-ghost-btn { width: 32px; height: 32px; border-radius: 8px; border: 1px solid var(--border-slate-200); background: var(--bg-slate-50); color: var(--text-slate-700); cursor: pointer; font-size: 14px; display: inline-flex; align-items: center; justify-content: center; }
         .es-ghost-btn:hover { color: #3B82F6; border-color: #bfdbfe; }
-        .es-divider { height: 1px; background: var(--border-slate-200); margin: 0 -18px 10px; }
+        .es-divider { height: 1px; background: var(--border-slate-200); margin: 0; }
         .es-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 14px; }
         
         /* Segmented buttons */
@@ -1694,7 +1685,7 @@ export default function EscalationSettingsPage() {
         .es-table .ant-table-selection-column { padding-inline: 6px !important; }
 
         /* Grid */
-        .es-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin-top: 10px; align-items: start; }
+        .es-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin-top: 16px; padding: 0 24px; align-items: start; }
         .ec-card { max-width: 100%; }
         .es-grid-loading { padding: 40px; text-align: center; color: var(--text-slate-400); grid-column: 1 / -1; }
 

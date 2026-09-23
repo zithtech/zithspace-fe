@@ -32,6 +32,7 @@ import {
 import { Table, Input, Empty, Tooltip, Tag, DatePicker, Skeleton, Select, Button } from "antd";
 import dayjs, { Dayjs } from "dayjs";
 import { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
+import { StatCards } from "@/components/common/StatCards";
 
 const { RangePicker } = DatePicker;
 
@@ -275,6 +276,8 @@ export default function BidIqPage() {
       dataIndex: "ai_score",
       key: "ai_score",
       width: 110,
+      onHeaderCell: () => ({ style: { paddingLeft: 24 } }),
+      onCell: () => ({ style: { paddingLeft: 24 } }),
       render: (score: number | undefined) => {
         const level = getScoreLevel(score);
         return (
@@ -369,6 +372,8 @@ export default function BidIqPage() {
       key: "actions",
       width: 130,
       fixed: "right" as const,
+      onHeaderCell: () => ({ style: { paddingRight: 24 } }),
+      onCell: () => ({ style: { paddingRight: 24 } }),
       render: (_: unknown, record: Lead) => (
         <button
           className="biq-view-btn"
@@ -524,61 +529,38 @@ export default function BidIqPage() {
                 </div>
               </div>
 
-              <div className="biq-divider" />
+              <div className="biq-divider" style={{ margin: 0 }} />
 
               {/* Stat cards */}
-              <div className="biq-stat-grid">
-                {(() => {
-                  const t = counts.total || 1;
-                  const spark = (color: string) => (
-                    <div className="biq-stat-spark-wrap">
-                      <span className="biq-spark-label">Score spread</span>
-                      <AreaSparkline values={scoreSpread} color={color} />
-                    </div>
-                  );
-                  return (
-                    <>
-                      <StatCard
-                        icon={Gauge}
-                        label="Analyzed"
-                        value={counts.total}
-                        accent="#3b82f6"
-                        subtle={counts.total > 0 ? "Leads scored by BidIq" : "No analyses yet"}
-                        chart={counts.total > 0 ? spark("#3b82f6") : null}
-                      />
-                      <StatCard
-                        icon={Flame}
-                        label="Hot Leads"
-                        value={counts.hot}
-                        accent="#ef4444"
-                        subtle={counts.total > 0 ? `${Math.round((counts.hot / t) * 100)}% of analyses · score ≥ 80` : "Score ≥ 80"}
-                        chart={counts.total > 0 ? spark("#ef4444") : null}
-                      />
-                      <StatCard
-                        icon={TrendingUp}
-                        label="Avg Score"
-                        value={counts.avg}
-                        accent="#64748b"
-                        subtle={counts.total > 0 ? "Average win-probability" : "Run BidIq to see scores"}
-                        chart={counts.total > 0 ? spark("#64748b") : null}
-                      />
-                      <StatCard
-                        icon={FileText}
-                        label="Proposal Ready"
-                        value={counts.withProposal}
-                        accent="#10b981"
-                        subtle={counts.total > 0 ? `${Math.round((counts.withProposal / t) * 100)}% have a proposal` : "No proposals yet"}
-                        chart={counts.total > 0 ? spark("#10b981") : null}
-                      />
-                    </>
-                  );
-                })()}
+              <div style={{ margin: 0 }}>
+                <StatCards
+                  title="BidIq Overview"
+                  statusText="ACTIVE"
+                  cells={[
+                    {
+                      label: "Analyzed",
+                      value: counts.total,
+                    },
+                    {
+                      label: "Hot Leads",
+                      value: counts.hot,
+                    },
+                    {
+                      label: "Avg Score",
+                      value: counts.avg,
+                    },
+                    {
+                      label: "Proposal Ready",
+                      value: counts.withProposal,
+                    },
+                  ]}
+                />
               </div>
 
               {/* Body */}
               <div className="biq-body">
                 {layout === "list" ? (
-                  <div className="biq-table-card">
+                  <div className="biq-table-card" style={{ margin: 0, borderLeft: "none", borderRight: "none" }}>
                     <Table<Lead>
                       rowKey="id"
                       loading={paginatedLoading}
@@ -613,7 +595,7 @@ export default function BidIqPage() {
                     {totalCount === 0 ? (
                       <NoData description="No BidIq analyses yet." />
                     ) : (
-                      <div className="biq-grid">
+                      <div className="biq-grid" style={{ marginTop: 16, padding: "0 24px" }}>
                         {paginatedBids.map((record) => {
                           const level = getScoreLevel(record.ai_score);
                           const pct = record.skill_analysis?.matchPercentage;
@@ -753,10 +735,11 @@ export default function BidIqPage() {
             background: var(--bg-pure-white);
             height: calc(100vh - 64px);
             overflow: hidden;
+            margin: 0 -8px;
           }
           .biq-shell {
             display: flex;
-            margin: 0 -16px;
+            margin: 0;
             height: 100%;
             background: var(--bg-pure-white);
           }
@@ -821,12 +804,12 @@ export default function BidIqPage() {
           /* ---------- Main ---------- */
           .biq-main {
             flex: 1; min-width: 0;
-            padding: 8px 18px 0;
+            padding: 8px 0 0 0;
             display: flex; flex-direction: column; height: 100%;
           }
           .biq-topbar {
             display: flex; align-items: center; justify-content: space-between;
-            gap: 12px; padding-bottom: 4px; flex-wrap: wrap;
+            gap: 12px; padding: 12px 24px 8px 24px; flex-wrap: wrap; margin-bottom: 12px;
           }
           .biq-topbar-search-wrap { flex: 1; min-width: 220px; max-width: 420px; }
           .biq-search-input.ant-input-affix-wrapper {
@@ -836,7 +819,7 @@ export default function BidIqPage() {
           }
           .biq-topbar-actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
           .biq-range.ant-picker { border-radius: 8px; }
-          .biq-divider { height: 1px; background: var(--border-slate-200); margin: 0 -18px 12px; }
+          .biq-divider { height: 1px; background: var(--border-slate-200); margin: 0 0 12px 0; }
 
           /* ---------- Segmented (list/grid) ---------- */
           .biq-segmented {
@@ -897,7 +880,7 @@ export default function BidIqPage() {
             box-sizing: border-box;
           }
           .pp-footer--sticky {
-            position: sticky; bottom: 0; z-index: 30; margin: 8px -18px 0; padding: 0 18px;
+            position: sticky; bottom: 0; z-index: 30; margin: 8px 0 0; padding: 0 24px;
             background: var(--bg-pure-white);
             box-shadow: 0 -4px 14px rgba(15,23,42,0.05);
             height: 52px !important;
@@ -921,6 +904,9 @@ export default function BidIqPage() {
             position: relative; background: var(--bg-pure-white);
             border-radius: 0; border: 1px solid var(--border-slate-200); overflow: hidden;
           }
+          .biq-table-card ::-webkit-scrollbar { display: none !important; }
+          .biq-table-card, .biq-table-card * { -ms-overflow-style: none !important; scrollbar-width: none !important; }
+          .biq-table .ant-table-cell-scrollbar { display: none !important; }
           .biq-table,
           .biq-table.ant-table-wrapper,
           .biq-table .ant-table,

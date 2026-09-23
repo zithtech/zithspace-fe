@@ -15,6 +15,7 @@ import { Blocks } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import dayjs from 'dayjs';
 import MainLayout from '@/components/layout/MainLayout';
+import StatCards from '@/components/common/StatCards';
 import ProtectedRoute from '@/components/common/ProtectedRoute';
 import ConfirmDialog from '@/components/common/ConfirmDialog';
 import { CATEGORY_META, CATEGORY_ORDER, typeMeta } from '@/components/proposals/library/sectionMeta';
@@ -105,7 +106,7 @@ function SectionsContent() {
   const [searchText, setSearchText] = useState('');
   const [savedView, setSavedView] = useState<SavedView>('all');
   const [catFilter, setCatFilter] = useState<SectionCategory | null>(null);
-  const [view, setView] = useState<'grid' | 'list'>('grid');
+  const [view, setView] = useState<'list' | 'grid'>('list');
   const [tablePage, setTablePage] = useState(1);
   const [tablePageSize, setTablePageSize] = useState(15);
 
@@ -270,6 +271,16 @@ function SectionsContent() {
     { key: 'cats', title: 'Categories', value: categoriesUsed, icon: <FolderOpenOutlined />, color: '#475569', tint: 'rgba(71,85,105,0.10)' },
   ];
 
+  const cards = useMemo(() => {
+    return statCells.map((s, i) => ({
+      title: s.title,
+      value: s.value,
+      icon: s.icon,
+      color: s.color,
+      sparkline: trendFor(i + s.value),
+    }));
+  }, [statCells]);
+
   const emptyState = (
     <div className="pp-empty">
       <div className="pp-empty-orb"><Blocks size={26} /></div>
@@ -290,6 +301,8 @@ function SectionsContent() {
       title: 'NAME',
       dataIndex: 'name',
       key: 'name',
+      onHeaderCell: () => ({ style: { paddingLeft: 24 } }),
+      onCell: () => ({ style: { paddingLeft: 24 } }),
       render: (_: string, s: LibrarySection) => {
         const meta = typeMeta(s.type);
         const grad = gradientForColor(meta.color);
@@ -345,7 +358,9 @@ function SectionsContent() {
     {
       title: 'ACTIONS',
       key: 'actions',
-      align: 'right' as const,
+      align: 'center' as const,
+      onHeaderCell: () => ({ style: { textAlign: 'center' as const } }),
+      onCell: () => ({ style: { textAlign: 'center' as const } }),
       render: (_: any, s: LibrarySection) => (
         <Dropdown menu={actionMenu(s)} overlayClassName="pp-action-pop" trigger={['click']} placement="bottomRight">
           <button type="button" className="pc-actions" onClick={(e) => e.stopPropagation()} style={{ background: 'transparent', border: 'none', cursor: 'pointer', padding: '4px' }}>
@@ -481,24 +496,7 @@ function SectionsContent() {
           <div className="pp-divider" />
 
           {/* Stat cards */}
-          <div className="pp-stats">
-            {statCells.map((s, i) => (
-              <div key={s.key} className="pp-stat-card">
-                <div className="pp-stat-top">
-                  <div className="pp-stat-left">
-                    <span className="pp-stat-icon" style={{ background: s.tint, color: s.color }}>{s.icon}</span>
-                    <span className="pp-stat-label">{s.title}</span>
-                  </div>
-                </div>
-                <div className="pp-stat-bottom">
-                  <div className="pp-stat-value-wrap">
-                    <span className="pp-stat-value">{s.value}</span>
-                  </div>
-                  <div className="pp-stat-spark"><AreaSparkline values={trendFor(i + s.value)} color={s.color} /></div>
-                </div>
-              </div>
-            ))}
-          </div>
+          <StatCards cards={cards} />
 
           {/* Grid of section cards */}
           <div className="pp-body">
@@ -524,7 +522,7 @@ function SectionsContent() {
                 />
               </div>
             ) : (
-              <div className="pp-grid">
+              <div className="pp-grid" style={{ padding: '16px 24px' }}>
                 {sectionsLoading && !sectionsLoaded ? (
                   <div className="pp-grid-loading" style={{ gridColumn: '1 / -1' }}>Loading sections…</div>
                 ) : paged.length === 0 ? (

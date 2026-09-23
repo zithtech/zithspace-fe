@@ -36,8 +36,7 @@ import LeaveV2Service, {
 import MailConfiguration from './MailConfiguration';
 import { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
 
-const PALETTE = { blue: '#3B82F6', green: '#10B981', red: '#EF4444', grey: '#94A3B8', amber: '#F59E0B' } as const;
-const TINT = { blue: 'rgba(59,130,246,0.10)', green: 'rgba(16,185,129,0.10)', red: 'rgba(239,68,68,0.10)', grey: 'rgba(148,163,184,0.12)', amber: 'rgba(245,158,11,0.10)' } as const;
+import { PALETTE, TINT, StatCards } from '@/components/leaves-v2/ui';
 
 const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
   .map((label, i) => ({ value: String(i + 1), label }));
@@ -196,6 +195,7 @@ export default function ConfigurationPanel() {
         <Tooltip title="Refresh"><button type="button" className="lvc-ghost-btn" onClick={load}><ReloadOutlined spin={polLoading} /></button></Tooltip>
       </div>
 
+      <div className="lvc-content-wrap">
       <Tabs defaultActiveKey="general" items={[
         {
           key: 'general',
@@ -295,7 +295,7 @@ export default function ConfigurationPanel() {
                   <ProfileOutlined style={{ color: PALETTE.blue }} /> Policy Allocations
                   {canReadLeavePolicy && <button type="button" className="lvc-link" onClick={() => router.push('/leaves-v2/policy')}>Manage <ArrowRightOutlined /></button>}
                 </div>
-                <div className="lvc-table-wrap">
+                <div className="lv-table-wrap">
                   <ZukvoLoadingOverlay loading={polLoading} message="">
                     <Table
                       rowKey="id"
@@ -321,9 +321,11 @@ export default function ConfigurationPanel() {
         }
       ]} />
 
+      </div>
       <style jsx global>{`
-        .lvc { display: flex; flex-direction: column; }
-        .lvc-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding-bottom: 14px; margin-bottom: 16px; border-bottom: 1px solid var(--border-slate-200); flex-wrap: wrap; }
+        .lvc { display: flex; flex-direction: column; flex: 1; min-height: 0; overflow-y: auto; }
+        .lvc-content-wrap { padding: 0 20px; display: flex; flex-direction: column; flex: 1; min-height: 0; }
+        .lvc-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 14px 20px; margin-bottom: 16px; border-bottom: 1px solid var(--border-slate-200); flex-wrap: wrap; }
         .lvc-header-about { display: flex; align-items: center; gap: 12px; min-width: 200px; }
         .lvc-header-icon { width: 38px; height: 38px; border-radius: 10px; background: ${TINT.grey}; color: ${PALETTE.grey}; display: inline-flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; }
         .lvc-header-title { font-size: 17px; font-weight: 800; color: var(--text-slate-900); letter-spacing: -0.02em; }

@@ -385,7 +385,7 @@ export default function GradesPage() {
             refreshing={loading}
             style={{
               borderBottom: "1px solid var(--border-slate-200)",
-              marginBottom: 8,
+              marginBottom: 0,
               position: 'sticky',
               top: 0,
               zIndex: 100,
@@ -418,6 +418,7 @@ export default function GradesPage() {
           />
 
           <OrgModuleScaffold<GradeViewData>
+            title="Grades Overview"
             search={search}
             onSearchChange={setSearch}
             searchPlaceholder="Search by name, code, or slug..."

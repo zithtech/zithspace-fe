@@ -173,7 +173,7 @@ export default function TeamTimePage() {
 
           <div className="dh-main-scroll">
             <div className="dh-main-body">
-              <div style={{ marginTop: 4, display: 'flex', flexDirection: 'column', flex: 1 }}>
+              <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0, overflow: 'hidden' }}>
                 {showPerformance ? (
                   <PerformanceTracker refreshKey={refreshKey} />
                 ) : (
@@ -307,9 +307,9 @@ export default function TeamTimePage() {
         .dh-main-scroll {
           flex: 1;
           min-height: 0;
-          overflow-y: auto;
           display: flex;
           flex-direction: column;
+          overflow: hidden;
         }
         .dh-main-controls {
           margin-left: auto;
@@ -319,10 +319,12 @@ export default function TeamTimePage() {
           flex-shrink: 0;
         }
         .dh-main-body {
-          padding: 12px 20px 14px 20px;
+          padding: 0;
           flex: 1;
+          min-height: 0;
           display: flex;
           flex-direction: column;
+          overflow: hidden;
         }
 
         /* Hero icon box */

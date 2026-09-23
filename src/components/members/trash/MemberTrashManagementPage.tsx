@@ -58,6 +58,7 @@ import { MembersService, Member } from "@/services/membersService";
 import type { ColumnsType } from "antd/es/table";
 import { SearchableDropdown } from "@/components/common/SearchableDropdown";
 import ConfirmDialog from "@/components/common/ConfirmDialog";
+import { StatCards } from "@/components/common/StatCards";
 
 interface TrashedMember extends Member {
   deletedAt: string;
@@ -482,9 +483,11 @@ export default function MemberTrashManagementPage() {
     {
       title: "Actions",
       key: "actions",
-      width: 110,
+      width: 120,
       align: "right",
       fixed: "right",
+      onHeaderCell: () => ({ style: { paddingRight: 24 } }),
+      onCell: () => ({ style: { paddingRight: 24 } }),
       render: (_, record: Member) => (
         <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
           <Tooltip title="Restore Member">
@@ -708,32 +711,47 @@ export default function MemberTrashManagementPage() {
           </div>
         </div>
 
-        <div className="pp-divider" />
+        {/* Divider line after header */}
+        <div className="pp-divider" style={{ margin: "0 -24px" }} />
 
-        {/* Stats Cards */}
-        <div className="pp-stats">
-          {statCells.map((s) => (
-            <div key={s.key} className="pp-stat-card">
-              <div className="pp-stat-top">
-                <div className="pp-stat-left">
-                  <span className="pp-stat-icon" style={{ background: s.tint, color: s.color }}>{s.icon}</span>
-                  <span className="pp-stat-label">{s.title}</span>
-                </div>
-                {s.delta > 0 && (
-                  <span className="pp-stat-delta" style={{ color: s.color, background: s.tint }}>
-                    {s.delta} {s.deltaLabel}
-                  </span>
-                )}
-              </div>
-              <div className="pp-stat-bottom">
-                <div className="pp-stat-value-wrap">
-                  <span className="pp-stat-value">{s.value}</span>
-                  <span className="pp-stat-period">monthly trend</span>
-                </div>
-                <div className="pp-stat-spark"><AreaSparkline values={s.trend} color={s.color} /></div>
-              </div>
-            </div>
-          ))}
+        {/* Shared StatCards Header Banner */}
+        <div style={{ margin: "0 -24px 0 -24px" }}>
+          <StatCards
+            title="Member Trash Overview"
+            statusText="TRASHED"
+            statusColor="#ef4444"
+            statusBorder="rgba(239, 68, 68, 0.32)"
+            cells={[
+              {
+                label: "Total In Trash",
+                value: stats.total,
+                icon: <TeamOutlined />,
+                color: "#3b82f6",
+                tint: "rgba(59,130,246,0.10)",
+              },
+              {
+                label: "Recently Deleted",
+                value: stats.recent,
+                icon: <DeleteOutlined />,
+                color: "#ef4444",
+                tint: "rgba(239,68,68,0.10)",
+              },
+              {
+                label: "Older than 7 days",
+                value: stats.older,
+                icon: <ClockCircleOutlined />,
+                color: "#64748b",
+                tint: "rgba(100,116,139,0.10)",
+              },
+              {
+                label: "Pending Purge (>30d)",
+                value: stats.purgeReady,
+                icon: <ExclamationCircleOutlined />,
+                color: "#10b981",
+                tint: "rgba(16,185,129,0.10)",
+              },
+            ]}
+          />
         </div>
 
         {/* Bulk actions bar */}
@@ -810,7 +828,7 @@ export default function MemberTrashManagementPage() {
         {/* Main Body */}
         <div className="pp-body">
           {viewMode === 'table' ? (
-            <div className="pp-table-wrap">
+            <div className="pp-table-wrap" style={{ margin: "0 -24px", borderLeft: "none", borderRight: "none" }}>
               <Table
                 className="pp-table"
                 rowSelection={
@@ -852,7 +870,7 @@ export default function MemberTrashManagementPage() {
               />
             </div>
           ) : (
-            <div className="pp-grid">
+            <div className="pp-grid" style={{ marginTop: 16 }}>
               {isLoading || isRefreshing ? (
                 Array(6).fill({}).map((_, i) => (
                   <div key={i} className="pc-card" style={{ padding: 12 }}>

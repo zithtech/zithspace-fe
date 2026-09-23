@@ -1,6 +1,7 @@
 "use client";
 
 import NoData from "@/components/common/NoData";
+import StatCards from "@/components/common/StatCards";
 import React, { useState, useEffect, useMemo, useRef } from "react";
 import { Table, Tag, Typography, Space, Row, Col, Select, Avatar, Tooltip, Button, DatePicker, Collapse, Popover } from "antd";
 import {
@@ -756,88 +757,116 @@ export const PerformanceTracker: React.FC<PerformanceTrackerProps> = ({ refreshK
   const leftData = fullSummary.slice(0, half);
   const rightData = fullSummary.slice(half);
 
+  const perfCards = [
+    {
+      label: "Tracked Days",
+      value: total,
+      icon: <CalendarOutlined />,
+      color: "#3B82F6",
+    },
+    {
+      label: "Average / Day",
+      value: avgPerDayLabel || "0h",
+      icon: <ClockCircleOutlined />,
+      color: "#10B981",
+    },
+    {
+      label: "Members Tracked",
+      value: memberDetails.length,
+      icon: <TeamOutlined />,
+      color: "#8B5CF6",
+    },
+  ];
+
   return (
-    <div style={{ display: "flex", flexDirection: "column", flex: 1 }}>
-      {/* ── Page header ── */}
-      {!embedded && (
-      <div className="perf-page-head">
-        <div className="perf-page-head__icon">
-          <DashboardOutlined />
-        </div>
-        <div>
-          <div className="perf-page-head__title">Performance Tracker</div>
-          <div className="perf-page-head__subtitle">
-            Daily tracked hours and performance tiers across your team
+    <div style={{ display: "flex", flexDirection: "column", flex: 1, height: "100%", minHeight: 0, overflow: "hidden" }}>
+      <div style={{ flexShrink: 0 }}>
+        {!embedded && (
+          <StatCards cards={perfCards} style={{ borderBottom: "1px solid var(--border-slate-200)", marginBottom: 0 }} />
+        )}
+        {/* ── Page header ── */}
+        {!embedded && (
+        <div className="perf-page-head">
+          <div className="perf-page-head__icon">
+            <DashboardOutlined />
+          </div>
+          <div>
+            <div className="perf-page-head__title">Performance Tracker</div>
+            <div className="perf-page-head__subtitle">
+              Daily tracked hours and performance tiers across your team
+            </div>
           </div>
         </div>
+        )}
+
+        {/* ── Filters (top, box-shaped bar) ── */}
+        {!embedded && (
+        <div className="perf-filterbar">
+            <div className="mtt-team-filters">
+              <span className="perf-filterbar__label">
+                <FilterOutlined />
+                Filters
+              </span>
+              <SearchableDropdown
+                value={filters.projectId}
+                onChange={(v) => { markInteracted(); setFilters((f) => ({ ...f, projectId: v as string | undefined })); }}
+                placeholder="All projects"
+                searchPlaceholder="Search by name"
+                itemNoun="projects"
+                width={240}
+                className="perf-filter-ctl"
+                style={{ borderRadius: 6 }}
+                options={projects.map((p) => ({ value: p.value, label: p.label }))}
+              />
+              <SearchableDropdown
+                mode="multiple"
+                value={filters.userIds}
+                onChange={(v) => { markInteracted(); setFilters((f) => ({ ...f, userIds: (v as string[]) || [] })); }}
+                placeholder="All members"
+                searchPlaceholder="Search by name"
+                itemNoun="members"
+                width={240}
+                className="perf-filter-ctl"
+                style={{ borderRadius: 6 }}
+                options={memberOptions}
+              />
+
+              <RangePicker
+                picker="month"
+                className="mtt-team-filters__month perf-filter-ctl"
+                placeholder={["From month", "To month"]}
+                format="MMM YYYY"
+                allowClear
+                value={monthRange}
+                onChange={handleMonthChange}
+              />
+
+              <RangePicker
+                className="mtt-team-filters__range perf-filter-ctl"
+                allowClear
+                value={filters.dateRange}
+                onChange={(dates) => {
+                  markInteracted();
+                  setMonthRange(null);
+                  setFilters((f) => ({ ...f, dateRange: dates as any }));
+                }}
+              />
+
+              {hasActiveFilters && (
+                <Button onClick={handleClearFilters} className="mtt-team-filters__clear" size="small">
+                  Clear filters
+                </Button>
+              )}
+
+              <Tooltip title="Reload data (keeps your filters)">
+                <Button onClick={() => { markInteracted(); fetchPerformance(); }} icon={<ReloadOutlined />} loading={loading} className="mtt-tracker-card__action mtt-team-card__refresh" size="small" />
+              </Tooltip>
+            </div>
+        </div>
+        )}
       </div>
-      )}
 
-      {/* ── Filters (top, box-shaped bar) ── */}
-      {!embedded && (
-      <div className="perf-filterbar">
-          <div className="mtt-team-filters">
-            <span className="perf-filterbar__label">
-              <FilterOutlined />
-              Filters
-            </span>
-            <SearchableDropdown
-              value={filters.projectId}
-              onChange={(v) => { markInteracted(); setFilters((f) => ({ ...f, projectId: v as string | undefined })); }}
-              placeholder="All projects"
-              searchPlaceholder="Search by name"
-              itemNoun="projects"
-              width={240}
-              className="perf-filter-ctl"
-              style={{ borderRadius: 6 }}
-              options={projects.map((p) => ({ value: p.value, label: p.label }))}
-            />
-            <SearchableDropdown
-              mode="multiple"
-              value={filters.userIds}
-              onChange={(v) => { markInteracted(); setFilters((f) => ({ ...f, userIds: (v as string[]) || [] })); }}
-              placeholder="All members"
-              searchPlaceholder="Search by name"
-              itemNoun="members"
-              width={240}
-              className="perf-filter-ctl"
-              style={{ borderRadius: 6 }}
-              options={memberOptions}
-            />
-
-            <RangePicker
-              picker="month"
-              className="mtt-team-filters__month perf-filter-ctl"
-              placeholder={["From month", "To month"]}
-              format="MMM YYYY"
-              allowClear
-              value={monthRange}
-              onChange={handleMonthChange}
-            />
-
-            <RangePicker
-              className="mtt-team-filters__range perf-filter-ctl"
-              allowClear
-              value={filters.dateRange}
-              onChange={(dates) => {
-                markInteracted();
-                setMonthRange(null);
-                setFilters((f) => ({ ...f, dateRange: dates as any }));
-              }}
-            />
-
-            {hasActiveFilters && (
-              <Button onClick={handleClearFilters} className="mtt-team-filters__clear" size="small">
-                Clear filters
-              </Button>
-            )}
-
-            <Tooltip title="Reload data (keeps your filters)">
-              <Button onClick={() => { markInteracted(); fetchPerformance(); }} icon={<ReloadOutlined />} loading={loading} className="mtt-tracker-card__action mtt-team-card__refresh" size="small" />
-            </Tooltip>
-          </div>
-      </div>
-      )}
+      <div style={{ flex: 1, minHeight: 0, overflowY: "auto" }}>
 
       {/* ── Selected member info cards ── */}
       {!embedded && selectedMembers.length > 0 && (
@@ -1088,6 +1117,7 @@ export const PerformanceTracker: React.FC<PerformanceTrackerProps> = ({ refreshK
           },
         ]}
       />
+      </div>
 
       <style jsx global>{`
         /* Page header */
@@ -1343,14 +1373,16 @@ export const PerformanceTracker: React.FC<PerformanceTrackerProps> = ({ refreshK
         /* Compact member avatar in the dense table */
         .mtt-team-table .ant-avatar { width: 26px !important; height: 26px !important; line-height: 26px !important; font-size: 12px !important; }
         .ant-table-row:hover > td { background-color: var(--bg-table-header) !important; }
-        .mtt-team-card { overflow: visible !important; }
+        .mtt-team-card { overflow: hidden !important; }
         .mtt-footer {
           display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;
           padding: 12px 20px; border-top: 1px solid var(--border-slate-200);
+          flex-shrink: 0;
         }
         .mtt-footer--fixed {
+          flex-shrink: 0;
           position: sticky; bottom: 0; z-index: 100; margin-top: auto;
-          margin-left: -20px; margin-right: -20px; margin-bottom: -14px;
+          margin-left: 0; margin-right: 0; margin-bottom: 0;
           padding: 12px 20px; background: var(--bg-pure-white);
           border-top: 1px solid var(--border-slate-200); box-shadow: 0 -4px 14px rgba(15,23,42,0.05);
         }

@@ -36,7 +36,7 @@ import { usePermission } from '@/hooks/usePermission';
 import { toast } from 'react-hot-toast';
 import { Table, Button, Tooltip, Select, Switch, Modal, Drawer, Avatar, Dropdown } from 'antd';
 import LetterTiptapEditor from '@/components/letters/LetterTiptapEditor';
-import { LetterStatsCards, StatCellData } from '@/components/letters/LetterStatsCards';
+import { StatCards, PALETTE, TINT } from '@/components/letters/ui';
 import { SnippetsOutlined, FileTextOutlined, CheckCircleOutlined, StarOutlined } from '@ant-design/icons';
 
 const PAGE_SIZE_OPTIONS = [10, 15, 20, 25, 50, 100];
@@ -159,14 +159,12 @@ function LetterGenerationContent() {
     }
   };
 
-  const statCells: StatCellData[] = useMemo(() => {
-    const genericTrend = [0, 2, 4, 3, 5, 4, 7];
-
+  const statCells = useMemo(() => {
     return [
-      { key: 'total', title: 'Total Templates', value: stats.total || total, suffix: '', icon: <SnippetsOutlined />, color: '#3b82f6', tint: 'rgba(59,130,246,0.10)', trend: genericTrend, delta: stats.total || total },
-      { key: 'active', title: 'Active Templates', value: stats.activeCount || total, suffix: '', icon: <CheckCircleOutlined />, color: '#10b981', tint: 'rgba(16,185,129,0.10)', trend: genericTrend, delta: stats.activeCount || total },
-      { key: 'global', title: 'Global Templates', value: stats.globalCount || 0, suffix: '', icon: <StarOutlined />, color: '#8b5cf6', tint: 'rgba(139,92,246,0.10)', trend: genericTrend, delta: stats.globalCount || 0 },
-      { key: 'recent', title: 'New This Week', value: stats.recentCount || 0, suffix: '', icon: <FileTextOutlined />, color: '#f59e0b', tint: 'rgba(245,158,11,0.10)', trend: genericTrend, delta: stats.recentCount || 0 },
+      { label: 'Total Templates', value: stats.total || total, icon: <SnippetsOutlined />, color: PALETTE.blue, tint: TINT.blue },
+      { label: 'Active Templates', value: stats.activeCount || total, icon: <CheckCircleOutlined />, color: PALETTE.green, tint: TINT.green },
+      { label: 'Global Templates', value: stats.globalCount || 0, icon: <StarOutlined />, color: PALETTE.violet, tint: TINT.violet },
+      { label: 'New This Week', value: stats.recentCount || 0, icon: <FileTextOutlined />, color: PALETTE.amber, tint: TINT.amber },
     ];
   }, [stats, total]);
 
@@ -615,6 +613,13 @@ function LetterGenerationContent() {
             <button type="submit" style={{ display: 'none' }}>Search</button>
           </form>
 
+          {!selectedTemplate && (
+            <div className="pp-segmented" style={{ marginRight: '8px' }}>
+              <button type="button" className={view === 'list' ? 'is-active' : ''} onClick={() => setView('list')} aria-label="List view"><UnorderedListOutlined /></button>
+              <button type="button" className={view === 'card' ? 'is-active' : ''} onClick={() => setView('card')} aria-label="Card view"><AppstoreOutlined /></button>
+            </div>
+          )}
+
           <Tooltip title="Refresh">
             <button type="button" className="lv-ghost-btn" onClick={fetchTemplates}><ReloadOutlined spin={loading} /></button>
           </Tooltip>
@@ -630,7 +635,7 @@ function LetterGenerationContent() {
         </div>
       </div>
 
-      <div className="lv-content-body" style={{ padding: '14px 24px 32px', flex: 1, overflow: 'hidden', minHeight: 0 }}>
+      <div className="lv-content-body" style={{ padding: selectedTemplate ? '14px 24px 32px' : 0, flex: 1, overflow: 'hidden', minHeight: 0, display: 'flex', flexDirection: 'column' }}>
         {/* Step 1 or Step 2/3 Conditional View */}
         {/* Step 1 or Step 2/3 Conditional View */}
         {selectedTemplate ? (
@@ -1047,30 +1052,20 @@ function LetterGenerationContent() {
         ) : (
           /* Step 1: Template Selector */
           <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-            <LetterStatsCards statCells={statCells} />
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-              <h2 style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text-slate-900)', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span style={{ background: '#3b82f6', color: '#fff', width: '24px', height: '24px', borderRadius: '50%', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px' }}>1</span>
-                Select Document Template
-              </h2>
-              <div className="pp-segmented">
-                <button type="button" className={view === 'list' ? 'is-active' : ''} onClick={() => setView('list')} aria-label="List view"><UnorderedListOutlined /></button>
-                <button type="button" className={view === 'card' ? 'is-active' : ''} onClick={() => setView('card')} aria-label="Card view"><AppstoreOutlined /></button>
-              </div>
-            </div>
+            <StatCards title="Document Generator Overview" statusText="ACTIVE" cells={statCells} />
 
-            {loading ? (
-              <div style={{ padding: '20px', color: 'var(--text-slate-600)', fontSize: '14px' }}>
-                <ZukvoLoader message="Loading active templates..." size="md" />
-              </div>
-            ) : templates.length === 0 ? (
-              <NoData description={
-                <div className="pp-empty" style={{ padding: '20px', textAlign: 'center', color: 'var(--text-slate-600)' }}>
-                  <div className="pp-empty-sub">No active document templates available. Please create or activate a template in Template Management first.</div>
+            <div className="doc-table-wrap">
+              {loading ? (
+                <div style={{ padding: '60px 0', textAlign: 'center', color: 'var(--text-slate-600)', fontSize: '15px' }}>
+                  <ZukvoLoader message="Loading active templates..." size="md" />
                 </div>
-              } />
-            ) : view === 'list' ? (
-              <div className="att-table-wrap" style={{ marginTop: '16px', flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
+              ) : templates.length === 0 ? (
+                <NoData description={
+                  <div className="pp-empty" style={{ padding: '60px 0', textAlign: 'center', color: 'var(--text-slate-600)' }}>
+                    <div className="pp-empty-sub">No active document templates available. Please create or activate a template in Template Management first.</div>
+                  </div>
+                } />
+              ) : view === 'list' ? (
                 <Table
                   rowKey="id"
                   size="small"
@@ -1177,106 +1172,103 @@ function LetterGenerationContent() {
                     style: { cursor: 'pointer', background: selectedTemplateId === tpl.id ? 'var(--bg-blue-50)' : undefined }
                   })} locale={{ emptyText: <NoData /> }}
                 />
-              </div>
-            ) : (
-              <div style={{ flex: 1, overflowY: 'auto', minHeight: 0, paddingRight: '4px', marginRight: '-4px' }}>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '14px', paddingBottom: '16px', marginTop: '16px' }}>
-                  {paginatedTemplates.map((tpl) => {
-                    const isSelected = tpl.id === selectedTemplateId;
-                    return (
-                      <div
-                        key={tpl.id}
-                        className="pc-card"
-                        onClick={() => {
-                          setSelectedTemplateId(tpl.id);
-                          router.push(`/letters-docs/generate?templateId=${tpl.id}`);
-                        }}
-                        style={{
-                          border: isSelected ? '2px solid #3b82f6' : '1px solid var(--border-slate-200)',
-                          boxShadow: isSelected ? '0 4px 12px rgba(59, 130, 246, 0.15)' : '0 1px 3px rgba(0,0,0,0.05)',
-                          cursor: 'pointer'
-                        }}
-                      >
-                        <div className="pc-top">
-                          <div className="pc-avatar" style={{ background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)' }}>
-                            {tpl.templateName.substring(0, 2).toUpperCase()}
+              ) : (
+                <div style={{ flex: 1, overflowY: 'auto', minHeight: 0, paddingRight: '4px', marginRight: '-4px' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '14px', padding: '16px' }}>
+                    {paginatedTemplates.map((tpl) => {
+                      const isSelected = tpl.id === selectedTemplateId;
+                      return (
+                        <div
+                          key={tpl.id}
+                          className="pc-card"
+                          onClick={() => {
+                            setSelectedTemplateId(tpl.id);
+                            router.push(`/letters-docs/generate?templateId=${tpl.id}`);
+                          }}
+                          style={{
+                            border: isSelected ? '2px solid #3b82f6' : '1px solid var(--border-slate-200)',
+                            boxShadow: isSelected ? '0 4px 12px rgba(59, 130, 246, 0.15)' : '0 1px 3px rgba(0,0,0,0.05)',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          <div className="pc-top">
+                            <div className="pc-avatar" style={{ background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)' }}>
+                              {tpl.templateName.substring(0, 2).toUpperCase()}
+                            </div>
+                            <div className="pc-identity-body">
+                              <div className="pc-title">{tpl.templateName}</div>
+                              <div className="pc-client-line">
+                                <span className="pc-client-key">Category:</span>
+                                <span className="pc-client-val">{tpl.category?.categoryName || 'Uncategorized'}</span>
+                              </div>
+                            </div>
+                            {isSelected && <CheckCircle2 size={18} style={{ color: '#3b82f6', flexShrink: 0 }} />}
+                            <Dropdown
+                              overlayClassName="pc-dropdown"
+                              menu={{
+                                items: [
+                                  { key: 'edit', label: renderDropdownItem(<Edit2 size={16} />, 'Edit', 'Open in the builder', 'var(--border-slate-100)', 'var(--text-slate-600)'), onClick: (e) => { e.domEvent.stopPropagation(); router.push(`/letters-docs/templates/builder?id=${tpl.id}`); } },
+                                  { type: 'divider' },
+                                  { key: 'del', label: renderDropdownItem(<Trash2 size={16} />, 'Delete', 'Move to trash', 'var(--bg-red-50)', 'var(--text-leave)', true), onClick: (e) => { e.domEvent.stopPropagation(); setDeleteTemplateId(tpl.id); } },
+                                ]
+                              }}
+                              trigger={['click']}
+                              placement="bottomRight"
+                            >
+                              <button type="button" className="pc-actions" onClick={(e) => e.stopPropagation()}>
+                                <EllipsisOutlined />
+                              </button>
+                            </Dropdown>
                           </div>
-                          <div className="pc-identity-body">
-                            <div className="pc-title">{tpl.templateName}</div>
-                            <div className="pc-client-line">
-                              <span className="pc-client-key">Category:</span>
-                              <span className="pc-client-val">{tpl.category?.categoryName || 'Uncategorized'}</span>
+                          <div className="pc-foot">
+                            <div className="pc-foot-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                              <span className="pc-foot-item">
+                                <span className="pc-foot-key">Created by</span>
+                                <Avatar size={16} src={tpl.createdBy?.avatarUrl || tpl.createdBy?.avatar} style={{ background: 'var(--bg-blue-50)', color: '#3b82f6', fontSize: 8, fontWeight: 700 }}>
+                                  {initialsOf(tpl.createdBy?.name || '—')}
+                                </Avatar>
+                                <span className="pc-foot-val">{tpl.createdBy?.name || '—'}</span>
+                              </span>
+                              <span className="pc-foot-div" />
+                              <span className="pc-foot-item">
+                                <RefreshCw size={12} style={{ color: 'var(--text-slate-400)' }} />
+                                <span className="pc-foot-key">Version</span>
+                                <span className="pc-foot-val">v{tpl.currentVersion}</span>
+                              </span>
                             </div>
                           </div>
-                          {isSelected && <CheckCircle2 size={18} style={{ color: '#3b82f6', flexShrink: 0 }} />}
-                          <Dropdown
-                            overlayClassName="pc-dropdown"
-                            menu={{
-                              items: [
-                                { key: 'edit', label: renderDropdownItem(<Edit2 size={16} />, 'Edit', 'Open in the builder', 'var(--border-slate-100)', 'var(--text-slate-600)'), onClick: (e) => { e.domEvent.stopPropagation(); router.push(`/letters-docs/templates/builder?id=${tpl.id}`); } },
-                                { type: 'divider' },
-                                { key: 'del', label: renderDropdownItem(<Trash2 size={16} />, 'Delete', 'Move to trash', 'var(--bg-red-50)', 'var(--text-leave)', true), onClick: (e) => { e.domEvent.stopPropagation(); setDeleteTemplateId(tpl.id); } },
-                              ]
-                            }}
-                            trigger={['click']}
-                            placement="bottomRight"
-                          >
-                            <button type="button" className="pc-actions" onClick={(e) => e.stopPropagation()}>
-                              <EllipsisOutlined />
-                            </button>
-                          </Dropdown>
                         </div>
-                        <div className="pc-foot">
-                          <div className="pc-foot-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <span className="pc-foot-item">
-                              <span className="pc-foot-key">Created by</span>
-                              <Avatar size={16} src={tpl.createdBy?.avatarUrl || tpl.createdBy?.avatar} style={{ background: 'var(--bg-blue-50)', color: '#3b82f6', fontSize: 8, fontWeight: 700 }}>
-                                {initialsOf(tpl.createdBy?.name || '—')}
-                              </Avatar>
-                              <span className="pc-foot-val">{tpl.createdBy?.name || '—'}</span>
-                            </span>
-                            <span className="pc-foot-div" />
-                            <span className="pc-foot-item">
-                              <RefreshCw size={12} style={{ color: 'var(--text-slate-400)' }} />
-                              <span className="pc-foot-key">Version</span>
-                              <span className="pc-foot-val">v{tpl.currentVersion}</span>
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
+                      );
+                    })}
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
 
-
+              {total > 0 && (
+                <div className="pp-footer pp-footer--sticky">
+                  <div className="pp-footer-info">
+                    Showing <strong>{pageStart}–{pageEnd}</strong> of <strong>{total}</strong>
+                  </div>
+                  <div className="pp-pager">
+                    <button type="button" className="pp-pager-btn" disabled={tablePage <= 1} onClick={() => setTablePage((p) => Math.max(1, p - 1))}>‹</button>
+                    {Array.from({ length: pageCount }, (_, i) => i + 1).slice(Math.max(0, tablePage - 3), Math.max(0, tablePage - 3) + 5).map((p) => (
+                      <button key={p} type="button" className={`pp-pager-num ${p === tablePage ? 'is-active' : ''}`} onClick={() => setTablePage(p)}>{p}</button>
+                    ))}
+                    <button type="button" className="pp-pager-btn" disabled={tablePage >= pageCount} onClick={() => setTablePage((p) => Math.min(pageCount, p + 1))}>›</button>
+                    <Select
+                      className="pp-pagesize"
+                      value={tablePageSize}
+                      onChange={(v) => { setTablePageSize(v); setTablePage(1); }}
+                      options={PAGE_SIZE_OPTIONS.map((n) => ({ value: n, label: `${n} / page` }))}
+                      popupMatchSelectWidth={120}
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         )}
       </div>
-
-      {/* Pagination Footer for Template Selector */}
-      {total > 0 && !selectedTemplate && (
-        <div className="pp-footer pp-footer--sticky">
-          <div className="pp-footer-info">
-            Showing <strong>{pageStart}–{pageEnd}</strong> of <strong>{total}</strong>
-          </div>
-          <div className="pp-pager">
-            <button type="button" className="pp-pager-btn" disabled={tablePage <= 1} onClick={() => setTablePage((p) => Math.max(1, p - 1))}>‹</button>
-            {Array.from({ length: pageCount }, (_, i) => i + 1).slice(Math.max(0, tablePage - 3), Math.max(0, tablePage - 3) + 5).map((p) => (
-              <button key={p} type="button" className={`pp-pager-num ${p === tablePage ? 'is-active' : ''}`} onClick={() => setTablePage(p)}>{p}</button>
-            ))}
-            <button type="button" className="pp-pager-btn" disabled={tablePage >= pageCount} onClick={() => setTablePage((p) => Math.min(pageCount, p + 1))}>›</button>
-            <Select
-              className="pp-pagesize"
-              value={tablePageSize}
-              onChange={(v) => { setTablePageSize(v); setTablePage(1); }}
-              options={PAGE_SIZE_OPTIONS.map((n) => ({ value: n, label: `${n} / page` }))}
-              popupMatchSelectWidth={120}
-            />
-          </div>
-        </div>
-      )}
 
       {/* Sticky Footer when template is selected */}
       {selectedTemplate && (

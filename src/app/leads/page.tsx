@@ -2,6 +2,7 @@
 
 import NoData from "@/components/common/NoData";
 import ZukvoLoader from "@/components/common/ZukvoLoader";
+import { StatCards } from "@/components/common/StatCards";
 
 
 import React, { useState, useEffect, useMemo, useRef, useCallback } from "react";
@@ -1197,6 +1198,8 @@ export default function LeadsPage() {
       title: "Lead",
       dataIndex: "title",
       key: "title",
+      onHeaderCell: () => ({ style: { paddingLeft: 24 } }),
+      onCell: () => ({ style: { paddingLeft: 24 } }),
       render: (text: string, record: Lead) => {
         const avatar = getAvatarStyle(record.client_name || record.id);
         const scoreLevel = getAIScoreLevel(record.ai_score);
@@ -1831,10 +1834,16 @@ export default function LeadsPage() {
     {
       title: "Actions",
       key: "table-actions",
-      align: "right" as const,
+      align: "center" as const,
       width: 80,
       fixed: "right" as const,
-      render: (_: unknown, record: Lead) => getLeadActionMenu(record),
+      onHeaderCell: () => ({ style: { textAlign: "center" as const } }),
+      onCell: () => ({ style: { textAlign: "center" as const } }),
+      render: (_: unknown, record: Lead) => (
+        <div style={{ display: "flex", justifyContent: "center", alignItems: "center", width: "100%" }}>
+          {getLeadActionMenu(record)}
+        </div>
+      ),
     },
   ];
 
@@ -2893,7 +2902,7 @@ export default function LeadsPage() {
                   </div>
                 </div>
               </div>
-              <div className="lm-divider" />
+              <div className="lm-divider" style={{ margin: 0 }} />
 
               {/* Saved-View Segments */}
               {/* <div className="lead-segments" style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 16, flexWrap: "wrap" }}>
@@ -3146,74 +3155,28 @@ export default function LeadsPage() {
             })}
           </div> */}
 
-              <div className="pp-stats">
-                <StatCard
-                  label="Total Leads"
-                  value={leads.length}
-                  icon={Layers}
-                  accent="#3b82f6"
-                  subtle={leads.length > 0 ? `${leadsThisWeek} added in the last 7 days` : "No leads yet"}
-                  loading={leads.length === 0 && loading}
-                  chart={
-                    leads.length > 0 ? (
-                      <div className="lm-stat-spark-wrap" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', paddingRight: 4 }}>
-                        <span className="lm-progress-label" style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-slate-400)' }}>7-day trend</span>
-                        <AreaSparkline values={totalLeadsTrend} color="#3b82f6" />
-                      </div>
-                    ) : null
-                  }
-                />
-                <StatCard
-                  label="New Today"
-                  value={leadsToday}
-                  icon={Zap}
-                  accent="#10b981"
-                  subtle={leadsToday > 0 ? "Fresh activity in the last 24h" : "No new leads today"}
-                  loading={leads.length === 0 && loading}
-                  chart={
-                    leads.length > 0 ? (
-                      <div className="lm-stat-spark-wrap" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', paddingRight: 4 }}>
-                        <span className="lm-progress-label" style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-slate-400)' }}>7-day trend</span>
-                        <AreaSparkline values={newLeadsTrend} color="#10b981" />
-                      </div>
-                    ) : null
-                  }
-                />
-                <StatCard
-                  label="Pipeline Rate"
-                  value={`${pipelineRate}%`}
-                  icon={Target}
-                  accent="#64748b"
-                  subtle={leads.length > 0 ? "Leads with proposals out" : "Send your first proposal"}
-                  loading={leads.length === 0 && loading}
-                  chart={
-                    leads.length > 0 ? (
-                      <div className="lm-stat-spark-wrap" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', paddingRight: 4 }}>
-                        <span className="lm-progress-label" style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-slate-400)' }}>7-day trend</span>
-                        <AreaSparkline values={pipelineRateTrend} color="#64748b" />
-                      </div>
-                    ) : null
-                  }
-                />
-                <StatCard
-                  label="Hot Leads"
-                  value={hotLeadsCount}
-                  icon={Flame}
-                  accent="#ef4444"
-                  subtle={
-                    leads.length > 0
-                      ? `${Math.round((hotLeadsCount / leads.length) * 100)}% of pipeline · ${totalClients} clients`
-                      : "AI score ≥ 80"
-                  }
-                  loading={leads.length === 0 && loading}
-                  chart={
-                    leads.length > 0 ? (
-                      <div className="lm-stat-spark-wrap" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', paddingRight: 4 }}>
-                        <span className="lm-progress-label" style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-slate-400)' }}>7-day trend</span>
-                        <AreaSparkline values={hotLeadsTrend} color="#ef4444" />
-                      </div>
-                    ) : null
-                  }
+              <div style={{ margin: 0 }}>
+                <StatCards
+                  title="Leads Overview"
+                  statusText="ACTIVE"
+                  cells={[
+                    {
+                      label: "Total Leads",
+                      value: leads.length,
+                    },
+                    {
+                      label: "New Today",
+                      value: leadsToday,
+                    },
+                    {
+                      label: "Pipeline Rate",
+                      value: `${pipelineRate}%`,
+                    },
+                    {
+                      label: "Hot Leads",
+                      value: hotLeadsCount,
+                    },
+                  ]}
                 />
               </div>
               {isFilterRowOpen && (
@@ -3347,7 +3310,7 @@ export default function LeadsPage() {
 
               {/* Active filter chips */}
               {activeFilterChips.length > 0 && (
-                <div className="lead-filter-chips" style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 16, marginTop: 14, alignItems: "center" }}>
+                <div className="lead-filter-chips" style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 16, marginTop: 14, alignItems: "center", padding: "0 24px" }}>
                   <span style={{ display: "inline-flex", alignItems: "center", gap: 4, color: "#94a3b8", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em" }}>
                     <ListFilter size={12} /> Active
                   </span>
@@ -3430,7 +3393,7 @@ export default function LeadsPage() {
 
               <div className="lm-body">
                 {view === 'list' ? (
-                  <div className="lm-table-card" data-density={tableDensity}>
+                  <div className="lm-table-card" data-density={tableDensity} style={{ margin: 0, borderLeft: "none", borderRight: "none" }}>
                     {loading && leads.length === 0 ? (
                       <div className="leads-skeleton" style={{ padding: "8px 0" }}>
                         {Array.from({ length: 6 }).map((_, i) => (
@@ -3551,7 +3514,7 @@ export default function LeadsPage() {
 
                   </div>
                 ) : (
-                  <div className="lm-grid-view">
+                  <div className="lm-grid-view" style={{ marginTop: 16, padding: "0 24px" }}>
                     {loading && leads.length === 0 ? (
                       <div className="lm-grid">
                         {Array.from({ length: 8 }).map((_, i) => (
@@ -4742,6 +4705,7 @@ export default function LeadsPage() {
               background: var(--bg-pure-white);
               height: calc(100vh - 64px);
               overflow: hidden;
+              margin: 0 -8px;
             }
 
             /* ---------------- Proposals Page CSS matching styles ---------------- */
@@ -4858,7 +4822,7 @@ export default function LeadsPage() {
               box-sizing: border-box;
             }
             .pp-footer--sticky {
-              position: sticky; bottom: 0; z-index: 30; margin: 8px -18px 0; padding: 0 18px;
+              position: sticky; bottom: 0; z-index: 30; margin: 0; padding: 0 24px;
               background: var(--bg-pure-white);
               box-shadow: 0 -4px 14px rgba(15,23,42,0.05);
               height: 52px !important;
@@ -4886,17 +4850,26 @@ export default function LeadsPage() {
             /* ---------- Shell (sidebar + main) ---------- */
             .lm-shell {
               display: flex;
-              margin: 0 -16px;
+              margin: 0;
               height: 100%;
               background: var(--bg-pure-white);
             }
             .lm-main {
               flex: 1;
               min-width: 0;
-              padding: 8px 18px 0;
+              padding: 8px 0 0 0;
               display: flex;
               flex-direction: column;
               height: 100%;
+            }
+            .lm-topbar {
+              padding: 12px 24px 8px 24px;
+              margin-bottom: 12px;
+            }
+            .lm-divider {
+              height: 1px;
+              background: var(--border-slate-200);
+              margin: 0;
             }
             .lm-body {
               flex: 1;
@@ -4921,7 +4894,7 @@ export default function LeadsPage() {
               height: calc(100vh - 64px);
             }
             .lm-sidebar-top {
-              padding: 14px 14px 12px 18px;
+              padding: 14px 14px 12px 14px;
               border-bottom: 1px solid var(--border-slate-200);
             }
             .lm-side-head {
@@ -4950,14 +4923,14 @@ export default function LeadsPage() {
               min-height: 0;
               overflow-y: auto;
               overflow-x: hidden;
-              padding: 10px 10px 6px 16px;
+              padding: 10px 14px 6px 14px;
               scrollbar-width: none;
               -ms-overflow-style: none;
             }
             .lm-side-scroll::-webkit-scrollbar { width: 0; height: 0; display: none; }
             .lm-side-section-label {
               font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em;
-              color: var(--text-slate-400); padding: 12px 8px 0; margin: 16px 0 6px;
+              color: var(--text-slate-400); padding: 12px 10px 0; margin: 16px 0 6px;
               border-top: 1px solid var(--border-slate-200);
             }
             .lm-side-scroll > .lm-side-section-label:first-child { margin-top: 6px; border-top: none; padding-top: 0; }

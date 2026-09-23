@@ -58,6 +58,7 @@ import relativeTime from "dayjs/plugin/relativeTime";
 import { useRouter } from "next/navigation";
 import { useActivitySource } from "@/hooks/useActivitySource";
 import { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
+import { StatCards } from "@/components/common/StatCards";
 
 dayjs.extend(relativeTime);
 
@@ -238,10 +239,27 @@ export default function LeadsTrashPage() {
     }
   };
 
+  const [page, setPage] = useState(1);
+  const pageSize = 20;
+
+  useEffect(() => {
+    setPage(1);
+  }, [searchQuery]);
+
   const filteredLeads = leads?.filter((l) =>
     (l.title || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
     (l.client_name || "").toLowerCase().includes(searchQuery.toLowerCase())
   ) || [];
+
+  const totalCount = filteredLeads.length;
+  const totalPages = Math.ceil(totalCount / pageSize) || 1;
+  const paginatedLeads = useMemo(() => {
+    const start = (page - 1) * pageSize;
+    return filteredLeads.slice(start, start + pageSize);
+  }, [filteredLeads, page, pageSize]);
+
+  const pageStart = totalCount === 0 ? 0 : (page - 1) * pageSize + 1;
+  const pageEnd = Math.min(page * pageSize, totalCount);
 
   const actionMenu = (item: Lead) => ({
     items: [
@@ -346,6 +364,8 @@ export default function LeadsTrashPage() {
     {
       title: "Lead Details",
       key: "lead",
+      onHeaderCell: () => ({ style: { paddingLeft: 24 } }),
+      onCell: () => ({ style: { paddingLeft: 24 } }),
       render: (record: Lead) => (
         <div style={{ display: "flex", flexDirection: "column" }}>
           <Text strong className="es-row-title" style={{ fontSize: 13, color: "var(--text-slate-900)" }}>{record.title}</Text>
@@ -392,9 +412,11 @@ export default function LeadsTrashPage() {
     {
       title: "Actions",
       key: "actions",
-      align: "right" as const,
+      align: "center" as const,
       width: 120,
       fixed: "right" as const,
+      onHeaderCell: () => ({ style: { textAlign: "center" as const } }),
+      onCell: () => ({ style: { textAlign: "center" as const } }),
       render: (record: Lead) => (
         <Space size={8}>
           {canRestoreLeadTrash && (
@@ -585,38 +607,38 @@ export default function LeadsTrashPage() {
               </div>
             </div>
 
-            <div className="es-divider" />
+            <div className="es-divider" style={{ margin: 0 }} />
 
-            {/* ============================ STATS ============================ */}
-            <div className="es-stats">
-              <StatCard
-                label="Trashed Leads"
-                value={stats.totalDeleted}
-                icon={<Layers size={14} />}
-                accent="#3b82f6"
-                subtle="Total in repository"
-                loading={loading && stats.totalDeleted === 0}
-                chart={<Sparkline data={deletedTrend} color="#3b82f6" />}
-              />
-
-              <StatCard
-                label="High Priority"
-                value={stats.hotDeleted}
-                icon={<Flame size={14} />}
-                accent="#ef4444"
-                subtle="AI score ≥ 80"
-                loading={loading && stats.hotDeleted === 0}
-                chart={<Sparkline data={deletedTrend} color="#ef4444" />}
-              />
-
-              <StatCard
-                label="Auto-Purging"
-                value={stats.purgingSoon}
-                icon={<AlertCircle size={14} />}
-                accent="#f59e0b"
-                subtle="≤ 24 hours left"
-                loading={loading && stats.purgingSoon === 0}
-                chart={<Sparkline data={deletedTrend} color="#f59e0b" />}
+            {/* Shared StatCards Header Banner */}
+            <div style={{ margin: 0 }}>
+              <StatCards
+                title="Lead Trash Overview"
+                statusText="TRASHED"
+                statusColor="#ef4444"
+                statusBorder="rgba(239, 68, 68, 0.32)"
+                cells={[
+                  {
+                    label: "Trashed Leads",
+                    value: stats.totalDeleted,
+                    icon: <Layers size={14} />,
+                    color: "#3b82f6",
+                    tint: "rgba(59,130,246,0.10)",
+                  },
+                  {
+                    label: "High Priority",
+                    value: stats.hotDeleted,
+                    icon: <Flame size={14} />,
+                    color: "#ef4444",
+                    tint: "rgba(239,68,68,0.10)",
+                  },
+                  {
+                    label: "Auto-Purging",
+                    value: stats.purgingSoon,
+                    icon: <AlertCircle size={14} />,
+                    color: "#f59e0b",
+                    tint: "rgba(245,158,11,0.10)",
+                  },
+                ]}
               />
             </div>
 
@@ -697,7 +719,7 @@ export default function LeadsTrashPage() {
                   <NoData description={<Text type="secondary">No trashed leads found</Text>} />
                 </div>
               ) : view === 'list' ? (
-                <div className="es-table-wrap">
+                <div className="es-table-wrap" style={{ margin: 0, borderLeft: "none", borderRight: "none" }}>
                   <ZukvoLoadingOverlay loading={false} message="">
                     <Table
                       rowSelection={(loading || isRefreshing) ? undefined : {
@@ -713,10 +735,10 @@ export default function LeadsTrashPage() {
                           return col.render ? (col.render as any)(text, record, index) : text;
                         }
                       }))}
-                      dataSource={(loading || isRefreshing) ? Array(5).fill({}) : filteredLeads}
+                      dataSource={(loading || isRefreshing) ? Array(5).fill({}) : paginatedLeads}
                       scroll={{ x: "max-content" }}
                       rowKey={(record: any) => record.id || Math.random()}
-                      pagination={{ pageSizeOptions: [10, 20, 25, 50, 100], pageSize: 20, size: "small" }}
+                      pagination={false}
                       className="es-table"
                       locale={{
                         emptyText: (
@@ -727,8 +749,8 @@ export default function LeadsTrashPage() {
                   </ZukvoLoadingOverlay>
                 </div>
               ) : (
-                <div className="es-grid">
-                  {filteredLeads.map((item: any) => {
+                <div className="es-grid" style={{ marginTop: 16, padding: "0 24px" }}>
+                  {paginatedLeads.map((item: any) => {
                     return (
                       <div key={item.id} className="ec-card group flex flex-col relative">
                         <div className="ec-top">
@@ -793,13 +815,29 @@ export default function LeadsTrashPage() {
                 </div>
               )}
             </div>
+
+            {totalCount > 0 && (
+              <div className="pp-footer pp-footer--sticky">
+                <div className="pp-footer-info">
+                  Showing <strong>{pageStart}–{pageEnd}</strong> of <strong>{totalCount}</strong>
+                  {selectedRowKeys.length > 0 && <span className="pp-footer-sel"> · {selectedRowKeys.length} selected</span>}
+                </div>
+                <div className="pp-pager">
+                  <button type="button" className="pp-pager-btn" disabled={page <= 1} onClick={() => setPage((p) => Math.max(1, p - 1))}>‹</button>
+                  {Array.from({ length: totalPages }, (_, i) => i + 1).slice(Math.max(0, page - 3), Math.max(0, page - 3) + 5).map((p) => (
+                    <button key={p} type="button" className={`pp-pager-num ${p === page ? "is-active" : ""}`} onClick={() => setPage(p)}>{p}</button>
+                  ))}
+                  <button type="button" className="pp-pager-btn" disabled={page >= totalPages} onClick={() => setPage((p) => Math.min(totalPages, p + 1))}>›</button>
+                </div>
+              </div>
+            )}
           </main>
         </div>
 
         <style jsx global>{`
-          .es-shell { display: flex; margin: 0 -16px; min-height: calc(100vh - 64px); background: var(--bg-pure-white); }
+          .es-shell { display: flex; margin: 0 -8px; min-height: calc(100vh - 64px); background: var(--bg-pure-white); }
           .es-sidebar { width: 240px; flex-shrink: 0; border-right: 1px solid var(--border-slate-200); background: var(--bg-pure-white); display: flex; flex-direction: column; position: sticky; top: 0; height: calc(100vh - 64px); }
-          .es-sidebar-top { padding: 14px 14px 12px 18px; }
+          .es-sidebar-top { padding: 14px 14px 12px 14px; }
           .es-side-head { display: flex; align-items: center; gap: 10px; padding-bottom: 14px; margin-bottom: 6px; border-bottom: 1px solid var(--border-slate-100); }
           .es-side-logo { flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
           .es-side-logo .anticon { font-size: 24px !important; color: var(--text-slate-900) !important; }
@@ -843,9 +881,9 @@ export default function LeadsTrashPage() {
           .es-empty-trash-btn.ant-btn-disabled .anticon, .es-empty-trash-btn[disabled] .anticon {
             color: rgba(0, 0, 0, 0.25) !important;
           }
-          .es-side-scroll { flex: 1; min-height: 0; overflow-y: auto; padding: 10px 10px 6px 16px; scrollbar-width: none; -ms-overflow-style: none; }
+          .es-side-scroll { flex: 1; min-height: 0; overflow-y: auto; padding: 10px 14px 6px 14px; scrollbar-width: none; -ms-overflow-style: none; }
           .es-side-scroll::-webkit-scrollbar { width: 0; height: 0; display: none; }
-          .es-side-section-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; color: var(--text-slate-400); padding: 0 8px; margin: 16px 0 6px; }
+          .es-side-section-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; color: var(--text-slate-400); padding: 0 10px; margin: 16px 0 6px; }
           .es-side-scroll > .es-side-section-label:first-child { margin-top: 6px; }
           .es-side-list { display: flex; flex-direction: column; gap: 1px; }
           .es-view-item { display: flex; align-items: center; gap: 10px; width: 100%; padding: 7px 10px; border-radius: 8px; border: none; background: transparent; cursor: pointer; transition: background .12s ease; text-align: left; }
@@ -857,9 +895,9 @@ export default function LeadsTrashPage() {
           .es-view-count { font-size: 11.5px; font-weight: 600; color: var(--text-slate-400); min-width: 18px; text-align: right; }
           .es-view-item.is-active .es-view-count { color: #ff4d4f; font-weight: 700; background: rgba(255,77,79,0.12); border-radius: 6px; padding: 1px 7px; min-width: 0; }
           
-          .es-main { flex: 1; min-width: 0; padding: 8px 18px 0; display: flex; flex-direction: column; }
+          .es-main { flex: 1; min-width: 0; padding: 8px 0 0 0; display: flex; flex-direction: column; }
           .es-body { flex: 1 0 auto; }
-          .es-topbar { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+          .es-topbar { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; padding: 0 24px 4px 24px; }
           .es-search-wrap {
             position: relative; flex: 1; max-width: 520px; display: flex; align-items: center;
             height: 32px; border-radius: 8px; background: var(--bg-pure-white);
@@ -891,7 +929,7 @@ export default function LeadsTrashPage() {
           .es-segmented button:not(.is-active):hover { background: var(--bg-slate-50); color: var(--text-slate-700); }
           .es-ghost-btn { width: 32px; height: 32px; border-radius: 8px; border: 1px solid var(--border-slate-200); background: var(--bg-slate-50); color: var(--text-slate-700); cursor: pointer; font-size: 14px; display: inline-flex; align-items: center; justify-content: center; }
           .es-ghost-btn:hover { color: #3B82F6; border-color: #bfdbfe; }
-          .es-divider { height: 1px; background: var(--border-slate-200); margin: 0 -18px 10px; }
+          .es-divider { height: 1px; background: var(--border-slate-200); margin: 0; }
 
           .es-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 14px; }
           .es-stat-card {
@@ -1027,6 +1065,53 @@ export default function LeadsTrashPage() {
           .saas-bulk-btn.cancel:hover { background: var(--bg-slate-50) !important; }
 
           .es-empty { display: flex; flex-direction: column; align-items: center; padding: 56px 20px; }
+
+          /* Footer + pager */
+          .pp-footer {
+            display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;
+            padding: 0 14px; border-top: 1px solid var(--border-slate-200);
+            height: 52px !important;
+            box-sizing: border-box;
+          }
+          .pp-footer--sticky {
+            position: sticky; bottom: 0; z-index: 30; margin: 0; padding: 0 24px;
+            background: var(--bg-pure-white);
+            box-shadow: 0 -4px 14px rgba(15,23,42,0.05);
+            height: 52px !important;
+            box-sizing: border-box;
+          }
+          .pp-footer-info { font-size: 12px; color: var(--text-slate-500); }
+          .pp-footer-info strong { color: var(--text-slate-700); font-weight: 700; }
+          .pp-footer-sel { color: #3B82F6; font-weight: 600; }
+          .pp-pager { display: flex; align-items: center; gap: 3px; }
+          .pp-pager-btn, .pp-pager-num {
+            min-width: 28px; height: 28px; border-radius: 7px; border: 1px solid var(--border-slate-200);
+            background: var(--bg-pure-white); color: var(--text-slate-600); cursor: pointer; font-size: 12.5px; font-weight: 600;
+            display: inline-flex; align-items: center; justify-content: center;
+          }
+          .pp-pager-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+          .pp-pager-num.is-active { background: #3B82F6; border-color: #3B82F6; color: #fff; }
+
+          [data-theme='dark'] .pp-footer {
+            border-top-color: #1F2937 !important;
+            background: #0B0F1A !important;
+          }
+          [data-theme='dark'] .pp-footer--sticky {
+            background: #0B0F1A !important;
+            box-shadow: 0 -4px 14px rgba(0,0,0,0.4) !important;
+          }
+          [data-theme='dark'] .pp-footer-info { color: #94A3B8 !important; }
+          [data-theme='dark'] .pp-footer-info strong { color: #ffffff !important; }
+          [data-theme='dark'] .pp-pager-btn, [data-theme='dark'] .pp-pager-num {
+            background: #0B0F1A !important;
+            border-color: #1F2937 !important;
+            color: #94A3B8 !important;
+          }
+          [data-theme='dark'] .pp-pager-num.is-active {
+            background: #3B82F6 !important;
+            border-color: #3B82F6 !important;
+            color: #ffffff !important;
+          }
 
           [data-theme='dark'] .es-shell {
             background:

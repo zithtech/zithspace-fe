@@ -20,22 +20,7 @@ import { AttendanceService } from '@/services/attendanceService';
 const { RangePicker } = DatePicker;
 
 // ── Module palette ──────────────────────────────────────────────────────────
-const PALETTE = {
-  blue: '#3B82F6',
-  green: '#10B981',
-  amber: '#F59E0B',
-  red: '#EF4444',
-  purple: '#8B5CF6',
-  grey: '#94A3B8',
-} as const;
-const TINT = {
-  blue: 'rgba(59,130,246,0.10)',
-  green: 'rgba(16,185,129,0.10)',
-  amber: 'rgba(245,158,11,0.12)',
-  red: 'rgba(239,68,68,0.10)',
-  purple: 'rgba(139,92,246,0.10)',
-  grey: 'rgba(148,163,184,0.12)',
-} as const;
+import { PALETTE, TINT, StatCards } from '@/components/attendance/ui';
 
 type DateFilter = 'today' | 'week' | 'month' | 'custom';
 
@@ -254,25 +239,18 @@ export default function AttendanceDashboardPanel() {
       </div>
 
       {/* ── STAT CARDS ─────────────────────────────────────────────────────── */}
-      <div className="adb-stats">
-        {statCells.map((s) => (
-          <div key={s.key} className="adb-stat-card">
-            <div className="adb-stat-top">
-              <div className="adb-stat-left">
-                <span className="adb-stat-icon" style={{ background: s.tint, color: s.color }}>{s.icon}</span>
-                <span className="adb-stat-label">{s.title}</span>
-              </div>
-            </div>
-            <div className="adb-stat-bottom">
-              <div className="adb-stat-value-wrap">
-                <span className="adb-stat-value">{s.value}</span>
-                <span className="adb-stat-period">{s.period}</span>
-              </div>
-              <div className="adb-stat-spark"><AreaSparkline values={s.trend} color={s.color} /></div>
-            </div>
-          </div>
-        ))}
-      </div>
+            <StatCards
+        title="Attendance Overview"
+        statusText="LIVE"
+        cells={statCells.map(s => ({
+          label: s.title,
+          value: <>{s.value} <span style={{ fontSize: 11, fontWeight: 500, color: 'var(--text-slate-400)' }}>{s.period}</span></>,
+          icon: s.icon,
+          color: s.color,
+          tint: s.tint
+        }))}
+      />
+      <div className="att-content-wrap">
 
       {/* ── TWO COLUMNS: who's in · health ─────────────────────────────────── */}
       <div className="adb-grid">
@@ -341,6 +319,7 @@ export default function AttendanceDashboardPanel() {
         </div>
       </div>
 
+      </div>
       <style jsx global>{`
         .adb { display: flex; flex-direction: column; flex: 1; min-height: 0; }
 

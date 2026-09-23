@@ -51,8 +51,7 @@ import { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
 const { TextArea } = Input;
 const { RangePicker } = DatePicker;
 
-const PALETTE = { blue: '#3B82F6', green: '#10B981', red: '#EF4444', grey: '#94A3B8' } as const;
-const TINT = { blue: 'rgba(59,130,246,0.10)', green: 'rgba(16,185,129,0.10)', red: 'rgba(239,68,68,0.10)', grey: 'rgba(148,163,184,0.12)' } as const;
+import { PALETTE, TINT, StatCards } from '@/components/leaves-v2/ui';
 const PAGE_SIZE_OPTIONS = [10, 15, 20, 25, 50, 100];
 
 const DAY_PORTION_OPTIONS: { value: DayPortion; label: string }[] = [
@@ -418,33 +417,31 @@ export default function ApplyLeavePanel({ hideSidebarToggle }: { hideSidebarTogg
       </div>
 
       {/* STAT CARDS */}
-      <div className="lva-stats">
-        {statCells.map((s) => (
-          <div key={s.key} className="lva-stat-card">
-            <div className="lva-stat-top">
-              <span className="lva-stat-icon" style={{ background: s.tint, color: s.color }}>{s.icon}</span>
-              <span className="lva-stat-label">{s.title}</span>
+            <StatCards
+        title="Leave Overview"
+        statusText="LIVE"
+        cells={statCells.map(s => ({
+          label: s.title,
+          value: <>{s.value} <span style={{ fontSize: 11, fontWeight: 500, color: 'var(--text-slate-400)' }}>{s.period}</span></>,
+          icon: s.icon,
+          color: s.color,
+          tint: s.tint
+        }))}
+        extra={
+          balances.length > 0 && (
+            <div className="lva-balances">
+              {balances.map((b) => (
+                <div key={b.leaveTypeId} className="lva-bal">
+                  <span className="lva-bal-dot" style={{ background: b.color || PALETTE.grey }} />
+                  <span className="lva-bal-name">{b.name}</span>
+                  <span className="lva-bal-val">{b.available}</span>
+                </div>
+              ))}
             </div>
-            <div className="lva-stat-bottom">
-              <span className="lva-stat-value">{s.value}</span>
-              <span className="lva-stat-period">{s.period}</span>
-            </div>
-          </div>
-        ))}
-      </div>
+          )
+        }
+      />
 
-      {/* BALANCES STRIP */}
-      {balances.length > 0 && (
-        <div className="lva-balances">
-          {balances.map((b) => (
-            <div key={b.leaveTypeId} className="lva-bal">
-              <span className="lva-bal-dot" style={{ background: b.color || PALETTE.grey }} />
-              <span className="lva-bal-name">{b.name}</span>
-              <span className="lva-bal-val">{b.available}</span>
-            </div>
-          ))}
-        </div>
-      )}
 
       {/* FILTERS */}
       <div className="lva-filters">
@@ -471,7 +468,7 @@ export default function ApplyLeavePanel({ hideSidebarToggle }: { hideSidebarTogg
       </div>
 
       {/* TABLE */}
-      <div className="lva-table-wrap">
+      <div className="lv-table-wrap">
         <ZukvoLoadingOverlay loading={loading} message="">
           <Table
             rowKey="id"
@@ -480,7 +477,7 @@ export default function ApplyLeavePanel({ hideSidebarToggle }: { hideSidebarTogg
             columns={columns}
             dataSource={paged}
             pagination={false}
-            scroll={{ x: 'max-content', y: 'calc(100vh - 320px)' }}
+            scroll={{ x: 'max-content' }}
             expandable={{ expandedRowRender: expandedRow, expandRowByClick: true, columnWidth: 32 }}
             onRow={() => ({ className: 'lva-row' })} locale={{ emptyText: <NoData /> }}
           />
@@ -693,12 +690,12 @@ export default function ApplyLeavePanel({ hideSidebarToggle }: { hideSidebarTogg
         .lva-stat-bottom { display: flex; align-items: baseline; gap: 6px; }
         .lva-stat-value { font-size: 23px; font-weight: 800; color: var(--text-slate-900); }
         .lva-stat-period { font-size: 11px; color: var(--text-slate-400); }
-        .lva-balances { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; }
+        .lva-balances { display: flex; flex-wrap: wrap; gap: 8px; }
         .lva-bal { display: inline-flex; align-items: center; gap: 7px; border: 1px solid var(--border-slate-200); border-radius: 8px; padding: 5px 10px; background: var(--bg-pure-white); }
         .lva-bal-dot { width: 8px; height: 8px; border-radius: 2px; }
         .lva-bal-name { font-size: 12px; color: var(--text-slate-600); }
         .lva-bal-val { font-size: 13px; font-weight: 800; color: var(--text-slate-900); }
-        .lva-filters { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; flex-wrap: wrap; }
+        .lva-filters { display: flex; align-items: center; gap: 10px; margin-top: 2px; margin-bottom: 8px; flex-wrap: wrap; }
         .lva-filter-label { display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 600; color: var(--text-slate-600); }
         .lva-filter-label .anticon { color: var(--text-slate-400); }
         .lva-filter-count { font-size: 12px; color: var(--text-slate-500); }

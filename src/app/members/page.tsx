@@ -78,6 +78,7 @@ import { drawerFormStyles as formStyles, SectionCard, SectionHeader, commonDrawe
 import { EmployeeOnboardingService } from "@/services/onboardingService";
 import ZukvoLoader from "@/components/common/ZukvoLoader";
 import { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
+import { StatCards } from "@/components/common/StatCards";
 
 const { Title, Text, Paragraph } = Typography;
 const { Option } = Select;
@@ -2018,9 +2019,11 @@ export default function MembersPage() {
     {
       title: "Actions",
       key: "actions",
-      width: 64,
-      align: "center",
+      width: 80,
+      align: "right",
       fixed: "right",
+      onHeaderCell: () => ({ style: { paddingRight: 24 } }),
+      onCell: () => ({ style: { paddingRight: 24 } }),
       render: (_, record: Member) => {
         if (!canUpdateUser && !canDeleteUser && !canManageUsers) return null;
 
@@ -2332,39 +2335,52 @@ export default function MembersPage() {
             </div>
           </div>
 
-          <div className="pp-divider" />
+          {/* Divider line after header */}
+          <div className="pp-divider" style={{ margin: "0 -24px" }} />
 
-          {/* Stats Cards */}
-          <div className="pp-stats">
-            {statCells.map((s) => (
-              <div key={s.key} className="pp-stat-card">
-                <div className="pp-stat-top">
-                  <div className="pp-stat-left">
-                    <span className="pp-stat-icon" style={{ background: s.tint, color: s.color }}>{s.icon}</span>
-                    <span className="pp-stat-label">{s.title}</span>
-                  </div>
-                  {s.delta > 0 && (
-                    <span className="pp-stat-delta" style={{ color: s.color, background: s.tint }}>
-                      +{s.delta} {s.deltaLabel}
-                    </span>
-                  )}
-                </div>
-                <div className="pp-stat-bottom">
-                  <div className="pp-stat-value-wrap">
-                    <span className="pp-stat-value">{s.value}</span>
-                    <span className="pp-stat-period">monthly trend</span>
-                  </div>
-                  <div className="pp-stat-spark"><AreaSparkline values={s.trend} color={s.color} /></div>
-                </div>
-              </div>
-            ))}
+          {/* Shared StatCards Header Banner */}
+          <div style={{ margin: "0 -24px 0 -24px" }}>
+            <StatCards
+              title="Members Overview"
+              statusText="ACTIVE"
+              cells={[
+                {
+                  label: "Total Members",
+                  value: memberStats.total,
+                  icon: <TeamOutlined />,
+                  color: "#3b82f6",
+                  tint: "rgba(59,130,246,0.10)",
+                },
+                {
+                  label: "Super Admins",
+                  value: memberStats.superAdmin,
+                  icon: <CrownOutlined />,
+                  color: "#10b981",
+                  tint: "rgba(16,185,129,0.10)",
+                },
+                {
+                  label: "Team Admins",
+                  value: memberStats.admin,
+                  icon: <SafetyCertificateOutlined />,
+                  color: "#64748b",
+                  tint: "rgba(100,116,139,0.10)",
+                },
+                {
+                  label: "Regular Users",
+                  value: memberStats.user,
+                  icon: <IdcardOutlined />,
+                  color: "#3b82f6",
+                  tint: "rgba(59,130,246,0.10)",
+                },
+              ]}
+            />
           </div>
 
           {/* Main Body */}
           <div className="pp-body">
             <ZukvoLoadingOverlay loading={loading} message="">
               {view === 'list' ? (
-                <div className="pp-table-wrap" data-tour="members-table">
+                <div className="pp-table-wrap" data-tour="members-table" style={{ margin: "0 -24px", borderLeft: "none", borderRight: "none" }}>
                   <Table
                     className="pp-table"
                     columns={columns}
@@ -2381,7 +2397,7 @@ export default function MembersPage() {
 
                 </div>
               ) : (
-                <div className="pp-grid">
+                <div className="pp-grid" style={{ marginTop: 16 }}>
                   {loading && members.length === 0 ? (
                     <div className="pp-grid-loading">Loading…</div>
                   ) : members.length === 0 ? (

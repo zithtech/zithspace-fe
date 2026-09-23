@@ -7,6 +7,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
   Archive,
+  Layers,
   Search,
   Filter,
   Download,
@@ -30,6 +31,7 @@ import { usePermission } from '@/hooks/usePermission';
 import SearchableDropdown from '@/components/common/SearchableDropdown';
 import { Table, Button, Dropdown, Tooltip, Select, Drawer, Avatar, Modal } from 'antd';
 import { LetterStatsCards, StatCellData } from '@/components/letters/LetterStatsCards';
+import { StatCards, PALETTE, TINT } from '@/components/letters/ui';
 import { SnippetsOutlined, FileTextOutlined, CheckCircleOutlined, StarOutlined } from '@ant-design/icons';
 
 const PAGE_SIZE_OPTIONS = [10, 15, 20, 25, 50, 100];
@@ -417,8 +419,18 @@ export default function DocumentRepositoryPage() {
         </div>
       </div>
 
-      <div style={{ padding: '14px 24px 32px', flex: 1, overflow: 'hidden', minHeight: 0, display: 'flex', flexDirection: 'column' }}>
-        <LetterStatsCards statCells={statCells} />
+      <StatCards
+        title="Records Overview"
+        statusText="ACTIVE"
+        cells={[
+          { label: 'Generated Records', value: total, icon: <Archive size={15} />, color: PALETTE.blue, tint: TINT.blue },
+          { label: 'PDF Exports', value: total, icon: <FileCheck size={15} />, color: PALETTE.green, tint: TINT.green },
+          { label: 'Categories', value: categories.length, icon: <Layers size={15} />, color: PALETTE.violet, tint: TINT.violet },
+          { label: 'Templates Used', value: templates.length, icon: <FileText size={15} />, color: PALETTE.amber, tint: TINT.amber },
+        ]}
+      />
+
+      <div className="doc-table-wrap">
         {/* Documents List Table */}
         {loading ? (
           <div style={{ padding: '60px 0', textAlign: 'center', color: 'var(--text-slate-600)', fontSize: '15px' }}>
@@ -459,21 +471,18 @@ export default function DocumentRepositoryPage() {
             </div>
           } />
         ) : view === 'list' ? (
-          <div className="att-table-wrap" style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
-            <Table
-              rowKey="id"
-              size="small"
-              className="att-table flex-table"
-              columns={columns}
-              dataSource={paginatedDocuments}
-              pagination={false}
-              scroll={{ x: 'max-content', y: '100%' }}
-              onRow={(record) => ({ className: 'att-row', onClick: () => handlePreviewDocument(record), style: { cursor: 'pointer' } })} locale={{ emptyText: <NoData /> }}
-            />
-          </div>
+          <Table
+            rowKey="id"
+            size="small"
+            columns={columns}
+            dataSource={paginatedDocuments}
+            pagination={false}
+            scroll={{ x: 'max-content' }}
+            onRow={(record) => ({ onClick: () => handlePreviewDocument(record), style: { cursor: 'pointer' } })} locale={{ emptyText: <NoData /> }}
+          />
         ) : (
-          <div style={{ flex: 1, overflowY: 'auto', minHeight: 0, paddingRight: '4px', marginRight: '-4px' }}>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '16px', paddingBottom: '16px' }}>
+          <div style={{ flex: 1, overflowY: 'auto', minHeight: 0 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '16px', padding: '16px' }}>
               {paginatedDocuments.map((doc) => (
                 <div key={doc.id} className="pc-card" onClick={(e) => { e.stopPropagation(); handlePreviewDocument(doc); }}>
                   <div className="pc-top">

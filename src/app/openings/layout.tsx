@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { Briefcase, X } from 'lucide-react';
 import MainLayout from '@/components/layout/MainLayout';
+import { OpnStyles } from '@/components/openings/ui';
 import ProtectedRoute from '@/components/common/ProtectedRoute';
 import { useAuth } from '@/context/AuthContext';
 import { usePermission } from '@/hooks/usePermission';
@@ -51,6 +52,7 @@ export default function OpeningsLayout({ children }: { children: React.ReactNode
   return (
     <ProtectedRoute>
       <MainLayout>
+        <OpnStyles />
         <div className="om-shell">
           {isMobileOpen && (
             <div className="om-sidebar-backdrop" onClick={() => setIsMobileOpen(false)} />
@@ -149,12 +151,12 @@ export default function OpeningsLayout({ children }: { children: React.ReactNode
           .om-view-icon { width: 16px; display: inline-flex; justify-content: center; align-items: center; }
           .om-view-label { flex: 1; font-size: 13px; font-weight: 500; color: var(--text-slate-700); }
           .om-main { flex: 1; min-width: 0; padding: 0; display: flex; flex-direction: column; }
-          .om-content { flex: 1; min-height: 0; padding: 0 16px 0; display: flex; flex-direction: column; }
+          .om-content { flex: 1; min-height: 0; padding: 0; display: flex; flex-direction: column; }
           .om-content > * > [class*="-header"] {
-            margin-left: -16px !important;
-            margin-right: -16px !important;
-            padding-left: 16px !important;
-            padding-right: 16px !important;
+            margin-left: 0 !important;
+            margin-right: 0 !important;
+            padding-left: 20px !important;
+            padding-right: 20px !important;
           }
 
           .om-sidebar-backdrop { display: none; }

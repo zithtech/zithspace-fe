@@ -1,0 +1,183 @@
+'use client';
+
+import React from 'react';
+import { Tag } from 'antd';
+
+export const PALETTE = {
+  blue: '#3B82F6',
+  green: '#10B981',
+  cyan: '#06B6D4',
+  amber: '#F59E0B',
+  violet: '#8B5CF6',
+  pink: '#EC4899',
+  orange: '#F97316',
+  red: '#EF4444',
+  grey: '#94A3B8',
+} as const;
+
+export const TINT = {
+  blue: 'rgba(59,130,246,0.10)',
+  green: 'rgba(16,185,129,0.10)',
+  cyan: 'rgba(6,182,212,0.10)',
+  amber: 'rgba(245,158,11,0.10)',
+  violet: 'rgba(139,92,246,0.10)',
+  pink: 'rgba(236,72,153,0.10)',
+  orange: 'rgba(249,115,22,0.10)',
+  red: 'rgba(239,68,68,0.10)',
+  grey: 'rgba(148,163,184,0.12)',
+} as const;
+
+export function money(n: number | null | undefined, currency = 'INR'): string {
+  const v = Number(n ?? 0);
+  try {
+    return new Intl.NumberFormat('en-IN', {
+      style: 'currency',
+      currency,
+      maximumFractionDigits: 2,
+    }).format(v);
+  } catch {
+    return `${currency} ${v.toFixed(2)}`;
+  }
+}
+
+// ── Shared StatCards Component ───────────────────────────────────────────────
+export function StatCards({
+  cells,
+  progressPct,
+  title = "Payroll Status",
+  statusText = "ACTIVE",
+  statusColor = "#34d399",
+  statusBorder = "rgba(16, 185, 129, 0.32)",
+  extra,
+}: {
+  cells: { label: React.ReactNode; value: React.ReactNode; icon: React.ReactNode; color: string; tint: string }[];
+  progressPct?: string;
+  title?: string;
+  statusText?: string;
+  statusColor?: string;
+  statusBorder?: string;
+  extra?: React.ReactNode;
+}) {
+  return (
+    <div className="pip-sprint-header-v2">
+      <div className="pip-sprint-row1">
+        <div className="pip-sprint-title-block">
+          <div className="pip-sprint-dot" style={{ background: '#3B82F6' }} />
+          <h2 className="pip-sprint-title">{title}</h2>
+          <div className="pip-sprint-tags">
+            <Tag className="pip-sprint-tag pip-sprint-tag-active" bordered={false} style={{ color: statusColor, borderColor: statusBorder }}>{statusText}</Tag>
+          </div>
+        </div>
+        {extra && <div className="pip-sprint-extra">{extra}</div>}
+      </div>
+      <div className="pip-sprint-row2">
+        {cells.map((c, i) => (
+          <div key={i} className="pip-sprint-meta">
+            <span style={{ color: c.color }}>{c.icon}</span>
+            <span>{c.label}: <b>{c.value}</b></span>
+          </div>
+        ))}
+      </div>
+      <div className="pip-sprint-row3">
+        <div className="pip-sprint-progress-bar">
+          <div className="pip-sprint-progress-fill" style={{ width: progressPct || '100%', background: '#3B82F6' }} />
+        </div>
+        <div className="pip-sprint-progress-pct">{progressPct || '100%'}</div>
+      </div>
+    </div>
+  );
+}
+
+// ── Shared Payroll V2 Styles ─────────────────────────────────────────────────
+export function PipStyles() {
+  return (
+    <style jsx global>{`
+      /* Sprint Header (Stats) */
+      .pip-sprint-header-v2 { display: flex; flex-direction: column; gap: 2px; padding: 4px 20px 6px; background: var(--bg-pure-white); border-bottom: 1px solid var(--border-slate-200); margin-bottom: 0px; flex-shrink: 0; }
+      .pip-sprint-row1 { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; margin-bottom: 2px; }
+      .pip-sprint-title-block { display: flex; align-items: center; gap: 6px; min-width: 0; flex: 1 1 auto; }
+      .pip-sprint-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+      .pip-sprint-title { font-size: 13px !important; font-weight: 800 !important; color: var(--text-slate-900) !important; letter-spacing: -0.01em; margin: 0; }
+      .pip-sprint-tags { display: inline-flex; align-items: center; gap: 4px; flex-shrink: 0; }
+      .pip-sprint-tag { display: inline-flex; align-items: center; height: 16px; padding: 0 4px; font-size: 9px; font-weight: 800; letter-spacing: 0.04em; border-radius: 4px; border: 1px solid transparent; text-transform: uppercase; line-height: 1; }
+      .pip-sprint-tag-active { background: transparent; color: #34d399; border-color: rgba(16, 185, 129, 0.32); }
+      .pip-sprint-row2 { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; padding-left: 14px; margin-bottom: 4px; }
+      .pip-sprint-meta { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; font-weight: 600; color: var(--text-slate-500); letter-spacing: -0.005em; }
+      .pip-sprint-meta b { color: var(--text-slate-900); font-weight: 800; }
+      .pip-sprint-row3 { display: flex; align-items: center; gap: 10px; padding-left: 14px; }
+      .pip-sprint-progress-bar { flex: 1 1 auto; position: relative; height: 5px; background: var(--bg-slate-100); border-radius: 999px; overflow: hidden; min-width: 60px; }
+      .pip-sprint-progress-fill { position: absolute; inset: 0; border-radius: 999px; transition: width 0.4s ease; }
+      .pip-sprint-progress-pct { flex-shrink: 0; font-size: 11px; font-weight: 800; color: var(--text-slate-900); font-variant-numeric: tabular-nums; min-width: 32px; }
+
+      /* Payroll Global Table Wrap */
+      .pip-table-wrap {
+        display: flex; flex-direction: column; flex: 1; min-height: 0; overflow: hidden;
+      }
+      .pip-table-wrap .ant-table-wrapper { display: flex; flex-direction: column; flex: 1; min-height: 0; overflow: hidden; }
+      .pip-table-wrap .zlo,
+      .pip-table-wrap .zlo__content { display: flex; flex-direction: column; flex: 1; min-height: 0; overflow: hidden; }
+      .pip-table-wrap .ant-spin-nested-loading { display: flex; flex-direction: column; flex: 1; min-height: 0; overflow: hidden; }
+      .pip-table-wrap .ant-spin-container { display: flex; flex-direction: column; flex: 1; min-height: 0; overflow: hidden; }
+      .pip-table-wrap .ant-table {
+        flex: 1 1 auto; overflow: hidden; display: flex; flex-direction: column;
+        background: var(--bg-pure-white);
+        border: 1px solid var(--border-slate-200);
+        border-radius: 0 !important;
+        margin-bottom: 0;
+        border-left: none; border-right: none;
+      }
+      .pip-table-wrap .ant-table-container { overflow: hidden !important; display: flex; flex-direction: column; flex: 1; min-height: 0; }
+      .pip-table-wrap .ant-table-content { overflow-y: auto !important; overflow-x: auto !important; flex: 1; min-height: 0; }
+      .pip-table-wrap .ant-table table { min-width: 800px; }
+      
+      .pip-table-wrap .ant-table-thead > tr > th:first-child,
+      .pip-table-wrap .ant-table-thead > tr > th:last-child {
+        border-radius: 0 !important;
+      }
+      
+      /* Table headers fixed */
+      .pip-table-wrap .ant-table-thead > tr > th,
+      .ant-drawer-content .ant-table-thead > tr > th,
+      .ant-table-thead > tr > th {
+        position: sticky; top: 0; z-index: 10;
+        padding: 5px 10px !important;
+        font-size: 10px !important;
+        font-weight: 800 !important;
+        background: var(--bg-slate-50, #f8fafc) !important;
+        color: var(--text-slate-500, #64748b) !important;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        text-align: left !important;
+        border-bottom: 1px solid var(--border-slate-200) !important;
+        border-inline-end: none !important;
+      }
+      .pip-table-wrap .ant-table-thead > tr > th::before,
+      .ant-drawer-content .ant-table-thead > tr > th::before {
+        display: none !important;
+      }
+      [data-theme='dark'] .pip-table-wrap .ant-table-thead > tr > th,
+      [data-theme='dark'] .ant-drawer-content .ant-table-thead > tr > th {
+        background: #0f1419 !important;
+        color: #94a3b8 !important;
+      }
+      .pip-table-wrap .ant-table-tbody > tr > td,
+      .ant-drawer-content .ant-table-tbody > tr > td {
+        padding: 4px 10px !important;
+        font-size: 11.5px !important;
+        text-align: left !important;
+      }
+
+      /* Fixed footer / pagination */
+      .pip-table-wrap .ant-pagination {
+        margin: 0 !important;
+        padding: 12px 20px;
+        background: var(--bg-pure-white);
+        border-top: 1px solid var(--border-slate-200);
+        display: flex; align-items: center;
+        flex-shrink: 0;
+      }
+      .pip-table-wrap .ant-pagination-total-text { margin-right: auto; color: var(--text-slate-500); font-size: 13px; }
+      
+    `}</style>
+  );
+}

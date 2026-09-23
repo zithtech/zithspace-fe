@@ -22,6 +22,8 @@ import { useActivitySource } from "@/hooks/useActivitySource";
 import { History } from "lucide-react";
 import TransactionHistoryDrawer from "@/components/common/TransactionHistoryDrawer";
 
+import { StatCards } from "@/components/letters/ui";
+
 const { Text } = Typography;
 
 /* -------------------------------------------------------------------------- */
@@ -393,8 +395,8 @@ export default function OverviewPage() {
           refreshing={loading}
           style={{
             borderBottom: '1px solid var(--border-slate-200)',
-            padding: '9px 32px',
-            marginBottom: 14,
+            padding: '9.5px 32px',
+            marginBottom: 0,
             position: 'sticky',
             top: 0,
             zIndex: 100,
@@ -420,40 +422,19 @@ export default function OverviewPage() {
 
         <div className="org-ov-content">
           {/* Stats overview */}
-          <div className="org-ov-stat-grid" data-tour="org-overview-stats">
-            <StatCard
-              label="Grades"
-              value={orgStats.grades}
-              icon={<ShieldCheck size={15} />}
-              trend={stylizedTrend([0.0, 0.05, 0.25, 0.45, 0.45, 0.7, 1.0], orgStats.grades)}
-              loading={loading && orgStats.grades === 0}
-            />
-            <StatCard
-              label="Departments"
-              value={orgStats.departments}
-              icon={<Building2 size={15} />}
-              trend={stylizedTrend([0.0, 0.2, 0.4, 0.55, 0.75, 0.85, 1.0], orgStats.departments)}
-              loading={loading && orgStats.departments === 0}
-            />
-            <StatCard
-              label="Sub-Departments"
-              value={orgStats.subDepartments}
-              icon={<Layers size={15} />}
-              trend={stylizedTrend([0.0, 0.3, 0.25, 0.5, 0.65, 0.8, 1.0], orgStats.subDepartments)}
-              loading={loading && orgStats.subDepartments === 0}
-            />
-            <StatCard
-              label="Positions"
-              value={orgStats.positions}
-              icon={<User size={15} />}
-              trend={stylizedTrend([0.0, 0.05, 0.25, 0.45, 0.45, 0.7, 1.0], orgStats.positions)}
-              highlight
-              loading={loading && orgStats.positions === 0}
-            />
-          </div>
+          <StatCards
+            title="Organization Overview"
+            statusText="ACTIVE"
+            cells={[
+              { label: "Grades", value: orgStats.grades, icon: <ShieldCheck size={14} />, color: "#3b82f6", tint: "rgba(59,130,246,0.10)" },
+              { label: "Departments", value: orgStats.departments, icon: <Building2 size={14} />, color: "#10b981", tint: "rgba(16,185,129,0.10)" },
+              { label: "Sub-Departments", value: orgStats.subDepartments, icon: <Layers size={14} />, color: "#6366f1", tint: "rgba(99,102,241,0.10)" },
+              { label: "Positions", value: orgStats.positions, icon: <User size={14} />, color: "#f59e0b", tint: "rgba(245,158,11,0.10)" },
+            ]}
+          />
 
           {/* Body — two columns */}
-          <Row gutter={20} className="org-ov-body">
+          <Row gutter={20} className="org-ov-body" style={{ marginTop: 16, padding: "0 32px 24px" }}>
             {/* Grade Selector */}
             <Col xs={24} lg={9} xl={8}>
               <div className="org-ov-panel" data-tour="org-overview-grades-list">

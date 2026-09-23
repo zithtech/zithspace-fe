@@ -22,9 +22,7 @@ import { useAuth } from '@/context/AuthContext';
 import LeaveV2Service, { Holiday, LeaveBalanceItem, LeaveRequest } from '@/services/leaveV2Service';
 
 import ApplyLeaveDrawer from './ApplyLeaveDrawer';
-
-const PALETTE = { blue: '#3B82F6', green: '#10B981', red: '#EF4444', grey: '#94A3B8', amber: '#F59E0B' } as const;
-const TINT = { blue: 'rgba(59,130,246,0.10)', green: 'rgba(16,185,129,0.10)', red: 'rgba(239,68,68,0.10)', grey: 'rgba(148,163,184,0.12)', amber: 'rgba(245,158,11,0.10)' } as const;
+import { PALETTE, TINT, StatCards } from '@/components/leaves-v2/ui';
 
 const STATUS_TAG: Record<string, { color: string; label: string }> = {
   pending: { color: 'blue', label: 'Pending' },
@@ -137,20 +135,19 @@ export default function DashboardPanel() {
       </div>
 
       {/* STAT CARDS */}
-      <div className="lvd-stats">
-        {statCells.map((s) => (
-          <div key={s.key} className="lvd-stat-card">
-            <div className="lvd-stat-top">
-              <span className="lvd-stat-icon" style={{ background: s.tint, color: s.color }}>{s.icon}</span>
-              <span className="lvd-stat-label">{s.title}</span>
-            </div>
-            <div className="lvd-stat-bottom">
-              <span className="lvd-stat-value">{s.value}</span>
-              <span className="lvd-stat-period">{s.period}</span>
-            </div>
-          </div>
-        ))}
-      </div>
+      <StatCards
+        title="Leave Balances & Status"
+        statusText="LIVE"
+        cells={statCells.map(s => ({
+          label: s.title,
+          value: <>{s.value} <span style={{ fontSize: 11, fontWeight: 500, color: 'var(--text-slate-400)' }}>{s.period}</span></>,
+          icon: s.icon,
+          color: s.color,
+          tint: s.tint
+        }))}
+      />
+
+      <div className="lvd-content-wrap">
 
       {/* MY BALANCES */}
       <div className="lvd-section-head">
@@ -249,16 +246,18 @@ export default function DashboardPanel() {
           </div>
         )}
       </div>
+      </div>
       <ApplyLeaveDrawer
         open={applyDrawerOpen}
         onClose={() => setApplyDrawerOpen(false)}
-        onSuccess={load}
+        onSuccess={() => load()}
         balances={balances}
         holidaySet={holidaySet}
       />
 
       <style jsx global>{`
-        .lvd { display: flex; flex-direction: column; }
+        .lvd { display: flex; flex-direction: column; flex: 1; min-height: 0; overflow-y: auto; }
+        .lvd-content-wrap { padding: 0 20px; display: flex; flex-direction: column; flex: 1; min-height: 0; }
         .lvd-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding-bottom: 14px; margin-bottom: 16px; border-bottom: 1px solid var(--border-slate-200); flex-wrap: wrap; }
         .lvd-header-about { display: flex; align-items: center; gap: 12px; min-width: 0; }
         .lvd-header-title { font-size: 19px; font-weight: 800; color: var(--text-slate-900); letter-spacing: -0.02em; }
@@ -267,14 +266,7 @@ export default function DashboardPanel() {
         .lvd-ghost-btn { width: 34px; height: 34px; border-radius: 8px; border: 1px solid var(--border-slate-200); background: var(--bg-slate-50); color: var(--text-slate-700); cursor: pointer; font-size: 14px; }
         .lvd-ghost-btn:hover { color: ${PALETTE.blue}; border-color: #bfdbfe; }
         .lvd-add-btn { height: 34px !important; border-radius: 8px !important; font-weight: 600 !important; }
-        .lvd-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 18px; }
-        .lvd-stat-card { background: var(--bg-pure-white); border: 1px solid var(--border-slate-200); padding: 14px 16px; min-height: 88px; display: flex; flex-direction: column; justify-content: space-between; gap: 12px; box-shadow: 0 1px 2px rgba(15,23,42,0.04); }
-        .lvd-stat-top { display: flex; align-items: center; gap: 8px; }
-        .lvd-stat-icon { width: 28px; height: 28px; border-radius: 8px; display: inline-flex; align-items: center; justify-content: center; font-size: 14px; }
-        .lvd-stat-label { font-size: 12.5px; font-weight: 600; color: var(--text-slate-600); }
-        .lvd-stat-bottom { display: flex; align-items: baseline; gap: 6px; }
-        .lvd-stat-value { font-size: 26px; font-weight: 800; color: var(--text-slate-900); letter-spacing: -0.02em; }
-        .lvd-stat-period { font-size: 11.5px; color: var(--text-slate-400); }
+        .lvd-add-btn { height: 34px !important; border-radius: 8px !important; font-weight: 600 !important; }
         .lvd-section-head { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 700; color: var(--text-slate-700); margin: 4px 0 10px; }
         .lvd-section-toggle { margin-left: auto; background: none; border: none; cursor: pointer; font-size: 11.5px; font-weight: 600; color: ${PALETTE.blue}; }
         .lvd-card { background: var(--bg-pure-white); border: 1px solid var(--border-slate-200); padding: 24px; margin-bottom: 18px; }
@@ -306,11 +298,7 @@ export default function DashboardPanel() {
         .lvd-date-m { font-size: 9px; font-weight: 700; text-transform: uppercase; color: ${PALETTE.blue}; opacity: 0.8; }
         .lvd-req-dot { width: 9px; height: 9px; border-radius: 2px; flex-shrink: 0; }
         
-        @media (max-width: 1024px) {
-          .lvd-stats { grid-template-columns: repeat(2, 1fr); }
-        }
         @media (max-width: 640px) {
-          .lvd-stats { grid-template-columns: 1fr; }
         }
       `}</style>
     </div>

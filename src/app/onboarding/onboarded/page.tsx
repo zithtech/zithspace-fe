@@ -38,6 +38,7 @@ import { usePermission } from "@/hooks/usePermission";
 import { useAuth } from "@/context/AuthContext";
 import ConfirmDialog from "@/components/common/ConfirmDialog";
 import { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
+import { StatCards } from "@/components/onboarding/ui";
 
 // ── Module palette: blue / green / red / grey only ──────────────────────────
 const PALETTE = {
@@ -453,28 +454,18 @@ const Onboarded = () => {
         </div>
       </div>
 
-      {/* ── 2) STAT CARDS (square) ───────────────────────────────────────────── */}
-      <div className="onb-stats">
-        {statCells.map((s) => (
-          <div key={s.key} className="onb-stat-card">
-            <div className="onb-stat-top">
-              <div className="onb-stat-left">
-                <span
-                  className="onb-stat-icon"
-                  style={{ background: s.tint, color: s.color }}
-                >
-                  {s.icon}
-                </span>
-                <span className="onb-stat-label">{s.title}</span>
-              </div>
-            </div>
-            <div className="onb-stat-bottom">
-              <span className="onb-stat-value">{s.value}</span>
-              <span className="onb-stat-period">{s.caption}</span>
-            </div>
-          </div>
-        ))}
-      </div>
+      {/* ── 2) STAT CARDS (gradient) ───────────────────────────────────────────── */}
+      <StatCards
+        title="Onboarded Overview"
+        statusText="ACTIVE"
+        cells={statCells.map(s => ({
+          label: s.title,
+          value: <>{s.value} <span style={{ fontSize: 11, fontWeight: 500, color: 'var(--text-slate-400)' }}>{s.caption}</span></>,
+          icon: s.icon,
+          color: s.color,
+          tint: s.tint
+        }))}
+      />
 
       {/* ── 3) TABLE ─────────────────────────────────────────────────────────── */}
       <div className="onb-table-wrap">
@@ -522,7 +513,7 @@ const Onboarded = () => {
         /* 1) Header */
         .onb-header {
           display: flex; align-items: center; justify-content: space-between; gap: 16px;
-          margin: -12px -22px 14px; padding: 12px 24px 14px 28px; border-bottom: 1px solid var(--border-slate-200);
+          margin: 0 0 14px 0; padding: 12px 20px 14px 20px; border-bottom: 1px solid var(--border-slate-200);
           background: var(--bg-pure-white);
           position: sticky; top: 0; z-index: 30;
         }
@@ -639,8 +630,8 @@ const Onboarded = () => {
           align-items: center;
           justify-content: space-between;
           gap: 12px;
-          margin: auto -22px 0;
-          padding: 6px 28px;
+          margin: auto 0 0;
+          padding: 6px 20px;
           background: var(--bg-pure-white);
           border-top: 1px solid var(--border-slate-100);
           box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.02);
@@ -686,6 +677,7 @@ const Onboarded = () => {
         .pp-action-pop .ant-dropdown-menu-item-divider { margin: 5px 8px !important; background: var(--border-slate-100); }
         .pp-action-pop .ant-dropdown-menu-title-content { line-height: 1.2; }
         .pp-menu-item { display: flex; align-items: center; gap: 11px; padding: 7px 9px; }
+        .onb-filters { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; flex-wrap: wrap; padding: 0 20px; }
         .pp-menu-ic {
           width: 30px; height: 30px; border-radius: 0px; flex-shrink: 0;
           display: inline-flex; align-items: center; justify-content: center; font-size: 14px;

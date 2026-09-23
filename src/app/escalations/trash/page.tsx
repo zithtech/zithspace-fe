@@ -49,6 +49,7 @@ import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
 import { Menu } from 'lucide-react';
 import { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
+import { StatCards } from "@/components/common/StatCards";
 
 dayjs.extend(relativeTime);
 
@@ -416,6 +417,8 @@ export default function EscalationTrashPage() {
     {
       title: 'SUBJECT & CATEGORY',
       key: 'escalation',
+      onHeaderCell: () => ({ style: { paddingLeft: 24 } }),
+      onCell: () => ({ style: { paddingLeft: 24 } }),
       render: (record: any) => (
         <div className="es-name-cell">
           <div className="es-name-icon" style={{ color: '#ff4d4f', background: 'rgba(255,77,79,0.1)' }}>
@@ -519,11 +522,13 @@ export default function EscalationTrashPage() {
     {
       title: 'ACTIONS',
       key: 'actions',
-      align: 'right' as const,
+      align: 'center' as const,
       width: 120,
       fixed: 'right' as const,
+      onHeaderCell: () => ({ style: { textAlign: "center" as const } }),
+      onCell: () => ({ style: { textAlign: "center" as const } }),
       render: (record: any) => (
-        <div style={{ display: 'flex', gap: 4, justifyContent: 'flex-end' }}>
+        <div style={{ display: 'flex', gap: 4, justifyContent: 'center' }}>
           {canUpdateEscalation && (
             <Tooltip title="Restore Escalation">
               <Button
@@ -698,27 +703,7 @@ export default function EscalationTrashPage() {
           <div className="es-divider" />
 
           {/* Stat cards */}
-          <div className="es-stats">
-            {statCells.map((s) => (
-              <div key={s.key} className="es-stat-card">
-                <div className="es-stat-top">
-                  <div className="es-stat-left">
-                    <span className="es-stat-icon" style={{ background: s.tint, color: s.color }}>{s.icon}</span>
-                    <div style={{ display: 'flex', flexDirection: 'column' }}>
-                      <span className="es-stat-label">{s.title}</span>
-                      {(s as any).subtitle && <span style={{ fontSize: 10, color: 'var(--text-slate-400)', marginTop: 1 }}>{(s as any).subtitle}</span>}
-                    </div>
-                  </div>
-                </div>
-                <div className="es-stat-bottom">
-                  <div className="es-stat-value-wrap">
-                    <span className="es-stat-value">{s.value}{s.suffix}</span>
-                  </div>
-                  <div className="es-stat-spark"><AreaSparkline values={s.trend} color={s.color} /></div>
-                </div>
-              </div>
-            ))}
-          </div>
+          <StatCards cards={statCells} />
 
           {/* Table / Grid Wrap */}
           <div className="es-body">
@@ -800,7 +785,7 @@ export default function EscalationTrashPage() {
                               </ZukvoLoadingOverlay>
               </div>
             ) : (
-              <div className="es-grid">
+              <div className="es-grid" style={{ marginTop: 16, padding: "0 24px" }}>
                 {isViewLoading ? (
                   <div className="es-grid-loading">Loading…</div>
                 ) : filteredEscalations.length === 0 ? (
@@ -942,7 +927,7 @@ export default function EscalationTrashPage() {
       <style jsx global>{`
         .es-shell {
           display: flex;
-          margin: 0 -16px;
+          margin: 0 -8px;
           height: calc(100vh - 64px);
           background:
             radial-gradient(1200px 400px at 0% -100px, rgba(59, 130, 246, 0.04), transparent 60%),
@@ -1033,9 +1018,9 @@ export default function EscalationTrashPage() {
         }
 
         /* ---------------- Main ---------------- */
-        .es-main { flex: 1; min-width: 0; padding: 8px 18px 0; display: flex; flex-direction: column; height: 100%; }
+        .es-main { flex: 1; min-width: 0; padding: 8px 0 0 0; display: flex; flex-direction: column; height: 100%; }
         .es-body { flex: 1; min-height: 0; overflow-y: auto; }
-        .es-topbar { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+        .es-topbar { display: flex; align-items: center; gap: 10px; padding: 12px 24px 8px 24px; margin-bottom: 12px; }
         .es-search-wrap {
           position: relative; flex: 1; max-width: 520px; display: flex; align-items: center;
           height: 32px; border-radius: 8px; background: var(--bg-pure-white);
@@ -1070,7 +1055,7 @@ export default function EscalationTrashPage() {
         }
         .es-ghost-btn:hover { color: #3B82F6; border-color: #bfdbfe; }
 
-        .es-divider { height: 1px; background: var(--border-slate-200); margin: 0 -18px 10px; }
+        .es-divider { height: 1px; background: var(--border-slate-200); margin: 0; }
 
         /* Stat cards */
         .es-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 14px; }
@@ -1152,7 +1137,7 @@ export default function EscalationTrashPage() {
           padding: 10px 14px; border-top: 1px solid var(--border-slate-200);
         }
         .es-footer--sticky {
-          position: sticky; bottom: 0; z-index: 30; margin: 0 -18px 0; padding: 6px 18px;
+          position: sticky; bottom: 0; z-index: 30; margin: 0; padding: 0 24px; height: 52px !important;
           background: var(--bg-pure-white);
           box-shadow: 0 -4px 14px rgba(15,23,42,0.05);
         }

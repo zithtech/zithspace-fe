@@ -57,13 +57,7 @@ import LeaveV2Service, {
 import { drawerFormStyles as formStyles, SectionCard } from "@/components/common/DrawerSection";
 import { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
 
-const PALETTE = { blue: '#3B82F6', green: '#10B981', red: '#EF4444', grey: '#94A3B8' } as const;
-const TINT = {
-  blue: 'rgba(59,130,246,0.10)',
-  green: 'rgba(16,185,129,0.10)',
-  red: 'rgba(239,68,68,0.10)',
-  grey: 'rgba(148,163,184,0.12)',
-} as const;
+import { PALETTE, TINT, StatCards } from '@/components/leaves-v2/ui';
 
 const localLvpStyles = `
   /* Fix layout for drawer form row alignment */
@@ -570,25 +564,17 @@ export default function LeavePolicyPanel() {
       </div>
 
       {/* 2) STAT CARDS */}
-      <div className="lvp-stats">
-        {statCells.map((s) => (
-          <div key={s.key} className="lvp-stat-card">
-            <div className="lvp-stat-top">
-              <div className="lvp-stat-left">
-                <span className="lvp-stat-icon" style={{ background: s.tint, color: s.color }}>{s.icon}</span>
-                <span className="lvp-stat-label">{s.title}</span>
-              </div>
-            </div>
-            <div className="lvp-stat-bottom">
-              <div className="lvp-stat-value-wrap">
-                <span className="lvp-stat-value">{s.value}</span>
-                <span className="lvp-stat-period">{s.period}</span>
-              </div>
-              <div className="lvp-stat-spark"><AreaSparkline values={s.trend} color={s.color} /></div>
-            </div>
-          </div>
-        ))}
-      </div>
+            <StatCards
+        title="Leave Overview"
+        statusText="LIVE"
+        cells={statCells.map(s => ({
+          label: s.title,
+          value: <>{s.value} <span style={{ fontSize: 11, fontWeight: 500, color: 'var(--text-slate-400)' }}>{s.period}</span></>,
+          icon: s.icon,
+          color: s.color,
+          tint: s.tint
+        }))}
+      />
 
       {/* 3) FILTERS */}
       <div className="lvp-filters">
@@ -611,7 +597,7 @@ export default function LeavePolicyPanel() {
       </div>
 
       {/* 4) TABLE */}
-      <div className="lvp-table-wrap">
+      <div className="lv-table-wrap">
         <ZukvoLoadingOverlay loading={loading} message="">
           <Table
             rowKey="id"

@@ -24,7 +24,7 @@ export default function MyHubContent({ children }: { children: React.ReactNode }
         .mh-page-content {
           flex: 1;
           min-height: 0;
-          padding: 0 32px;
+          padding: 0;
           display: flex;
           flex-direction: column;
           position: relative;
@@ -39,11 +39,11 @@ export default function MyHubContent({ children }: { children: React.ReactNode }
         }
         /* Stretch panel headers to the edges and keep them sticky, mirroring the
            feature layouts' content shells. */
-        .mh-page-content > * > [class*="-header"] {
-          margin-left: -32px !important;
-          margin-right: -32px !important;
-          padding-left: 32px !important;
-          padding-right: 32px !important;
+        .mh-page-content > * > [class*="-header"]:not([class*="sprint-header"]) {
+          margin-left: 0 !important;
+          margin-right: 0 !important;
+          padding-left: 0 !important;
+          padding-right: 0 !important;
           position: sticky;
           top: 0;
           z-index: 98;
@@ -52,18 +52,18 @@ export default function MyHubContent({ children }: { children: React.ReactNode }
           margin-top: 0 !important;
           margin-bottom: 0 !important;
         }
-        .mh-page-content > * > [class*="-header"] + * {
+        .mh-page-content > * > [class*="-header"]:not([class*="sprint-header"]) + * {
           margin-top: 16px !important;
         }
         @media (max-width: 1024px) {
           .mh-page-content {
-            padding: 0 16px;
+            padding: 0;
           }
-          .mh-page-content > * > [class*="-header"] {
-            margin-left: -16px !important;
-            margin-right: -16px !important;
-            padding-left: 16px !important;
-            padding-right: 16px !important;
+          .mh-page-content > * > [class*="-header"]:not([class*="sprint-header"]) {
+            margin-left: 0 !important;
+            margin-right: 0 !important;
+            padding-left: 0 !important;
+            padding-right: 0 !important;
           }
         }
       `}</style>

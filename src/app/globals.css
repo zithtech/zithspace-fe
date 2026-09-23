@@ -24420,7 +24420,7 @@ select:-webkit-autofill:focus {
 }
 
 .org-ov-content {
-  padding: 2px 32px 20px;
+  padding: 0;
 }
 
 .org-ov-header-chip.ant-tag {

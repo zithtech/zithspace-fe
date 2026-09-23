@@ -1,6 +1,7 @@
 "use client";
 
 import NoData from "@/components/common/NoData";
+import StatCards from "@/components/common/StatCards";
 import React, { useState, useEffect, useMemo } from "react";
 import { getSyncedTime } from "@/utils/timeUtils";
 import ZukvoLoader from "@/components/common/ZukvoLoader";
@@ -944,79 +945,23 @@ export const TeamTimeTracker: React.FC<TeamTimeTrackerProps> = ({ refreshKey }) 
   ];
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', flex: 1, height: '100%', minHeight: 0, overflow: 'hidden' }}>
       {/* KPI Strip */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4 mb-2">
-        {teamCards.map((s) => (
-          <div
-            key={s.key}
-            className="dh-stats-card flex flex-col justify-between p-4 transition-all"
-            style={{
-              border: '1px solid var(--border-slate-200)',
-              background: 'var(--bg-pure-white)',
-              boxShadow: '0 1px 2px rgba(15, 23, 42, 0.04)',
-              height: 92,
-              borderRadius: 0,
-            }}
-          >
-            <div className="flex items-start justify-between w-full">
-              <div className="flex items-center gap-2">
-                <div style={{
-                  color: s.color,
-                  fontSize: 15,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  width: 26,
-                  height: 26,
-                  background: `${s.color}1c`,
-                  borderRadius: 6,
-                }}>
-                  {s.icon}
-                </div>
-                <span
-                  className="text-[12.5px] font-medium whitespace-nowrap"
-                  style={{ color: 'var(--text-slate-500)', letterSpacing: '0.01em' }}
-                >
-                  {s.title}
-                </span>
-              </div>
-              {s.deltaText && (
-                <Tooltip title="Trend">
-                  <span
-                    className="inline-flex items-center justify-center gap-1 text-[11px] font-bold px-[6px] py-[2px] rounded-full whitespace-nowrap"
-                    style={{
-                      color: s.deltaColor,
-                      background: `${s.deltaColor}1c`
-                    }}
-                  >
-                    {s.deltaText}
-                  </span>
-                </Tooltip>
-              )}
-            </div>
-
-            <div className="flex items-end justify-between w-full mt-auto gap-2">
-              <div className="flex items-baseline gap-1.5 pb-1 min-w-0">
-                <span className="text-[18px] xl:text-[20px] font-semibold leading-none tracking-tight truncate whitespace-nowrap" style={{ color: 'var(--text-slate-800)' }}>
-                  {s.value}
-                </span>
-                <span className="text-[11px] font-medium truncate hidden 2xl:inline-block" style={{ color: 'var(--text-slate-400)' }}>
-                  {s.footerText}
-                </span>
-              </div>
-
-              <div className="shrink-0 mb-[2px]">
-                <Sparkline data={s.trend} color={s.color} />
-              </div>
-            </div>
-          </div>
-        ))}
+      <div style={{ flexShrink: 0 }}>
+        <StatCards
+          cards={teamCards.map((s) => ({
+            label: s.title,
+            value: s.value,
+            icon: s.icon,
+            color: s.color,
+          }))}
+          style={{ borderBottom: "1px solid var(--border-slate-200)", marginBottom: 0 }}
+        />
       </div>
 
       {/* Tracker card */}
-      <div className="mtt-tracker-card mtt-team-card" style={{ marginTop: 8, display: 'flex', flexDirection: 'column', flex: 1 }}>
-        <div className="mtt-tracker-card__head mtt-team-card__head">
+      <div className="mtt-tracker-card mtt-team-card" style={{ marginTop: 0, display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0, overflow: 'hidden' }}>
+        <div className="mtt-tracker-card__head mtt-team-card__head" style={{ flexShrink: 0 }}>
           <div className="mtt-tracker-card__title-wrap">
             <div className="mtt-tracker-card__icon"><TeamOutlined /></div>
             <div>
@@ -1101,7 +1046,7 @@ export const TeamTimeTracker: React.FC<TeamTimeTrackerProps> = ({ refreshKey }) 
           </div>
         </div>
 
-        <div style={{ flex: 1, minWidth: 0, overflow: 'auto' }}>
+        <div style={{ flex: 1, minWidth: 0, minHeight: 0, overflowY: 'auto' }}>
           <ZukvoLoadingOverlay loading={loading} message="">
                   <Table
                               className="mtt-team-table"
@@ -1128,29 +1073,29 @@ export const TeamTimeTracker: React.FC<TeamTimeTrackerProps> = ({ refreshKey }) 
                             />
                   </ZukvoLoadingOverlay>
         </div>
-      </div>
 
-      {total > 0 && (
-        <div className="mtt-footer mtt-footer--fixed">
-          <div className="mtt-footer-info">
-            Showing <strong>{pageStart}–{pageEnd}</strong> of <strong>{total}</strong>
+        {total > 0 && (
+          <div className="mtt-footer mtt-footer--fixed">
+            <div className="mtt-footer-info">
+              Showing <strong>{pageStart}–{pageEnd}</strong> of <strong>{total}</strong>
+            </div>
+            <div className="mtt-pager">
+              <button type="button" className="mtt-pager-btn" disabled={tablePage <= 1} onClick={() => setTablePage((p) => Math.max(1, p - 1))}>‹</button>
+              {Array.from({ length: pageCount }, (_, i) => i + 1).slice(Math.max(0, tablePage - 3), Math.max(0, tablePage - 3) + 5).map((p) => (
+                <button key={p} type="button" className={`mtt-pager-num ${p === tablePage ? 'is-active' : ''}`} onClick={() => setTablePage(p)}>{p}</button>
+              ))}
+              <button type="button" className="mtt-pager-btn" disabled={tablePage >= pageCount} onClick={() => setTablePage((p) => Math.min(pageCount, p + 1))}>›</button>
+              <Select
+                className="mtt-pagesize"
+                value={tablePageSize}
+                onChange={(v) => { setTablePageSize(v); setTablePage(1); }}
+                options={PAGE_SIZE_OPTIONS.map((n) => ({ value: n, label: `${n} / page` }))}
+                popupMatchSelectWidth={120}
+              />
+            </div>
           </div>
-          <div className="mtt-pager">
-            <button type="button" className="mtt-pager-btn" disabled={tablePage <= 1} onClick={() => setTablePage((p) => Math.max(1, p - 1))}>‹</button>
-            {Array.from({ length: pageCount }, (_, i) => i + 1).slice(Math.max(0, tablePage - 3), Math.max(0, tablePage - 3) + 5).map((p) => (
-              <button key={p} type="button" className={`mtt-pager-num ${p === tablePage ? 'is-active' : ''}`} onClick={() => setTablePage(p)}>{p}</button>
-            ))}
-            <button type="button" className="mtt-pager-btn" disabled={tablePage >= pageCount} onClick={() => setTablePage((p) => Math.min(pageCount, p + 1))}>›</button>
-            <Select
-              className="mtt-pagesize"
-              value={tablePageSize}
-              onChange={(v) => { setTablePageSize(v); setTablePage(1); }}
-              options={PAGE_SIZE_OPTIONS.map((n) => ({ value: n, label: `${n} / page` }))}
-              popupMatchSelectWidth={120}
-            />
-          </div>
-        </div>
-      )}
+        )}
+      </div>
 
       <style jsx global>{`
         .ant-table-thead > tr > th {
@@ -1196,18 +1141,20 @@ export const TeamTimeTracker: React.FC<TeamTimeTrackerProps> = ({ refreshKey }) 
         }
 
         .mtt-team-card {
-          overflow: visible !important;
+          overflow: hidden !important;
         }
         .mtt-footer {
           display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;
           padding: 12px 20px; border-top: 1px solid var(--border-slate-200);
+          flex-shrink: 0;
         }
         .mtt-footer--fixed {
+          flex-shrink: 0;
           position: sticky; bottom: 0; z-index: 100;
           margin-top: auto;
-          margin-left: -20px;
-          margin-right: -20px;
-          margin-bottom: -14px;
+          margin-left: 0;
+          margin-right: 0;
+          margin-bottom: 0;
           padding: 12px 20px;
           background: var(--bg-pure-white);
           border-top: 1px solid var(--border-slate-200);

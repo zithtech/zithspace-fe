@@ -71,6 +71,7 @@ import ConfirmDialog from "@/components/common/ConfirmDialog";
 import { SearchableDropdown } from "@/components/common/SearchableDropdown";
 import ZukvoLoader from "@/components/common/ZukvoLoader";
 import { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
+import { StatCards } from "@/components/common/StatCards";
 
 const { Title, Text } = Typography;
 const { TextArea } = Input;
@@ -1223,8 +1224,10 @@ export default function RolesPage() {
     {
       title: "Actions",
       key: "actions",
-      width: 140,
+      width: 160,
       align: "right" as const,
+      onHeaderCell: () => ({ style: { paddingRight: 24 } }),
+      onCell: () => ({ style: { paddingRight: 24 } }),
       render: (_, record) => (
         <div className="rp-row-actions">
           {canAssignRole && (
@@ -1426,121 +1429,51 @@ export default function RolesPage() {
             </div>
           </div>
 
-          {/* Premium stats grid */}
-          <div className="rp-stat-grid">
-            <StatCard
-              label="Total Roles"
-              value={roleStats.total}
-              icon={<SafetyOutlined />}
-              accent="#3b82f6"
-              subtle="Across all access tiers"
-              loading={loading && roleStats.total === 0}
-              chart={
-                roleStats.total > 0 ? (
-                  <MiniBar
-                    segments={[
-                      {
-                        value: roleStats.system,
-                        color: '#3b82f6',
-                        label: `${roleStats.system} system`,
-                      },
-                      {
-                        value: roleStats.custom,
-                        color: '#10b981',
-                        label: `${roleStats.custom} custom`,
-                      },
-                    ]}
-                  />
-                ) : null
-              }
-            />
+          {/* Divider line after header */}
+          <div className="pp-divider" style={{ margin: "0 -24px" }} />
 
-            <StatCard
-              label="System Roles"
-              value={roleStats.system}
-              icon={<LockOutlined />}
-              accent="#3b82f6"
-              subtle="Locked baseline roles"
-              loading={loading && roleStats.total === 0}
-              chart={
-                roleStats.total > 0 ? (
-                  <div className="rp-cv-row">
-                    <KeyOutlined style={{ fontSize: 11 }} />
-                    <span>
-                      <strong>
-                        {Math.round((roleStats.system / Math.max(roleStats.total, 1)) * 100)}%
-                      </strong>{' '}
-                      of roles
-                    </span>
-                  </div>
-                ) : null
-              }
-            />
-
-            <StatCard
-              label="Custom Roles"
-              value={roleStats.custom}
-              icon={<ApartmentOutlined />}
-              accent="#10b981"
-              subtle="Created by your team"
-              loading={loading && roleStats.total === 0}
-              chart={
-                roleStats.total > 0 ? (
-                  <div className="rp-cv-row">
-                    <TeamOutlined style={{ fontSize: 11 }} />
-                    <span>
-                      <strong>{roleStats.totalMembers}</strong> total members
-                    </span>
-                  </div>
-                ) : null
-              }
-            />
-
-            <StatCard
-              label="Permissions"
-              value={roleStats.permissions}
-              icon={<KeyOutlined />}
-              accent="#64748b"
-              subtle={
-                roleStats.permissions > 0
-                  ? `${roleStats.assignedPerms} assigned across roles`
-                  : 'No permissions defined'
-              }
-              loading={loading && roleStats.permissions === 0}
-              chart={
-                roleStats.total > 0 && roleStats.permissions > 0 ? (
-                  <div className="rp-progress-row">
-                    <div className="rp-progress-track">
-                      <span
-                        className="rp-progress-fill"
-                        style={{
-                          width: `${Math.min(
-                            100,
-                            Math.round(
-                              (roleStats.assignedPerms /
-                                Math.max(roleStats.permissions * roleStats.total, 1)) *
-                              100,
-                            ),
-                          )}%`,
-                          background: 'linear-gradient(90deg, #64748b, #94a3b8)',
-                        }}
-                      />
-                    </div>
-                    <span className="rp-progress-label">
-                      {roleStats.assignedPerms}/{roleStats.permissions * roleStats.total}
-                    </span>
-                  </div>
-                ) : null
-              }
+          {/* Shared StatCards Header Banner */}
+          <div style={{ margin: "0 -24px 0 -24px" }}>
+            <StatCards
+              title="Roles & Permissions Overview"
+              statusText="ACTIVE"
+              cells={[
+                {
+                  label: "Total Roles",
+                  value: roleStats.total,
+                  icon: <SafetyOutlined />,
+                  color: "#3b82f6",
+                  tint: "rgba(59,130,246,0.10)",
+                },
+                {
+                  label: "System Roles",
+                  value: roleStats.system,
+                  icon: <LockOutlined />,
+                  color: "#3b82f6",
+                  tint: "rgba(59,130,246,0.10)",
+                },
+                {
+                  label: "Custom Roles",
+                  value: roleStats.custom,
+                  icon: <ApartmentOutlined />,
+                  color: "#10b981",
+                  tint: "rgba(16,185,129,0.10)",
+                },
+                {
+                  label: "Permissions",
+                  value: roleStats.permissions,
+                  icon: <KeyOutlined />,
+                  color: "#64748b",
+                  tint: "rgba(100,116,139,0.10)",
+                },
+              ]}
             />
           </div>
-
-
 
           {/* Roles panel */}
           <ZukvoLoadingOverlay loading={loading} message="">
             {view === "list" ? (
-              <div className="rp-panel">
+              <div className="rp-panel" style={{ margin: "0 -24px", borderLeft: "none", borderRight: "none" }}>
                 {/* Table */}
                 <Table
                   className="premium-table rp-table"
@@ -1553,7 +1486,7 @@ export default function RolesPage() {
 
               </div>
             ) : (
-              <div className="rp-grid">
+              <div className="rp-grid" style={{ marginTop: 16 }}>
                 {loading ? (
                   <div className="rp-grid-loading">Loading…</div>
                 ) : roles.length === 0 ? (

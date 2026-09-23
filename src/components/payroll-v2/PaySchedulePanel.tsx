@@ -316,13 +316,13 @@ export default function PaySchedulePanel() {
       </div>
 
       {/* TABLE */}
-      <div className="pvg-table-wrap">
+      <div className="pv-table-wrap">
         {view === 'schedules'
           ? <ZukvoLoadingOverlay loading={loading} message="">
-                  <Table rowKey="id" size="small" className="pvg-table" columns={scheduleColumns} dataSource={pagedRows} pagination={false} onRow={() => ({ className: 'pvg-row' })} scroll={{ x: 'max-content' }} locale={{ emptyText: <NoData /> }} />
+                  <Table rowKey="id" size="small" columns={scheduleColumns} dataSource={pagedRows} pagination={false} onRow={() => ({ className: 'pvg-row' })} scroll={{ x: 'max-content' }} locale={{ emptyText: <NoData /> }} />
                   </ZukvoLoadingOverlay>
           : <ZukvoLoadingOverlay loading={loading} message="">
-                  <Table rowKey="id" size="small" className="pvg-table" columns={groupColumns} dataSource={pagedRows} pagination={false} onRow={() => ({ className: 'pvg-row' })} scroll={{ x: 'max-content' }} locale={{ emptyText: <NoData /> }} />
+                  <Table rowKey="id" size="small" columns={groupColumns} dataSource={pagedRows} pagination={false} onRow={() => ({ className: 'pvg-row' })} scroll={{ x: 'max-content' }} locale={{ emptyText: <NoData /> }} />
                   </ZukvoLoadingOverlay>}
       </div>
 
@@ -458,7 +458,7 @@ export default function PaySchedulePanel() {
         .pvg-table .ant-table-tbody > tr.pvg-row:hover > td { background: var(--bg-slate-50) !important; }
 
         .pvg-footer { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; height: 52px; box-sizing: border-box; }
-        .pvg-footer--sticky { position: sticky; bottom: 0; z-index: 20; margin: auto -22px 0; padding: 0 22px; background: var(--bg-pure-white); border-top: 1px solid var(--border-slate-200); box-shadow: 0 -4px 14px rgba(15,23,42,0.05); }
+        .pvg-footer--sticky { position: sticky; bottom: 0; z-index: 20; margin: 0; padding: 0 22px; background: var(--bg-pure-white); border-top: 1px solid var(--border-slate-200); box-shadow: 0 -4px 14px rgba(15,23,42,0.05); }
         .pvg-footer-info { font-size: 12px; color: var(--text-slate-500); }
         .pvg-footer-info strong { color: var(--text-slate-700); font-weight: 700; }
         .pvg-pager { display: flex; align-items: center; gap: 3px; }

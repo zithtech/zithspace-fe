@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { UserRoundCog, Menu } from 'lucide-react';
 import MainLayout from '@/components/layout/MainLayout';
+import { OnbStyles } from '@/components/onboarding/ui';
 import ProtectedRoute from '@/components/common/ProtectedRoute';
 import { useAuth } from '@/context/AuthContext';
 import { usePermission } from '@/hooks/usePermission';
@@ -58,6 +59,7 @@ export default function OnboardingLayout({ children }: { children: React.ReactNo
   return (
     <ProtectedRoute>
       <MainLayout>
+        <OnbStyles />
         <div className="ob-shell">
           {/* Backdrop for mobile drawer */}
           <div 
@@ -110,7 +112,7 @@ export default function OnboardingLayout({ children }: { children: React.ReactNo
           .ob-shell {
             display: flex;
             margin: 0 -8px;
-            min-height: calc(100vh - 64px);
+            min-height: calc(100vh - 60px);
             background: var(--bg-pure-white);
           }
           /* ---------------- Sidebar ---------------- */
@@ -124,7 +126,7 @@ export default function OnboardingLayout({ children }: { children: React.ReactNo
             padding: 14px 14px 0;
             position: sticky;
             top: 0;
-            height: calc(100vh - 54px);
+            height: calc(100vh - 60px);
           }
           .ob-side-head {
             display: flex; align-items: center; gap: 12px; padding: 2px 2px 14px; margin-bottom: 6px;
@@ -158,8 +160,9 @@ export default function OnboardingLayout({ children }: { children: React.ReactNo
           .ob-view-icon { width: 16px; display: inline-flex; justify-content: center; align-items: center; }
           .ob-view-label { flex: 1; font-size: 13px; font-weight: 500; color: var(--text-slate-700); }
           /* ---------------- Main ---------------- */
-          .ob-main { flex: 1; min-width: 0; padding: 8px 18px 0; display: flex; flex-direction: column; }
-          .ob-content { flex: 1; min-height: 0; padding: 4px 4px 0; display: flex; flex-direction: column; }
+          .ob-main { flex: 1; min-width: 0; padding: 0; display: flex; flex-direction: column; }
+          .ob-content { flex: 1; min-height: 0; padding: 0; display: flex; flex-direction: column; background: var(--bg-pure-white); }
+          .ob-content > div { flex: 1; display: flex; flex-direction: column; min-height: 0; }
 
           /* ---------------- Responsive ---------------- */
           .ob-sidebar-backdrop { display: none; }

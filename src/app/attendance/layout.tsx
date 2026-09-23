@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { CalendarCheck, Menu, X } from 'lucide-react';
 import MainLayout from '@/components/layout/MainLayout';
+import { AttStyles } from '@/components/attendance/ui';
 import ProtectedRoute from '@/components/common/ProtectedRoute';
 import { useAuth } from '@/context/AuthContext';
 import { usePermission } from '@/hooks/usePermission';
@@ -51,6 +52,7 @@ export default function AttendanceLayout({ children }: { children: React.ReactNo
   return (
     <ProtectedRoute>
       <MainLayout>
+        <AttStyles />
         <div className="att-shell">
           {/* ============================ MOBILE BACKDROP ============================ */}
           {isMobileOpen && (
@@ -117,8 +119,8 @@ export default function AttendanceLayout({ children }: { children: React.ReactNo
         <style jsx global>{`
           .att-shell {
             display: flex;
-            margin: 0;
-            height: calc(100vh - 64px);
+            margin: 0 -8px;
+            height: calc(100vh - 54px);
             background: var(--bg-pure-white);
             overflow: hidden;
           }
@@ -168,22 +170,35 @@ export default function AttendanceLayout({ children }: { children: React.ReactNo
           .att-view-label { flex: 1; font-size: 13px; font-weight: 500; color: var(--text-slate-700); }
           /* ---------------- Main ---------------- */
           .att-main { flex: 1; min-width: 0; padding: 8px 0 0; display: flex; flex-direction: column; overflow: hidden; }
-          .att-content { flex: 1; min-height: 0; padding: 0 32px; display: flex; flex-direction: column; overflow-y: auto; overflow-x: auto; scrollbar-width: none; }
-          .att-content::-webkit-scrollbar { display: none; }
-          /* Stretch panel headers to the edges (overriding content padding) */
-          .adb-header,
-          .cio-header,
-          .att-header {
-            margin-left: -32px !important;
-            margin-right: -32px !important;
-            padding-left: 32px !important;
-            padding-right: 32px !important;
-            padding-top: 4px !important;
-            position: sticky !important;
+                    .att-content { flex: 1; min-height: 0; padding: 0; display: flex; flex-direction: column; overflow: hidden; background: var(--bg-pure-white); }
+          
+          /* Force the page component wrapper to fill available height */
+          .att-content > div { flex: 1; display: flex; flex-direction: column; min-height: 0; }
+          .att-content > div > [class*="-footer--sticky"] {
+            margin: auto 0 0 0 !important;
+            padding: 0 20px !important;
+          }
+
+          /* Restore the gap below the header that was removed by margin-bottom: 0 */
+          .att-content > * > [class*="-header"] + * {
+            margin-top: 6px !important;
+          }
+
+          /* Stretch panel headers to the edges and make them sticky */
+          .att-content > * > [class*="-header"] {
+            position: sticky;
             top: 0;
-            z-index: 100;
-            background: var(--bg-pure-white) !important;
-            box-shadow: 0 1px 2px rgba(0,0,0,0.03);
+            z-index: 20;
+            background: var(--bg-pure-white);
+            box-shadow: 0 6px 16px -14px rgba(15, 23, 42, 0.4);
+            margin-top: 0 !important;
+            margin-bottom: 0 !important;
+            margin-left: 0 !important;
+            margin-right: 0 !important;
+            padding-top: 16px;
+            padding-bottom: 12px;
+            padding-left: 22px;
+            padding-right: 22px;
           }
 
           /* Dark Mode Overrides */

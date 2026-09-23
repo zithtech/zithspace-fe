@@ -106,7 +106,8 @@ export default function ReimbursementV2Layout({ children }: { children: React.Re
           .rv-shell {
             display: flex;
             margin: 0 -8px;
-            min-height: calc(100vh - 64px);
+            height: calc(100vh - 54px);
+            overflow: hidden;
             background: var(--bg-pure-white);
           }
           .rv-sidebar {
@@ -151,13 +152,13 @@ export default function ReimbursementV2Layout({ children }: { children: React.Re
           .rv-view-item.is-active .rv-view-label { color: var(--text-slate-900); font-weight: 600; }
           .rv-view-icon { width: 16px; display: inline-flex; justify-content: center; align-items: center; }
           .rv-view-label { flex: 1; font-size: 13px; font-weight: 500; color: var(--text-slate-700); }
-          .rv-main { flex: 1; min-width: 0; padding: 0; display: flex; flex-direction: column; }
-          .rv-content { flex: 1; min-height: 0; padding: 0 32px 0; display: flex; flex-direction: column; }
+          .rv-main { flex: 1; min-width: 0; padding: 0; display: flex; flex-direction: column; overflow: hidden; }
+          .rv-content { flex: 1; min-height: 0; padding: 0; display: flex; flex-direction: column; overflow: hidden; }
           .rv-content > * > [class*="-header"] {
-            margin-left: -32px !important;
-            margin-right: -32px !important;
-            padding-left: 32px !important;
-            padding-right: 32px !important;
+            margin-left: 0 !important;
+            margin-right: 0 !important;
+            padding-left: 20px !important;
+            padding-right: 20px !important;
           }
           
           /* Table styling matching ticket page */
@@ -197,9 +198,9 @@ export default function ReimbursementV2Layout({ children }: { children: React.Re
             }
             .rv-sidebar-close { display: flex; }
             .rv-main { padding: 0; }
-            .rv-content { padding: 0 16px 0; }
+            .rv-content { padding: 0; }
             .rv-content > * > [class*="-header"] {
-              margin-left: -16px !important; margin-right: -16px !important;
+              margin-left: 0 !important; margin-right: 0 !important;
               padding-left: 16px !important; padding-right: 16px !important;
             }
           }

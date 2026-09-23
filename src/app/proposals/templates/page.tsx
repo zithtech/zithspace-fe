@@ -4,7 +4,7 @@ import NoData from "@/components/common/NoData";
 
 import React, { useMemo, useState, useEffect, useCallback } from 'react';
 import {
-  Button, Dropdown, message, Select, Tooltip,
+  Button, Dropdown, message, Select, Table, Tooltip,
 } from 'antd';
 import type { MenuProps } from 'antd';
 import {
@@ -17,6 +17,7 @@ import { LayoutTemplate } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import dayjs from 'dayjs';
 import MainLayout from '@/components/layout/MainLayout';
+import StatCards from '@/components/common/StatCards';
 import ProtectedRoute from '@/components/common/ProtectedRoute';
 import { resolveTheme } from '@/components/proposals/themePresets';
 import { nanoid } from 'nanoid';
@@ -99,7 +100,7 @@ function TemplatesContent() {
 
   const [searchText, setSearchText] = useState('');
   const [savedView, setSavedView] = useState<SavedView>('all');
-  const [view, setView] = useState<'grid' | 'list'>('grid');
+  const [view, setView] = useState<'list' | 'grid'>('list');
   const [tablePage, setTablePage] = useState(1);
   const [tablePageSize, setTablePageSize] = useState(15);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
@@ -245,6 +246,104 @@ function TemplatesContent() {
     { key: 'arch', title: 'Archived', value: archivedCount, icon: <InboxOutlined />, color: '#475569', tint: 'rgba(71,85,105,0.10)' },
   ];
 
+  const cards = useMemo(() => {
+    return statCells.map((s, i) => ({
+      title: s.title,
+      value: s.value,
+      icon: s.icon,
+      color: s.color,
+      sparkline: trendFor(i + s.value),
+    }));
+  }, [statCells]);
+
+  const tableColumns = [
+    {
+      title: 'TEMPLATE NAME',
+      dataIndex: 'name',
+      key: 'name',
+      render: (_: any, t: LibraryTemplate) => {
+        const theme = resolveTheme(t.themeId);
+        return (
+          <div className="pp-name-cell" onClick={() => setPreviewTpl(t)} style={{ cursor: 'pointer' }}>
+            <div className="pp-name-icon" style={{ background: `linear-gradient(135deg, ${theme.from} 0%, ${theme.to} 100%)`, color: '#fff' }}>
+              <LayoutTemplate size={13} />
+            </div>
+            <span className="pp-name-title">{t.name}</span>
+          </div>
+        );
+      },
+    },
+    {
+      title: 'THEME',
+      key: 'theme',
+      render: (_: any, t: LibraryTemplate) => {
+        const theme = resolveTheme(t.themeId);
+        return (
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: 'var(--text-slate-700)' }}>
+            <span style={{ width: 12, height: 12, borderRadius: 3, background: `linear-gradient(135deg, ${theme.from}, ${theme.to})`, display: 'inline-block' }} />
+            {theme.label}
+          </span>
+        );
+      },
+    },
+    {
+      title: 'BLOCKS',
+      key: 'blocks',
+      render: (_: any, t: LibraryTemplate) => (
+        <span style={{ fontSize: '12px', color: 'var(--text-slate-700)' }}>
+          {blockCount(t)} block{blockCount(t) !== 1 ? 's' : ''}
+        </span>
+      ),
+    },
+    {
+      title: 'STRUCTURE',
+      key: 'chips',
+      render: (_: any, t: LibraryTemplate) => {
+        const chips = chipLabels(t);
+        return (
+          <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
+            {chips.slice(0, 3).map((label, i) => <span key={i} className="lib-tpl__seq-chip">{label}</span>)}
+            {chips.length > 3 && <span className="lib-tpl__seq-chip">+{chips.length - 3}</span>}
+          </div>
+        );
+      },
+    },
+    {
+      title: 'UPDATED',
+      dataIndex: 'updatedAt',
+      key: 'updatedAt',
+      render: (date: string) => <span style={{ fontSize: '12px', color: '#64748b' }}>{date ? dayjs(date).format('MMM D, YYYY') : '—'}</span>,
+    },
+    {
+      title: 'ACTIONS',
+      key: 'actions',
+      align: 'center' as const,
+      onHeaderCell: () => ({ style: { textAlign: 'center' as const } }),
+      onCell: () => ({ style: { textAlign: 'center' as const } }),
+      render: (_: any, t: LibraryTemplate) => (
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }} onClick={(e) => e.stopPropagation()}>
+          <Tooltip title="Preview">
+            <button type="button" className="pp-ghost-btn" onClick={() => setPreviewTpl(t)} style={{ width: 28, height: 28, fontSize: 12 }}>
+              <EyeOutlined />
+            </button>
+          </Tooltip>
+          {canCreateProposal && (
+            <Tooltip title="Use Template">
+              <button type="button" className="pp-ghost-btn" onClick={() => useTemplate(t)} style={{ width: 28, height: 28, fontSize: 12, color: '#2563eb' }}>
+                <ArrowRightOutlined />
+              </button>
+            </Tooltip>
+          )}
+          <Dropdown menu={cardMenu(t)} overlayClassName="pp-action-pop" trigger={['click']} placement="bottomRight">
+            <button type="button" className="pc-actions" style={{ background: 'transparent', border: 'none', cursor: 'pointer', padding: '4px' }}>
+              <EllipsisOutlined style={{ fontSize: '16px', color: '#64748b' }} />
+            </button>
+          </Dropdown>
+        </div>
+      ),
+    },
+  ];
+
   const emptyState = (
     <div className="pp-empty">
       <div className="pp-empty-orb"><LayoutTemplate size={26} /></div>
@@ -348,97 +447,106 @@ function TemplatesContent() {
 
           <div className="pp-divider" />
 
-          <div className="pp-stats">
-            {statCells.map((s, i) => (
-              <div key={s.key} className="pp-stat-card">
-                <div className="pp-stat-top">
-                  <div className="pp-stat-left">
-                    <span className="pp-stat-icon" style={{ background: s.tint, color: s.color }}>{s.icon}</span>
-                    <span className="pp-stat-label">{s.title}</span>
-                  </div>
-                </div>
-                <div className="pp-stat-bottom">
-                  <div className="pp-stat-value-wrap"><span className="pp-stat-value">{s.value}</span></div>
-                  <div className="pp-stat-spark"><AreaSparkline values={trendFor(i + s.value)} color={s.color} /></div>
-                </div>
-              </div>
-            ))}
-          </div>
+          <StatCards cards={cards} />
 
           <div className="pp-body">
-            <div className="pp-grid" style={view === 'list' ? { gridTemplateColumns: '1fr' } : undefined}>
-              {paged.length === 0 ? (
-                <div style={{ gridColumn: '1 / -1' }}><NoData description={emptyState} /></div>
-              ) : paged.map((t) => {
-                const theme = resolveTheme(t.themeId);
-                const chips = chipLabels(t);
-                return (
-                  <div key={t.id} className="pc-card" onClick={() => setPreviewTpl(t)}>
-                    <div className="pc-top">
-                      <div className="pc-avatar" style={{ background: `linear-gradient(135deg, ${theme.from} 0%, ${theme.to} 100%)` }}>
-                        <LayoutTemplate size={15} />
-                      </div>
-                      <div className="pc-identity-body">
-                        <div className="pc-title">{t.name}</div>
-                        <div className="pc-client-line">
-                          <span className="pc-client-key">Blocks:</span>
-                          <span className="pc-client-val">{blockCount(t)}</span>
+            {view === 'list' ? (
+              <div className="pp-table-wrap" style={{ borderRadius: 0, background: 'var(--bg-pure-white)', border: '1px solid var(--border-slate-200)' }}>
+                <Table
+                  columns={tableColumns}
+                  dataSource={paged}
+                  loading={templatesLoading}
+                  rowKey="id"
+                  size="small"
+                  className="pp-table"
+                  scroll={{ x: 'max-content' }}
+                  pagination={false}
+                  locale={{ emptyText: <NoData description={emptyState} /> }}
+                  onRow={(record) => ({
+                    onClick: (e) => {
+                      const t = e.target as HTMLElement;
+                      if (t.closest('.ant-dropdown-trigger, button')) return;
+                      setPreviewTpl(record);
+                    }
+                  })}
+                  rowClassName="pp-row"
+                />
+              </div>
+            ) : (
+              <div className="pp-grid" style={{ padding: '16px 24px' }}>
+                {paged.length === 0 ? (
+                  <div style={{ gridColumn: '1 / -1' }}><NoData description={emptyState} /></div>
+                ) : paged.map((t) => {
+                  const theme = resolveTheme(t.themeId);
+                  const chips = chipLabels(t);
+                  return (
+                    <div key={t.id} className="pc-card" onClick={() => setPreviewTpl(t)}>
+                      <div className="pc-top">
+                        <div className="pc-avatar" style={{ background: `linear-gradient(135deg, ${theme.from} 0%, ${theme.to} 100%)` }}>
+                          <LayoutTemplate size={15} />
+                        </div>
+                        <div className="pc-identity-body">
+                          <div className="pc-title">{t.name}</div>
+                          <div className="pc-client-line">
+                            <span className="pc-client-key">Blocks:</span>
+                            <span className="pc-client-val">{blockCount(t)}</span>
+                          </div>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 4 }} onClick={(e) => e.stopPropagation()}>
+                          {canDeleteProposal && !t.system && (
+                            <ConfirmDialog
+                              tone="danger"
+                              icon={<DeleteOutlined />}
+                              title="Delete template?"
+                              description={`"${t.name}" will be permanently removed. Proposals already created from it are not affected.`}
+                              confirmText="Delete"
+                              placement="bottomRight"
+                              onConfirm={() => handleDeleteTemplate(t)}
+                            >
+                              <button type="button" className="pc-actions" title="Delete" style={{ color: '#ef4444' }}><DeleteOutlined /></button>
+                            </ConfirmDialog>
+                          )}
+                          <Dropdown menu={cardMenu(t)} overlayClassName="pp-action-pop" trigger={['click']} placement="bottomRight">
+                            <button type="button" className="pc-actions"><EllipsisOutlined /></button>
+                          </Dropdown>
                         </div>
                       </div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 4 }} onClick={(e) => e.stopPropagation()}>
-                        {canDeleteProposal && !t.system && (
-                          <ConfirmDialog
-                            tone="danger"
-                            icon={<DeleteOutlined />}
-                            title="Delete template?"
-                            description={`"${t.name}" will be permanently removed. Proposals already created from it are not affected.`}
-                            confirmText="Delete"
-                            placement="bottomRight"
-                            onConfirm={() => handleDeleteTemplate(t)}
-                          >
-                            <button type="button" className="pc-actions" title="Delete" style={{ color: '#ef4444' }}><DeleteOutlined /></button>
-                          </ConfirmDialog>
-                        )}
-                        <Dropdown menu={cardMenu(t)} overlayClassName="pp-action-pop" trigger={['click']} placement="bottomRight">
-                          <button type="button" className="pc-actions"><EllipsisOutlined /></button>
-                        </Dropdown>
+                      <div className="pc-foot">
+                        <div className="pc-foot-row">
+                          <span className="pc-foot-item">
+                            <span className="pc-foot-key">Theme</span>
+                            <span style={{ width: 12, height: 12, borderRadius: 3, background: `linear-gradient(135deg, ${theme.from}, ${theme.to})`, display: 'inline-block' }} />
+                            <span className="pc-foot-val">{theme.label}</span>
+                          </span>
+                          <span className="pc-foot-div" />
+                          <span className="pc-foot-item">
+                            <span className="pc-foot-key">Updated</span>
+                            <span className="pc-foot-val">{t.updatedAt ? dayjs(t.updatedAt).format('MMM D, YYYY') : '—'}</span>
+                          </span>
+                        </div>
+                        <div className="pc-foot-row">
+                          {chips.slice(0, 3).map((label, i) => <span key={i} className="lib-tpl__seq-chip">{label}</span>)}
+                          {chips.length > 3 && <span className="lib-tpl__seq-chip">+{chips.length - 3}</span>}
+                        </div>
+                        <div className="pc-foot-row">
+                          <button type="button" className="pc-foot-item pc-view-btn" onClick={(e) => { e.stopPropagation(); setPreviewTpl(t); }}>
+                            <EyeOutlined /> Preview
+                          </button>
+                          {canCreateProposal && (
+                            <>
+                              <span className="pc-foot-div" />
+                              <button type="button" className="pc-foot-item pc-view-btn" onClick={(e) => { e.stopPropagation(); useTemplate(t); }}>
+                                <ArrowRightOutlined /> Use Template
+                              </button>
+                            </>
+                          )}
+                        </div>
                       </div>
                     </div>
-                    <div className="pc-foot">
-                      <div className="pc-foot-row">
-                        <span className="pc-foot-item">
-                          <span className="pc-foot-key">Theme</span>
-                          <span style={{ width: 12, height: 12, borderRadius: 3, background: `linear-gradient(135deg, ${theme.from}, ${theme.to})`, display: 'inline-block' }} />
-                          <span className="pc-foot-val">{theme.label}</span>
-                        </span>
-                        <span className="pc-foot-div" />
-                        <span className="pc-foot-item">
-                          <span className="pc-foot-key">Updated</span>
-                          <span className="pc-foot-val">{t.updatedAt ? dayjs(t.updatedAt).format('MMM D, YYYY') : '—'}</span>
-                        </span>
-                      </div>
-                      <div className="pc-foot-row">
-                        {chips.slice(0, 3).map((label, i) => <span key={i} className="lib-tpl__seq-chip">{label}</span>)}
-                        {chips.length > 3 && <span className="lib-tpl__seq-chip">+{chips.length - 3}</span>}
-                      </div>
-                      <div className="pc-foot-row">
-                        <button type="button" className="pc-foot-item pc-view-btn" onClick={(e) => { e.stopPropagation(); setPreviewTpl(t); }}>
-                          <EyeOutlined /> Preview
-                        </button>
-                        {canCreateProposal && (
-                          <>
-                            <span className="pc-foot-div" />
-                            <button type="button" className="pc-foot-item pc-view-btn" onClick={(e) => { e.stopPropagation(); useTemplate(t); }}>
-                              <ArrowRightOutlined /> Use Template
-                            </button>
-                          </>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
 
           {total > 0 && (

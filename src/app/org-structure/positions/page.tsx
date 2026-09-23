@@ -71,7 +71,7 @@ export default function PositionsPage() {
   const { message } = App.useApp();
   const [submitting, setSubmitting] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
-  const [view, setView] = useState<OrgView>("grid");
+  const [view, setView] = useState<OrgView>("list");
   const [openCardId, setOpenCardId] = useState<string | null>(null);
   const [pagination, setPagination] = useState({ current: 1, pageSize: 15 });
 
@@ -364,7 +364,7 @@ export default function PositionsPage() {
             style={{
               borderBottom: "1px solid var(--border-slate-200)",
               padding: "9.5px 32px",
-              marginBottom: 8,
+              marginBottom: 0,
               position: 'sticky',
               top: 0,
               zIndex: 100,
@@ -397,6 +397,7 @@ export default function PositionsPage() {
           />
 
             <OrgModuleScaffold<PositionViewData>
+              title="Positions Overview"
               search={searchText}
               onSearchChange={setSearchText}
               searchPlaceholder="Search by title or code..."

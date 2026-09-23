@@ -40,6 +40,7 @@ import {
   STATUS_META,
   STATUS_ORDER,
   StatusChip,
+  StatCards,
   TINT,
   WORK_MODE_LABELS,
   experienceRange,
@@ -374,39 +375,19 @@ export default function OpeningsListPanel({
         )}
       </PanelHeader>
 
-      <div className="omp-stats omp-stats-5">
-        {tiles.map((tile) => {
-          const active =
-            tile.statuses.length > 0 &&
-            tile.statuses.length === status.length &&
-            tile.statuses.every((s) => status.includes(s));
-          return (
-            <button
-              key={tile.label}
-              className={`omp-stat-card omp-stat-btn${active ? ' is-on' : ''}`}
-              // Tiles double as filters: clicking one narrows the table to those
-              // statuses, clicking it again clears them.
-              onClick={() => {
-                setStatus(active ? [] : tile.statuses);
-                setPage(1);
-              }}
-            >
-              <span
-                className="omp-stat-icon"
-                style={{ background: TINT[tile.tone], color: PALETTE[tile.tone] }}
-              >
-                {tile.icon}
-              </span>
-              <span className="omp-stat-body">
-                <span className="omp-stat-value">{tile.value}</span>
-                <span className="omp-stat-label">{tile.label}</span>
-              </span>
-            </button>
-          );
-        })}
-      </div>
+      <StatCards
+        title={archived ? 'Archive Overview' : 'Openings Overview'}
+        statusText="ACTIVE"
+        cells={tiles.map((tile) => ({
+          label: tile.label,
+          value: tile.value,
+          icon: tile.icon,
+          color: PALETTE[tile.tone],
+          tint: TINT[tile.tone],
+        }))}
+      />
 
-      <div className="omp-filters">
+      <div className="omp-filters" style={{ padding: '0 20px', marginTop: 14, marginBottom: 12 }}>
         <SearchableDropdown
           mode="multiple"
           value={status}
@@ -542,7 +523,7 @@ export default function OpeningsListPanel({
         </span>
       </div>
 
-      <div className="omp-table-wrap">
+      <div className="opn-table-wrap">
         <ZukvoLoadingOverlay loading={loading} message="">
           <Table<OpeningListItem>
             rowKey="id"

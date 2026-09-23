@@ -63,6 +63,7 @@ import { useActivitySource } from "@/hooks/useActivitySource";
 import { SearchableDropdown } from "@/components/common/SearchableDropdown";
 import ConfirmDialog from "@/components/common/ConfirmDialog";
 import { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
+import StatCards from "@/components/common/StatCards";
 
 const { Title, Text } = Typography;
 
@@ -979,52 +980,51 @@ export default function ClientsV2ListPage() {
                   </div>
                 </div>
 
-                <div className="cm-ambient" style={{ position: 'absolute', top: 56, left: 0, right: 0, height: 320, zIndex: 0 }} />
+                <StatCards
+                  cards={[
+                    {
+                      key: "total_clients",
+                      label: "Total Clients",
+                      value: globalStats.totalClients,
+                      icon: <Building2 size={14} />,
+                      color: "#3b82f6",
+                    },
+                    {
+                      key: "active_clients",
+                      label: "Active Clients",
+                      value: globalStats.activeClients,
+                      icon: <CheckCircle2 size={14} />,
+                      color: "#10b981",
+                    },
+                    {
+                      key: "total_projects",
+                      label: "Total Projects",
+                      value: projectStats.total,
+                      icon: <FolderKanban size={14} />,
+                      color: "#3b82f6",
+                    },
+                    {
+                      key: "active_projects",
+                      label: "Active Projects",
+                      value: projectStats.active,
+                      icon: <CheckCircle2 size={14} />,
+                      color: "#10b981",
+                    },
+                    {
+                      key: "contract_value",
+                      label: "Contract Value",
+                      value: formatCurrency(globalStats.totalContractValue),
+                      icon: <Wallet size={14} />,
+                      color: "#8b5cf6",
+                    },
+                  ]}
+                  title="Client Analytics"
+                  statusText="ACTIVE"
+                  progressPct={`${globalStats.totalClients > 0 ? Math.round((globalStats.activeClients / globalStats.totalClients) * 100) : 100}%`}
+                  style={{ borderBottom: "1px solid var(--border-slate-200)" }}
+                />
 
-                <div className="cm-body" style={{ padding: '0px 0px 14px 0px', position: 'relative', zIndex: 1 }}>
-                  {/* Stat grid */}
-                  <div className="pp-stats">
-                    <StatCard
-                      label="Total Clients"
-                      value={globalStats.totalClients}
-                      icon={Users}
-                      accent="#3b82f6"
-                      subtle="this week"
-                      loading={globalStats.totalClients === 0 && loading}
-                      trend={{ value: 4, label: "New this week", positive: true }}
-                      chart={<Sparkline data={[0.0, 0.05, 0.25, 0.45, 0.45, 0.7, 1.0].map(r => r * globalStats.totalClients)} color="#cbd5e1" />}
-                    />
-                    <StatCard
-                      label="Total Projects"
-                      value={projectStats.total}
-                      icon={FolderKanban}
-                      accent="#3b82f6"
-                      subtle="this week"
-                      loading={projectStats.total === 0 && loading}
-                      trend={{ value: 7, label: "New this week", positive: true }}
-                      chart={<Sparkline data={[0.0, 0.3, 0.25, 0.5, 0.65, 0.8, 1.0].map(r => r * projectStats.total)} color="#10b981" />}
-                    />
-                    <StatCard
-                      label="Active Projects"
-                      value={projectStats.active}
-                      icon={CheckCircle2}
-                      accent="#10b981"
-                      subtle="this week"
-                      loading={projectStats.total === 0 && loading}
-                      trend={{ value: 3, label: "New this week", positive: true }}
-                      chart={<Sparkline data={[0.0, 0.2, 0.4, 0.55, 0.75, 0.85, 1.0].map(r => r * projectStats.active)} color="#cbd5e1" />}
-                    />
-                    <StatCard
-                      label="Contract Value"
-                      value={formatCurrency(globalStats.totalContractValue)}
-                      icon={Wallet}
-                      accent="#687487"
-                      subtle="this week"
-                      loading={globalStats.totalClients === 0 && loading}
-                      trend={{ value: 1, label: "New this week", positive: true }}
-                      chart={<Sparkline data={[1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0].map(r => r * globalStats.totalContractValue)} color="#cbd5e1" />}
-                    />
-                  </div>
+                <div className="cm-body" style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: viewMode === 'card' ? '16px 20px' : '0', position: 'relative', zIndex: 1 }}>
 
                   {/* Premium table card or Grid */}
                   <ZukvoLoadingOverlay loading={loading} message="">
@@ -1493,7 +1493,9 @@ export default function ClientsV2ListPage() {
         }
         .bh2-main {
           min-width: 0;
-          padding: 14px 20px 12px;
+          height: calc(100vh - 54px);
+          overflow: hidden;
+          padding: 0;
           background: var(--bg-pure-white) !important;
           display: flex;
           flex-direction: column;
@@ -1856,12 +1858,10 @@ export default function ClientsV2ListPage() {
           align-items: center;
           gap: 10px;
           flex-wrap: wrap;
-          position: sticky;
-          top: 0;
-          z-index: 10;
+          flex-shrink: 0;
           background: var(--bg-pure-white);
-          margin: -14px -20px 0;
-          padding: 6px 20px;
+          margin: 0;
+          padding: 8px 20px;
           border-bottom: 1px solid var(--border-slate-200);
         }
         [data-theme="dark"] .bh2-toolbar {
@@ -2020,11 +2020,10 @@ export default function ClientsV2ListPage() {
           align-items: center;
           justify-content: space-between;
           gap: 12px;
-          padding: 10px 24px;
-          margin: auto -24px -12px -20px;
+          padding: 10px 20px;
+          margin: 0;
           flex-wrap: wrap;
-          position: sticky;
-          bottom: 0;
+          flex-shrink: 0;
           background: var(--bg-pure-white);
           border-top: 1px solid var(--border-slate-200);
           z-index: 10;
@@ -3369,7 +3368,7 @@ export default function ClientsV2ListPage() {
             .cm-table-card {
               background: var(--bg-pure-white);
               border-radius: 0;
-              border: 1px solid var(--border-slate-200);
+              border: none;
               overflow: hidden;
               margin-top: 0px !important;
             }

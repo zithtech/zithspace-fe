@@ -36,6 +36,7 @@ import { useTimesheets } from "@/hooks/useTimesheet";
 import dayjs from "dayjs";
 import { useState } from "react";
 import { TimeTrackingHeader } from "@/components/time-tracking/TimeTrackingHeader";
+import StatCards from "@/components/common/StatCards";
 
 const { Title, Text } = Typography;
 
@@ -212,44 +213,35 @@ export default function DashboardTab() {
       />
 
       <div style={{ flex: 1, overflowY: "auto", padding: "16px 32px 32px 32px", scrollbarWidth: "none" }}>
-        <Row gutter={[16, 12]} style={{ marginBottom: 16 }}>
-          <Col xs={24} sm={12} lg={6}>
-            <StatBox
-              label="Total Timesheets"
-              value={total}
-              icon={FileText}
-              color="#0ea5e9"
-              subText="All recorded records"
-            />
-          </Col>
-          <Col xs={24} sm={12} lg={6}>
-            <StatBox
-              label="Approved"
-              value={approved}
-              icon={CheckCircle2}
-              color="#10b981"
-              subText={`${approved} processed successfully`}
-            />
-          </Col>
-          <Col xs={24} sm={12} lg={6}>
-            <StatBox
-              label="Pending Approval"
-              value={pending}
-              icon={Clock}
-              color="#f59e0b"
-              subText="Awaiting manager review"
-            />
-          </Col>
-          <Col xs={24} sm={12} lg={6}>
-            <StatBox
-              label="Rejected"
-              value={rejected}
-              icon={AlertCircle}
-              color="#ef4444"
-              subText="Requires resubmission"
-            />
-          </Col>
-        </Row>
+        <StatCards
+          style={{ marginBottom: 16 }}
+          cards={[
+            {
+              label: "Total Timesheets",
+              value: total,
+              icon: <FileText size={16} />,
+              color: "#0ea5e9",
+            },
+            {
+              label: "Approved",
+              value: approved,
+              icon: <CheckCircle2 size={16} />,
+              color: "#10b981",
+            },
+            {
+              label: "Pending Approval",
+              value: pending,
+              icon: <Clock size={16} />,
+              color: "#f59e0b",
+            },
+            {
+              label: "Rejected",
+              value: rejected,
+              icon: <AlertCircle size={16} />,
+              color: "#ef4444",
+            },
+          ]}
+        />
 
         <Row gutter={[16, 16]}>
           {/* LEFT: Status Breakdown */}

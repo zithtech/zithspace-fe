@@ -9,6 +9,8 @@ import ProtectedRoute from '@/components/common/ProtectedRoute';
 import { useAuth } from '@/context/AuthContext';
 import { usePermission } from '@/hooks/usePermission';
 
+import { DocStyles } from '@/components/letters/ui';
+
 interface NavItem {
   key: string;
   label: string;
@@ -108,6 +110,7 @@ export default function LettersDocsLayout({ children }: { children: React.ReactN
   return (
     <ProtectedRoute>
       <MainLayout>
+        <DocStyles />
         <div className="lv-shell">
           {isMobileOpen && (
             <div className="lv-sidebar-backdrop" onClick={() => setIsMobileOpen(false)} />

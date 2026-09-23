@@ -9,6 +9,7 @@ import {
   CalendarOutlined,
 } from "@ant-design/icons";
 import dayjs from "dayjs";
+import StatCards from "@/components/common/StatCards";
 import { TimeTrackingService, TimeTrackingEntry } from "@/services/timeTracking.service";
 import { useTimeTrackerStore } from "@/store/useTimeTrackerStore";
 import { calculateNetDuration } from "@/utils/timeTrackingUtils";
@@ -204,96 +205,15 @@ export function MyTimeStatsStrip({ refreshKey }: { refreshKey?: number }) {
     );
   }
 
-  return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
-      {stats.map((s) => {
-          return (
-              <div
-                  key={s.key}
-                  className="dh-stats-card flex flex-col justify-between p-3.5 transition-all"
-                  style={{
-                      border: '1px solid var(--border-slate-200)',
-                      background: 'var(--bg-pure-white)',
-                      boxShadow: '0 1px 2px rgba(15, 23, 42, 0.04)',
-                      height: 86,
-                  }}
-              >
-                  <div className="flex items-start justify-between w-full">
-                      <div className="flex items-center gap-2">
-                          <div style={{
-                              color: s.color,
-                              fontSize: 15,
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              width: 26,
-                              height: 26,
-                              background: `${s.color}1c`,
-                              borderRadius: 6,
-                          }}>
-                              {s.icon}
-                          </div>
-                          <span
-                              className="text-[12.5px] font-medium"
-                              style={{ color: 'var(--text-slate-500)', letterSpacing: '0.01em' }}
-                          >
-                              {s.title}
-                          </span>
-                      </div>
-                      {s.deltaText && (
-                          <Tooltip title="Trend">
-                              <span
-                                  className="inline-flex items-center justify-center gap-1 text-[11px] font-bold px-[6px] py-[2px] rounded-full whitespace-nowrap"
-                                  style={{
-                                      color: s.deltaColor,
-                                      background: `${s.deltaColor}1c`
-                                  }}
-                              >
-                                  {s.deltaText}
-                              </span>
-                          </Tooltip>
-                      )}
-                  </div>
+  const statCards = stats.map((s) => ({
+    label: s.title,
+    value:
+      typeof s.value === "string"
+        ? s.value
+        : `${s.value.h}h ${String(s.value.m).padStart(2, "0")}m`,
+    icon: s.icon,
+    color: s.color,
+  }));
 
-                  <div className="flex items-end justify-between w-full mt-auto gap-2">
-                      <div className="flex items-baseline gap-1.5 pb-1 min-w-0">
-                          <span
-                              className="text-[18px] xl:text-[20px] font-semibold leading-none tracking-tight truncate whitespace-nowrap"
-                              style={{ color: 'var(--text-slate-800)' }}
-                          >
-                              {typeof s.value === 'string' ? s.value : (
-                                  <>
-                                      {s.value.h}<span className="text-[12px] font-medium text-slate-400 mx-[2px]">h</span>
-                                      {String(s.value.m).padStart(2, "0")}<span className="text-[12px] font-medium text-slate-400 ml-[2px]">m</span>
-                                  </>
-                              )}
-                          </span>
-                          <span
-                              className="text-[11px] font-medium truncate hidden 2xl:inline-block"
-                              style={{ color: 'var(--text-slate-400)' }}
-                          >
-                              {s.footerText}
-                          </span>
-                      </div>
-                      <div className="shrink-0 mb-[2px]">
-                          <Sparkline
-                              data={s.trend}
-                              color={s.color}
-                          />
-                      </div>
-                  </div>
-              </div>
-          );
-      })}
-      <style jsx>{`
-          .dh-stats-card:hover {
-              border-color: var(--border-slate-300, #cbd5e1);
-              box-shadow: 0 4px 14px rgba(15, 23, 42, 0.07);
-          }
-          :global([data-theme='dark']) .dh-stats-card:hover {
-              background: rgba(255, 255, 255, 0.02);
-          }
-      `}</style>
-    </div>
-  );
+  return <StatCards cards={statCards} />;
 }

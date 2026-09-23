@@ -4,7 +4,7 @@ import NoData from "@/components/common/NoData";
 import ZukvoLoader from "@/components/common/ZukvoLoader";
 
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { useTheme } from "@/context/ThemeContext";
 import SearchableDropdown from "@/components/common/SearchableDropdown";
@@ -36,6 +36,10 @@ import {
   CalendarOutlined,
   SearchOutlined,
   MenuOutlined,
+  FileTextOutlined,
+  ClockCircleOutlined,
+  ProjectOutlined,
+  WarningOutlined,
 } from "@ant-design/icons";
 import {
   Plus,
@@ -55,6 +59,7 @@ import {
 } from "lucide-react";
 import dayjs, { Dayjs } from "dayjs";
 import MainLayout from "@/components/layout/MainLayout";
+import StatCards from "@/components/common/StatCards";
 import UpdateCard from "@/components/daily-updates/UpdateCard";
 import DailyUpdatesDashboard from "@/components/daily-updates/DailyUpdatesDashboard";
 import UpdateTable from "@/components/daily-updates/UpdateTable";
@@ -62,7 +67,7 @@ import UpdateDetailsDrawer from "@/components/daily-updates/UpdateDetailsDrawer"
 import ManageTimeDrawer from "@/components/daily-updates/ManageTimeDrawer";
 import DailyUpdateService from "@/services/dailyUpdateService";
 import { ProjectService } from "@/services/projectService";
-import { DailyStatusUpdate } from "@/types/dailyUpdate";
+import { DailyStatusUpdate, ProjectUpdate, formatHours } from "@/types/dailyUpdate";
 import { TimeTrackingHeader } from "@/components/time-tracking/TimeTrackingHeader";
 import { useActivitySource } from "@/hooks/useActivitySource";
 import TransactionHistoryDrawer from "@/components/common/TransactionHistoryDrawer";
@@ -197,13 +202,55 @@ function ViewDailyUpdatesContent({ user }: { user: any }) {
   const [selectedUser, setSelectedUser] = useState<string | undefined>(
     undefined,
   );
-  const [viewMode, setViewMode] = useState<ViewMode>("card");
+  const [viewMode, setViewMode] = useState<ViewMode>("list");
   const [selectedUpdate, setSelectedUpdate] =
     useState<DailyStatusUpdate | null>(null);
   const [detailsModalOpen, setDetailsModalOpen] = useState(false);
   const [manageTimeOpen, setManageTimeOpen] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+
+  const trendFor = (seed: number): number[] =>
+    Array.from({ length: 8 }, (_, i) => 3 + ((seed * 7 + i * i * 5) % 11));
+
+  const statsData = useMemo(() => {
+    let totalHours = 0;
+    const uniqueProjects = new Set<string>();
+    let missedCount = 0;
+
+    updates.forEach((u) => {
+      if (u.is_missed) missedCount++;
+      const projectUpdates = (u.projectUpdates || []) as ProjectUpdate[];
+      projectUpdates.forEach((p) => {
+        totalHours += p.hoursWorked || 0;
+        if (p.projectId) uniqueProjects.add(p.projectId);
+      });
+    });
+
+    return {
+      totalUpdates: updates.length,
+      totalHours: formatHours(totalHours),
+      activeProjects: uniqueProjects.size,
+      missedUpdates: missedCount,
+    };
+  }, [updates]);
+
+  const statCells = [
+    { key: 'updates', title: 'Total Updates', value: statsData.totalUpdates, icon: <FileTextOutlined />, color: '#3B82F6', tint: 'var(--bg-blue-50)' },
+    { key: 'hours', title: 'Hours Logged', value: statsData.totalHours, icon: <ClockCircleOutlined />, color: '#2563eb', tint: 'rgba(37,99,235,0.10)' },
+    { key: 'projects', title: 'Active Projects', value: statsData.activeProjects, icon: <ProjectOutlined />, color: '#059669', tint: 'rgba(5,150,105,0.10)' },
+    { key: 'missed', title: 'Missed Updates', value: statsData.missedUpdates, icon: <WarningOutlined />, color: '#ef4444', tint: 'rgba(239,68,68,0.10)' },
+  ];
+
+  const cards = useMemo(() => {
+    return statCells.map((s, i) => ({
+      title: s.title,
+      value: s.value,
+      icon: s.icon,
+      color: s.color,
+      sparkline: trendFor(i + (typeof s.value === 'number' ? s.value : 5)),
+    }));
+  }, [statCells]);
 
   const [cardPage, setCardPage] = useState(1);
   const [cardPageSize, setCardPageSize] = useState(15);
@@ -502,7 +549,7 @@ function ViewDailyUpdatesContent({ user }: { user: any }) {
           flex: 1;
           overflow-y: auto;
           overflow-x: hidden;
-          padding: 0 24px 0 24px;
+          padding: 0;
           display: flex;
           flex-direction: column;
           scrollbar-width: none !important;
@@ -550,8 +597,8 @@ function ViewDailyUpdatesContent({ user }: { user: any }) {
         @media (max-width: 820px) {
           .btn-text-mobile-hide { display: none; }
           .du-main-header { padding: 12px 16px !important; }
-          .du-main-scroll { padding: 0 16px 0 16px !important; }
-          .du-footer--sticky { margin-left: -16px !important; margin-right: -16px !important; padding: 12px 16px !important; }
+          .du-main-scroll { padding: 0 !important; }
+          .du-footer--sticky { margin: auto 0 0 0 !important; padding: 12px 16px !important; }
           .mobile-menu-btn { display: inline-flex !important; align-items: center; justify-content: center; color: var(--text-slate-700); }
           .du-sidebar {
             position: fixed;
@@ -583,7 +630,7 @@ function ViewDailyUpdatesContent({ user }: { user: any }) {
 
         .du-footer--sticky {
           position: sticky; bottom: 0; z-index: 30; 
-          margin-top: auto; margin-right: -24px; margin-bottom: 0; margin-left: -24px;
+          margin: auto 0 0 0;
           padding: 12px 24px;
           background: var(--bg-pure-white);
           box-shadow: 0 -4px 14px rgba(15,23,42,0.05);
@@ -1012,12 +1059,12 @@ function ViewDailyUpdatesContent({ user }: { user: any }) {
           </div>
         </header>
 
-        <div className="px-6 pt-4">
-          <DailyUpdatesDashboard updates={updates} isLoading={loading} />
-        </div>
+        <div className="du-divider" style={{ height: 1, background: 'var(--border-slate-200)', margin: 0 }} />
+
+        <StatCards cards={cards} />
 
         <div className="du-main-scroll">
-          <div style={{ display: "flex", flexDirection: "column", flex: 1, width: "100%", maxWidth: 1400, margin: "0 auto" }}>
+          <div style={{ display: "flex", flexDirection: "column", flex: 1, width: "100%" }}>
             {/* Content Loading/Empty States */}
             {loading ? (
               <div style={{ padding: "100px 0", textAlign: "center" }}>
@@ -1034,8 +1081,8 @@ function ViewDailyUpdatesContent({ user }: { user: any }) {
                                                     } />
               </Card>
             ) : viewMode === "card" ? (
-              <>
-                <div className="updates-grid">
+              <div style={{ display: "flex", flexDirection: "column", flex: "1 0 auto", width: "100%" }}>
+                <div className="updates-grid" style={{ padding: "16px 24px", marginBottom: 0 }}>
                   {currentCardUpdates.map((update) => (
                     <UpdateCard
                       key={update.id}
@@ -1046,7 +1093,7 @@ function ViewDailyUpdatesContent({ user }: { user: any }) {
                   ))}
                 </div>
                 {totalCards > 0 && (
-                  <div className="du-footer--sticky" style={{ marginTop: "auto" }}>
+                  <div className="du-footer--sticky">
                     <div className="du-footer-info">
                       Showing <strong>{pageStart}–{pageEnd}</strong> of <strong>{totalCards}</strong>
                     </div>
@@ -1066,7 +1113,7 @@ function ViewDailyUpdatesContent({ user }: { user: any }) {
                     </div>
                   </div>
                 )}
-              </>
+              </div>
             ) : (
               <UpdateTable
                 updates={updates}

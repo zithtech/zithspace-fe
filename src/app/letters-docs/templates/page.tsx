@@ -31,6 +31,7 @@ import { usePermission } from '@/hooks/usePermission';
 import { toast } from 'react-hot-toast';
 import { Table, Button, Dropdown, Tooltip, Select, Modal, Switch, Avatar } from 'antd';
 import { LetterStatsCards, StatCellData } from '@/components/letters/LetterStatsCards';
+import { StatCards, PALETTE, TINT } from '@/components/letters/ui';
 import { SnippetsOutlined, FileTextOutlined, CheckCircleOutlined, StarOutlined } from '@ant-design/icons';
 import AiCreateTemplateModal from '@/components/letters/AiCreateTemplateModal';
 import { ThunderboltOutlined } from '@ant-design/icons';
@@ -530,10 +531,18 @@ export default function TemplateManagementPage() {
         </div>
       </div>
 
-      <div style={{ padding: '14px 24px 32px', flex: 1, overflow: 'hidden', minWidth: 0, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
+      <StatCards
+        title="Template Overview"
+        statusText="ACTIVE"
+        cells={[
+          { label: 'Total Templates', value: stats.total ?? total ?? 0, icon: <FileText size={15} />, color: PALETTE.blue, tint: TINT.blue },
+          { label: 'Active Templates', value: stats.activeCount ?? 0, icon: <CheckCircle2 size={15} />, color: PALETTE.green, tint: TINT.green },
+          { label: 'Global Templates', value: stats.globalCount ?? 0, icon: <Layers size={15} />, color: PALETTE.violet, tint: TINT.violet },
+          { label: 'Recent Templates', value: stats.recentCount ?? 0, icon: <Clock size={15} />, color: PALETTE.amber, tint: TINT.amber },
+        ]}
+      />
 
-        <LetterStatsCards statCells={statCells} />
-
+      <div className="doc-table-wrap">
         {/* Templates List */}
         {loading ? (
           <div style={{ padding: '60px 0', textAlign: 'center', color: 'var(--text-slate-600)', fontSize: '15px' }}>
@@ -581,21 +590,18 @@ export default function TemplateManagementPage() {
             </div>
           } />
         ) : view === 'list' ? (
-          <div className="att-table-wrap" style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
-            <Table
-              rowKey="id"
-              size="small"
-              className="att-table flex-table"
-              columns={columns}
-              dataSource={paginatedTemplates}
-              pagination={false}
-              scroll={{ x: 'max-content', y: '100%' }}
-              onRow={() => ({ className: 'att-row' })} locale={{ emptyText: <NoData /> }}
-            />
-          </div>
+          <Table
+            rowKey="id"
+            size="small"
+            columns={columns}
+            dataSource={paginatedTemplates}
+            pagination={false}
+            scroll={{ x: 'max-content' }}
+            locale={{ emptyText: <NoData /> }}
+          />
         ) : (
-          <div style={{ flex: 1, overflowY: 'auto', minHeight: 0, paddingRight: '4px', marginRight: '-4px' }}>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '16px', paddingBottom: '16px' }}>
+          <div style={{ flex: 1, overflowY: 'auto', minHeight: 0 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '16px', padding: '16px' }}>
               {paginatedTemplates.map((tpl) => (
                 <div key={tpl.id} className="pc-card" onClick={() => router.push(`/letters-docs/templates/builder?id=${tpl.id}`)}>
                   <div className="pc-top">

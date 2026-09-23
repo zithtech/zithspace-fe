@@ -35,6 +35,7 @@ import {
   CheckOutlined,
 } from '@ant-design/icons';
 import { usePermission } from '@/hooks/usePermission';
+import { StatCards } from '@/components/payroll-v2/ui';
 import { SearchableDropdown } from '@/components/common/SearchableDropdown';
 import ConfirmDialog from '@/components/common/ConfirmDialog';
 import PayrollV2Service, {
@@ -412,20 +413,7 @@ export default function SalaryStructurePanel() {
       </div>
 
       {/* STAT CARDS */}
-      <div className="pvs-stats">
-        {statCells.map((s) => (
-          <div key={s.key} className="pvs-stat-card">
-            <div className="pvs-stat-left">
-              <span className="pvs-stat-icon" style={{ background: s.tint, color: s.color }}>{s.icon}</span>
-              <span className="pvs-stat-label">{s.title}</span>
-            </div>
-            <div className="pvs-stat-value-wrap">
-              <span className="pvs-stat-value">{s.value}</span>
-              <span className="pvs-stat-period">{s.period}</span>
-            </div>
-          </div>
-        ))}
-      </div>
+      <StatCards cells={statCells.map(s => ({ label: s.title, value: s.value, icon: s.icon, color: s.color, tint: s.tint }))} />
 
       {/* FILTERS */}
       <div className="pvs-filters">
@@ -442,9 +430,9 @@ export default function SalaryStructurePanel() {
       </div>
 
       {/* TABLE */}
-      <div className="pvs-table-wrap">
+      <div className="pv-table-wrap">
         <ZukvoLoadingOverlay loading={loading} message="">
-              <Table rowKey="id" size="small" className="pvs-table" columns={columns} dataSource={pagedRows} pagination={false} onRow={() => ({ className: 'pvs-row' })} scroll={{ x: 'max-content' }} locale={{ emptyText: <NoData /> }} />
+              <Table rowKey="id" size="small" columns={columns} dataSource={pagedRows} pagination={false} onRow={() => ({ className: 'pvs-row' })} scroll={{ x: 'max-content' }} locale={{ emptyText: <NoData /> }} />
               </ZukvoLoadingOverlay>
       </div>
 
@@ -633,7 +621,7 @@ export default function SalaryStructurePanel() {
         .pvs-table .ant-table-tbody > tr.pvs-row:hover > td { background: var(--bg-slate-50) !important; }
 
         .pvs-footer { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; height: 52px; box-sizing: border-box; }
-        .pvs-footer--sticky { position: sticky; bottom: 0; z-index: 20; margin: auto -22px 0; padding: 0 22px; background: var(--bg-pure-white); border-top: 1px solid var(--border-slate-200); box-shadow: 0 -4px 14px rgba(15,23,42,0.05); }
+        .pvs-footer--sticky { position: sticky; bottom: 0; z-index: 20; margin: 0; padding: 0 22px; background: var(--bg-pure-white); border-top: 1px solid var(--border-slate-200); box-shadow: 0 -4px 14px rgba(15,23,42,0.05); }
         .pvs-footer-info { font-size: 12px; color: var(--text-slate-500); }
         .pvs-footer-info strong { color: var(--text-slate-700); font-weight: 700; }
         .pvs-pager { display: flex; align-items: center; gap: 3px; }

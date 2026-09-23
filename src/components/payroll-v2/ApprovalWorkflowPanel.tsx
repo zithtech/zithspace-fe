@@ -232,9 +232,9 @@ export default function ApprovalWorkflowPanel() {
         </div>
       </div>
 
-      <div className="pvw-table-wrap">
+      <div className="pv-table-wrap">
         <ZukvoLoadingOverlay loading={loading} message="">
-          <Table rowKey="id" size="small" className="pvw-table" columns={columns} dataSource={pagedRows} pagination={false} onRow={() => ({ className: 'pvw-row' })} scroll={{ x: 'max-content' }} locale={{ emptyText: <NoData /> }} />
+          <Table rowKey="id" size="small" columns={columns} dataSource={pagedRows} pagination={false} onRow={() => ({ className: 'pvw-row' })} scroll={{ x: 'max-content' }} locale={{ emptyText: <NoData /> }} />
         </ZukvoLoadingOverlay>
       </div>
 
@@ -358,7 +358,7 @@ export default function ApprovalWorkflowPanel() {
         .pvw-table .ant-table-tbody > tr:last-child > td { border-bottom: none !important; }
         .pvw-table .ant-table-tbody > tr.pvw-row:hover > td { background: var(--bg-slate-50) !important; }
         .pvw-footer { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; height: 52px; box-sizing: border-box; }
-        .pvw-footer--sticky { position: sticky; bottom: 0; z-index: 20; margin: auto -22px 0; padding: 0 22px; background: var(--bg-pure-white); border-top: 1px solid var(--border-slate-200); box-shadow: 0 -4px 14px rgba(15,23,42,0.05); }
+        .pvw-footer--sticky { position: sticky; bottom: 0; z-index: 20; margin: 0; padding: 0 22px; background: var(--bg-pure-white); border-top: 1px solid var(--border-slate-200); box-shadow: 0 -4px 14px rgba(15,23,42,0.05); }
         .pvw-footer-info { font-size: 12px; color: var(--text-slate-500); }
         .pvw-footer-info strong { color: var(--text-slate-700); font-weight: 700; }
         .pvw-pager { display: flex; align-items: center; gap: 3px; }

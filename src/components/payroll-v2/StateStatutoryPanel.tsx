@@ -314,13 +314,13 @@ export default function StateStatutoryPanel() {
         <span className="pvss-count">{total} shown</span>
       </div>
 
-      <div className="pvss-table-wrap">
+      <div className="pv-table-wrap">
         {view === 'pt'
           ? <ZukvoLoadingOverlay loading={loading} message="">
-                  <Table rowKey="id" size="small" className="pvss-table" columns={ptColumns} dataSource={pagedRows} pagination={false} onRow={() => ({ className: 'pvss-row' })} locale={{ emptyText: <NoData /> }} />
+                  <Table rowKey="id" size="small" columns={ptColumns} dataSource={pagedRows} pagination={false} onRow={() => ({ className: 'pvss-row' })} locale={{ emptyText: <NoData /> }} />
                   </ZukvoLoadingOverlay>
           : <ZukvoLoadingOverlay loading={loading} message="">
-                  <Table rowKey="id" size="small" className="pvss-table" columns={lwfColumns} dataSource={pagedRows} pagination={false} onRow={() => ({ className: 'pvss-row' })} locale={{ emptyText: <NoData /> }} />
+                  <Table rowKey="id" size="small" columns={lwfColumns} dataSource={pagedRows} pagination={false} onRow={() => ({ className: 'pvss-row' })} locale={{ emptyText: <NoData /> }} />
                   </ZukvoLoadingOverlay>}
       </div>
 
@@ -445,7 +445,7 @@ export default function StateStatutoryPanel() {
         .pvss-search { flex: 1; border: none; outline: none; background: transparent; margin-left: 9px; font-size: 13px; color: var(--text-slate-900); }
         .pvss-ghost-btn { width: 34px; height: 34px; border-radius: 8px; border: 1px solid var(--border-slate-200); background: var(--bg-slate-50); color: var(--text-slate-700); cursor: pointer; font-size: 14px; display: inline-flex; align-items: center; justify-content: center; }
         .pvss-add-btn { height: 34px !important; border-radius: 8px !important; font-weight: 600 !important; }
-        .pvss-toolbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+        .pvss-toolbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; padding-left: 20px; padding-right: 20px; }
         .pvss-count { font-size: 12px; color: var(--text-slate-500); }
         .pvss-tabs { display: inline-flex; gap: 4px; padding: 4px; background: var(--bg-slate-50); border: 1px solid var(--border-slate-200); border-radius: 12px; }
         .pvss-tab { display: inline-flex; align-items: center; gap: 8px; height: 36px; padding: 0 16px; border: none; background: transparent; border-radius: 9px; font-size: 13px; font-weight: 600; line-height: 1; white-space: nowrap; color: var(--text-slate-500); cursor: pointer; transition: color .15s ease, background .15s ease, box-shadow .15s ease; }
@@ -466,7 +466,7 @@ export default function StateStatutoryPanel() {
         .pvss-table .ant-table-tbody > tr:last-child > td { border-bottom: none !important; }
         .pvss-table .ant-table-tbody > tr.pvss-row:hover > td { background: var(--bg-slate-50) !important; }
         .pvss-footer { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; height: 52px; box-sizing: border-box; }
-        .pvss-footer--sticky { position: sticky; bottom: 0; z-index: 20; margin: auto -22px 0; padding: 0 22px; background: var(--bg-pure-white); border-top: 1px solid var(--border-slate-200); box-shadow: 0 -4px 14px rgba(15,23,42,0.05); }
+        .pvss-footer--sticky { position: sticky; bottom: 0; z-index: 20; margin: 0; padding: 0 22px; background: var(--bg-pure-white); border-top: 1px solid var(--border-slate-200); box-shadow: 0 -4px 14px rgba(15,23,42,0.05); }
         .pvss-footer-info { font-size: 12px; color: var(--text-slate-500); }
         .pvss-footer-info strong { color: var(--text-slate-700); font-weight: 700; }
         .pvss-pager { display: flex; align-items: center; gap: 3px; }

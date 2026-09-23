@@ -454,8 +454,8 @@ export default function UpdateTable({
   const paginatedData = dataSource.slice((currentPage - 1) * pageSize, currentPage * pageSize);
 
   return (
-    <>
-      <div style={{ flex: "1 0 auto", background: "var(--bg-pure-white)", borderRadius: 0, border: "1px solid var(--border-slate-200)", overflow: "hidden", marginBottom: 24 }}>
+    <div style={{ display: "flex", flexDirection: "column", flex: "1 0 auto", width: "100%" }}>
+      <div style={{ flex: "1 0 auto", background: "var(--bg-pure-white)", borderRadius: 0, border: "1px solid var(--border-slate-200)", overflow: "hidden", marginBottom: 0 }}>
         <ZukvoLoadingOverlay loading={loading} message="">
           <Table
             columns={columns}
@@ -501,7 +501,7 @@ export default function UpdateTable({
         }
         .du-footer--sticky {
           position: sticky; bottom: 0; z-index: 30; 
-          margin-top: auto; margin-right: -24px; margin-bottom: 0; margin-left: -24px;
+          margin-top: auto; margin-right: 0; margin-bottom: 0; margin-left: 0;
           padding: 12px 24px;
           background: var(--bg-pure-white);
           box-shadow: 0 -4px 14px rgba(15,23,42,0.05);
@@ -645,6 +645,6 @@ export default function UpdateTable({
         :global(.du-icon-btn) { color: var(--text-slate-400) !important; width: 26px !important; height: 26px !important; min-width: 26px !important; padding: 0 !important; }
         :global(.du-icon-btn:hover) { color: var(--text-slate-900) !important; background: var(--bg-slate-100) !important; }
       `}</style>
-    </>
+    </div>
   );
 }

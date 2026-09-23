@@ -3,9 +3,20 @@
 import NoData from "@/components/common/NoData";
 import React, { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { App, Button, Empty, Progress, Skeleton, Table, Tooltip } from 'antd';
+import { App, Button, Empty, Pagination, Progress, Skeleton, Table, Tooltip } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
-import { LayoutDashboard, RotateCw, Users } from 'lucide-react';
+import {
+  Award,
+  Briefcase,
+  Calendar,
+  CheckCircle2,
+  FileText,
+  LayoutDashboard,
+  RotateCw,
+  UserCheck,
+  Users,
+  XCircle,
+} from 'lucide-react';
 
 import { SearchableDropdown } from '@/components/common/SearchableDropdown';
 import OpeningV2Service, {
@@ -22,6 +33,7 @@ import {
   STAGE_META,
   STATUS_META,
   STATUS_ORDER,
+  StatCards,
   StatusChip,
   TINT,
   tablePaginationConfig,
@@ -109,12 +121,6 @@ export default function DashboardPanel() {
             <strong>
               {r.joined}/{r.openPositions}
             </strong>
-            <Progress
-              percent={r.openPositions ? Math.round((r.joined / r.openPositions) * 100) : 0}
-              showInfo={false}
-              size="small"
-              strokeColor={PALETTE.green}
-            />
           </div>
         </Tooltip>
       ),
@@ -129,15 +135,6 @@ export default function DashboardPanel() {
       width: 90,
       align: 'center',
       render: (v: number) => (v ? <span style={{ color: PALETTE.red }}>{v}</span> : v),
-    },
-    {
-      title: 'Age',
-      width: 90,
-      render: (_: any, r) => (
-        <Tooltip title={r.daysSincePosted !== null ? `${r.daysSincePosted} days since posting` : 'Never posted'}>
-          <span>{r.ageDays}d</span>
-        </Tooltip>
-      ),
     },
     {
       title: 'Time to hire',
@@ -165,58 +162,52 @@ export default function DashboardPanel() {
         <Button icon={<RotateCw size={14} />} loading={loading} onClick={load} />
       </PanelHeader>
 
-      <div className="omp-stats omp-stats-7" style={{ marginBottom: '16px' }}>
-        {[
-          { label: 'Open Positions', value: s?.openPositions ?? 0, tone: 'ash' as const, hint: `${s?.remainingPositions ?? 0} still to fill` },
-          { label: 'Applications', value: s?.applications ?? 0, tone: 'blue' as const },
-          { label: 'Screened', value: s?.screened ?? 0, tone: 'blue' as const },
-          { label: 'Interview', value: s?.interview ?? 0, tone: 'blue' as const },
-          { label: 'Offers', value: s?.offers ?? 0, tone: 'blue' as const },
-          { label: 'Joined', value: s?.joined ?? 0, tone: 'green' as const },
-          { label: 'Rejected', value: s?.rejected ?? 0, tone: 'red' as const },
-        ].map((tile) => (
-          <div className="omp-stat-card" key={tile.label}>
-            <div className="omp-stat-body">
-              <div className="omp-stat-value" style={{ color: PALETTE[tile.tone] }}>
-                {tile.value}
-              </div>
-              <div className="omp-stat-label">{tile.label}</div>
-              {tile.hint && <div className="omp-stat-hint">{tile.hint}</div>}
-            </div>
-          </div>
-        ))}
-      </div>
+      <StatCards
+        title="Hiring Overview"
+        statusText="ACTIVE"
+        cells={[
+          { label: 'Active Openings', value: s?.openings ?? 0, icon: <Briefcase size={16} />, color: PALETTE.blue, tint: TINT.blue },
+          { label: 'Open Positions', value: s?.openPositions ?? 0, icon: <Users size={16} />, color: PALETTE.ash, tint: TINT.ash },
+          { label: 'Applications', value: s?.applications ?? 0, icon: <FileText size={16} />, color: PALETTE.blue, tint: TINT.blue },
+          { label: 'Screened', value: s?.screened ?? 0, icon: <UserCheck size={16} />, color: PALETTE.blue, tint: TINT.blue },
+          { label: 'Interview', value: s?.interview ?? 0, icon: <Calendar size={16} />, color: PALETTE.blue, tint: TINT.blue },
+          { label: 'Offers', value: s?.offers ?? 0, icon: <Award size={16} />, color: PALETTE.blue, tint: TINT.blue },
+          { label: 'Joined', value: s?.joined ?? 0, icon: <CheckCircle2 size={16} />, color: PALETTE.green, tint: TINT.green },
+          { label: 'Rejected', value: s?.rejected ?? 0, icon: <XCircle size={16} />, color: PALETTE.red, tint: TINT.red },
+        ]}
+      />
 
-      <div className="omp-filters">
-        <SearchableDropdown
-          mode="multiple"
-          value={status}
-          onChange={(v: any) => setStatus(v ?? [])}
-          options={STATUS_ORDER.map((x) => ({ value: x, label: STATUS_META[x].label }))}
-          placeholder="Status"
-          itemNoun="statuses"
-          hideAvatar
-          width={260}
-          style={{ minWidth: 150 }}
-        />
-        <SearchableDropdown
-          value={departmentId}
-          onChange={(v: any) => setDepartmentId(v ?? null)}
-          options={reference.departments}
-          loading={reference.loading}
-          placeholder="Department"
-          itemNoun="departments"
-          width={260}
-          style={{ minWidth: 160 }}
-        />
-        <Button
-          size="small"
-          type={includeClosed ? 'primary' : 'default'}
-          onClick={() => setIncludeClosed((v) => !v)}
-        >
-          {includeClosed ? 'Including closed' : 'Active only'}
-        </Button>
-      </div>
+      <div style={{ padding: '0 20px 20px 20px' }}>
+        <div className="omp-filters" style={{ marginTop: 14, marginBottom: 16 }}>
+          <SearchableDropdown
+            mode="multiple"
+            value={status}
+            onChange={(v: any) => setStatus(v ?? [])}
+            options={STATUS_ORDER.map((x) => ({ value: x, label: STATUS_META[x].label }))}
+            placeholder="Status"
+            itemNoun="statuses"
+            hideAvatar
+            width={260}
+            style={{ minWidth: 150 }}
+          />
+          <SearchableDropdown
+            value={departmentId}
+            onChange={(v: any) => setDepartmentId(v ?? null)}
+            options={reference.departments}
+            loading={reference.loading}
+            placeholder="Department"
+            itemNoun="departments"
+            width={260}
+            style={{ minWidth: 160 }}
+          />
+          <Button
+            size="small"
+            type={includeClosed ? 'primary' : 'default'}
+            onClick={() => setIncludeClosed((v) => !v)}
+          >
+            {includeClosed ? 'Including closed' : 'Active only'}
+          </Button>
+        </div>
 
       {loading && !data ? (
         <Skeleton active paragraph={{ rows: 8 }} />
@@ -337,6 +328,7 @@ export default function DashboardPanel() {
               columns={columns}
               dataSource={data?.openings.items ?? []}
               scroll={{ x: 1400 }}
+              pagination={false}
               onRow={(record) => ({ onClick: () => router.push(`/openings/${record.openingId}`) })}
               locale={{
                 emptyText: (
@@ -345,25 +337,59 @@ export default function DashboardPanel() {
                   </div>
                 ),
               }}
-              pagination={{
-                ...tablePaginationConfig,
-                current: tablePage,
-                total: data?.openings.total ?? 0,
-                pageSize: tablePageSize,
-                onChange: (page, size) => {
-                  setTablePage(page);
-                  if (size && size !== tablePageSize) {
-                    setTablePageSize(size);
-                    setTablePage(1);
-                  }
-                },
-              }}
             />
           </div>
         </>
       )}
+      </div>
+
+      <div className="omp-footer-bar">
+        <Pagination
+          current={tablePage}
+          total={data?.openings.total ?? 0}
+          pageSize={tablePageSize}
+          pageSizeOptions={['10', '15', '20', '25', '50', '100']}
+          showSizeChanger
+          size="small"
+          showTotal={(total, range) => `Showing ${range[0]}–${range[1]} of ${total}`}
+          onChange={(page, size) => {
+            setTablePage(page);
+            if (size && size !== tablePageSize) {
+              setTablePageSize(size);
+              setTablePage(1);
+            }
+          }}
+        />
+      </div>
 
       <style jsx global>{`
+        .omp { display: flex; flex-direction: column; min-height: calc(100vh - 60px); flex: 1; }
+        .omp-footer-bar {
+          position: sticky;
+          bottom: 0;
+          left: 0;
+          right: 0;
+          z-index: 40;
+          background: var(--bg-pure-white);
+          border-top: 1px solid var(--border-slate-200);
+          padding: 12px 20px;
+          margin-top: auto;
+          flex-shrink: 0;
+          display: flex;
+          align-items: center;
+          box-shadow: 0 -4px 14px rgba(15, 23, 42, 0.04);
+        }
+        .omp-footer-bar .ant-pagination {
+          width: 100%;
+          display: flex;
+          align-items: center;
+        }
+        .omp-footer-bar .ant-pagination-total-text {
+          margin-right: auto;
+          color: var(--text-slate-500);
+          font-size: 13px;
+          font-weight: 500;
+        }
         .omp-stats-7 { grid-template-columns: repeat(7, minmax(0, 1fr)); }
         @media (max-width: 1280px) { .omp-stats-7 { grid-template-columns: repeat(4, 1fr); } }
         @media (max-width: 720px) { .omp-stats-7 { grid-template-columns: repeat(2, 1fr); } }

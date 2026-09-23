@@ -67,6 +67,7 @@ import { History, Menu } from 'lucide-react';
 import TransactionHistoryDrawer from '@/components/common/TransactionHistoryDrawer';
 import ConfirmDialog from '@/components/common/ConfirmDialog';
 import { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
+import { StatCards } from "@/components/common/StatCards";
 
 dayjs.extend(relativeTime);
 
@@ -641,6 +642,8 @@ export default function EscalationListPage() {
       dataIndex: 'subject',
       key: 'subject',
       fixed: 'left' as const,
+      onHeaderCell: () => ({ style: { paddingLeft: 24 } }),
+      onCell: () => ({ style: { paddingLeft: 24 } }),
       render: (text: string, record: any) => (
         <div className="es-name-cell">
           <div className="es-name-icon">
@@ -735,6 +738,8 @@ export default function EscalationListPage() {
       align: 'center' as const,
       width: 72,
       fixed: 'right' as const,
+      onHeaderCell: () => ({ style: { textAlign: "center" as const } }),
+      onCell: () => ({ style: { textAlign: "center" as const } }),
       render: (_: any, record: any) => (
         <Dropdown menu={actionMenu(record)} overlayClassName="es-action-pop" trigger={['click']} placement="bottomRight">
           <Button type="text" className="es-icon-btn" icon={<EllipsisOutlined />} onClick={(e) => e.stopPropagation()} />
@@ -886,27 +891,7 @@ export default function EscalationListPage() {
           <div className="es-divider" />
 
           {/* Stat cards */}
-          <div className="es-stats">
-            {statCells.map((s) => (
-              <div key={s.key} className="es-stat-card">
-                <div className="es-stat-top">
-                  <div className="es-stat-left">
-                    <span className="es-stat-icon" style={{ background: s.tint, color: s.color }}>{s.icon}</span>
-                    <div style={{ display: 'flex', flexDirection: 'column' }}>
-                      <span className="es-stat-label">{s.title}</span>
-                      {(s as any).subtitle && <span style={{ fontSize: 10, color: 'var(--text-slate-400)', marginTop: 1 }}>{(s as any).subtitle}</span>}
-                    </div>
-                  </div>
-                </div>
-                <div className="es-stat-bottom">
-                  <div className="es-stat-value-wrap">
-                    <span className="es-stat-value">{s.value}{s.suffix}</span>
-                  </div>
-                  <div className="es-stat-spark"><AreaSparkline values={s.trend} color={s.color} /></div>
-                </div>
-              </div>
-            ))}
-          </div>
+          <StatCards cards={statCells} />
 
           {/* Filters (moved from the left sidebar to a bar above the table) */}
           <div className="es-filter-bar">
@@ -980,7 +965,7 @@ export default function EscalationListPage() {
                               </ZukvoLoadingOverlay>
               </div>
             ) : (
-              <div className="es-grid">
+              <div className="es-grid" style={{ marginTop: 16, padding: "0 24px" }}>
                 {loading ? (
                   <div className="es-grid-loading">Loading…</div>
                 ) : filteredEscalations.length === 0 ? (
@@ -1535,7 +1520,7 @@ export default function EscalationListPage() {
       <style jsx global>{`
         .es-shell {
           display: flex;
-          margin: 0 -16px;
+          margin: 0 -8px;
           height: calc(100vh - 64px);
           background: var(--bg-pure-white);
           overflow: hidden;
@@ -1607,8 +1592,8 @@ export default function EscalationListPage() {
         .es-side-sd { border-radius: 8px !important; }
         /* Filter bar above the table (moved from the left sidebar) */
         .es-filter-bar {
-          display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
-          margin-bottom: 12px;
+          display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+          margin-top: 14px; margin-bottom: 14px; padding: 0 24px;
         }
         .es-filter-bar .es-clear-filters { margin-left: 4px; }
         .es-side-select .ant-select-selector {
@@ -1622,7 +1607,7 @@ export default function EscalationListPage() {
         }
 
         /* ---------------- Main ---------------- */
-        .es-main { flex: 1; min-width: 0; padding: 8px 18px 0; display: flex; flex-direction: column; height: 100%; }
+        .es-main { flex: 1; min-width: 0; padding: 8px 0 0 0; display: flex; flex-direction: column; height: 100%; }
         /* My Hub header (moved here from the removed left rail) */
         .es-mh-header {
           display: flex; align-items: center; gap: 12px;
@@ -1630,7 +1615,7 @@ export default function EscalationListPage() {
           border-bottom: 1px solid var(--border-slate-100);
         }
         .es-body { flex: 1; min-height: 0; overflow-y: auto; }
-        .es-topbar { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+        .es-topbar { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; padding: 12px 24px 8px 24px; }
         .es-search-wrap {
           position: relative; flex: 1; max-width: 520px; display: flex; align-items: center;
           height: 32px; border-radius: 8px; background: var(--bg-pure-white);
@@ -1666,7 +1651,7 @@ export default function EscalationListPage() {
         }
         .es-ghost-btn:hover { color: #3B82F6; border-color: #bfdbfe; }
 
-        .es-divider { height: 1px; background: var(--border-slate-200); margin: 0 -18px 10px; }
+        .es-divider { height: 1px; background: var(--border-slate-200); margin: 0; }
 
         /* Stat cards */
         .es-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 14px; }
@@ -1758,9 +1743,11 @@ export default function EscalationListPage() {
           padding: 10px 14px; border-top: 1px solid var(--border-slate-200);
         }
         .es-footer--sticky {
-          position: sticky; bottom: 0; z-index: 30; margin: 0 -18px 0; padding: 6px 18px;
+          position: sticky; bottom: 0; z-index: 30; margin: 0; padding: 0 24px;
           background: var(--bg-pure-white);
           box-shadow: 0 -4px 14px rgba(15,23,42,0.05);
+          height: 52px !important;
+          box-sizing: border-box;
         }
         .es-footer-info { font-size: 12px; color: var(--text-slate-500); }
         .es-footer-info strong { color: var(--text-slate-700); font-weight: 700; }

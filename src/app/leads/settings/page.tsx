@@ -1,6 +1,7 @@
 "use client";
 
 import NoData from "@/components/common/NoData";
+import { StatCards } from "@/components/common/StatCards";
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import MainLayout from "@/components/layout/MainLayout";
 import ProtectedRoute from "@/components/common/ProtectedRoute";
@@ -1034,6 +1035,8 @@ export default function LeadSettingsPage() {
             title: "",
             key: "drag",
             width: 36,
+            onHeaderCell: () => ({ style: { paddingLeft: 24 } }),
+            onCell: () => ({ style: { paddingLeft: 24 } }),
             render: () => (
                 <span className="lset-drag" aria-hidden>
                     <GripVertical size={14} />
@@ -1131,10 +1134,12 @@ export default function LeadSettingsPage() {
         {
             title: "Actions",
             key: "actions",
-            align: "right" as const,
+            align: "center" as const,
             width: 160,
+            onHeaderCell: () => ({ style: { textAlign: "center" as const } }),
+            onCell: () => ({ style: { textAlign: "center" as const } }),
             render: (_: any, record: any, index: number) => (
-                <div className="lset-row-actions">
+                <div className="lset-row-actions" style={{ justifyContent: "center" }}>
                     {canUpdateLeadSetting && (
                         <>
                             <Tooltip title="Move up">
@@ -1192,6 +1197,8 @@ export default function LeadSettingsPage() {
             title: "Action",
             dataIndex: "actionName",
             key: "actionName",
+            onHeaderCell: () => ({ style: { paddingLeft: 24 } }),
+            onCell: () => ({ style: { paddingLeft: 24 } }),
             render: (text: string, record: any) => (
                 <div className="lset-action-cell">
                     <span className="lset-action-icon" style={{ background: `${record.color}14`, color: record.color, border: `1px solid ${record.color}30` }}>
@@ -1242,10 +1249,12 @@ export default function LeadSettingsPage() {
         {
             title: "",
             key: "actions",
-            align: "right" as const,
+            align: "center" as const,
             width: 110,
+            onHeaderCell: () => ({ style: { textAlign: "center" as const } }),
+            onCell: () => ({ style: { textAlign: "center" as const } }),
             render: (_: any, record: any) => (
-                <div className="lset-row-actions">
+                <div className="lset-row-actions" style={{ justifyContent: "center" }}>
                     {canUpdateLeadSetting && (
                         <Tooltip title="Edit">
                             <button className="lset-icon-btn" onClick={() => handleEditAction(record)} aria-label="Edit">
@@ -1289,6 +1298,8 @@ export default function LeadSettingsPage() {
             title: "",
             key: "drag",
             width: 32,
+            onHeaderCell: () => ({ style: { paddingLeft: 24 } }),
+            onCell: () => ({ style: { paddingLeft: 24 } }),
             render: () => <span className="lset-drag" aria-hidden><GripVertical size={14} /></span>,
         },
         {
@@ -1370,9 +1381,12 @@ export default function LeadSettingsPage() {
         {
             title: "Manage",
             key: "actions",
+            align: "center" as const,
             width: 88,
+            onHeaderCell: () => ({ style: { textAlign: "center" as const } }),
+            onCell: () => ({ style: { textAlign: "center" as const } }),
             render: (_: any, record: any) => (
-                <div style={{ display: "flex", gap: 6 }}>
+                <div style={{ display: "flex", gap: 6, justifyContent: "center" }}>
                     {canUpdateLeadSetting && (
                         <button className="lset-icon-btn" onClick={() => handleEditPlatform(record)} aria-label="Edit">
                             <Edit2 size={14} />
@@ -1579,34 +1593,39 @@ export default function LeadSettingsPage() {
                             </div>
                         </div>
 
-                        <div className="pp-divider" />
+                        <div className="pp-divider" style={{ margin: 0 }} />
 
                         {/* Stat cards */}
-                        <div className="pp-stats">
-                            {statCells.map((s) => (
-                                <div key={s.key} className="pp-stat-card">
-                                    <div className="pp-stat-top">
-                                        <div className="pp-stat-left">
-                                            <span className="pp-stat-icon" style={{ background: s.tint, color: s.color }}>{s.icon}</span>
-                                            <span className="pp-stat-label">{s.title}</span>
-                                        </div>
-                                    </div>
-                                    <div className="pp-stat-bottom">
-                                        <div className="pp-stat-value-wrap">
-                                            <span className="pp-stat-value">{s.value}{s.suffix}</span>
-                                            <span className="pp-stat-period">cumulative</span>
-                                        </div>
-                                        <div className="pp-stat-spark"><AreaSparkline values={s.trend} color={s.color} /></div>
-                                    </div>
-                                </div>
-                            ))}
+                        <div style={{ margin: 0 }}>
+                            <StatCards
+                                title="Lead Settings Overview"
+                                statusText="ACTIVE"
+                                cells={[
+                                    {
+                                        label: "Total Definitions",
+                                        value: statCells[0]?.value || 0,
+                                    },
+                                    {
+                                        label: "Active Settings",
+                                        value: statCells[1]?.value || 0,
+                                    },
+                                    {
+                                        label: "Hidden Settings",
+                                        value: statCells[2]?.value || 0,
+                                    },
+                                    {
+                                        label: "Themed / Custom",
+                                        value: statCells[3]?.value || 0,
+                                    },
+                                ]}
+                            />
                         </div>
 
                         {/* Table / grid */}
                         <div className="pp-body">
                             <ZukvoLoadingOverlay loading={loading} message="">
                                 {view === 'list' ? (
-                                    <div className="pp-table-wrap">
+                                    <div className="pp-table-wrap" style={{ margin: 0, borderLeft: "none", borderRight: "none" }}>
                                         <Table
                                             columns={(activeTab === "1" ? statusColumns : activeTab === "2" ? actionColumns : platformColumns) as any}
                                             dataSource={activeTab === "1" ? pagedStatuses : activeTab === "2" ? pagedActions : pagedPlatforms}
@@ -1629,7 +1648,7 @@ export default function LeadSettingsPage() {
 
                                     </div>
                                 ) : (
-                                    <div className="pp-grid">
+                                    <div className="pp-grid" style={{ marginTop: 16, padding: "0 24px" }}>
                                         {loading ? (
                                             <div className="pp-grid-loading">Loading…</div>
                                         ) : (activeTab === "1" ? pagedStatuses : activeTab === "2" ? pagedActions : pagedPlatforms).length === 0 ? (
@@ -2591,7 +2610,7 @@ export default function LeadSettingsPage() {
             height: calc(100vh - 54px);
           }
           .pp-side-head {
-            display: flex; align-items: center; gap: 12px; padding: 2px 2px 14px; margin-bottom: 6px;
+            display: flex; align-items: center; gap: 12px; padding: 2px 0 14px 0; margin-bottom: 6px;
             border-bottom: 1px solid var(--border-slate-100);
           }
           .pp-side-logo {
@@ -2612,12 +2631,12 @@ export default function LeadSettingsPage() {
           }
           .pp-create-btn:hover { background: #2563EB !important; }
           .pp-create-btn .anticon { font-size: 12px !important; }
-          .pp-side-scroll { flex: 1; overflow-y: auto; overflow-x: hidden; margin: 0 -5px; padding: 0 5px; }
+          .pp-side-scroll { flex: 1; overflow-y: auto; overflow-x: hidden; margin: 0; padding: 0; }
           .pp-side-scroll::-webkit-scrollbar { width: 5px; }
           .pp-side-scroll::-webkit-scrollbar-thumb { background: var(--border-slate-200); border-radius: 3px; }
           .pp-side-section-label {
             font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em;
-            color: var(--text-slate-400); padding: 0 8px; margin: 16px 0 6px;
+            color: var(--text-slate-400); padding: 0 10px; margin: 16px 0 6px;
           }
           .pp-side-scroll > .pp-side-section-label:first-child { margin-top: 6px; }
           .pp-side-list { display: flex; flex-direction: column; gap: 1px; }
@@ -2659,9 +2678,9 @@ export default function LeadSettingsPage() {
           }
 
           /* ---------------- Main ---------------- */
-          .pp-main { flex: 1; min-width: 0; padding: 8px 18px 0; display: flex; flex-direction: column; }
+          .pp-main { flex: 1; min-width: 0; padding: 8px 0 0 0; display: flex; flex-direction: column; }
           .pp-body { flex: 1 0 auto; }
-          .pp-topbar { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+          .pp-topbar { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; padding: 12px 24px 8px 24px; }
           .pp-search-wrap {
             position: relative; flex: 1; max-width: 520px; display: flex; align-items: center;
             height: 32px; border-radius: 8px; background: var(--bg-pure-white);
@@ -2697,7 +2716,7 @@ export default function LeadSettingsPage() {
           }
           .pp-ghost-btn:hover { color: #3B82F6; border-color: #bfdbfe; }
 
-          .pp-divider { height: 1px; background: var(--border-slate-200); margin: 0 -18px 10px; }
+          .pp-divider { height: 1px; background: var(--border-slate-200); margin: 0; }
 
           /* Stat cards */
           .pp-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 14px; }
@@ -2942,7 +2961,7 @@ export default function LeadSettingsPage() {
             box-sizing: border-box;
           }
           .pp-footer--sticky {
-            position: sticky; bottom: 0; z-index: 30; margin: 8px -18px 0; padding: 0 18px;
+            position: sticky; bottom: 0; z-index: 30; margin: 0; padding: 0 24px;
             background: var(--bg-pure-white);
             box-shadow: 0 -4px 14px rgba(15,23,42,0.05);
             height: 52px !important;

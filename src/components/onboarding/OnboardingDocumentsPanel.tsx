@@ -54,6 +54,7 @@ import type { EmployeeDocument, DocumentStats } from '@/services/onboardingServi
 
 import { drawerFormStyles } from '@/components/common/DrawerSection';
 import { SearchableDropdown } from '@/components/common/SearchableDropdown';
+import { StatCards } from '@/components/onboarding/ui';
 
 const { Text } = Typography;
 const { Dragger } = Upload;
@@ -553,36 +554,16 @@ export default function OnboardingDocumentsPanel() {
       </div>
 
       {/* ── Stats ───────────────────────────────────────────────────────── */}
-      <div className="ob-doc-stats">
-        <StatCard
-          icon={<FolderOpen size={18} />}
-          value={stats.total}
-          label="Total Documents"
-          color="#3b82f6"
-          bg="rgba(59,130,246,0.1)"
-        />
-        <StatCard
-          icon={<CheckCircle2 size={18} />}
-          value={stats.uploaded}
-          label="Uploaded"
-          color="#059669"
-          bg="rgba(5,150,105,0.1)"
-        />
-        <StatCard
-          icon={<Clock size={18} />}
-          value={stats.pending}
-          label="Pending"
-          color="#d97706"
-          bg="rgba(217,119,6,0.1)"
-        />
-        <StatCard
-          icon={<AlertCircle size={18} />}
-          value={stats.expired}
-          label="Expired"
-          color="#dc2626"
-          bg="rgba(220,38,38,0.1)"
-        />
-      </div>
+      <StatCards
+        title="Documents Overview"
+        statusText="ACTIVE"
+        cells={[
+          { label: 'Total Documents', value: stats.total, icon: <FolderOpen size={14} />, color: '#3b82f6', tint: 'rgba(59,130,246,0.1)' },
+          { label: 'Uploaded', value: stats.uploaded, icon: <CheckCircle2 size={14} />, color: '#059669', tint: 'rgba(5,150,105,0.1)' },
+          { label: 'Pending', value: stats.pending, icon: <Clock size={14} />, color: '#d97706', tint: 'rgba(217,119,6,0.1)' },
+          { label: 'Expired', value: stats.expired, icon: <AlertCircle size={14} />, color: '#dc2626', tint: 'rgba(220,38,38,0.1)' },
+        ]}
+      />
 
       {/* ── Filters ─────────────────────────────────────────────────────── */}
       <div className="ob-doc-filters">
@@ -760,8 +741,8 @@ export default function OnboardingDocumentsPanel() {
           align-items: flex-start;
           justify-content: space-between;
           gap: 16px;
-          margin: -12px -22px 4px;
-          padding: 12px 24px 14px 28px;
+          margin: 0 0 4px 0;
+          padding: 12px 20px 14px 20px;
           border-bottom: 1px solid var(--border-slate-200, #e2e8f0);
           background: var(--bg-pure-white);
           position: sticky; top: 0; z-index: 30;
@@ -842,9 +823,9 @@ export default function OnboardingDocumentsPanel() {
           align-items: center;
           gap: 10px;
           flex-wrap: wrap;
-          padding: 12px 14px;
+          padding: 0 20px;
           background: transparent;
-          border: 1px solid var(--border-slate-200);
+          border: none;
           border-radius: 0px;
         }
         .ob-doc-filters .ant-input-affix-wrapper,
@@ -1112,8 +1093,8 @@ export default function OnboardingDocumentsPanel() {
           align-items: center;
           justify-content: space-between;
           gap: 12px;
-          margin: auto -22px 0;
-          padding: 6px 28px;
+          margin: auto 0 0;
+          padding: 6px 20px;
           background: var(--bg-pure-white);
           border-top: 1px solid var(--border-slate-100);
           box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.02);

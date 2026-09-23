@@ -9,6 +9,7 @@ import ProtectedRoute from '@/components/common/ProtectedRoute';
 import { useAuth } from '@/context/AuthContext';
 import { usePermission } from '@/hooks/usePermission';
 import { LEAVE_NAV_ITEMS, canAccessLeaveItem } from '@/components/leaves-v2/navItems';
+import { LvStyles } from '@/components/leaves-v2/ui';
 
 // Shared master-detail shell for every /leaves-v2/* route. The left rail is
 // rendered here once; sub-route pages render into {children}. Active state is
@@ -106,7 +107,10 @@ export default function LeavesV2Layout({ children }: { children: React.ReactNode
 
           {/* ============================ MAIN ============================ */}
           <main className="lv-main">
-            <div className="lv-content">{children}</div>
+            <div className="lv-content">
+              {children}
+              <LvStyles />
+            </div>
           </main>
         </div>
 
@@ -163,31 +167,56 @@ export default function LeavesV2Layout({ children }: { children: React.ReactNode
           .lv-view-label { flex: 1; font-size: 13px; font-weight: 500; color: var(--text-slate-700); }
           /* ---------------- Main ---------------- */
           .lv-main { flex: 1; min-width: 0; padding: 0; display: flex; flex-direction: column; height: calc(100vh - 54px); overflow: hidden; }
-          .lv-content { flex: 1; min-height: 0; padding: 0 32px; display: flex; flex-direction: column; position: relative; overflow-y: auto; overflow-x: hidden; scrollbar-width: none; -ms-overflow-style: none; }
-          .lv-content::-webkit-scrollbar { display: none; }
+          .lv-content { flex: 1; min-height: 0; padding: 0; display: flex; flex-direction: column; position: relative; overflow: hidden; }
           
-          /* Force the page component wrapper to fill available height */
-          .lv-content > div { flex: 1; display: flex; flex-direction: column; }
-          .lv-content > div > [class*="-footer--sticky"] { margin-top: auto !important; }
+          /* Automatically give padding to any filter bar rendered in a panel */
+          .lv-content [class$="-filters"] {
+            padding-top: 6px;
+            padding-left: 20px;
+            padding-right: 20px;
+          }
 
-          /* Stretch panel headers to the edges and make them sticky */
-          .lv-content > * > [class*="-header"] {
-            margin-left: -32px !important;
-            margin-right: -32px !important;
-            padding-left: 32px !important;
-            padding-right: 32px !important;
-            position: sticky;
-            top: 0;
-            z-index: 98;
-            background: var(--bg-pure-white);
-            padding-top: 12px !important;
-            margin-top: 0 !important;
-            margin-bottom: 0 !important;
+          /* Fix tabs layout and padding */
+          .lv-content .ant-tabs {
+            display: flex; flex-direction: column; flex: 1; min-height: 0; overflow: hidden;
+          }
+          .lv-content .ant-tabs > .ant-tabs-nav {
+            padding: 0 20px;
+            margin-bottom: 12px;
+          }
+          .lv-content .ant-tabs > .ant-tabs-content-holder,
+          .lv-content .ant-tabs > .ant-tabs-content-holder > .ant-tabs-content,
+          .lv-content .ant-tabs > .ant-tabs-content-holder > .ant-tabs-content > .ant-tabs-tabpane-active {
+            display: flex; flex-direction: column; flex: 1; min-height: 0; overflow: hidden;
+          }
+
+          /* Force the page component wrapper to fill available height */
+          .lv-content > div { flex: 1; display: flex; flex-direction: column; min-height: 0; }
+          .lv-content > div > [class*="-footer--sticky"] {
+            margin: auto 0 0 0 !important;
+            padding: 0 20px !important;
           }
 
           /* Restore the gap below the header that was removed by margin-bottom: 0 */
           .lv-content > * > [class*="-header"] + * {
-            margin-top: 16px !important;
+            margin-top: 6px !important;
+          }
+
+          /* Stretch panel headers to the edges and make them sticky */
+          .lv-content > * > [class*="-header"] {
+            position: sticky;
+            top: 0;
+            z-index: 20;
+            background: var(--bg-pure-white);
+            box-shadow: 0 6px 16px -14px rgba(15, 23, 42, 0.4);
+            margin-top: 0 !important;
+            margin-bottom: 0 !important;
+            margin-left: 0 !important;
+            margin-right: 0 !important;
+            padding-top: 16px;
+            padding-bottom: 12px;
+            padding-left: 22px;
+            padding-right: 22px;
           }
 
           /* ---------------- Responsive Styles ---------------- */
@@ -253,14 +282,14 @@ export default function LeavesV2Layout({ children }: { children: React.ReactNode
               padding: 0;
             }
             .lv-content {
-              padding: 0 16px;
+              padding: 0;
             }
             .lv-content > * > [class*="-header"] {
-              margin-left: -16px !important;
-              margin-right: -16px !important;
+              margin-left: 0 !important;
+              margin-right: 0 !important;
               padding-left: 16px !important;
               padding-right: 16px !important;
-              padding-top: 8px !important;
+              padding-top: 12px !important;
             }
           }
         `}</style>

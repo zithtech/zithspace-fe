@@ -337,7 +337,7 @@ export default function EmploymentTypesPage() {
             refreshing={loading}
             style={{
               borderBottom: "1px solid var(--border-slate-200)",
-              marginBottom: 8,
+              marginBottom: 0,
               position: 'sticky',
               top: 0,
               zIndex: 100,
@@ -370,6 +370,7 @@ export default function EmploymentTypesPage() {
           />
 
           <OrgModuleScaffold<EmploymentType>
+            title="Employment Types Overview"
             search={searchText}
             onSearchChange={setSearchText}
             searchPlaceholder="Search by name, code, or description…"

@@ -40,6 +40,7 @@ import {
 import { usePermission } from '@/hooks/usePermission';
 import { SearchableDropdown } from '@/components/common/SearchableDropdown';
 import ConfirmDialog from '@/components/common/ConfirmDialog';
+import { StatCards } from '@/components/payroll-v2/ui';
 import PayrollV2Service, {
   CreateComponentInput,
   PayComponent,
@@ -493,25 +494,7 @@ export default function SalaryComponentPanel() {
       </div>
 
       {/* ── STAT CARDS ─────────────────────────────────────────────────────── */}
-      <div className="pvc-stats">
-        {statCells.map((s) => (
-          <div key={s.key} className="pvc-stat-card">
-            <div className="pvc-stat-top">
-              <div className="pvc-stat-left">
-                <span className="pvc-stat-icon" style={{ background: s.tint, color: s.color }}>{s.icon}</span>
-                <span className="pvc-stat-label">{s.title}</span>
-              </div>
-            </div>
-            <div className="pvc-stat-bottom">
-              <div className="pvc-stat-value-wrap">
-                <span className="pvc-stat-value">{s.value}</span>
-                <span className="pvc-stat-period">{s.period}</span>
-              </div>
-              <div className="pvc-stat-spark"><AreaSparkline values={s.trend} color={s.color} /></div>
-            </div>
-          </div>
-        ))}
-      </div>
+      <StatCards cells={statCells.map(s => ({ label: s.title, value: s.value, icon: s.icon, color: s.color, tint: s.tint }))} />
 
       {/* ── FILTERS ────────────────────────────────────────────────────────── */}
       <div className="pvc-filters">
@@ -553,12 +536,12 @@ export default function SalaryComponentPanel() {
       </div>
 
       {/* ── TABLE ──────────────────────────────────────────────────────────── */}
-      <div className="pvc-table-wrap">
+      <div className="pv-table-wrap">
         <ZukvoLoadingOverlay loading={loading} message="">
               <Table
                         rowKey="id"
                         size="small"
-                        className="pvc-table"
+                       
                         columns={columns}
                         dataSource={pagedRows}
                         pagination={false}
@@ -812,7 +795,7 @@ export default function SalaryComponentPanel() {
         .pvc-table .ant-table-tbody > tr.pvc-row:hover > td { background: var(--bg-slate-50) !important; }
 
         .pvc-footer { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; height: 52px; box-sizing: border-box; }
-        .pvc-footer--sticky { position: sticky; bottom: 0; z-index: 20; margin: auto -22px 0; padding: 0 22px; background: var(--bg-pure-white); border-top: 1px solid var(--border-slate-200); box-shadow: 0 -4px 14px rgba(15,23,42,0.05); }
+        .pvc-footer--sticky { position: sticky; bottom: 0; z-index: 20; margin: 0; padding: 0 22px; background: var(--bg-pure-white); border-top: 1px solid var(--border-slate-200); box-shadow: 0 -4px 14px rgba(15,23,42,0.05); }
         .pvc-footer-info { font-size: 12px; color: var(--text-slate-500); }
         .pvc-footer-info strong { color: var(--text-slate-700); font-weight: 700; }
         .pvc-pager { display: flex; align-items: center; gap: 3px; }

@@ -32,8 +32,7 @@ import LeaveV2Service, {
 } from '@/services/leaveV2Service';
 
 const { TextArea } = Input;
-const PALETTE = { blue: '#3B82F6', green: '#10B981', red: '#EF4444', grey: '#94A3B8' } as const;
-const TINT = { blue: 'rgba(59,130,246,0.10)', green: 'rgba(16,185,129,0.10)', red: 'rgba(239,68,68,0.10)', grey: 'rgba(148,163,184,0.12)' } as const;
+import { PALETTE, TINT, StatCards } from '@/components/leaves-v2/ui';
 const PAGE_SIZE_OPTIONS = [10, 15, 20, 25, 50, 100];
 import { drawerFormStyles as formStyles, SectionCard } from "@/components/common/DrawerSection";
 import { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
@@ -284,20 +283,17 @@ export default function LeaveAdjustmentPanel() {
         </div>
       </div>
 
-      <div className="lvadj-stats">
-        {statCells.map((s) => (
-          <div key={s.key} className="lvadj-stat-card">
-            <div className="lvadj-stat-top">
-              <span className="lvadj-stat-icon" style={{ background: s.tint, color: s.color }}>{s.icon}</span>
-              <span className="lvadj-stat-label">{s.title}</span>
-            </div>
-            <div className="lvadj-stat-bottom">
-              <span className="lvadj-stat-value">{s.value}</span>
-              <span className="lvadj-stat-period">{s.period}</span>
-            </div>
-          </div>
-        ))}
-      </div>
+            <StatCards
+        title="Leave Overview"
+        statusText="LIVE"
+        cells={statCells.map(s => ({
+          label: s.title,
+          value: <>{s.value} <span style={{ fontSize: 11, fontWeight: 500, color: 'var(--text-slate-400)' }}>{s.period}</span></>,
+          icon: s.icon,
+          color: s.color,
+          tint: s.tint
+        }))}
+      />
 
       <div className="lvadj-filters">
         <span className="lvadj-filter-label"><FilterOutlined /> Filter</span>
@@ -316,7 +312,7 @@ export default function LeaveAdjustmentPanel() {
         {hasFilters && <button type="button" className="lvadj-clear" onClick={() => { setSearch(''); setDirFilter('all'); }}><CloseCircleOutlined /> Clear</button>}
       </div>
 
-      <div className="lvadj-table-wrap">
+      <div className="lv-table-wrap">
         <ZukvoLoadingOverlay loading={loading} message="">
           <Table rowKey="id" size="small" className="lvadj-table" columns={columns} dataSource={paged} pagination={false} scroll={{ x: 'max-content' }} onRow={() => ({ className: 'lvadj-row' })} locale={{ emptyText: <NoData /> }} />
         </ZukvoLoadingOverlay>

@@ -21,7 +21,7 @@ import PostCreationSuccessScreen from "@/components/common/PostCreationSuccessSc
 import ZukvoLoader, { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
 import { useDebounce } from "@/hooks/useDebounce";
 import { QaScenarioService, type TestScenario } from "@/services/qaScenarioService";
-import { useQaProject, QaProjectSwitcher } from "@/components/qa/QaProjectGate";
+import { useQaProjects } from "@/components/qa/QaProjectGate";
 
 /**
  * The standard testing types, kept identical to the Test Scope page so both
@@ -193,14 +193,8 @@ function CreateTestSuiteContent() {
   const editingId = searchParams.get("id");
 
   const { canReadSuite, canCreateSuite, canUpdateSuite } = usePermission();
-  const {
-    projects: projectOptions,
-    loading: loadingProjects,
-    ready: projectReady,
-    projectId: selectedProjectId,
-    setProjectId,
-  } = useQaProject();
-  const projectFilter = selectedProjectId || undefined;
+  const { data: userProjects = [] } = useQaProjects();
+  const allowedProjectIds = useMemo(() => userProjects.map((p) => p.value), [userProjects]);
 
   const [formData, setFormData] = useState<any>({ test_case_ids: [], parent_test_case_id: undefined });
   const [parents, setParents] = useState<any[]>([]);
@@ -290,12 +284,22 @@ function CreateTestSuiteContent() {
   const [parentSearchTerm, setParentSearchTerm] = useState("");
   const debouncedParentSearch = useDebounce(parentSearchTerm, 500);
 
+  const visibleParents = useMemo(() => {
+    if (userProjects.length === 0) return [];
+    const allowedSet = new Set(allowedProjectIds);
+    return parents.filter((p: any) => p.project_id && allowedSet.has(p.project_id));
+  }, [parents, userProjects, allowedProjectIds]);
+
   useEffect(() => {
     if (!debouncedParentSearch || debouncedParentSearch.trim().length < 2) return;
     const searchParents = async () => {
       try {
         const res = await axios.get("/api/v2/qa/parents", {
-          params: { search: debouncedParentSearch, limit: 50, project_id: projectFilter }
+          params: {
+            search: debouncedParentSearch,
+            limit: 50,
+            allowed_projects: allowedProjectIds.length ? allowedProjectIds.join(",") : undefined,
+          }
         });
         const fetched = Array.isArray(res.data) ? res.data : (res.data?.data || []);
         setParents((prev: any[]) => {
@@ -306,16 +310,11 @@ function CreateTestSuiteContent() {
       } catch (e) {}
     };
     searchParents();
-  }, [debouncedParentSearch, projectFilter]);
+  }, [debouncedParentSearch, allowedProjectIds]);
 
   const patch = (next: Record<string, any>) => {
     setIsDirty(true);
     setFormData((prev: any) => ({ ...prev, ...next }));
-  };
-
-  const chooseProject = (id: string | null) => {
-    setProjectId(id);
-    patch({ parent_test_case_id: undefined, module_id: undefined, test_case_ids: [] });
   };
 
   /* ── Reference data ─────────────────────────────────────────────────────── */
@@ -324,8 +323,18 @@ function CreateTestSuiteContent() {
     (async () => {
       try {
         const [parentsRes, suitesRes]: any[] = await Promise.all([
-          axios.get("/api/v2/qa/parents", { params: { limit: 1000, project_id: projectFilter } }),
-          axios.get("/api/v2/qa/suites/all", { params: { limit: 1000, project_id: projectFilter } }),
+          axios.get("/api/v2/qa/parents", {
+            params: {
+              limit: 1000,
+              allowed_projects: allowedProjectIds.length ? allowedProjectIds.join(",") : undefined,
+            },
+          }),
+          axios.get("/api/v2/qa/suites/all", {
+            params: {
+              limit: 1000,
+              allowed_projects: allowedProjectIds.length ? allowedProjectIds.join(",") : undefined,
+            },
+          }),
         ]);
         const unwrap = (r: any) => (Array.isArray(r) ? r : (r?.data?.data || r?.data || []));
         setParents(unwrap(parentsRes));
@@ -334,7 +343,7 @@ function CreateTestSuiteContent() {
         message.error("Failed to load test scenarios");
       }
     })();
-  }, [canReadSuite, projectFilter]);
+  }, [canReadSuite, allowedProjectIds]);
 
   /* Editing — pull the suite and the cases already linked to it. */
   useEffect(() => {
@@ -807,16 +816,18 @@ function CreateTestSuiteContent() {
       return message.error("An Associated Test Case is required");
     }
 
-    // Auto-inherit module_id from the parent test case when one is chosen
+    // Auto-inherit module_id and project_id from the parent test case when one is chosen
     let chosenModuleId = formData.module_id;
+    let chosenProjectId = formData.project_id;
     if (formData.parent_test_case_id) {
       const p = parents.find((x: any) => x.id === formData.parent_test_case_id);
       if (p && p.module_id) chosenModuleId = p.module_id;
+      if (p && p.project_id) chosenProjectId = p.project_id;
     }
 
     try {
       setSaving(true);
-      const payload = { ...formData, module_id: chosenModuleId };
+      const payload = { ...formData, module_id: chosenModuleId, project_id: chosenProjectId };
       console.log("PAYLOAD BEING SENT TO BACKEND:", payload);
       if (editingId) {
         await axios.put(`/api/v2/qa/suites/${editingId}`, payload);
@@ -1367,13 +1378,6 @@ function CreateTestSuiteContent() {
               </div>
 
               <div className="flex items-center gap-2.5 flex-shrink-0">
-                <QaProjectSwitcher
-                  projects={projectOptions}
-                  value={selectedProjectId}
-                  onChange={chooseProject}
-                  loading={loadingProjects}
-                  placeholder="All projects"
-                />
                 {isDirty && (
                   <span className="ts-dirty hidden sm:inline-flex">
                     <span className="ts-dirty__dot" />Unsaved changes
@@ -1512,7 +1516,7 @@ function CreateTestSuiteContent() {
                   hint="The parent case whose module cases this suite draws from."
                 >
                   <SearchableDropdown
-                    options={parents.map((p: any) => ({
+                    options={visibleParents.map((p: any) => ({
                       value: p.id,
                       label: p.title,
                       description: [
@@ -1533,6 +1537,7 @@ function CreateTestSuiteContent() {
                         patch({
                           parent_test_case_id: val,
                           module_id: selected ? selected.module_id : formData.module_id,
+                          project_id: selected ? selected.project_id : formData.project_id,
                           test_case_ids: [],
                         });
                       }

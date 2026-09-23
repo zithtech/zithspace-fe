@@ -18,6 +18,7 @@ import {
   CalendarClock,
   Info,
   ListChecks,
+  Sparkles,
 } from 'lucide-react';
 import { usePermission } from '@/hooks/usePermission';
 import PerformanceReportService, {
@@ -322,6 +323,22 @@ export default function SettingsPanel() {
     }
   };
 
+  const [runningAuto, setRunningAuto] = useState(false);
+
+  const handleRunAutoSweep = async () => {
+    setRunningAuto(true);
+    try {
+      const res = await PerformanceReportService.triggerAutoGenerateSweep();
+      message.success(
+        `Auto-generation completed: ${res.generatedCount} generated${res.failedCount ? `, ${res.failedCount} failed` : ''}`
+      );
+    } catch (err: any) {
+      message.error(err?.response?.data?.error || 'Failed to run auto-generation sweep');
+    } finally {
+      setRunningAuto(false);
+    }
+  };
+
   if (loading) {
     return (
       <div style={{ padding: 64, textAlign: 'center' }}>
@@ -398,6 +415,18 @@ export default function SettingsPanel() {
             />
             <span>on the last calendar day</span>
           </div>
+
+          <Button
+            type="primary"
+            size="middle"
+            className="prs-sweep-btn"
+            icon={<Sparkles size={14} />}
+            loading={runningAuto}
+            onClick={handleRunAutoSweep}
+            disabled={readOnly}
+          >
+            Run auto-generation sweep now
+          </Button>
         </div>
       </section>
 
@@ -620,11 +649,36 @@ export default function SettingsPanel() {
         .prs-auto-desc { font-size: 12.5px; color: var(--text-slate-500); margin-top: 2px; line-height: 1.5; }
         .prs-auto-schedule {
           margin-top: 14px; padding-top: 14px; border-top: 1px dashed var(--border-slate-200);
+          display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap;
           transition: opacity .15s ease;
         }
         .prs-auto-schedule[data-off='true'] { opacity: .45; }
         .prs-schedule-item { display: flex; align-items: center; gap: 8px; font-size: 12.5px; color: var(--text-slate-700); font-weight: 500; }
         .prs-schedule-item svg { color: var(--text-slate-400); }
+
+        .prs-sweep-btn {
+          margin-left: auto;
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          font-size: 13px;
+          font-weight: 600;
+          border-radius: 9px;
+          padding: 6px 14px;
+          height: 34px;
+          background: linear-gradient(135deg, #2563eb, #3b82f6) !important;
+          border: 1px solid #1d4ed8 !important;
+          box-shadow: 0 1px 3px rgba(37,99,235,0.2), 0 1px 2px rgba(0,0,0,0.06);
+          transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .prs-sweep-btn:hover:not(:disabled) {
+          background: linear-gradient(135deg, #1d4ed8, #2563eb) !important;
+          box-shadow: 0 4px 12px rgba(37,99,235,0.3);
+          transform: translateY(-1px);
+        }
+        .prs-sweep-btn:active:not(:disabled) {
+          transform: translateY(0);
+        }
 
         .prs-section-head { display: flex; align-items: center; justify-content: space-between; margin-top: 4px; }
         .prs-section-left { display: flex; align-items: center; gap: 8px; }

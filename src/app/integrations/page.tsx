@@ -669,36 +669,40 @@ function IntegrationContent() {
                     }}
                   >
                     {showJira && (
-                      <IntegrationCard
-                       dataTour="integration-jira-card"
-                        mark={<JiraMark size={20} />}
-                        name="Jira"
-                        category="Issue tracking · Migration"
-                        description={JIRA_DESC}
-                        state={jiraConnected ? "connected" : "available"}
-                        detail="Projects, tickets & bugs"
-                        accountName={jiraConnected ? userName : null}
-                        busy={jiraLoading}
-                        onConnect={handleJiraConnect}
-                        onDisconnect={handleJiraDisconnect}
-                        onMigrate={jiraConnected ? () => setShowJiraWizard(true) : undefined}
-                      />
+                      <div style={{ width: 320, maxWidth: "100%" }}>
+                        <IntegrationCard
+                          dataTour="integration-jira-card"
+                          mark={<JiraMark size={20} />}
+                          name="Jira"
+                          category="Issue tracking · Migration"
+                          description={JIRA_DESC}
+                          state={jiraConnected ? "connected" : "available"}
+                          detail="Projects, tickets & bugs"
+                          accountName={jiraConnected ? userName : null}
+                          busy={jiraLoading}
+                          onConnect={handleJiraConnect}
+                          onDisconnect={handleJiraDisconnect}
+                          onMigrate={jiraConnected ? () => setShowJiraWizard(true) : undefined}
+                        />
+                      </div>
                     )}
                     {showLinear && (
-                      <IntegrationCard
-                       dataTour="integration-linear-card"
-                        mark={<LinearMark size={20} />}
-                        name="Linear"
-                        category="Issue tracking · Migration"
-                        description={LINEAR_DESC}
-                        state={linearConnected ? "connected" : "available"}
-                        detail="Projects, issues & cycles"
-                        accountName={linearConnected ? userName : null}
-                        busy={linearLoading}
-                        onConnect={handleLinearConnect}
-                        onDisconnect={handleLinearDisconnect}
-                        onMigrate={linearConnected ? () => setShowLinearWizard(true) : undefined}
-                      />
+                      <div style={{ width: 320, maxWidth: "100%" }}>
+                        <IntegrationCard
+                          dataTour="integration-linear-card"
+                          mark={<LinearMark size={20} />}
+                          name="Linear"
+                          category="Issue tracking · Migration"
+                          description={LINEAR_DESC}
+                          state={linearConnected ? "connected" : "available"}
+                          detail="Projects, issues & cycles"
+                          accountName={linearConnected ? userName : null}
+                          busy={linearLoading}
+                          onConnect={handleLinearConnect}
+                          onDisconnect={handleLinearDisconnect}
+                          onMigrate={linearConnected ? () => setShowLinearWizard(true) : undefined}
+                        />
+                      </div>
                     )}
                   </div>
                 </div>
@@ -715,25 +719,35 @@ function IntegrationContent() {
                     <span className="intg-section-hint">Powers imports in the Document Hub</span>
                   </div>
 
-                  <div className="intg-grid">
-                    <IntegrationCard
-                      mark={<NotionMark size={20} />}
-                      name="Notion"
-                      category="Docs & knowledge"
-                      description={NOTION_DESC}
-                      state={notion.connected ? "connected" : "available"}
-                      detail={
-                        notion.workspaceName
-                          ? `${notion.workspaceName} workspace`
-                          : notion.connectedAt
-                            ? `Linked ${dayjs(notion.connectedAt).format("MMM D, YYYY")}`
-                            : "Pages & databases"
-                      }
-                      accountName={notion.workspaceName || userName}
-                      busy={notionLoading}
-                      onConnect={handleNotionConnect}
-                      onDisconnect={handleNotionDisconnect}
-                    />
+                  <div
+                    style={{
+                      display: "inline-flex",
+                      flexWrap: "wrap",
+                      gap: 12,
+                      width: "fit-content",
+                      maxWidth: "100%",
+                    }}
+                  >
+                    <div style={{ width: 320, maxWidth: "100%" }}>
+                      <IntegrationCard
+                        mark={<NotionMark size={20} />}
+                        name="Notion"
+                        category="Docs & knowledge"
+                        description={NOTION_DESC}
+                        state={notion.connected ? "connected" : "available"}
+                        detail={
+                          notion.workspaceName
+                            ? `${notion.workspaceName} workspace`
+                            : notion.connectedAt
+                              ? `Linked ${dayjs(notion.connectedAt).format("MMM D, YYYY")}`
+                              : "Pages & databases"
+                        }
+                        accountName={notion.workspaceName || userName}
+                        busy={notionLoading}
+                        onConnect={handleNotionConnect}
+                        onDisconnect={handleNotionDisconnect}
+                      />
+                    </div>
                   </div>
                 </>
               )}

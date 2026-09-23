@@ -1687,8 +1687,12 @@ export const hivebugStyles = `
   text-decoration: none;
 }
 .hb-ticket-link:hover { color: var(--hb-text); border-color: var(--hb-border-strong); }
-.hb-ticket-link.is-live { color: var(--hb-success); }
-.hb-ticket-link.is-live:hover { color: var(--hb-success); filter: brightness(1.1); }
+.hb-ticket-link.is-live,
+.hb-ticket-link.is-completed,
+.hb-ticket-link.is-done { color: var(--hb-success); }
+.hb-ticket-link.is-live:hover,
+.hb-ticket-link.is-completed:hover,
+.hb-ticket-link.is-done:hover { color: var(--hb-success); filter: brightness(1.1); }
 
 .hb-create-ticket {
   display: inline-flex; align-items: center; gap: 4px;

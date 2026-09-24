@@ -288,7 +288,7 @@ const ProjectOverviewPage = () => {
               <TimelineTree tickets={timelineTickets ?? []} />
             ))}
 
-          {activeView === "team" && <TeamProgressCards members={team} />}
+          {activeView === "team" && <TeamProgressCards members={team} projectId={projectId} />}
         </div>
       </div>
 

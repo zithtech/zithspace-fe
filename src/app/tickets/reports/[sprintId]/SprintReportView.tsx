@@ -195,6 +195,7 @@ function getScrollParent(node: Element | null): HTMLElement | null {
 function useScrollSpy(ids: string[], offset: number, root: HTMLElement | null): string {
   const [active, setActive] = useState(ids[0] ?? "");
   const key = ids.join(",");
+  const roundedOffset = Math.round(offset);
 
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -204,7 +205,7 @@ function useScrollSpy(ids: string[], offset: number, root: HTMLElement | null): 
           .sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top);
         if (visible[0]) setActive((visible[0].target as HTMLElement).id);
       },
-      { root, rootMargin: `-${Math.round(offset)}px 0px -62% 0px`, threshold: 0 }
+      { root, rootMargin: `-${roundedOffset}px 0px -62% 0px`, threshold: 0 }
     );
     const els = ids
       .map((id) => document.getElementById(id))
@@ -216,8 +217,10 @@ function useScrollSpy(ids: string[], offset: number, root: HTMLElement | null): 
       const clientHeight = root ? root.clientHeight : window.innerHeight;
       const scrollTop = root ? root.scrollTop : window.scrollY;
 
+      if (scrollHeight <= clientHeight + 50) return;
+
       // Force the last section to be active if we hit the bottom of the page
-      if (Math.ceil(scrollTop + clientHeight) >= scrollHeight - 2) {
+      if (Math.ceil(scrollTop + clientHeight) >= scrollHeight - 5) {
         const lastId = ids[ids.length - 1];
         if (lastId) setActive(lastId);
       }
@@ -225,14 +228,13 @@ function useScrollSpy(ids: string[], offset: number, root: HTMLElement | null): 
 
     const target = root ?? window;
     target.addEventListener("scroll", handleScroll, { passive: true });
-    // Run once on mount in case we are already at the bottom
     handleScroll();
 
     return () => {
       observer.disconnect();
       target.removeEventListener("scroll", handleScroll);
     };
-  }, [key, offset, root]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [key, roundedOffset, root]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return active;
 }
@@ -252,10 +254,20 @@ function SectionTabs({
   const btnRefs = useRef<Record<string, HTMLButtonElement | null>>({});
   const animRef = useRef<number | null>(null);
 
-  // Keep the active tab in view as the user scrolls the page (horizontal only).
+  // Keep the active tab in view as the user scrolls the page (horizontal container scrolling only).
   useEffect(() => {
+    const nav = navRef.current;
     const btn = btnRefs.current[activeId];
-    if (btn) btn.scrollIntoView({ block: "nearest", inline: "nearest" });
+    if (!nav || !btn) return;
+
+    const navRect = nav.getBoundingClientRect();
+    const btnRect = btn.getBoundingClientRect();
+
+    if (btnRect.left < navRect.left) {
+      nav.scrollLeft += (btnRect.left - navRect.left) - 16;
+    } else if (btnRect.right > navRect.right) {
+      nav.scrollLeft += (btnRect.right - navRect.right) + 16;
+    }
   }, [activeId]);
 
   // Cancel any in-flight scroll animation on unmount.

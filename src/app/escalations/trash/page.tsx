@@ -130,7 +130,7 @@ export default function EscalationTrashPage() {
 
   // Pagination states
   const [tablePage, setTablePage] = useState(1);
-  const [tablePageSize, setTablePageSize] = useState(20);
+  const [tablePageSize, setTablePageSize] = useState(15);
   const [totalEscalations, setTotalEscalations] = useState(0);
   const [totalActive, setTotalActive] = useState(0);
 
@@ -155,8 +155,8 @@ export default function EscalationTrashPage() {
       const offset = (tablePage - 1) * tablePageSize;
 
       const [activeData, trashData] = await Promise.all([
-        EscalationServiceV2.getAllEscalations(limit, offset),
-        EscalationServiceV2.getTrashEscalations(limit, offset),
+        EscalationServiceV2.getAllEscalations(limit, offset, searchQuery),
+        EscalationServiceV2.getTrashEscalations(limit, offset, searchQuery),
       ]);
       setActiveEscalations(activeData?.data || []);
       setTotalActive(activeData?.total || 0);
@@ -182,7 +182,7 @@ export default function EscalationTrashPage() {
     if (canReadEscalation) {
       fetchTrashedEscalations();
     }
-  }, [canReadEscalation, tablePage, tablePageSize]);
+  }, [canReadEscalation, tablePage, tablePageSize, searchQuery]);
 
   const handleRestore = async (id: string) => {
     setRestoringId(id);
@@ -915,7 +915,7 @@ export default function EscalationTrashPage() {
                   className="es-pagesize"
                   value={tablePageSize}
                   onChange={(v) => { setTablePageSize(v); setTablePage(1); }}
-                  options={[10, 20, 25, 50, 100].map((n) => ({ value: n, label: `${n} / page` }))}
+                  options={[10, 15, 20, 25, 50, 100].map((n) => ({ value: n, label: `${n} / page` }))}
                   popupMatchSelectWidth={120}
                 />
               </div>

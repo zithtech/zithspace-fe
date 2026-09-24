@@ -276,16 +276,18 @@ class BugListService {
     await apiClient.delete(`/api/bug-list/folders/${id}`);
   }
 
-  static async getArchivedFolders(): Promise<BugFolder[]> {
+  static async getArchivedFolders(projectId?: string): Promise<BugFolder[]> {
     const res = await apiClient.get<{ success: boolean; data: BugFolder[] }>(
-      "/api/bug-list/folders/archived"
+      "/api/bug-list/folders/archived",
+      { params: { projectId } }
     );
     return res.data.data;
   }
 
-  static async getTrashedFolders(): Promise<BugFolder[]> {
+  static async getTrashedFolders(projectId?: string): Promise<BugFolder[]> {
     const res = await apiClient.get<{ success: boolean; data: BugFolder[] }>(
-      "/api/bug-list/folders/trashed"
+      "/api/bug-list/folders/trashed",
+      { params: { projectId } }
     );
     return res.data.data;
   }
@@ -334,9 +336,10 @@ class BugListService {
     return res.data.data;
   }
 
-  static async getArchivedSheets(folderId?: string): Promise<BugSheet[]> {
+  static async getArchivedSheets(folderId?: string, projectId?: string): Promise<BugSheet[]> {
     const res = await apiClient.get<{ success: boolean; data: BugSheet[] }>(
-      `/api/bug-list/sheets/archived${folderId ? `?folderId=${folderId}` : ""}`
+      "/api/bug-list/sheets/archived",
+      { params: { folderId, projectId } }
     );
     return res.data.data;
   }
@@ -379,9 +382,10 @@ class BugListService {
     await apiClient.delete(`/api/bug-list/sheets/${id}`);
   }
 
-  static async getTrashedSheets(folderId?: string): Promise<any[]> {
+  static async getTrashedSheets(folderId?: string, projectId?: string): Promise<any[]> {
     const res = await apiClient.get<{ success: boolean; data: any[] }>(
-      `/api/bug-list/sheets/trashed${folderId ? `?folderId=${folderId}` : ""}`
+      "/api/bug-list/sheets/trashed",
+      { params: { folderId, projectId } }
     );
     return res.data.data;
   }

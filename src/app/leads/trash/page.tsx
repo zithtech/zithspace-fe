@@ -17,7 +17,8 @@ import {
   Skeleton,
   Badge,
   Dropdown,
-  Avatar
+  Avatar,
+  Pagination
 } from "antd";
 import {
   UndoOutlined,
@@ -213,16 +214,42 @@ export default function LeadsTrashPage() {
     }
   }, []);
 
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(15);
+  const [totalLeads, setTotalLeads] = useState(0);
+
+  const loadTrashLeads = useCallback(async () => {
+    try {
+      const res = await fetchTrashLeads({ page, limit: pageSize, search: searchQuery });
+      if (res?.pagination) {
+        setTotalLeads(res.pagination.total);
+      } else if (res?.data && Array.isArray(res.data)) {
+        setTotalLeads(res.count ?? res.data.length);
+      } else if (Array.isArray(res)) {
+        setTotalLeads(res.length);
+      }
+    } catch (err) {
+      console.error("Failed to load trash leads", err);
+    }
+  }, [fetchTrashLeads, page, pageSize, searchQuery]);
+
   useEffect(() => {
     fetchActiveLeads();
-    fetchTrashLeads();
-  }, [fetchActiveLeads, fetchTrashLeads]);
+  }, [fetchActiveLeads]);
+
+  useEffect(() => {
+    loadTrashLeads();
+  }, [loadTrashLeads]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [searchQuery]);
 
   const handleRestore = async (id: string) => {
     try {
       await LeadService.restore(id);
       message.success("Lead restored successfully");
-      fetchTrashLeads();
+      loadTrashLeads();
       fetchActiveLeads();
     } catch (error: any) {
       message.error(error.message || "Failed to restore lead");
@@ -233,33 +260,11 @@ export default function LeadsTrashPage() {
     try {
       await LeadService.permanentDelete(id);
       message.success("Lead permanently deleted");
-      fetchTrashLeads();
+      loadTrashLeads();
     } catch (error: any) {
       message.error(error.message || "Failed to delete lead permanently");
     }
   };
-
-  const [page, setPage] = useState(1);
-  const pageSize = 20;
-
-  useEffect(() => {
-    setPage(1);
-  }, [searchQuery]);
-
-  const filteredLeads = leads?.filter((l) =>
-    (l.title || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
-    (l.client_name || "").toLowerCase().includes(searchQuery.toLowerCase())
-  ) || [];
-
-  const totalCount = filteredLeads.length;
-  const totalPages = Math.ceil(totalCount / pageSize) || 1;
-  const paginatedLeads = useMemo(() => {
-    const start = (page - 1) * pageSize;
-    return filteredLeads.slice(start, start + pageSize);
-  }, [filteredLeads, page, pageSize]);
-
-  const pageStart = totalCount === 0 ? 0 : (page - 1) * pageSize + 1;
-  const pageEnd = Math.min(page * pageSize, totalCount);
 
   const actionMenu = (item: Lead) => ({
     items: [
@@ -581,7 +586,7 @@ export default function LeadsTrashPage() {
               </div>
 
               <div className="es-topbar-meta">
-                <span className="es-meta-item"><span className="es-pulse" /><strong>{filteredLeads.length}</strong> deleted leads</span>
+                <span className="es-meta-item"><span className="es-pulse" /><strong>{totalLeads}</strong> deleted leads</span>
               </div>
 
               <div className="es-topbar-actions">
@@ -595,7 +600,7 @@ export default function LeadsTrashPage() {
                     className="es-ghost-btn"
                     onClick={async () => {
                       setIsRefreshing(true);
-                      await fetchTrashLeads();
+                      await loadTrashLeads();
                       await fetchActiveLeads();
                       setIsRefreshing(false);
                       message.success("Trash view synchronized");
@@ -660,6 +665,7 @@ export default function LeadsTrashPage() {
                           await bulkRestoreLeads(selectedRowKeys as string[]);
                           setSelectedRowKeys([]);
                           message.success("Selected leads restored");
+                          loadTrashLeads();
                           fetchActiveLeads();
                         } catch (err: any) {
                           message.error("Failed to restore leads");
@@ -685,6 +691,7 @@ export default function LeadsTrashPage() {
                           await bulkDeleteLeads(selectedRowKeys as string[]);
                           setSelectedRowKeys([]);
                           message.success("Selected leads purged");
+                          loadTrashLeads();
                         } catch (err: any) {
                           message.error("Failed to purge leads");
                         }
@@ -714,7 +721,7 @@ export default function LeadsTrashPage() {
 
             {/* ============================ CONTENT ============================ */}
             <div className="es-body">
-              {!loading && filteredLeads.length === 0 ? (
+              {!loading && leads.length === 0 ? (
                 <div className="es-empty">
                   <NoData description={<Text type="secondary">No trashed leads found</Text>} />
                 </div>
@@ -735,7 +742,7 @@ export default function LeadsTrashPage() {
                           return col.render ? (col.render as any)(text, record, index) : text;
                         }
                       }))}
-                      dataSource={(loading || isRefreshing) ? Array(5).fill({}) : paginatedLeads}
+                      dataSource={(loading || isRefreshing) ? Array(5).fill({}) : leads}
                       scroll={{ x: "max-content" }}
                       rowKey={(record: any) => record.id || Math.random()}
                       pagination={false}
@@ -750,7 +757,7 @@ export default function LeadsTrashPage() {
                 </div>
               ) : (
                 <div className="es-grid" style={{ marginTop: 16, padding: "0 24px" }}>
-                  {paginatedLeads.map((item: any) => {
+                  {leads.map((item: any) => {
                     return (
                       <div key={item.id} className="ec-card group flex flex-col relative">
                         <div className="ec-top">
@@ -816,19 +823,26 @@ export default function LeadsTrashPage() {
               )}
             </div>
 
-            {totalCount > 0 && (
+            {totalLeads > 0 && (
               <div className="pp-footer pp-footer--sticky">
-                <div className="pp-footer-info">
-                  Showing <strong>{pageStart}–{pageEnd}</strong> of <strong>{totalCount}</strong>
-                  {selectedRowKeys.length > 0 && <span className="pp-footer-sel"> · {selectedRowKeys.length} selected</span>}
-                </div>
-                <div className="pp-pager">
-                  <button type="button" className="pp-pager-btn" disabled={page <= 1} onClick={() => setPage((p) => Math.max(1, p - 1))}>‹</button>
-                  {Array.from({ length: totalPages }, (_, i) => i + 1).slice(Math.max(0, page - 3), Math.max(0, page - 3) + 5).map((p) => (
-                    <button key={p} type="button" className={`pp-pager-num ${p === page ? "is-active" : ""}`} onClick={() => setPage(p)}>{p}</button>
-                  ))}
-                  <button type="button" className="pp-pager-btn" disabled={page >= totalPages} onClick={() => setPage((p) => Math.min(totalPages, p + 1))}>›</button>
-                </div>
+                <Pagination
+                  size="small"
+                  current={page}
+                  pageSize={pageSize}
+                  total={totalLeads}
+                  showSizeChanger
+                  pageSizeOptions={[10, 15, 20, 25, 50, 100]}
+                  onChange={(newPage, newPageSize) => {
+                    setPage(newPage);
+                    if (newPageSize !== pageSize) setPageSize(newPageSize);
+                  }}
+                  showTotal={(t, range) => (
+                    <span>
+                      Showing <strong>{range[0]}–{range[1]}</strong> of <strong>{t}</strong>
+                      {selectedRowKeys.length > 0 && <span className="pp-footer-sel"> · {selectedRowKeys.length} selected</span>}
+                    </span>
+                  )}
+                />
               </div>
             )}
           </main>
@@ -895,8 +909,8 @@ export default function LeadsTrashPage() {
           .es-view-count { font-size: 11.5px; font-weight: 600; color: var(--text-slate-400); min-width: 18px; text-align: right; }
           .es-view-item.is-active .es-view-count { color: #ff4d4f; font-weight: 700; background: rgba(255,77,79,0.12); border-radius: 6px; padding: 1px 7px; min-width: 0; }
           
-          .es-main { flex: 1; min-width: 0; padding: 8px 0 0 0; display: flex; flex-direction: column; }
-          .es-body { flex: 1 0 auto; }
+          .es-main { flex: 1; min-width: 0; padding: 8px 0 0 0; display: flex; flex-direction: column; min-height: 100%; position: relative; }
+          .es-body { flex: 1; display: flex; flex-direction: column; }
           .es-topbar { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; padding: 0 24px 4px 24px; }
           .es-search-wrap {
             position: relative; flex: 1; max-width: 520px; display: flex; align-items: center;
@@ -1068,29 +1082,19 @@ export default function LeadsTrashPage() {
 
           /* Footer + pager */
           .pp-footer {
-            display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;
-            padding: 0 14px; border-top: 1px solid var(--border-slate-200);
-            height: 52px !important;
-            box-sizing: border-box;
+            display: flex; align-items: center; justify-content: flex-end; padding: 10px 16px; margin-top: auto;
+            background: var(--bg-pure-white); border-top: 1px solid var(--border-slate-200);
           }
           .pp-footer--sticky {
-            position: sticky; bottom: 0; z-index: 30; margin: 0; padding: 0 24px;
-            background: var(--bg-pure-white);
-            box-shadow: 0 -4px 14px rgba(15,23,42,0.05);
-            height: 52px !important;
-            box-sizing: border-box;
+            position: sticky; bottom: 0; z-index: 30;
+            box-shadow: 0 -4px 14px rgba(15, 23, 42, 0.08);
           }
-          .pp-footer-info { font-size: 12px; color: var(--text-slate-500); }
-          .pp-footer-info strong { color: var(--text-slate-700); font-weight: 700; }
-          .pp-footer-sel { color: #3B82F6; font-weight: 600; }
-          .pp-pager { display: flex; align-items: center; gap: 3px; }
-          .pp-pager-btn, .pp-pager-num {
-            min-width: 28px; height: 28px; border-radius: 7px; border: 1px solid var(--border-slate-200);
-            background: var(--bg-pure-white); color: var(--text-slate-600); cursor: pointer; font-size: 12.5px; font-weight: 600;
-            display: inline-flex; align-items: center; justify-content: center;
+          .pp-footer .ant-pagination {
+            width: 100%; display: flex; align-items: center; justify-content: space-between;
+            margin: 0 !important; padding: 0 !important; border-top: none !important;
+            background: transparent !important; flex-wrap: wrap; gap: 8px;
           }
-          .pp-pager-btn:disabled { opacity: 0.4; cursor: not-allowed; }
-          .pp-pager-num.is-active { background: #3B82F6; border-color: #3B82F6; color: #fff; }
+          .pp-footer .ant-pagination-total-text { margin-right: auto; color: var(--text-slate-500); font-size: 12.5px; }
 
           [data-theme='dark'] .pp-footer {
             border-top-color: #1F2937 !important;

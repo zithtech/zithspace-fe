@@ -141,9 +141,15 @@ export const LinearTicketModal: React.FC<LinearTicketModalProps> = ({
                       <Input placeholder="e.g. Checkout fails on expired card" />
                     </Form.Item>
 
-                    <Form.Item name="description" label="Description">
+                    <Form.Item
+                      name="description"
+                      label="Description"
+                      rules={[{ max: 5000, message: "Description cannot exceed 5,000 characters" }]}
+                    >
                       <Input.TextArea
                         rows={5}
+                        maxLength={5000}
+                        showCount
                         placeholder="Context, repro steps, expected vs actual… (optional)"
                       />
                     </Form.Item>

@@ -1,7 +1,7 @@
 'use client';
 
 import NoData from "@/components/common/NoData";
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import {
   Typography,
   Button,
@@ -24,6 +24,7 @@ import {
   Slider,
   Dropdown,
   Select,
+  Pagination,
 } from 'antd';
 import {
   SettingOutlined,
@@ -661,9 +662,18 @@ export default function EscalationSettingsPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
 
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(15);
+  const [totalItems, setTotalItems] = useState(0);
+
   useEffect(() => {
     setSearchQuery('');
+    setPage(1);
   }, [activeTab]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [searchQuery]);
 
   const { message } = App.useApp();
 
@@ -677,17 +687,37 @@ export default function EscalationSettingsPage() {
 
   /* ----------------------------- Fetchers ---------------------------------- */
 
-  const fetchAll = async () => {
+  const fetchActiveTab = useCallback(async () => {
     setLoading(true);
     try {
-      const [c, p, s] = await Promise.all([
-        EscalationSettingsService.getCategories(),
-        EscalationSettingsService.getPriorities(),
-        EscalationSettingsService.getStatuses(),
-      ]);
-      setCategories(c || []);
-      setPriorities(p || []);
-      setStatuses(s || []);
+      if (activeTab === 'categories') {
+        const res = await EscalationSettingsService.getCategories({ page, limit: pageSize, search: searchQuery });
+        if (res?.data) {
+          setCategories(res.data);
+          setTotalItems(res.total ?? res.data.length);
+        } else if (Array.isArray(res)) {
+          setCategories(res);
+          setTotalItems(res.length);
+        }
+      } else if (activeTab === 'priorities') {
+        const res = await EscalationSettingsService.getPriorities({ page, limit: pageSize, search: searchQuery });
+        if (res?.data) {
+          setPriorities(res.data);
+          setTotalItems(res.total ?? res.data.length);
+        } else if (Array.isArray(res)) {
+          setPriorities(res);
+          setTotalItems(res.length);
+        }
+      } else {
+        const res = await EscalationSettingsService.getStatuses({ page, limit: pageSize, search: searchQuery });
+        if (res?.data) {
+          setStatuses(res.data);
+          setTotalItems(res.total ?? res.data.length);
+        } else if (Array.isArray(res)) {
+          setStatuses(res);
+          setTotalItems(res.length);
+        }
+      }
     } catch (error: any) {
       notifyPremium(
         'error',
@@ -697,7 +727,7 @@ export default function EscalationSettingsPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [activeTab, page, pageSize, searchQuery]);
 
   // Route guard
   useEffect(() => {
@@ -707,8 +737,8 @@ export default function EscalationSettingsPage() {
   }, [user, authLoading, canManageEscalations, router]);
 
   useEffect(() => {
-    if (canManageEscalations) fetchAll();
-  }, [canManageEscalations]);
+    if (canManageEscalations) fetchActiveTab();
+  }, [canManageEscalations, fetchActiveTab]);
 
   /* ----------------------------- Stats ------------------------------------- */
 
@@ -784,7 +814,7 @@ export default function EscalationSettingsPage() {
         );
       }
       setDrawerOpen(false);
-      fetchAll();
+      fetchActiveTab();
     } catch (error: any) {
       notifyPremium('error', 'Save Failed', 'Failed to save: ' + (error.message || 'Unknown error'));
     } finally {
@@ -802,7 +832,7 @@ export default function EscalationSettingsPage() {
         'Deactivated',
         'The item has been retired from escalation settings.',
       );
-      fetchAll();
+      fetchActiveTab();
     } catch (error: any) {
       notifyPremium(
         'error',
@@ -1191,7 +1221,7 @@ export default function EscalationSettingsPage() {
             </div>
 
             <div className="es-topbar-meta">
-              <span className="es-meta-item"><span className="es-pulse" /><strong>{activeSection.data.length}</strong> total {activeSection.singular.toLowerCase()}s</span>
+              <span className="es-meta-item"><span className="es-pulse" /><strong>{totalItems}</strong> total {activeSection.singular.toLowerCase()}s</span>
             </div>
             <div className="es-topbar-actions">
               <div className="es-segmented">
@@ -1199,7 +1229,7 @@ export default function EscalationSettingsPage() {
                 <button type="button" className={view === 'list' ? 'is-active' : ''} onClick={() => setView('list')} aria-label="List view"><UnorderedListOutlined /></button>
               </div>
               <Tooltip title="Refresh">
-                <button type="button" className="es-ghost-btn" onClick={fetchAll}><ReloadOutlined spin={loading} /></button>
+                <button type="button" className="es-ghost-btn" onClick={fetchActiveTab}><ReloadOutlined spin={loading} /></button>
               </Tooltip>
             </div>
           </div>
@@ -1504,6 +1534,28 @@ export default function EscalationSettingsPage() {
               </div>
             )}
           </div>
+
+          {totalItems > 0 && (
+            <div className="es-footer es-footer--sticky">
+              <Pagination
+                size="small"
+                current={page}
+                pageSize={pageSize}
+                total={totalItems}
+                showSizeChanger
+                pageSizeOptions={[10, 15, 20, 25, 50, 100]}
+                onChange={(newPage, newPageSize) => {
+                  setPage(newPage);
+                  if (newPageSize !== pageSize) setPageSize(newPageSize);
+                }}
+                showTotal={(t, range) => (
+                  <span>
+                    Showing <strong>{range[0]}–{range[1]}</strong> of <strong>{t}</strong>
+                  </span>
+                )}
+              />
+            </div>
+          )}
         </main>
 
         {/* CRUD Drawer */}
@@ -1581,8 +1633,22 @@ export default function EscalationSettingsPage() {
         .es-view-label { flex: 1; font-size: 13px; font-weight: 500; color: var(--text-slate-700); }
         .es-view-count { font-size: 11.5px; font-weight: 600; color: var(--text-slate-400); min-width: 18px; text-align: right; }
         .es-view-item.is-active .es-view-count { color: #3B82F6; font-weight: 700; background: rgba(59,130,246,0.12); border-radius: 6px; padding: 1px 7px; min-width: 0; }
-        .es-main { flex: 1; min-width: 0; padding: 8px 0 0 0; display: flex; flex-direction: column; }
-        .es-body { flex: 1 0 auto; }
+        .es-main { flex: 1; min-width: 0; padding: 8px 0 0 0; display: flex; flex-direction: column; min-height: 100%; position: relative; }
+        .es-body { flex: 1; display: flex; flex-direction: column; }
+        .es-footer {
+          display: flex; align-items: center; justify-content: flex-end; padding: 10px 16px; margin-top: auto;
+          background: var(--bg-pure-white); border-top: 1px solid var(--border-slate-200);
+        }
+        .es-footer--sticky {
+          position: sticky; bottom: 0; z-index: 30;
+          box-shadow: 0 -4px 14px rgba(15, 23, 42, 0.08);
+        }
+        .es-footer .ant-pagination {
+          width: 100%; display: flex; align-items: center; justify-content: space-between;
+          margin: 0 !important; padding: 0 !important; border-top: none !important;
+          background: transparent !important; flex-wrap: wrap; gap: 8px;
+        }
+        .es-footer .ant-pagination-total-text { margin-right: auto; color: var(--text-slate-500); font-size: 12.5px; }
         .es-topbar { display: flex; align-items: center; gap: 10px; padding: 12px 24px 8px 24px; margin-bottom: 12px; }
         .es-search-wrap {
           position: relative; flex: 1; max-width: 520px; display: flex; align-items: center;

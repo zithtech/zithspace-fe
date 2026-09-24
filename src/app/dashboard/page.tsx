@@ -272,9 +272,10 @@ function DashboardContent() {
     if (dashboardSettings?.cardSalarySlip !== false) {
       const fetchPayslips = async () => {
         try {
-          const res = await PayrollV2Service.getMyPayslips();
-          setPayslips(res);
-          if (res.length > 0) setSelectedPayslipId(res[0].id);
+          const res = await PayrollV2Service.getMyPayslips({ page: 1, limit: 10 });
+          const items = Array.isArray(res) ? res : (res?.data ?? []);
+          setPayslips(items);
+          if (items.length > 0) setSelectedPayslipId(items[0].id);
         } catch (e) {
           console.error("Failed to fetch payslips", e);
         }

@@ -376,112 +376,126 @@ export const SprintTable: React.FC<SprintTableProps> = ({
   }
 
   return (
-    <>
-    <div className="po-panel">
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: 10,
-          padding: "14px 18px",
-          borderBottom: "1px solid var(--border-color)",
-        }}
-      >
+    <div className="po-sprint-wrap">
+      <div className="po-panel">
         <div
           style={{
-            width: 28,
-            height: 28,
-            borderRadius: 8,
-            background: "#3b82f612",
-            color: "#3b82f6",
             display: "flex",
             alignItems: "center",
-            justifyContent: "center",
-            fontSize: 13,
+            gap: 10,
+            padding: "14px 18px",
+            borderBottom: "1px solid var(--border-color)",
           }}
         >
-          <ThunderboltOutlined />
+          <div
+            style={{
+              width: 28,
+              height: 28,
+              borderRadius: 8,
+              background: "#3b82f612",
+              color: "#3b82f6",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              fontSize: 13,
+            }}
+          >
+            <ThunderboltOutlined />
+          </div>
+          <Text
+            style={{
+              fontSize: 12,
+              fontWeight: 700,
+              color: "var(--text-slate-900)",
+              textTransform: "uppercase",
+              letterSpacing: "0.04em",
+            }}
+          >
+            Sprints
+          </Text>
+          <span
+            style={{
+              padding: "1px 8px",
+              borderRadius: 999,
+              background: "var(--bg-secondary, #f1f5f9)",
+              color: "var(--text-slate-600)",
+              fontSize: 11,
+              fontWeight: 600,
+            }}
+          >
+            {total}
+          </span>
+          <Text style={{ fontSize: 11.5, color: "var(--text-slate-400)", marginLeft: "auto" }}>
+            Click a row to expand its tickets
+          </Text>
         </div>
-        <Text
-          style={{
-            fontSize: 12,
-            fontWeight: 700,
-            color: "var(--text-slate-900)",
-            textTransform: "uppercase",
-            letterSpacing: "0.04em",
+
+        <Table
+          className="po-sprint-table"
+          rowKey="id"
+          size="middle"
+          columns={columns}
+          dataSource={displayedSprints}
+          pagination={false}
+          expandable={{
+            expandedRowKeys: expanded,
+            onExpandedRowsChange: (keys) => {
+              const arr = keys as React.Key[];
+              setExpanded(arr);
+              onSelectSprint(arr.length ? String(arr[arr.length - 1]) : null);
+            },
+            expandedRowRender: (record) => <TicketChildTable tickets={record.tickets} />,
+            expandIcon: ({ expanded: isExp, onExpand, record }) => (
+              <Tooltip title={isExp ? "Collapse" : "Expand tickets"}>
+                <RightOutlined
+                  onClick={(e) => onExpand(record, e)}
+                  style={{
+                    fontSize: 11,
+                    color: "var(--text-slate-400)",
+                    transition: "transform .15s ease",
+                    transform: isExp ? "rotate(90deg)" : "none",
+                    cursor: "pointer",
+                  }}
+                />
+              </Tooltip>
+            ),
           }}
-        >
-          Sprints
-        </Text>
-        <span
-          style={{
-            padding: "1px 8px",
-            borderRadius: 999,
-            background: "var(--bg-secondary, #f1f5f9)",
-            color: "var(--text-slate-600)",
-            fontSize: 11,
-            fontWeight: 600,
-          }}
-        >
-          {total}
-        </span>
-        <Text style={{ fontSize: 11.5, color: "var(--text-slate-400)", marginLeft: "auto" }}>
-          Click a row to expand its tickets
-        </Text>
+          rowClassName={(record) => (record.id === selectedSprintId ? "po-row-active" : "")} locale={{ emptyText: <NoData /> }}
+        />
       </div>
 
-      <Table
-        className="po-sprint-table"
-        rowKey="id"
-        size="middle"
-        columns={columns}
-        dataSource={displayedSprints}
-        pagination={false}
-        expandable={{
-          expandedRowKeys: expanded,
-          onExpandedRowsChange: (keys) => {
-            const arr = keys as React.Key[];
-            setExpanded(arr);
-            onSelectSprint(arr.length ? String(arr[arr.length - 1]) : null);
-          },
-          expandedRowRender: (record) => <TicketChildTable tickets={record.tickets} />,
-          expandIcon: ({ expanded: isExp, onExpand, record }) => (
-            <Tooltip title={isExp ? "Collapse" : "Expand tickets"}>
-              <RightOutlined
-                onClick={(e) => onExpand(record, e)}
-                style={{
-                  fontSize: 11,
-                  color: "var(--text-slate-400)",
-                  transition: "transform .15s ease",
-                  transform: isExp ? "rotate(90deg)" : "none",
-                  cursor: "pointer",
-                }}
-              />
-            </Tooltip>
-          ),
-        }}
-        rowClassName={(record) => (record.id === selectedSprintId ? "po-row-active" : "")} locale={{ emptyText: <NoData /> }}
-      />
-    </div>
+      {/* Sticky footer detached from table box */}
+      {total > 0 && (
+        <OverviewPager
+          total={total}
+          page={page}
+          pageSize={pageSize}
+          pageSizeOptions={[10, 15, 20, 25, 50, 100]}
+          onPageChange={setPage}
+          onPageSizeChange={(s) => {
+            setPageSize(s);
+            setPage(1);
+          }}
+          noun="sprints"
+          sticky={true}
+        />
+      )}
 
-    {/* The pager is sticky at the bottom, detached from the table */}
-    {total > 0 && (
-      <OverviewPager
-        total={total}
-        page={page}
-        pageSize={pageSize}
-        pageSizeOptions={[10, 15, 20, 25, 50, 100]}
-        onPageChange={setPage}
-        onPageSizeChange={(s) => {
-          setPageSize(s);
-          setPage(1);
-        }}
-        noun="sprints"
-        sticky={true}
-      />
-    )}
-
-    <style jsx global>{`
+      <style jsx global>{`
+        .po-sprint-wrap {
+          display: flex;
+          flex-direction: column;
+          flex: 1;
+          min-height: calc(100vh - 280px);
+          position: relative;
+        }
+        .po-sprint-wrap .po-panel {
+          display: flex;
+          flex-direction: column;
+          flex: 1;
+          min-height: 0;
+          position: relative;
+        }
         .po-sprint-table .ant-table {
           background: transparent;
         }
@@ -531,6 +545,6 @@ export const SprintTable: React.FC<SprintTableProps> = ({
           background: var(--bg-pure-white) !important;
         }
       `}</style>
-    </>
+    </div>
   );
 };

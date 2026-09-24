@@ -314,7 +314,7 @@ function ApiCatalogContent() {
   /** True while an endpoint is open in the workspace, new or existing. */
   const [editorOpen, setEditorOpen] = useState(false);
   const [editing, setEditing] = useState<Partial<YapiezApi>>(emptyApi());
-  const [activeTab, setActiveTab] = useState<"request" | "response" | "auth">("request");
+  const [activeTab, setActiveTab] = useState<"params" | "headers" | "body" | "response" | "auth">("body");
 
   // cURL import.
   const [curlOpen, setCurlOpen] = useState(false);
@@ -880,13 +880,22 @@ function ApiCatalogContent() {
       return;
     }
 
+    const rawBody = parsed.body || undefined;
+    const formattedBody = (() => {
+      if (rawBody && parsed.bodyType === "json") {
+        const { text, error } = formatJson(rawBody);
+        return error ? rawBody : text;
+      }
+      return rawBody;
+    })();
+
     setEditing((previous) => ({
       ...previous,
       method: parsed.method,
       url: parsed.url,
       headers: parsed.headers,
       queryParams: parsed.queryParams,
-      requestBody: parsed.body || previous.requestBody,
+      requestBody: formattedBody ?? previous.requestBody,
       bodyType: parsed.bodyType,
       // Credentials in the command become an explicit Basic auth config rather
       // than being dropped — but never a literal password left in a header.
@@ -917,7 +926,7 @@ function ApiCatalogContent() {
       return;
     }
 
-    setActiveTab("request");
+    setActiveTab(parsed.body ? "body" : "params");
     if (parsed.warnings.length) {
       message.warning(`Imported. ${parsed.warnings.join(" ")}`);
     } else {
@@ -948,7 +957,7 @@ function ApiCatalogContent() {
     });
     setSelectedApiId(null);
     setShowTrash(false);
-    setActiveTab("request");
+    setActiveTab("body");
     setTryResult(null);
     setLastCapture(null);
     setEditorOpen(true);
@@ -961,7 +970,7 @@ function ApiCatalogContent() {
       setEditing(fresh);
       setSelectedApiId(fresh.id);
       setShowTrash(false);
-      setActiveTab("request");
+      setActiveTab(fresh.bodyType !== "none" || isWriteMethod(fresh.method) ? "body" : "params");
       setTryResult(null);
       setLastCapture(null);
       setEditorOpen(true);
@@ -1004,7 +1013,7 @@ function ApiCatalogContent() {
     // A copy is a new, unsaved definition — nothing in the tree is selected
     // until it has been saved and has an id of its own.
     setSelectedApiId(null);
-    setActiveTab("request");
+    setActiveTab(copy.bodyType !== "none" || isWriteMethod(copy.method as HttpMethod) ? "body" : "params");
     setTryResult(null);
     setLastCapture(null);
     setEditorOpen(true);
@@ -1924,7 +1933,17 @@ function ApiCatalogContent() {
                 <div className="ph-urlbar">
                   <SearchableDropdown
                     value={editing.method ?? "GET"}
-                    onChange={(method: HttpMethod) => setEditing({ ...editing, method })}
+                    onChange={(method: HttpMethod) => {
+                      const isWrite = isWriteMethod(method);
+                      setEditing({
+                        ...editing,
+                        method,
+                        bodyType: isWrite && (!editing.bodyType || editing.bodyType === "none") ? "json" : editing.bodyType,
+                      });
+                      if (isWrite && (activeTab === "params" || !editing.requestBody)) {
+                        setActiveTab("body");
+                      }
+                    }}
                     options={HTTP_METHODS.map((m) => ({
                       value: m,
                       label: m,
@@ -1996,7 +2015,7 @@ function ApiCatalogContent() {
                 </div>
               </div>
 
-              <div className="ph-body" style={{ padding: "16px 20px 40px", display: "flex", flexDirection: "column", gap: 18 }}>
+              <div className="ph-body" style={{ padding: "16px 20px 40px" }}>
                 {/* ── Where it is filed ──
                    The name, the method and the URL are the request bar's, up
                    in the header where they stay visible while you work. This
@@ -2115,108 +2134,107 @@ function ApiCatalogContent() {
                 <SectionDivider />
 
                 {/* ── Tabs ── */}
-                <div style={{ display: "flex", gap: 4, borderBottom: "1px solid var(--border-color)" }}>
-                  {(
-                    [
-                      ["request", "Request"],
-                      ["response", "Expected response"],
-                      ["auth", "Authentication"],
-                    ] as const
-                  ).map(([key, label]) => (
+                <div style={{ display: "flex", gap: 4, borderBottom: "1px solid var(--border-color)", marginBottom: 12 }}>
+                  {[
+                    {
+                      key: "params",
+                      label: "Params",
+                      count: (editing.queryParams?.length ?? 0) + (editing.pathParams?.length ?? 0),
+                    },
+                    {
+                      key: "headers",
+                      label: "Headers",
+                      count: editing.headers?.length ?? 0,
+                    },
+                    {
+                      key: "body",
+                      label: "Body",
+                      badge: editing.bodyType && editing.bodyType !== "none" ? editing.bodyType.toUpperCase() : undefined,
+                    },
+                    {
+                      key: "response",
+                      label: "Expected response",
+                      badge: editing.expectedStatus ? String(editing.expectedStatus) : undefined,
+                    },
+                    {
+                      key: "auth",
+                      label: "Authentication",
+                      badge: editing.authType && editing.authType !== "inherit" ? AUTH_TYPE_LABELS[editing.authType] : undefined,
+                    },
+                  ].map((item) => (
                     <button
-                      key={key}
+                      key={item.key}
                       type="button"
-                      onClick={() => setActiveTab(key)}
+                      onClick={() => setActiveTab(item.key as any)}
                       style={{
-                        padding: "7px 14px",
+                        padding: "8px 14px",
                         fontSize: 12.5,
                         fontWeight: 600,
                         background: "transparent",
                         border: "none",
-                        borderBottom: `2px solid ${activeTab === key ? "#2563eb" : "transparent"}`,
-                        color: activeTab === key ? "#1d4ed8" : "var(--text-secondary)",
+                        borderBottom: `2px solid ${activeTab === item.key ? "#2563eb" : "transparent"}`,
+                        color: activeTab === item.key ? "#1d4ed8" : "var(--text-secondary)",
                         cursor: "pointer",
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: 6,
                       }}
                     >
-                      {label}
+                      <span>{item.label}</span>
+                      {item.count !== undefined && item.count > 0 && (
+                        <span
+                          style={{
+                            fontSize: 10.5,
+                            fontWeight: 700,
+                            lineHeight: "14px",
+                            padding: "1px 6px",
+                            borderRadius: 999,
+                            background: activeTab === item.key ? "#dbeafe" : "var(--bg-slate-100, #f1f5f9)",
+                            color: activeTab === item.key ? "#1e40af" : "var(--text-secondary)",
+                          }}
+                        >
+                          {item.count}
+                        </span>
+                      )}
+                      {item.badge && (
+                        <span
+                          style={{
+                            fontSize: 10,
+                            fontWeight: 700,
+                            lineHeight: "13px",
+                            padding: "1px 5px",
+                            borderRadius: 4,
+                            background: activeTab === item.key ? "#dcfce7" : "#f1f5f9",
+                            color: activeTab === item.key ? "#15803d" : "var(--text-secondary)",
+                          }}
+                        >
+                          {item.badge}
+                        </span>
+                      )}
                     </button>
                   ))}
                 </div>
 
-                {activeTab === "request" && (
-                  <>
-                    <RequestMetrics
-                      payloadBytes={
-                        editing.bodyType !== "none" && editing.requestBody
-                          ? byteLengthOf(editing.requestBody)
-                          : 0
-                      }
-                      lastCapture={lastCapture}
-                      onOpenCapture={() => setActiveTab("response")}
+                {activeTab === "headers" && (
+                  <Field
+                    label="Headers"
+                    icon={ListIcon}
+                    hint="Toggle a row off to document it without sending it"
+                  >
+                    <KeyValueEditor
+                      value={editing.headers ?? []}
+                      onChange={(headers) => setEditing({ ...editing, headers })}
+                      keyPlaceholder="Content-Type"
+                      valuePlaceholder="application/json"
+                      addLabel="Add header"
+                      bulkPasteLabel="Paste headers"
+                      bulkPasteHint="One header per line, as `Name: value`. Paste a block straight from your docs or browser."
                     />
+                  </Field>
+                )}
 
-                    <Field
-                      label="Headers"
-                      icon={ListIcon}
-                      hint={headersOpen ? "Toggle a row off to document it without sending it" : undefined}
-                      action={
-                        <Button
-                          size="small"
-                          type="text"
-                          onClick={() => setHeadersOpen((previous) => !previous)}
-                          style={{ fontSize: 11.5, color: "var(--text-secondary)" }}
-                          icon={headersOpen ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
-                        >
-                          {headersOpen
-                            ? "Hide"
-                            : `Show${(editing.headers ?? []).length ? ` (${(editing.headers ?? []).length})` : ""}`}
-                        </Button>
-                      }
-                    >
-                      {headersOpen ? (
-                        <KeyValueEditor
-                          value={editing.headers ?? []}
-                          onChange={(headers) => setEditing({ ...editing, headers })}
-                          keyPlaceholder="Content-Type"
-                          valuePlaceholder="application/json"
-                          addLabel="Add header"
-                          bulkPasteLabel="Paste headers"
-                          bulkPasteHint="One header per line, as `Name: value`. Paste a block straight from your docs or browser."
-                        />
-                      ) : (
-                        /* Collapsed: still say what is in there, so hiding the table
-                           never hides the fact that headers are being sent. */
-                        <div style={{ display: "flex", flexWrap: "wrap", gap: 5 }}>
-                          {(editing.headers ?? []).length === 0 ? (
-                            <Text style={{ fontSize: 11.5, color: "var(--text-secondary)", fontStyle: "italic" }}>
-                              No headers
-                            </Text>
-                          ) : (
-                            (editing.headers ?? []).map((header, index) => (
-                              <span
-                                key={`${header.key}-${index}`}
-                                style={{
-                                  padding: "1px 8px",
-                                  borderRadius: 5,
-                                  fontSize: 11,
-                                  fontFamily: "ui-monospace, monospace",
-                                  color: header.enabled === false ? "var(--text-secondary)" : "#1d4ed8",
-                                  background: header.enabled === false ? "var(--bg-slate-50)" : "var(--bg-blue-50)",
-                                  border: `1px solid ${header.enabled === false ? "var(--border-color)" : "var(--border-blue-200)"
-                                    }`,
-                                  textDecoration: header.enabled === false ? "line-through" : "none",
-                                }}
-                              >
-                                {header.key || "(unnamed)"}
-                              </span>
-                            ))
-                          )}
-                        </div>
-                      )}
-                    </Field>
-
-                    <DottedDivider />
-
+                {activeTab === "params" && (
+                  <>
                     <Field label="Query parameters" icon={Search}>
                       <KeyValueEditor
                         value={editing.queryParams ?? []}
@@ -2253,8 +2271,7 @@ function ApiCatalogContent() {
                           }}
                         >
                           <Text style={{ fontSize: 11.5, color: "#1e40af" }}>
-                            The URL uses{" "}
-                            <strong>{undeclaredPathParams.join(", ")}</strong> but{" "}
+                            The URL uses <strong>{undeclaredPathParams.join(", ")}</strong> but{" "}
                             {undeclaredPathParams.length === 1 ? "it has" : "they have"} no row here.
                           </Text>
                           <Button
@@ -2265,8 +2282,6 @@ function ApiCatalogContent() {
                                 ...editing,
                                 pathParams: [
                                   ...(editing.pathParams ?? []),
-                                  // Default each to the run variable of the same name —
-                                  // the overwhelmingly common case in a flow.
                                   ...undeclaredPathParams.map((key) => ({
                                     key,
                                     value: `{{${key}}}`,
@@ -2288,51 +2303,51 @@ function ApiCatalogContent() {
                         addLabel="Add path param"
                       />
                     </Field>
+                  </>
+                )}
 
-                    <DottedDivider />
-
-                    {/* ── Body ──
-                       Header strip and payload are one panel, not a settings
-                       row followed by an unrelated field. The type you pick
-                       decides what the box below is, so putting a border
-                       between them made you look in two places to answer one
-                       question. ── */}
+                {activeTab === "body" && (
+                  <>
                     <div className="ph-body-panel">
+                      {/* ── Body type + Timeout bar ── */}
                       <div className="ph-body-head">
                         <span className="ph-body-title">
-                          <span className="ph-body-icon">
-                            <FileJson2 size={12} />
-                          </span>
+                          <span className="ph-body-icon"><FileJson2 size={12} /></span>
                           Body
                         </span>
 
-                        <Segmented
-                          size="small"
-                          value={editing.bodyType}
-                          onChange={(bodyType) => setEditing({ ...editing, bodyType: bodyType as BodyType })}
-                          className="ph-body-seg"
-                          options={BODY_TYPES.map((type) => ({
-                            value: type,
-                            label: (
-                              <span className="ph-body-seg-item">
-                                {BODY_TYPE_META[type].label}
-                                {/* A body that will not parse is the one thing you
-                                need to know without opening the tab. */}
-                                {type === "json" &&
-                                  editing.bodyType === "json" &&
-                                  !!editing.requestBody?.trim() &&
-                                  !payloadJson.valid && <span className="ph-body-seg-dot" />}
-                              </span>
-                            ),
-                          }))}
-                        />
+                        {/* Plain button toggles — avoids Segmented onChange typing issues */}
+                        <div style={{ display: "flex", gap: 2, background: "var(--bg-slate-100, #f1f5f9)", borderRadius: 7, padding: 2 }}>
+                          {BODY_TYPES.map((type) => (
+                            <button
+                              key={type}
+                              type="button"
+                              onClick={() => setEditing({ ...editing, bodyType: type })}
+                              style={{
+                                padding: "3px 10px",
+                                fontSize: 12,
+                                fontWeight: 600,
+                                borderRadius: 5,
+                                border: "none",
+                                cursor: "pointer",
+                                background: editing.bodyType === type ? "#ffffff" : "transparent",
+                                color: editing.bodyType === type ? "var(--text-primary)" : "var(--text-secondary)",
+                                boxShadow: editing.bodyType === type ? "0 1px 3px rgba(0,0,0,0.12)" : "none",
+                                transition: "all 120ms ease",
+                              }}
+                            >
+                              {BODY_TYPE_META[type].label}
+                              {type === "json" && editing.bodyType === "json" && !!editing.requestBody?.trim() && !payloadJson.valid && (
+                                <span style={{ display: "inline-block", width: 5, height: 5, borderRadius: "50%", background: "#ef4444", marginLeft: 4, verticalAlign: "middle" }} />
+                              )}
+                            </button>
+                          ))}
+                        </div>
 
-                        <span style={{ flex: 1, minWidth: 4 }} />
+                        <span style={{ flex: 1 }} />
 
                         <span className="ph-body-title">
-                          <span className="ph-body-icon is-muted">
-                            <Timer size={12} />
-                          </span>
+                          <span className="ph-body-icon is-muted"><Timer size={12} /></span>
                           Timeout
                         </span>
                         <Input
@@ -2340,19 +2355,16 @@ function ApiCatalogContent() {
                           type="number"
                           placeholder="30000"
                           value={editing.timeoutMs ?? ""}
-                          onChange={(e) =>
-                            setEditing({ ...editing, timeoutMs: e.target.value ? Number(e.target.value) : null })
-                          }
+                          onChange={(e) => setEditing({ ...editing, timeoutMs: e.target.value ? Number(e.target.value) : null })}
                           suffix={<span style={{ fontSize: 10.5, color: "var(--text-secondary)" }}>ms</span>}
                           style={{ width: 116 }}
                         />
                         <Tooltip title="Blank uses the server default (30s), capped at 120s.">
-                          <span style={{ display: "inline-flex", color: "#94a3b8", cursor: "help" }}>
-                            <Info size={13} />
-                          </span>
+                          <span style={{ display: "inline-flex", color: "#94a3b8", cursor: "help" }}><Info size={13} /></span>
                         </Tooltip>
                       </div>
 
+                      {/* ── Body content ── */}
                       {editing.bodyType === "none" ? (
                         <div className="ph-body-empty">
                           <Minus size={15} style={{ color: "#94a3b8" }} />
@@ -2360,20 +2372,67 @@ function ApiCatalogContent() {
                             This request sends no body
                           </Text>
                           <Text style={{ fontSize: 11.5, color: "var(--text-secondary)" }}>
-                            Pick JSON, Form or Text above to add one.
+                            Pick JSON, Form or Text above to add a payload.
                           </Text>
                         </div>
                       ) : (
                         <>
-                          <TextArea
-                            variant="borderless"
-                            autoSize={{ minRows: 9, maxRows: 24 }}
+                          <textarea
                             value={editing.requestBody ?? ""}
                             onChange={(e) => setEditing({ ...editing, requestBody: e.target.value })}
                             placeholder={BODY_TYPE_META[(editing.bodyType ?? "json") as BodyType].placeholder}
-                            className="ph-body-input"
+                            onPaste={(e) => {
+                              if (editing.bodyType !== "json") return;
+                              const raw = e.clipboardData.getData("text");
+                              if (!raw.trim()) return;
+                              const { text, error } = formatJson(raw);
+                              if (!error) {
+                                e.preventDefault();
+                                setEditing({ ...editing, requestBody: text });
+                              }
+                            }}
+                            onKeyDown={(e) => {
+                              // Tab → insert 2 spaces instead of moving focus
+                              if (e.key === "Tab") {
+                                e.preventDefault();
+                                const el = e.currentTarget;
+                                const start = el.selectionStart;
+                                const end = el.selectionEnd;
+                                const val = el.value;
+                                const next = val.slice(0, start) + "  " + val.slice(end);
+                                setEditing({ ...editing, requestBody: next });
+                                requestAnimationFrame(() => {
+                                  el.selectionStart = el.selectionEnd = start + 2;
+                                });
+                              }
+                              // Cmd/Ctrl + Shift + F → format JSON
+                              if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key === "f") {
+                                e.preventDefault();
+                                if (editing.bodyType === "json") {
+                                  const { text, error } = formatJson(editing.requestBody ?? "");
+                                  if (error) message.warning(`Cannot format: ${error}`);
+                                  else setEditing({ ...editing, requestBody: text });
+                                }
+                              }
+                            }}
+                            style={{
+                              display: "block",
+                              width: "100%",
+                              minHeight: 240,
+                              padding: "12px 14px",
+                              fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace",
+                              fontSize: 12.5,
+                              lineHeight: 1.65,
+                              color: "var(--text-primary, #0f172a)",
+                              background: "var(--bg-pure-white, #ffffff)",
+                              border: "none",
+                              borderBottom: "1px solid var(--border-color)",
+                              outline: "none",
+                              resize: "vertical",
+                              boxSizing: "border-box",
+                              tabSize: 2,
+                            }}
                           />
-
                           <div className="ph-body-foot">
                             {editing.bodyType === "json" ? (
                               <JsonBar
@@ -2396,11 +2455,11 @@ function ApiCatalogContent() {
                     </div>
 
                     {editing.bodyType !== "none" && (
-                      <Text style={{ fontSize: 11, color: "var(--text-secondary)", marginTop: -10 }}>
-                        {"{{variables}}"} are substituted at run time — {"{{userId}}"}, {"{{accessToken}}"},
-                        anything a previous step saved.
+                      <Text style={{ fontSize: 11, color: "var(--text-secondary)", marginTop: -4 }}>
+                        {"{{variables}}"} are substituted at run time — {"{{userId}}"}, {"{{accessToken}}"}, anything a previous step saved.
                       </Text>
                     )}
+
 
                     {variablesInUse.length > 0 && (
                       <div
@@ -3462,14 +3521,24 @@ function ApiCatalogContent() {
           flex: 1;
           min-height: 0;
           overflow: auto;
+          display: block;
+        }
+        .ph-body > * + * {
+          margin-top: 18px;
         }
 
         /* ── Body panel ── */
         .ph-body-panel {
           border: 1px solid var(--border-color);
           border-radius: 10px;
-          overflow: hidden;
+          overflow: visible;
           background: var(--bg-pure-white);
+        }
+        .ph-body-panel > *:first-child {
+          border-radius: 10px 10px 0 0;
+        }
+        .ph-body-panel > *:last-child {
+          border-radius: 0 0 10px 10px;
         }
         .ph-body-head {
           display: flex;
@@ -3519,13 +3588,24 @@ function ApiCatalogContent() {
           background: #dc2626;
           flex-shrink: 0;
         }
-        .ph-body-input.ant-input {
+        .ph-body-input {
+          display: block;
+          width: 100%;
+          min-height: 220px;
+          padding: 12px 13px;
           font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
           font-size: 12.5px;
           line-height: 1.65;
-          padding: 12px 13px;
+          color: var(--text-primary);
           background: transparent;
-          resize: none;
+          border: none;
+          outline: none;
+          resize: vertical;
+          box-sizing: border-box;
+        }
+        .ph-body-input::placeholder {
+          color: var(--text-secondary);
+          opacity: 0.7;
         }
         .ph-body-foot {
           padding: 7px 11px;

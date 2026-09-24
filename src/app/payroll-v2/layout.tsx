@@ -296,11 +296,11 @@ export default function PayrollV2Layout({ children }: { children: React.ReactNod
               padding: 0;
             }
             .pv-content {
-              padding: 0 16px;
+              padding: 0;
             }
             .pv-content > * > [class*="-header"] {
-              margin-left: -16px !important;
-              margin-right: -16px !important;
+              margin-left: 0 !important;
+              margin-right: 0 !important;
               padding-left: 16px !important;
               padding-right: 16px !important;
               padding-top: 8px !important;

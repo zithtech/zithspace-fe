@@ -475,6 +475,7 @@ export default function BugListPage() {
     !!selectedProjectId &&
     !(folders?.length === 0 && scope === "all" && !foldersLoading) &&
     (scope !== "archived" || !!selectedSheetId) &&
+    (scope !== "trash" || !!selectedSheetId) &&
     !!bugsResponse?.pagination &&
     total > 0;
 
@@ -1507,6 +1508,7 @@ export default function BugListPage() {
             <>
               {scope === "archived" && !selectedSheetId && (
                 <ArchiveView
+                  projectId={selectedProjectId || undefined}
                   selectedSheetId={selectedSheetId}
                   selectedFolderId={selectedFolderId}
                   onSelectFolder={setSelectedFolderId}
@@ -1522,6 +1524,7 @@ export default function BugListPage() {
               )}
               {scope === "trash" && !selectedSheetId && (
                 <TrashView
+                  projectId={selectedProjectId || undefined}
                   selectedSheetId={selectedSheetId}
                   selectedFolderId={selectedFolderId}
                   onSelectFolder={setSelectedFolderId}

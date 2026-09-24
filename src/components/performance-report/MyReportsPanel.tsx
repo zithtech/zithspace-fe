@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Button, message } from 'antd';
+import { Button, message, Pagination } from 'antd';
 import { FilePdfOutlined, DownloadOutlined, SyncOutlined } from '@ant-design/icons';
 import { FileSearch, TrendingUp, TrendingDown, Minus, CalendarDays, FileText } from 'lucide-react';
 import dayjs from 'dayjs';
@@ -36,20 +36,29 @@ export default function MyReportsPanel() {
   const [reports, setReports] = useState<GeneratedReport[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const load = useCallback(async () => {
+  // Pagination state
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(15);
+  const [total, setTotal] = useState(0);
+
+  const load = useCallback(async (p = page, l = limit) => {
     setLoading(true);
     try {
-      setReports(await PerformanceReportService.getMyGeneratedReports());
+      const res = await PerformanceReportService.getMyGeneratedReports({ page: p, limit: l });
+      const r = Array.isArray(res) ? res : res.data;
+      const tot = Array.isArray(res) ? res.length : res.pagination.total;
+      setReports(r);
+      setTotal(tot);
     } catch (err: any) {
       message.error(err?.response?.data?.error || err?.message || 'Failed to load your reports');
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [page, limit]);
 
   useEffect(() => {
-    load();
-  }, [load]);
+    load(page, limit);
+  }, [page, limit, load]);
 
   // Newest first, so the most recent month leads the grid.
   const sorted = useMemo(
@@ -123,7 +132,7 @@ export default function MyReportsPanel() {
             <Button
               icon={<SyncOutlined />}
               loading={loading}
-              onClick={load}
+              onClick={() => load(page, limit)}
               style={{ height: 42, width: 42, borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
               title="Refresh"
             />
@@ -224,8 +233,35 @@ export default function MyReportsPanel() {
         </div>
       )}
 
+      {total > 0 && (
+        <div className="mr-footer mr-footer--sticky">
+          <Pagination
+            size="small"
+            current={page}
+            pageSize={limit}
+            total={total}
+            showSizeChanger
+            pageSizeOptions={[10, 15, 20, 25, 50, 100]}
+            onChange={(newPage, newPageSize) => {
+              setPage(newPage);
+              setLimit(newPageSize);
+            }}
+            showTotal={(t, range) => (
+              <span>
+                Showing <strong>{range[0]}–{range[1]}</strong> of <strong>{t}</strong>
+              </span>
+            )}
+          />
+        </div>
+      )}
+
       <style jsx global>{`
-        .mr-wrap { display: flex; flex-direction: column; flex: 1; min-height: 0; }
+        .mr-wrap { display: flex; flex-direction: column; flex: 1; min-height: 100%; position: relative; }
+
+        .mr-footer { display: flex; align-items: center; justify-content: flex-end; padding: 10px 16px; background: var(--bg-pure-white); border-top: 1px solid var(--border-slate-200); margin-top: auto; }
+        .mr-footer--sticky { position: sticky; bottom: 0; z-index: 30; box-shadow: 0 -4px 14px rgba(15, 23, 42, 0.08); }
+        .mr-footer .ant-pagination { width: 100%; display: flex; align-items: center; justify-content: space-between; margin: 0 !important; padding: 0 !important; border-top: none !important; background: transparent !important; flex-wrap: wrap; gap: 8px; }
+        .mr-footer .ant-pagination-total-text { margin-right: auto; color: var(--text-slate-500); font-size: 12.5px; }
 
         /* ── Hero band (full-bleed via the layout's -header rule) ───────────── */
         .mr-header {

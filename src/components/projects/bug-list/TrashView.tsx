@@ -37,6 +37,7 @@ import {
 } from "@/hooks/useBugList";
 import type { BugSheet, BugFolder, BugListItem } from "@/services/bugListService";
 import { hivebugStyles } from "./hivebug-styles";
+import { OverviewPager } from "../overview/OverviewPager";
 
 // ─── helpers ────────────────────────────────────────────────────────────────
 
@@ -94,6 +95,7 @@ const formatBreakdown = (folders: number, sheets: number, bugs: number) => {
 // ─── types ───────────────────────────────────────────────────────────────────
 
 interface TrashViewProps {
+  projectId?: string;
   selectedSheetId: string | null;
   selectedFolderId: string | null;
   onSelectFolder: (folderId: string | null) => void;
@@ -116,6 +118,7 @@ type FolderWithMeta = BugFolder & {
 // ─── main component ──────────────────────────────────────────────────────────
 
 export default function TrashView({
+  projectId,
   selectedSheetId,
   selectedFolderId,
   onSelectFolder,
@@ -146,11 +149,12 @@ export default function TrashView({
     });
   };
 
-  const { data: trashedFolders, isLoading: loadingFolders } = useTrashedFolders();
-  const { data: trashedSheets, isLoading: loadingSheets } = useTrashedSheets(selectedFolderId || undefined);
+  const { data: trashedFolders, isLoading: loadingFolders } = useTrashedFolders(projectId);
+  const { data: trashedSheets, isLoading: loadingSheets } = useTrashedSheets(selectedFolderId || undefined, projectId);
   const { data: trashedBugsData, isLoading: loadingBugs } = useBugs({
     scope: "trash",
-    folderId: selectedFolderId || undefined
+    folderId: selectedFolderId || undefined,
+    projectId: projectId || undefined,
   });
   const trashedBugs = trashedBugsData?.bugs || [];
 
@@ -181,7 +185,31 @@ export default function TrashView({
 
   const totalItems = (filteredFolders?.length || 0) + (filteredSheets?.length || 0) + filteredBugs.length;
 
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(15);
+
+  React.useEffect(() => {
+    setPage(1);
+  }, [activeTab, selectedFolderId, searchQuery]);
+
   const currentItems = activeTab === "folders" ? filteredFolders : activeTab === "sheets" ? filteredSheets : filteredBugs;
+  const currentTabTotal = currentItems?.length || 0;
+
+  const pagedFolders = React.useMemo(() => {
+    if (!filteredFolders) return [];
+    return filteredFolders.slice((page - 1) * pageSize, page * pageSize);
+  }, [filteredFolders, page, pageSize]);
+
+  const pagedSheets = React.useMemo(() => {
+    if (!filteredSheets) return [];
+    return filteredSheets.slice((page - 1) * pageSize, page * pageSize);
+  }, [filteredSheets, page, pageSize]);
+
+  const pagedBugs = React.useMemo(() => {
+    if (!filteredBugs) return [];
+    return filteredBugs.slice((page - 1) * pageSize, page * pageSize);
+  }, [filteredBugs, page, pageSize]);
+
   const currentIds = (currentItems || []).map((i: any) => i.id);
   const isAllSelected = currentIds.length > 0 && currentIds.every(id => selectedIds.has(id));
 
@@ -233,7 +261,7 @@ export default function TrashView({
   }
 
   return (
-    <div className="trash-view-container">
+    <div className="trash-view-container" style={{ display: 'flex', flexDirection: 'column', minHeight: '100%' }}>
       <style>{hivebugStyles}</style>
 
       {/* ── header ── */}
@@ -307,9 +335,9 @@ export default function TrashView({
               className="hb-btn hb-btn-primary"
               onClick={() => {
                 const ids = Array.from(selectedIds);
-                if (activeTab === "folders") bulkRestoreFolders.mutate(ids);
-                else if (activeTab === "sheets") bulkRestoreSheets.mutate(ids);
-                else bulkRestoreBugs.mutate(ids);
+                if (activeTab === "folders") bulkRestoreFolders.mutate({ folderIds: ids, from: "trash" });
+                else if (activeTab === "sheets") bulkRestoreSheets.mutate({ sheetIds: ids, from: "trash" });
+                else bulkRestoreBugs.mutate({ bugIds: ids, from: "trash" });
                 setSelectedIds(new Set());
               }}
             >
@@ -341,13 +369,13 @@ export default function TrashView({
         </div>
       )}
 
-      <div className="trash-content">
+      <div className="trash-content" style={{ flex: 1 }}>
         {(activeTab === "folders" || selectedFolderId) && !selectedFolderId && (
           <div className="arc-grid">
-            {(!filteredFolders || filteredFolders.length === 0) ? (
+            {(!pagedFolders || pagedFolders.length === 0) ? (
               <EmptyTrash title="No trashed folders" />
             ) : (
-              filteredFolders.map((f) => (
+              pagedFolders.map((f) => (
                 <TrashedFolderCard
                   key={f.id}
                   folder={f as FolderWithMeta}
@@ -357,7 +385,7 @@ export default function TrashView({
                     onSelectFolder(f.id);
                     onTabChange("sheets");
                   }}
-                  onRestore={() => restoreFolder.mutate(f.id)}
+                  onRestore={() => restoreFolder.mutate({ id: f.id, from: "trash" })}
                   onDelete={() => deleteFolder.mutate(f.id)}
                 />
               ))
@@ -367,10 +395,10 @@ export default function TrashView({
 
         {(activeTab === "sheets" || selectedFolderId) && (
           <div className="arc-grid">
-            {(!filteredSheets || filteredSheets.length === 0) ? (
+            {(!pagedSheets || pagedSheets.length === 0) ? (
               <EmptyTrash title={selectedFolderId ? "No sheets in this folder" : "No trashed sheets"} />
             ) : (
-              filteredSheets.map((s) => (
+              pagedSheets.map((s) => (
                 <TrashedSheetCard 
                   key={s.id} 
                   sheet={s} 
@@ -380,7 +408,7 @@ export default function TrashView({
                   isNestedInFolder={!!selectedFolderId}
                   onView={() => onSelectSheet(s.id)}
                   onRestore={() => {
-                    restoreSheet.mutate(s.id);
+                    restoreSheet.mutate({ id: s.id, from: "trash" });
                     onSelectSheet(null);
                   }}
                   onDelete={() => {
@@ -395,10 +423,10 @@ export default function TrashView({
 
         {activeTab === "bugs" && (
           <div className="arc-grid">
-            {filteredBugs.length === 0 ? (
+            {pagedBugs.length === 0 ? (
               <EmptyTrash title={selectedFolderId ? "No bugs in this folder" : "No standalone trashed bugs"} />
             ) : (
-              filteredBugs.map((b) => (
+              pagedBugs.map((b) => (
                 <TrashedBugCard
                   key={b.id}
                   bug={b}
@@ -408,7 +436,7 @@ export default function TrashView({
                   isNestedInSheet={!!selectedSheetId}
                   isNestedInFolder={!!selectedFolderId}
                   onRestore={() => {
-                    restoreBug.mutate(b.id);
+                    restoreBug.mutate({ id: b.id, from: "trash" });
                     setSelectedIds(new Set());
                   }}
                   onDelete={() => {
@@ -421,6 +449,21 @@ export default function TrashView({
           </div>
         )}
       </div>
+
+      {currentTabTotal > 0 && (
+        <OverviewPager
+          total={currentTabTotal}
+          page={page}
+          pageSize={pageSize}
+          onPageChange={setPage}
+          onPageSizeChange={(newSize) => {
+            setPageSize(newSize);
+            setPage(1);
+          }}
+          pageSizeOptions={[10, 15, 20, 25, 50, 100]}
+          noun={activeTab === "folders" ? "folders" : activeTab === "sheets" ? "sheets" : "bugs"}
+        />
+      )}
     </div>
   );
 }

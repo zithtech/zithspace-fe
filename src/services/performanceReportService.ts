@@ -281,9 +281,22 @@ const PerformanceReportService = {
   },
 
   /** The current user's own generated reports (My Reports). */
-  async getMyGeneratedReports(): Promise<GeneratedReport[]> {
-    const res = await apiClient.get(`${BASE}/generated/mine`);
-    return unwrap<GeneratedReport[]>(res.data) ?? [];
+  async getMyGeneratedReports(params?: { page?: number; limit?: number }): Promise<{ data: GeneratedReport[]; pagination: { total: number; page: number; limit: number } }> {
+    const res = await apiClient.get(`${BASE}/generated/mine`, { params });
+    const raw = res.data;
+    if (Array.isArray(raw?.data)) {
+      return {
+        data: raw.data,
+        pagination: raw.pagination ?? { total: raw.data.length, page: 1, limit: raw.data.length || 15 },
+      };
+    }
+    if (Array.isArray(raw)) {
+      return {
+        data: raw,
+        pagination: { total: raw.length, page: 1, limit: raw.length || 15 },
+      };
+    }
+    return { data: [], pagination: { total: 0, page: 1, limit: 15 } };
   },
 
   /** Leave 2.0 requests overlapping the date range (optionally one member). */

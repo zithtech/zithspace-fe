@@ -746,18 +746,27 @@ export default function GeneratedReportsPanel() {
       </div>
 
       {/* 4. Fixed bottom pagination */}
-        <Pagination
-          current={page}
-          pageSize={pageSize}
-          total={total}
-          showSizeChanger={true}
-          pageSizeOptions={[10, 15, 20, 25, 50, 100]}
-          onChange={(p, s) => {
-            setPage(p);
-            if (s && s !== pageSize) setPageSize(s);
-          }}
-          size="small"
-        />
+      {total > 0 && (
+        <div className="gr-footer gr-footer--sticky">
+          <Pagination
+            current={page}
+            pageSize={pageSize}
+            total={total}
+            showSizeChanger={true}
+            pageSizeOptions={[10, 15, 20, 25, 50, 100]}
+            onChange={(p, s) => {
+              setPage(p);
+              if (s && s !== pageSize) setPageSize(s);
+            }}
+            showTotal={(t, range) => (
+              <span>
+                Showing <strong>{range[0]}–{range[1]}</strong> of <strong>{t}</strong>
+              </span>
+            )}
+            size="small"
+          />
+        </div>
+      )}
 
       {/* Generate wizard */}
       <Modal
@@ -869,7 +878,7 @@ export default function GeneratedReportsPanel() {
       )}
 
       <style jsx global>{`
-        .gr-wrap { display: flex; flex-direction: column; flex: 1; min-height: 0; }
+        .gr-wrap { display: flex; flex-direction: column; flex: 1; min-height: 100%; position: relative; }
 
         /* ── Hero band (full-bleed via the layout's -header rule) ────────────── */
         .gr-header {
@@ -1113,19 +1122,22 @@ export default function GeneratedReportsPanel() {
         }
         .gr-empty-btn:hover { color: #2563eb; border-color: #bfdbfe; }
 
-        /* ── Footer ─────────────────────────────────────────────────────────── */
         .gr-footer {
-          position: sticky; bottom: 0; z-index: 10;
-          display: flex; align-items: center; justify-content: space-between; gap: 12px;
-          padding: 14px 32px; margin: 8px -32px 0;
-          border-top: 1px solid var(--border-slate-100); flex-shrink: 0;
+          display: flex; align-items: center; justify-content: flex-end;
+          padding: 10px 16px; margin-top: auto;
+          border-top: 1px solid var(--border-slate-200); flex-shrink: 0;
           background: var(--bg-pure-white);
-          box-shadow: 0 -6px 18px rgba(15, 23, 42, 0.05);
         }
-        .gr-footer-info { font-size: 12.5px; color: var(--text-slate-500); font-weight: 600; }
-        @media (max-width: 1024px) {
-          .gr-footer { margin-left: -16px; margin-right: -16px; padding-left: 16px; padding-right: 16px; }
+        .gr-footer--sticky {
+          position: sticky; bottom: 0; z-index: 30;
+          box-shadow: 0 -4px 14px rgba(15, 23, 42, 0.08);
         }
+        .gr-footer .ant-pagination {
+          width: 100%; display: flex; align-items: center; justify-content: space-between;
+          margin: 0 !important; padding: 0 !important; border-top: none !important;
+          background: transparent !important; flex-wrap: wrap; gap: 8px;
+        }
+        .gr-footer .ant-pagination-total-text { margin-right: auto; color: var(--text-slate-500); font-size: 12.5px; }
         @media (max-width: 860px) {
           .gr-hero-inner { align-items: flex-start; gap: 12px; }
           .gr-title { font-size: 18px; }

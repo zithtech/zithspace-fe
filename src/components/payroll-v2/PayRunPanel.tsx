@@ -6,7 +6,7 @@ import ZukvoLoader from "@/components/common/ZukvoLoader";
 
 import { Menu } from 'lucide-react';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Button, Table, Tag, Drawer, Modal, Select, Input, InputNumber, Avatar, message, Tooltip, Space, Empty } from 'antd';
+import { Button, Table, Tag, Drawer, Modal, Select, Input, InputNumber, Avatar, message, Tooltip, Space, Empty, Pagination } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import {
   PlusOutlined, ReloadOutlined, CloseOutlined, DeleteOutlined, PlayCircleOutlined,
@@ -56,6 +56,11 @@ export default function PayRunPanel() {
   const [empMap, setEmpMap] = useState<Map<string, MemberOption>>(new Map());
   const [loading, setLoading] = useState(false);
 
+  // Pagination state
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(15);
+  const [total, setTotal] = useState(0);
+
   // create modal
   const [createOpen, setCreateOpen] = useState(false);
   const [cMonth, setCMonth] = useState(nowMonth);
@@ -82,17 +87,23 @@ export default function PayRunPanel() {
   const [remarks, setRemarks] = useState('');
   const [processing, setProcessing] = useState(false);
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (p = page, l = limit) => {
     setLoading(true);
     try {
-      const [r, emps] = await Promise.all([PayrollV2Service.listRuns(), PayrollV2Service.getEmployeesForSelect()]);
+      const [res, emps] = await Promise.all([
+        PayrollV2Service.listRuns({ page: p, limit: l }),
+        PayrollV2Service.getEmployeesForSelect(),
+      ]);
+      const r = Array.isArray(res) ? res : res.data;
+      const tot = Array.isArray(res) ? res.length : res.pagination.total;
       setRuns(r);
+      setTotal(tot);
       setEmpMap(new Map(emps.map((e) => [e.value, e])));
     } catch (err: any) {
       message.error(err?.response?.data?.error || 'Failed to load pay runs');
     } finally { setLoading(false); }
-  }, []);
-  useEffect(() => { if (canReadPayrollRun) load(); }, [canReadPayrollRun, load]);
+  }, [page, limit]);
+  useEffect(() => { if (canReadPayrollRun) load(page, limit); }, [canReadPayrollRun, page, limit, load]);
 
   const refreshArtifacts = async (d: PayRunDetail) => {
     if (d.status === 'finalized' || d.status === 'paid') {
@@ -370,7 +381,7 @@ export default function PayRunPanel() {
           </div>
         </div>
         <div className="pvr-header-actions">
-          <Tooltip title="Refresh"><button type="button" className="pvr-ghost-btn" onClick={load}><ReloadOutlined spin={loading} /></button></Tooltip>
+          <Tooltip title="Refresh"><button type="button" className="pvr-ghost-btn" onClick={() => load(page, limit)}><ReloadOutlined spin={loading} /></button></Tooltip>
           {canCreatePayrollRun && <Button type="primary" icon={<PlusOutlined />} onClick={() => setCreateOpen(true)} className="pvr-add-btn">New Pay Run</Button>}
         </div>
       </div>
@@ -380,6 +391,27 @@ export default function PayRunPanel() {
           ? <div style={{ padding: 48 }}><NoData description="No pay runs yet — create one to get started" /></div>
           : <ZukvoLoadingOverlay loading={loading} message="">
                   <Table rowKey="id" size="small" className="pvr-table" columns={runColumns} dataSource={runs} pagination={false} onRow={(r) => ({ onClick: () => openDetail(r), style: { cursor: 'pointer' } })} scroll={{ x: 'max-content' }} locale={{ emptyText: <NoData /> }} />
+                  {total > 0 && (
+                    <div className="pvr-footer pvr-footer--sticky">
+                      <Pagination
+                        size="small"
+                        current={page}
+                        pageSize={limit}
+                        total={total}
+                        showSizeChanger
+                        pageSizeOptions={[10, 15, 20, 25, 50, 100]}
+                        onChange={(newPage, newPageSize) => {
+                          setPage(newPage);
+                          setLimit(newPageSize);
+                        }}
+                        showTotal={(t, range) => (
+                          <span>
+                            Showing <strong>{range[0]}–{range[1]}</strong> of <strong>{t}</strong>
+                          </span>
+                        )}
+                      />
+                    </div>
+                  )}
                   </ZukvoLoadingOverlay>}
       </div>
 
@@ -733,6 +765,13 @@ export default function PayRunPanel() {
         .pvr-bd-full { font-size: 10.5px; color: var(--text-slate-400); }
         .pvr-bd-amt { font-size: 12.5px; font-weight: 700; min-width: 84px; text-align: right; }
         .pvr-bd-lop { margin-top: 4px; font-size: 11.5px; font-weight: 600; color: ${PALETTE.amber}; }
+
+        .pvr-footer { display: flex; align-items: center; justify-content: flex-end; padding: 10px 16px; background: var(--bg-pure-white); border-top: 1px solid var(--border-slate-200); }
+        .pvr-footer--sticky { position: sticky; bottom: 0; z-index: 10; box-shadow: 0 -4px 14px rgba(15, 23, 42, 0.05); }
+        .pvr-footer .ant-pagination { width: 100%; display: flex; align-items: center; justify-content: space-between; margin: 0 !important; padding: 0 !important; border-top: none !important; background: transparent !important; flex-wrap: wrap; gap: 8px; }
+        .pvr-footer .ant-pagination-total-text { margin-right: auto; color: var(--text-slate-500); font-size: 12.5px; }
+
+        .pv-table-wrap .ant-table, .pv-table-wrap .ant-table-container, .pv-table-wrap .ant-table-header, .pv-table-wrap .ant-table-thead, .pv-table-wrap .ant-table-thead > tr > th, .pv-table-wrap .ant-table-container table > thead > tr:first-child > th:first-child, .pv-table-wrap .ant-table-container table > thead > tr:first-child > th:last-child { border-radius: 0px !important; border-start-start-radius: 0px !important; border-start-end-radius: 0px !important; }
 
         .pvr-header-about { display: flex; align-items: center; gap: 12px; min-width: 0; }
 

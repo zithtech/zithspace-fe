@@ -91,7 +91,10 @@ export const OverviewPager: React.FC<OverviewPagerProps> = ({
           position: sticky;
           bottom: 0;
           z-index: 30;
-          margin: 16px -16px -18px -16px;
+          margin-top: auto;
+          margin-left: -16px;
+          margin-right: -16px;
+          margin-bottom: -18px;
           padding: 0 16px;
           background: var(--bg-pure-white);
           border-top: 1px solid var(--border-slate-200);

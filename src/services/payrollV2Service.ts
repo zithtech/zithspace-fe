@@ -392,9 +392,22 @@ export const PayrollV2Service = {
   },
 
   // ── Phase 3: Pay Runs ──────────────────────────────────────────────────────
-  async listRuns(): Promise<PayRun[]> {
-    const res = await apiClient.get(`${BASE}/runs`);
-    return unwrap<PayRun[]>(res.data) ?? [];
+  async listRuns(params?: { page?: number; limit?: number }): Promise<{ data: PayRun[]; pagination: { total: number; page: number; limit: number } }> {
+    const res = await apiClient.get(`${BASE}/runs`, { params });
+    const raw = res.data;
+    if (Array.isArray(raw?.data)) {
+      return {
+        data: raw.data,
+        pagination: raw.pagination ?? { total: raw.data.length, page: 1, limit: raw.data.length || 15 },
+      };
+    }
+    if (Array.isArray(raw)) {
+      return {
+        data: raw,
+        pagination: { total: raw.length, page: 1, limit: raw.length || 15 },
+      };
+    }
+    return { data: [], pagination: { total: 0, page: 1, limit: 15 } };
   },
   async getRun(id: string): Promise<PayRunDetail> {
     const res = await apiClient.get(`${BASE}/runs/${id}`);
@@ -459,15 +472,29 @@ export const PayrollV2Service = {
   },
 
   // ── Phase 5: Self-service ──────────────────────────────────────────────────
-  async getMyPayslips(): Promise<PayPayslip[]> {
-    const res = await apiClient.get(`${BASE}/my-payslips`);
-    return unwrap<PayPayslip[]>(res.data) ?? [];
+  async getMyPayslips(params?: { page?: number; limit?: number }): Promise<{ data: PayPayslip[]; pagination: { total: number; page: number; limit: number } }> {
+    const res = await apiClient.get(`${BASE}/my-payslips`, { params });
+    const raw = res.data;
+    if (Array.isArray(raw?.data)) {
+      return {
+        data: raw.data,
+        pagination: raw.pagination ?? { total: raw.data.length, page: 1, limit: raw.data.length || 15 },
+      };
+    }
+    if (Array.isArray(raw)) {
+      return {
+        data: raw,
+        pagination: { total: raw.length, page: 1, limit: raw.length || 15 },
+      };
+    }
+    return { data: [], pagination: { total: 0, page: 1, limit: 15 } };
   },
 
   // ── Phase 6: Reports ───────────────────────────────────────────────────────
-  async getSalaryRegister(runId: string): Promise<SalaryRegister> {
-    const res = await apiClient.get(`${BASE}/reports/register`, { params: { runId } });
-    return unwrap<SalaryRegister>(res.data);
+  async getSalaryRegister(runId: string, params?: { page?: number; limit?: number }): Promise<SalaryRegister & { pagination?: { total: number; page: number; limit: number } }> {
+    const res = await apiClient.get(`${BASE}/reports/register`, { params: { runId, ...params } });
+    const data = unwrap<SalaryRegister & { pagination?: any }>(res.data);
+    return data;
   },
 
   // ── Employee statutory & bank profile ──────────────────────────────────────

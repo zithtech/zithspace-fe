@@ -20,8 +20,9 @@ import {
   useUpdateBugSheet,
 } from "@/hooks/useBugList";
 import type { BugFolder, BugSheet } from "@/services/bugListService";
-import { useAllProjects, useUserProjects } from "@/hooks/useGlobalData";
+import { useUserProjects } from "@/hooks/useGlobalData";
 import { useTheme } from "@/context/ThemeContext";
+import { message } from "@/providers/AntdGlobalProvider";
 
 const FOLDER_COLORS = [
   "#5b9bff",
@@ -46,7 +47,7 @@ export function FolderModal({ open, editing, defaultProjectId, onClose }: Folder
   const [form] = Form.useForm();
   const createMut = useCreateBugFolder();
   const updateMut = useUpdateBugFolder();
-  const { data: projects } = useAllProjects();
+  const { data: projects } = useUserProjects();
   const { theme } = useTheme();
   const [color, setColor] = useState<string>(FOLDER_COLORS[0]);
   const [name, setName] = useState("");
@@ -74,13 +75,22 @@ export function FolderModal({ open, editing, defaultProjectId, onClose }: Folder
   }, [open, editing, defaultProjectId, form]);
 
   const handleOk = async () => {
-    const values = await form.validateFields();
-    if (editing) {
-      await updateMut.mutateAsync({ id: editing.id, input: values });
-    } else {
-      await createMut.mutateAsync(values);
+    try {
+      const values = await form.validateFields();
+      if (editing) {
+        await updateMut.mutateAsync({ id: editing.id, input: values });
+      } else {
+        await createMut.mutateAsync(values);
+      }
+      onClose();
+    } catch (err: any) {
+      if (err?.errorFields?.length) {
+        const msgs = err.errorFields.flatMap((f: any) => f.errors).filter(Boolean);
+        if (msgs.length > 0) {
+          message.warning(msgs.join(" • "));
+        }
+      }
     }
-    onClose();
   };
 
   const submitting = createMut.isPending || updateMut.isPending;
@@ -184,9 +194,15 @@ export function FolderModal({ open, editing, defaultProjectId, onClose }: Folder
                 <span>Description</span>
                 <span className="hb-fsm-opt">optional</span>
               </label>
-              <Form.Item name="description" className="hb-fsm-fitem">
+              <Form.Item
+                name="description"
+                className="hb-fsm-fitem"
+                rules={[{ max: 500, message: "Description cannot exceed 500 characters" }]}
+              >
                 <Input.TextArea
                   rows={2}
+                  maxLength={500}
+                  showCount
                   placeholder="What lives in this folder?"
                   className="hb-fsm-textarea"
                 />
@@ -321,14 +337,23 @@ export function SheetModal({ open, folderId, editing, onClose }: SheetModalProps
   }, [open, editing, form]);
 
   const handleOk = async () => {
-    const values = await form.validateFields();
-    if (editing) {
-      await updateMut.mutateAsync({ id: editing.id, input: values });
-    } else {
-      if (!folderId) return;
-      await createMut.mutateAsync({ folderId, ...values });
+    try {
+      const values = await form.validateFields();
+      if (editing) {
+        await updateMut.mutateAsync({ id: editing.id, input: values });
+      } else {
+        if (!folderId) return;
+        await createMut.mutateAsync({ folderId, ...values });
+      }
+      onClose();
+    } catch (err: any) {
+      if (err?.errorFields?.length) {
+        const msgs = err.errorFields.flatMap((f: any) => f.errors).filter(Boolean);
+        if (msgs.length > 0) {
+          message.warning(msgs.join(" • "));
+        }
+      }
     }
-    onClose();
   };
 
   const submitting = createMut.isPending || updateMut.isPending;
@@ -445,9 +470,15 @@ export function SheetModal({ open, folderId, editing, onClose }: SheetModalProps
                 <span>Description</span>
                 <span className="hb-fsm-opt">optional</span>
               </label>
-              <Form.Item name="description" className="hb-fsm-fitem">
+              <Form.Item
+                name="description"
+                className="hb-fsm-fitem"
+                rules={[{ max: 500, message: "Description cannot exceed 500 characters" }]}
+              >
                 <Input.TextArea
                   rows={2}
+                  maxLength={500}
+                  showCount
                   placeholder="What's the scope of this sheet?"
                   className="hb-fsm-textarea"
                 />

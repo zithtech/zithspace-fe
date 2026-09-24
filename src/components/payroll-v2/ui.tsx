@@ -127,11 +127,32 @@ export function PvStyles() {
       .pv-table-wrap .ant-table-content { overflow-y: auto !important; overflow-x: auto !important; flex: 1; min-height: 0; }
       .pv-table-wrap .ant-table table { min-width: 800px; }
       
-      .pv-table-wrap .ant-table-thead > tr > th:first-child,
-      .pv-table-wrap .ant-table-thead > tr > th:last-child {
+      /* Complete removal of curves (border-radius) on all Ant Design tables in payroll */
+      .pv-table-wrap,
+      .pv-table-wrap .ant-table-wrapper,
+      .pv-table-wrap .ant-table,
+      .pv-table-wrap .ant-table-container,
+      .pv-table-wrap .ant-table-header,
+      .pv-table-wrap .ant-table-content,
+      .pv-table-wrap .ant-table-thead,
+      .pv-table-wrap .ant-table-thead > tr,
+      .pv-table-wrap .ant-table-thead > tr > th,
+      .pv-table-wrap .ant-table-container table > thead > tr:first-child > th:first-child,
+      .pv-table-wrap .ant-table-container table > thead > tr:first-child > th:last-child,
+      .pv-table-wrap .ant-table-wrapper .ant-table-container table > thead > tr:first-child > th:first-child,
+      .pv-table-wrap .ant-table-wrapper .ant-table-container table > thead > tr:first-child > th:last-child,
+      .ant-table-wrapper .ant-table-container table > thead > tr:first-child > th:first-child,
+      .ant-table-wrapper .ant-table-container table > thead > tr:first-child > th:last-child,
+      .ant-table-container,
+      .ant-table-header,
+      .ant-table-thead > tr > th {
         border-radius: 0 !important;
+        border-start-start-radius: 0 !important;
+        border-start-end-radius: 0 !important;
+        border-end-start-radius: 0 !important;
+        border-end-end-radius: 0 !important;
       }
-      
+
       /* Table headers fixed */
       .pv-table-wrap .ant-table-thead > tr > th,
       .ant-drawer-content .ant-table-thead > tr > th,

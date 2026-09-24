@@ -41,13 +41,19 @@ function mapToFrontend(item: any, type: 'category' | 'priority' | 'status'): any
 
 export class EscalationSettingsService {
     // ----- Categories -----
-    static async getCategories(): Promise<EscalationCategory[]> {
-        const res: any = await api.get('/api/escalation-categories');
-        const items = res.data?.data || res.data || res;
-        if (Array.isArray(items)) {
-            return items.map((item: any) => mapToFrontend(item, 'category'));
+    static async getCategories(params?: { page?: number; limit?: number; search?: string }): Promise<any> {
+        const queryParams = new URLSearchParams();
+        if (params?.page) queryParams.append('page', params.page.toString());
+        if (params?.limit) queryParams.append('limit', params.limit.toString());
+        if (params?.search) queryParams.append('search', params.search);
+        const res: any = await api.get(`/api/escalation-categories${queryParams.toString() ? `?${queryParams.toString()}` : ''}`);
+        const rawItems = res.data?.data || res.data || res;
+        const mapped = Array.isArray(rawItems) ? rawItems.map((item: any) => mapToFrontend(item, 'category')) : [];
+        if (params?.page || params?.limit) {
+            const total = res.data?.pagination?.total ?? res.pagination?.total ?? mapped.length;
+            return { data: mapped, total };
         }
-        return [];
+        return mapped;
     }
 
     static async createCategory(data: Partial<EscalationCategory>): Promise<any> {
@@ -77,13 +83,19 @@ export class EscalationSettingsService {
     }
 
     // ----- Priorities -----
-    static async getPriorities(): Promise<EscalationPriority[]> {
-        const res: any = await api.get('/api/escalation-priorities');
-        const items = res.data?.data || res.data || res;
-        if (Array.isArray(items)) {
-            return items.map((item: any) => mapToFrontend(item, 'priority'));
+    static async getPriorities(params?: { page?: number; limit?: number; search?: string }): Promise<any> {
+        const queryParams = new URLSearchParams();
+        if (params?.page) queryParams.append('page', params.page.toString());
+        if (params?.limit) queryParams.append('limit', params.limit.toString());
+        if (params?.search) queryParams.append('search', params.search);
+        const res: any = await api.get(`/api/escalation-priorities${queryParams.toString() ? `?${queryParams.toString()}` : ''}`);
+        const rawItems = res.data?.data || res.data || res;
+        const mapped = Array.isArray(rawItems) ? rawItems.map((item: any) => mapToFrontend(item, 'priority')) : [];
+        if (params?.page || params?.limit) {
+            const total = res.data?.pagination?.total ?? res.pagination?.total ?? mapped.length;
+            return { data: mapped, total };
         }
-        return [];
+        return mapped;
     }
 
     static async createPriority(data: Partial<EscalationPriority>): Promise<any> {
@@ -113,13 +125,19 @@ export class EscalationSettingsService {
     }
 
     // ----- Statuses -----
-    static async getStatuses(): Promise<EscalationStatus[]> {
-        const res: any = await api.get('/api/escalation-statuses');
-        const items = res.data?.data || res.data || res;
-        if (Array.isArray(items)) {
-            return items.map((item: any) => mapToFrontend(item, 'status'));
+    static async getStatuses(params?: { page?: number; limit?: number; search?: string }): Promise<any> {
+        const queryParams = new URLSearchParams();
+        if (params?.page) queryParams.append('page', params.page.toString());
+        if (params?.limit) queryParams.append('limit', params.limit.toString());
+        if (params?.search) queryParams.append('search', params.search);
+        const res: any = await api.get(`/api/escalation-statuses${queryParams.toString() ? `?${queryParams.toString()}` : ''}`);
+        const rawItems = res.data?.data || res.data || res;
+        const mapped = Array.isArray(rawItems) ? rawItems.map((item: any) => mapToFrontend(item, 'status')) : [];
+        if (params?.page || params?.limit) {
+            const total = res.data?.pagination?.total ?? res.pagination?.total ?? mapped.length;
+            return { data: mapped, total };
         }
-        return [];
+        return mapped;
     }
 
     static async createStatus(data: Partial<EscalationStatus>): Promise<any> {

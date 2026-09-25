@@ -883,7 +883,7 @@ export default function GeneratedReportsPanel() {
         /* ── Hero band (full-bleed via the layout's -header rule) ────────────── */
         .gr-header {
           position: relative; overflow: hidden;
-          margin-top: -12px; padding: 14px 0 13px; margin-bottom: 14px;
+          margin-top: 0; padding: 14px 24px 13px; margin-bottom: 14px;
           border-bottom: 1px solid var(--border-slate-100);
           background:
             linear-gradient(180deg, rgba(59, 130, 246, 0.055), rgba(59, 130, 246, 0) 82%),
@@ -937,7 +937,7 @@ export default function GeneratedReportsPanel() {
         /* ── Command bar ────────────────────────────────────────────────────── */
         .gr-toolbar {
           display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
-          padding: 10px 12px; margin-bottom: 12px;
+          padding: 10px 12px; margin: 0 24px 12px 24px;
           border: 1px solid var(--border-slate-200); border-radius: 16px;
           background: var(--bg-pure-white);
           box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04), 0 8px 24px rgba(15, 23, 42, 0.035);
@@ -977,7 +977,7 @@ export default function GeneratedReportsPanel() {
         .gr-filter-group .gr-month .ant-picker-input > input { font-size: 12.5px; font-weight: 600; }
 
         /* ── Active filter chips ────────────────────────────────────────────── */
-        .gr-chips { display: flex; align-items: center; gap: 7px; flex-wrap: wrap; margin-bottom: 14px; }
+        .gr-chips { display: flex; align-items: center; gap: 7px; flex-wrap: wrap; margin: 0 24px 14px 24px; }
         .gr-chip {
           display: inline-flex; align-items: center; gap: 6px;
           padding: 4px 5px 4px 10px; border-radius: 999px;
@@ -1006,7 +1006,7 @@ export default function GeneratedReportsPanel() {
         .gr-chip-reset:hover { text-decoration: underline; }
 
         /* ── Cards ──────────────────────────────────────────────────────────── */
-        .gr-body { flex: 1; min-height: 0; overflow-y: auto; padding-bottom: 20px; padding-right: 4px; }
+        .gr-body { flex: 1; min-height: 0; overflow-y: auto; padding: 0 24px 20px 24px; }
         .gr-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(318px, 1fr)); gap: 14px; }
         .gr-card {
           position: relative; overflow: hidden;
@@ -1124,7 +1124,7 @@ export default function GeneratedReportsPanel() {
 
         .gr-footer {
           display: flex; align-items: center; justify-content: flex-end;
-          padding: 10px 16px; margin-top: auto;
+          padding: 10px 24px; margin-top: auto;
           border-top: 1px solid var(--border-slate-200); flex-shrink: 0;
           background: var(--bg-pure-white);
         }

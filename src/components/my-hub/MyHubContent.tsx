@@ -34,36 +34,54 @@ export default function MyHubContent({ children }: { children: React.ReactNode }
           display: flex;
           flex-direction: column;
         }
-        .mh-page-content > div > [class*="-footer--sticky"] {
+        .mh-page-content > div > [class*="-footer--sticky"],
+        .mh-page-content [class*="-footer--sticky"] {
           margin-top: auto !important;
+          padding-left: 24px !important;
+          padding-right: 24px !important;
         }
-        /* Stretch panel headers to the edges and keep them sticky, mirroring the
-           feature layouts' content shells. */
-        .mh-page-content > * > [class*="-header"]:not([class*="sprint-header"]) {
+        /* Stretch panel headers to the edges with proper left/right spacing and keep them sticky */
+        .mh-page-content > * > [class*="-header"]:not([class*="-header-"]):not([class*="sprint-header"]):not([class*="customer-drawer"]):not([class*="ticket-drawer"]),
+        .mh-page-content [class*="-header"]:not([class*="-header-"]):not([class*="sprint-header"]):not([class*="customer-drawer"]):not([class*="ticket-drawer"]) {
           margin-left: 0 !important;
           margin-right: 0 !important;
-          padding-left: 0 !important;
-          padding-right: 0 !important;
+          padding-left: 24px !important;
+          padding-right: 24px !important;
           position: sticky;
           top: 0;
           z-index: 98;
           background: var(--bg-pure-white);
-          padding-top: 12px !important;
+          padding-top: 14px !important;
+          padding-bottom: 14px !important;
           margin-top: 0 !important;
           margin-bottom: 0 !important;
+          border-bottom: 1px solid var(--border-slate-200);
         }
-        .mh-page-content > * > [class*="-header"]:not([class*="sprint-header"]) + * {
-          margin-top: 16px !important;
+        .mh-page-content > * > [class*="-header"]:not([class*="-header-"]):not([class*="sprint-header"]) + [class*="sprint"],
+        .mh-page-content [class*="-header"]:not([class*="-header-"]):not([class*="sprint-header"]) + [class*="sprint"],
+        .mh-page-content > * > [class*="-header"]:not([class*="-header-"]):not([class*="sprint-header"]) + .lvp-sprint-header-v2,
+        .mh-page-content [class*="-header"]:not([class*="-header-"]):not([class*="sprint-header"]) + .lvp-sprint-header-v2,
+        .mh-page-content > * > [class*="-header"]:not([class*="-header-"]):not([class*="sprint-header"]) + .common-sprint-header-v2,
+        .mh-page-content [class*="-header"]:not([class*="-header-"]):not([class*="sprint-header"]) + .common-sprint-header-v2 {
+          margin-top: 0 !important;
         }
         @media (max-width: 1024px) {
           .mh-page-content {
             padding: 0;
           }
-          .mh-page-content > * > [class*="-header"]:not([class*="sprint-header"]) {
+          .mh-page-content > * > [class*="-header"]:not([class*="-header-"]):not([class*="sprint-header"]):not([class*="customer-drawer"]):not([class*="ticket-drawer"]),
+          .mh-page-content [class*="-header"]:not([class*="-header-"]):not([class*="sprint-header"]):not([class*="customer-drawer"]):not([class*="ticket-drawer"]) {
             margin-left: 0 !important;
             margin-right: 0 !important;
-            padding-left: 0 !important;
-            padding-right: 0 !important;
+            padding-left: 16px !important;
+            padding-right: 16px !important;
+            padding-top: 12px !important;
+            padding-bottom: 12px !important;
+          }
+          .mh-page-content > div > [class*="-footer--sticky"],
+          .mh-page-content [class*="-footer--sticky"] {
+            padding-left: 16px !important;
+            padding-right: 16px !important;
           }
         }
       `}</style>

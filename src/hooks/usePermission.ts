@@ -516,12 +516,12 @@ export const usePermission = () => {
     canCreatePlaybook: hasAnyPermission(Permissions.PLAYBOOK_CREATE, Permissions.PLAYBOOK_MANAGE),
     canUpdatePlaybook: hasAnyPermission(Permissions.PLAYBOOK_UPDATE, Permissions.PLAYBOOK_MANAGE),
     canDeletePlaybook: hasAnyPermission(Permissions.PLAYBOOK_DELETE, Permissions.PLAYBOOK_MANAGE),
-    canReadPlaybookTrash: hasAnyPermission(Permissions.PLAYBOOK_TRASH_READ, Permissions.PLAYBOOK_DELETE, Permissions.PLAYBOOK_MANAGE, Permissions.PLAYBOOK_READ, Permissions.QA_MANAGE),
-    canRestorePlaybookTrash: hasAnyPermission(Permissions.PLAYBOOK_TRASH_RESTORE, Permissions.PLAYBOOK_DELETE, Permissions.PLAYBOOK_MANAGE),
+    canReadPlaybookTrash: hasAnyPermission(Permissions.PLAYBOOK_TRASH_READ, Permissions.PLAYBOOK_MANAGE),
+    canRestorePlaybookTrash: hasAnyPermission(Permissions.PLAYBOOK_TRASH_RESTORE, Permissions.PLAYBOOK_MANAGE),
     canDeletePlaybookTrash: hasAnyPermission(Permissions.PLAYBOOK_TRASH_DELETE, Permissions.PLAYBOOK_MANAGE),
-    canRequestPlaybook: hasAnyPermission(Permissions.PLAYBOOK_REQUEST, Permissions.PLAYBOOK_READ, Permissions.PLAYBOOK_MANAGE),
-    canTemplatePlaybook: hasAnyPermission(Permissions.PLAYBOOK_TEMPLATE, Permissions.PLAYBOOK_READ, Permissions.PLAYBOOK_MANAGE),
-    canUploadPlaybook: hasAnyPermission(Permissions.PLAYBOOK_UPLOAD, Permissions.PLAYBOOK_CREATE, Permissions.PLAYBOOK_MANAGE),
+    canRequestPlaybook: hasAnyPermission(Permissions.PLAYBOOK_REQUEST, Permissions.PLAYBOOK_MANAGE),
+    canTemplatePlaybook: hasAnyPermission(Permissions.PLAYBOOK_TEMPLATE, Permissions.PLAYBOOK_MANAGE),
+    canUploadPlaybook: hasAnyPermission(Permissions.PLAYBOOK_UPLOAD, Permissions.PLAYBOOK_MANAGE),
     canManagePlaybook: hasAnyPermission(Permissions.PLAYBOOK_MANAGE),
 
     // ─── Yapiez (API definition + flow execution) ───────────────────

@@ -1,7 +1,8 @@
 'use client';
 import NoData from "@/components/common/NoData";
 import ZukvoLoader from "@/components/common/ZukvoLoader";
-
+import StatCards from "@/components/common/StatCards";
+import { FilterBar, FilterToggleButton, TicketFilterPill } from "@/components/common/FilterBar";
 
 import React, { useState, useEffect, useMemo, Suspense } from 'react';
 import {
@@ -9,7 +10,6 @@ import {
   Col,
   Typography,
   Input,
-  Empty,
   Avatar,
   Tooltip,
   Modal,
@@ -22,7 +22,6 @@ import {
   SearchOutlined,
   TeamOutlined,
   ArrowRightOutlined,
-  DeleteOutlined,
   ExclamationCircleFilled,
   PlusOutlined,
   AppstoreOutlined,
@@ -46,14 +45,14 @@ const { Title, Text, Paragraph } = Typography;
 type SortKey = 'recent' | 'name' | 'progress';
 type StatusFilter = 'all' | 'active' | 'paused' | 'completed';
 
-// Curated palette for project identity accents — blue, green, light-red, grey only
+// Curated palette for project identity accents
 const ACCENT_PALETTE = [
   { from: '#3b82f6', to: '#60a5fa', soft: '#eff6ff', text: '#1d4ed8' }, // blue
-  { from: '#22c55e', to: '#4ade80', soft: '#f0fdf4', text: '#15803d' }, // green
-  { from: '#f87171', to: '#fca5a5', soft: '#fff1f2', text: '#b91c1c' }, // light-red
-  { from: '#94a3b8', to: '#cbd5e1', soft: '#f8fafc', text: '#475569' }, // grey
-  { from: '#3b82f6', to: '#60a5fa', soft: '#eff6ff', text: '#1d4ed8' }, // blue again
-  { from: '#22c55e', to: '#4ade80', soft: '#f0fdf4', text: '#15803d' }, // green again
+  { from: '#10b981', to: '#34d399', soft: '#ecfdf5', text: '#047857' }, // emerald
+  { from: '#6366f1', to: '#818cf8', soft: '#eef2ff', text: '#4338ca' }, // indigo
+  { from: '#f59e0b', to: '#fbbf24', soft: '#fffbeb', text: '#b45309' }, // amber
+  { from: '#06b6d4', to: '#22d3ee', soft: '#ecfeff', text: '#0e7490' }, // cyan
+  { from: '#8b5cf6', to: '#a78bfa', soft: '#f5f3ff', text: '#6d28d9' }, // purple
 ];
 
 function accentFor(seed: string) {
@@ -74,13 +73,16 @@ function ProjectSelectContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { user, isLoading: authLoading } = useAuth();
-  const { canReadProject, canCreateProject, canDeleteProject } = usePermission();
+  const { canReadProject, canCreateProject } = usePermission();
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
   const [sortKey, setSortKey] = useState<SortKey>('recent');
+  const [filterOpen, setFilterOpen] = useState(true);
   const [isRedirecting, setIsRedirecting] = useState(true);
   const [createDrawerOpen, setCreateDrawerOpen] = useState(false);
   const queryClient = useQueryClient();
+
+  const activeFilterCount = (statusFilter !== 'all' ? 1 : 0) + (search.trim() ? 1 : 0) + (sortKey !== 'recent' ? 1 : 0);
 
   const { data: response, isLoading: projectsLoading } = useQuery({
     queryKey: ['projects', 'selection'],
@@ -88,31 +90,6 @@ function ProjectSelectContent() {
     staleTime: 5 * 60 * 1000,
     enabled: !!user,
   });
-
-  const deleteMutation = useMutation({
-    mutationFn: (id: string) => ProjectService.deleteProject(id),
-    onSuccess: () => {
-      message.success('Project moved to trash');
-      queryClient.invalidateQueries({ queryKey: ['projects'] });
-    },
-    onError: (err: any) => {
-      message.error(err.message || 'Failed to delete project');
-    },
-  });
-
-  const handleDelete = (e: React.MouseEvent, id: string, name: string) => {
-    e.stopPropagation();
-    Modal.confirm({
-      title: 'Are you sure you want to delete this project?',
-      icon: <ExclamationCircleFilled style={{ color: '#ef4444' }} />,
-      content: `The project "${name}" will be moved to trash.`,
-      okText: 'Delete',
-      okType: 'danger',
-      cancelText: 'Cancel',
-      centered: true,
-      onOk: () => deleteMutation.mutateAsync(id),
-    });
-  };
 
   const projects: any[] = Array.isArray(response) ? response : response?.data || [];
   const isLoading = authLoading || projectsLoading;
@@ -143,6 +120,7 @@ function ProjectSelectContent() {
   const stats = useMemo(() => {
     const total = projects.length;
     const active = projects.filter(p => (p?.status || 'active').toLowerCase() === 'active').length;
+    const paused = projects.filter(p => (p?.status || '').toLowerCase() === 'paused').length;
     const completed = projects.filter(p => (p?.status || '').toLowerCase() === 'completed').length;
     const avgProgress =
       total === 0
@@ -156,8 +134,17 @@ function ProjectSelectContent() {
         );
     const memberIds = new Set<string>();
     projects.forEach(p => p?.members?.forEach((m: any) => m?.user?.id && memberIds.add(m.user.id)));
-    return { total, active, completed, avgProgress, teamSize: memberIds.size };
+    return { total, active, paused, completed, avgProgress, teamSize: memberIds.size };
   }, [projects]);
+
+  const pillCounts = useMemo(() => {
+    return {
+      all: projects.length,
+      active: stats.active,
+      paused: stats.paused,
+      completed: stats.completed,
+    };
+  }, [projects, stats]);
 
   const filteredProjects = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -188,7 +175,7 @@ function ProjectSelectContent() {
 
   if (!canReadProject && !authLoading) {
     return (
-      <MainLayout>
+      <MainLayout noPadding>
         <div style={{ padding: 20, maxWidth: 600, margin: '100px auto' }}>
           <Alert
             message="Permission Required"
@@ -203,7 +190,7 @@ function ProjectSelectContent() {
 
   if ((!user && !authLoading) || isRedirecting) {
     return (
-      <MainLayout>
+      <MainLayout noPadding>
         <div
           style={{
             display: 'flex',
@@ -219,11 +206,11 @@ function ProjectSelectContent() {
     );
   }
 
-  const statusPills: { key: StatusFilter; label: string }[] = [
-    { key: 'all', label: 'All projects' },
-    { key: 'active', label: 'Active' },
-    { key: 'paused', label: 'Paused' },
-    { key: 'completed', label: 'Completed' },
+  const statusPills: { key: StatusFilter; label: string; count: number }[] = [
+    { key: 'all', label: 'All projects', count: pillCounts.all },
+    { key: 'active', label: 'Active', count: pillCounts.active },
+    { key: 'paused', label: 'Paused', count: pillCounts.paused },
+    { key: 'completed', label: 'Completed', count: pillCounts.completed },
   ];
 
   const sortLabel: Record<SortKey, string> = {
@@ -233,15 +220,11 @@ function ProjectSelectContent() {
   };
 
   return (
-    <MainLayout>
+    <MainLayout noPadding>
       <div className="zs-projects-shell" data-tour="tickets-project-view">
         {/* Hero header */}
         <header className="zs-hero">
           <div className="zs-hero-text">
-            <div className="zs-eyebrow">
-              <span className="zs-eyebrow-dot" />
-              Workspace
-            </div>
             <Title level={1} className="zs-hero-title">
               Your projects
             </Title>
@@ -250,74 +233,106 @@ function ProjectSelectContent() {
             </Paragraph>
           </div>
 
-          {canCreateProject && (
-            <div className="zs-hero-cta">
+          <div className="zs-hero-actions">
+            <FilterToggleButton
+              isOpen={filterOpen}
+              onToggle={() => setFilterOpen(v => !v)}
+              activeCount={activeFilterCount}
+            />
+            {canCreateProject && (
               <Button
                 type="primary"
-                size="large"
+                size="middle"
                 icon={<PlusOutlined />}
                 onClick={() => setCreateDrawerOpen(true)}
                 className="zs-cta-btn"
               >
                 New project
               </Button>
-            </div>
-          )}
+            )}
+          </div>
         </header>
 
-        {/* Stats overview */}
-        <section className="zs-stats">
-          <StatTile
-            icon={<AppstoreOutlined />}
-            label="Total projects"
-            value={isLoading ? '—' : String(stats.total)}
-            tint="blue"
-          />
-          <StatTile
-            icon={<RiseOutlined />}
-            label="Active"
-            value={isLoading ? '—' : String(stats.active)}
-            tint="emerald"
-          />
-          <StatTile
-            icon={<CheckCircleOutlined />}
-            label="Avg. completion"
-            value={isLoading ? '—' : `${stats.avgProgress}%`}
-            tint="blue"
-          />
-          <StatTile
-            icon={<TeamOutlined />}
-            label="Teammates"
-            value={isLoading ? '—' : String(stats.teamSize)}
-            tint="grey"
-          />
-        </section>
+        {/* Divider */}
+        <div className="zs-divider" />
 
-        {/* Toolbar */}
-        <section className="zs-toolbar">
-          <div className="zs-pills">
-            {statusPills.map(p => (
-              <button
-                key={p.key}
-                type="button"
-                onClick={() => setStatusFilter(p.key)}
-                className={`zs-pill ${statusFilter === p.key ? 'is-active' : ''}`}
-              >
-                {p.label}
-              </button>
-            ))}
-          </div>
+        {/* Shared StatCards Header */}
+        <StatCards
+          title="Projects Overview"
+          statusText="ACTIVE"
+          progressPct={stats.avgProgress}
+          dotColor="#3b82f6"
+          cells={[
+            {
+              label: 'Total projects',
+              value: isLoading ? '—' : stats.total,
+              icon: <AppstoreOutlined />,
+              color: '#3b82f6',
+            },
+            {
+              label: 'Active',
+              value: isLoading ? '—' : stats.active,
+              icon: <RiseOutlined />,
+              color: '#10b981',
+            },
+            {
+              label: 'Completed',
+              value: isLoading ? '—' : stats.completed,
+              icon: <CheckCircleOutlined />,
+              color: '#6366f1',
+            },
+            {
+              label: 'Avg. completion',
+              value: isLoading ? '—' : `${stats.avgProgress}%`,
+              icon: <ClockCircleOutlined />,
+              color: '#3b82f6',
+            },
+            {
+              label: 'Teammates',
+              value: isLoading ? '—' : stats.teamSize,
+              icon: <TeamOutlined />,
+              color: '#64748b',
+            },
+          ]}
+        />
 
-          <div className="zs-toolbar-right">
+        {/* FilterBar (Collapsible inline filter row) */}
+        {filterOpen && (
+          <FilterBar
+            isOpen={filterOpen}
+            activeCount={activeFilterCount}
+            onReset={() => {
+              setStatusFilter('all');
+              setSearch('');
+              setSortKey('recent');
+            }}
+            onClose={() => setFilterOpen(false)}
+          >
+            <TicketFilterPill
+              label="Status"
+              icon={<CheckCircleOutlined style={{ fontSize: 12 }} />}
+              value={statusFilter !== 'all' ? statusFilter : undefined}
+              options={[
+                { value: 'active', label: `Active (${pillCounts.active})`, dotColor: '#10b981' },
+                { value: 'paused', label: `Paused (${pillCounts.paused})`, dotColor: '#f59e0b' },
+                { value: 'completed', label: `Completed (${pillCounts.completed})`, dotColor: '#3b82f6' },
+              ]}
+              onChange={v => {
+                setStatusFilter((v as StatusFilter) || 'all');
+              }}
+              multiple={false}
+            />
+
             <Input
-              size="large"
-              prefix={<SearchOutlined style={{ color: 'var(--text-slate-400)', fontSize: 16 }} />}
-              placeholder="Search projects or codes"
+              size="middle"
+              prefix={<SearchOutlined style={{ color: 'var(--text-slate-400)', fontSize: 13 }} />}
+              placeholder="Search projects or codes..."
               value={search}
               onChange={e => setSearch(e.target.value)}
               allowClear
-              className="zs-search"
+              style={{ width: 260, height: 32, borderRadius: 8, fontSize: 12.5 }}
             />
+
             <Dropdown
               menu={{
                 selectable: true,
@@ -331,21 +346,21 @@ function ProjectSelectContent() {
               }}
               trigger={['click']}
             >
-              <button type="button" className="zs-sort-btn">
-                <SortAscendingOutlined />
+              <button type="button" className="zs-filter-sort-btn">
+                <SortAscendingOutlined style={{ fontSize: 12 }} />
                 <span>{sortLabel[sortKey]}</span>
                 <DownOutlined style={{ fontSize: 10 }} />
               </button>
             </Dropdown>
-          </div>
-        </section>
+          </FilterBar>
+        )}
 
         {/* Grid */}
         <section className="zs-grid-wrap">
           {isLoading ? (
             <Row gutter={[20, 20]}>
               {[1, 2, 3, 4, 5, 6].map(i => (
-                <Col xs={12} sm={12} lg={8} key={i}>
+                <Col xs={24} sm={12} lg={8} key={i}>
                   <div className="zs-skeleton" />
                 </Col>
               ))}
@@ -381,7 +396,7 @@ function ProjectSelectContent() {
               } />
             </div>
           ) : (
-            <Row gutter={[20, 20]}>
+            <Row gutter={[14, 14]}>
               {filteredProjects.map(project => {
                 const total = project?.totalTickets || 0;
                 const done = project?.completedTickets || 0;
@@ -390,7 +405,7 @@ function ProjectSelectContent() {
                 const status = (project?.status || 'active').toLowerCase();
 
                 return (
-                  <Col xs={12} sm={12} lg={8} key={project?.id || 'unknown'}>
+                  <Col xs={24} sm={12} md={8} xl={6} key={project?.id || 'unknown'}>
                     <div
                       role="button"
                       tabIndex={0}
@@ -404,7 +419,6 @@ function ProjectSelectContent() {
                       className="zs-card"
                       style={
                         {
-                          // CSS vars consumed by the static stylesheet — no JS interpolation in <style>
                           ['--card-accent-from' as any]: accent.from,
                           ['--card-accent-to' as any]: accent.to,
                           ['--card-accent-soft' as any]: accent.soft,
@@ -412,11 +426,18 @@ function ProjectSelectContent() {
                         } as React.CSSProperties
                       }
                     >
-                      <div className="zs-card-accent" aria-hidden />
+                      <div className="zs-card-top-rail" aria-hidden />
 
                       <div className="zs-card-head">
                         <div className="zs-card-id">
-                          <div className="zs-card-mark">{initialsOf(project?.name)}</div>
+                          <div
+                            className="zs-card-mark"
+                            style={{
+                              background: `linear-gradient(135deg, ${accent.from}, ${accent.to})`,
+                            }}
+                          >
+                            {initialsOf(project?.name)}
+                          </div>
                           <div className="zs-card-id-text">
                             <Tooltip title={project?.name} placement="topLeft">
                               <div className="zs-card-name">{project?.name || 'Untitled Project'}</div>
@@ -425,29 +446,35 @@ function ProjectSelectContent() {
                           </div>
                         </div>
 
-                        <div className="zs-card-head-right">
-                          <span className={`zs-status zs-status-${status}`}>
-                            <span className="zs-status-dot" />
-                            {project?.status || 'Active'}
-                          </span>
-                        </div>
+                        <span className={`zs-status zs-status-${status}`}>
+                          <span className="zs-status-dot" />
+                          {project?.status || 'Active'}
+                        </span>
                       </div>
 
                       <div className="zs-card-desc">
                         {project?.description ||
-                          'Empowering teams to achieve project milestones with efficiency and transparency.'}
+                          'Empowering teams to achieve project milestones with efficiency.'}
                       </div>
 
                       <div className="zs-card-progress">
                         <div className="zs-card-progress-row">
                           <span className="zs-card-progress-label">
-                            <ClockCircleOutlined style={{ fontSize: 12, marginRight: 6 }} />
-                            {done} of {total} tasks done
+                            <ClockCircleOutlined style={{ fontSize: 11, marginRight: 4, color: 'var(--text-slate-400)' }} />
+                            <strong>{done}</strong>/{total} tasks
                           </span>
-                          <span className="zs-card-progress-pct">{progressPercent}%</span>
+                          <span className="zs-card-progress-pct" style={{ color: accent.text }}>
+                            {progressPercent}%
+                          </span>
                         </div>
                         <div className="zs-card-progress-track">
-                          <div className="zs-card-progress-fill" style={{ width: `${progressPercent}%` }} />
+                          <div
+                            className="zs-card-progress-fill"
+                            style={{
+                              width: `${progressPercent}%`,
+                              background: `linear-gradient(90deg, ${accent.from}, ${accent.to})`,
+                            }}
+                          />
                         </div>
                       </div>
 
@@ -456,48 +483,49 @@ function ProjectSelectContent() {
                           <span className="zs-card-meta-item">
                             <AppstoreOutlined />
                             <strong>{total}</strong>
-                            <span className="zs-card-meta-mute">tasks</span>
                           </span>
                           <span className="zs-card-meta-item">
                             <TeamOutlined />
                             <strong>{project?.members?.length || 0}</strong>
-                            <span className="zs-card-meta-mute">members</span>
                           </span>
                         </div>
 
-                        <Avatar.Group
-                          size={24}
-                          max={{
-                            count: 3,
-                            style: {
-                              color: 'var(--text-slate-700)',
-                              backgroundColor: 'var(--bg-slate-100)',
-                              fontSize: 8,
-                              fontWeight: 700,
-                              border: '1.5px solid var(--bg-pure-white)',
-                            },
-                          }}
-                        >
-                          {project?.members?.map((member: any, idx: number) => (
-                            <Tooltip title={member?.user?.name} key={idx}>
-                              <Avatar
-                                src={member?.user?.avatar}
-                                style={{
-                                  backgroundColor: '#64748b',
-                                  border: '1.5px solid var(--bg-pure-white)',
-                                  fontSize: 8,
-                                }}
-                              >
-                                {member?.user?.name?.[0]?.toUpperCase()}
-                              </Avatar>
-                            </Tooltip>
-                          ))}
-                        </Avatar.Group>
-                      </div>
+                        <div className="zs-card-foot-right">
+                          <Avatar.Group
+                            size={20}
+                            max={{
+                              count: 3,
+                              style: {
+                                color: 'var(--text-slate-700)',
+                                backgroundColor: 'var(--bg-slate-100)',
+                                fontSize: 8,
+                                fontWeight: 700,
+                                border: '1.5px solid var(--bg-pure-white)',
+                              },
+                            }}
+                          >
+                            {project?.members?.map((member: any, idx: number) => (
+                              <Tooltip title={member?.user?.name} key={idx}>
+                                <Avatar
+                                  src={member?.user?.avatar}
+                                  style={{
+                                    backgroundColor: accent.from,
+                                    border: '1.5px solid var(--bg-pure-white)',
+                                    fontSize: 8,
+                                    fontWeight: 700,
+                                  }}
+                                >
+                                  {member?.user?.name?.[0]?.toUpperCase()}
+                                </Avatar>
+                              </Tooltip>
+                            ))}
+                          </Avatar.Group>
 
-                      <span className="zs-card-arrow" aria-hidden>
-                        <ArrowRightOutlined />
-                      </span>
+                          <span className="zs-card-arrow" aria-hidden>
+                            <ArrowRightOutlined />
+                          </span>
+                        </div>
+                      </div>
                     </div>
                   </Col>
                 );
@@ -516,286 +544,194 @@ function ProjectSelectContent() {
         }}
       />
 
-      {/* No JS interpolation here — relies on CSS variables set on elements above */}
-      <style>{`
+      <style jsx global>{`
         .zs-projects-shell {
-          margin: 0 -40px;
-          padding: 20px 40px 16px 40px;
-          min-height: calc(100vh - 64px);
-          background:
-            radial-gradient(1200px 600px at 100% -200px, var(--bg-blue-50), transparent 60%),
-            radial-gradient(900px 500px at -200px 100%, var(--bg-purple-50), transparent 55%),
-            var(--bg-pure-white);
-          font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+          margin: 0;
+          padding: 0 0 32px 0;
+          min-height: calc(100vh - 60px);
+          background: var(--bg-pure-white);
+          font-family: inherit;
         }
 
         /* Hero */
         .zs-hero {
-          max-width: 1280px;
-          margin: 0 auto 20px auto;
+          padding: 18px 24px 0 24px;
           display: flex;
-          align-items: flex-end;
+          align-items: center;
           justify-content: space-between;
-          gap: 24px;
+          gap: 20px;
           flex-wrap: wrap;
         }
         .zs-hero-text { flex: 1 1 auto; min-width: 280px; }
-        .zs-eyebrow {
-          display: inline-flex;
-          align-items: center;
-          gap: 8px;
-          padding: 3px 8px;
-          border-radius: 999px;
-          background: var(--bg-secondary);
-          border: 1px solid var(--border-color);
-          color: var(--text-slate-600);
-          font-size: 11px;
-          font-weight: 600;
-          letter-spacing: 0.02em;
-          margin-bottom: 4px;
-        }
-        .zs-eyebrow-dot {
-          width: 6px; height: 6px; border-radius: 999px;
-          background: #3b82f6;
-        }
         .zs-hero-title.ant-typography {
           margin: 0;
           font-weight: 800;
           font-size: 24px;
           line-height: 1.15;
-          letter-spacing: -0.025em;
-          color: var(--text-primary);
+          letter-spacing: -0.03em;
+          color: var(--text-slate-900);
         }
         .zs-hero-sub.ant-typography {
-          margin: 2px 0 0 0;
-          max-width: 560px;
-          font-size: 12.5px;
-          line-height: 1.4;
-          color: var(--text-secondary);
-        }
-        .zs-hero-cta { flex: 0 0 auto; }
-        .zs-cta-btn.ant-btn {
-          height: 38px;
-          padding: 0 16px;
-          border-radius: 10px;
-          font-weight: 600;
-          background: linear-gradient(135deg, #3b82f6, #6366f1);
-          border: none;
-        }
-        .zs-cta-btn.ant-btn:hover { filter: brightness(1.05); }
-
-        /* Stats */
-        .zs-stats {
-          max-width: 1280px;
-          margin: 0 auto 18px auto;
-          display: grid;
-          grid-template-columns: repeat(4, 1fr);
-          gap: 12px;
-          background: transparent;
-          border: none;
-          border-radius: 0;
-          overflow: visible;
-        }
-        @media (max-width: 900px) {
-          .zs-stats { grid-template-columns: repeat(2, 1fr); }
-        }
-        .zs-stat {
-          padding: 14px 18px;
-          display: flex;
-          flex-direction: column;
-          align-items: flex-start;
-          gap: 4px;
-          border: 1px solid var(--border-color);
-          border-radius: 0;
-          background: var(--bg-pure-white);
-        }
-        .zs-stat-top {
-          display: flex;
-          align-items: center;
-          gap: 6px;
-        }
-        .zs-stat-icon {
-          display: flex; align-items: center; justify-content: center;
+          margin: 4px 0 0 0;
+          max-width: 700px;
           font-size: 13px;
-          flex-shrink: 0;
+          line-height: 1.45;
+          color: var(--text-slate-500);
         }
-        .zs-stat-icon.tint-blue    { color: #3b82f6; }
-        .zs-stat-icon.tint-emerald { color: #22c55e; }
-        .zs-stat-icon.tint-violet  { color: #3b82f6; }
-        .zs-stat-icon.tint-amber   { color: #94a3b8; }
-        .zs-stat-icon.tint-grey    { color: #94a3b8; }
-        .zs-stat-label {
-          font-size: 11.5px;
-          color: var(--text-secondary);
-          font-weight: 500;
-          letter-spacing: 0;
-          text-transform: none;
-          margin-bottom: 0;
-        }
-        .zs-stat-value {
-          font-size: 18px;
-          font-weight: 800;
-          color: var(--text-primary);
-          letter-spacing: -0.02em;
-          line-height: 1;
-        }
-
-        /* Toolbar */
-        .zs-toolbar {
-          max-width: 1280px;
-          margin: 0 auto 18px auto;
+        .zs-hero-actions {
           display: flex;
           align-items: center;
-          justify-content: space-between;
           gap: 12px;
           flex-wrap: wrap;
         }
-        .zs-pills { display: flex; flex-wrap: wrap; gap: 8px; }
-        .zs-pill {
-          appearance: none;
-          background: var(--bg-pure-white);
-          border: 1px solid var(--border-color);
-          padding: 6px 12px;
-          border-radius: 10px;
-          font-size: 12.5px;
-          font-weight: 600;
-          color: var(--text-slate-600);
-          cursor: pointer;
-          transition: all 0.15s ease;
+        .zs-cta-btn.ant-btn {
+          height: 32px;
+          padding: 0 14px;
+          border-radius: 6px;
+          font-weight: 700;
+          background: linear-gradient(135deg, #2563eb, #3b82f6);
+          border: none;
+          box-shadow: 0 2px 8px rgba(37, 99, 235, 0.22);
+          transition: transform 0.15s ease, box-shadow 0.15s ease;
         }
-        .zs-pill:hover { color: var(--text-primary); border-color: var(--text-slate-400); }
-        .zs-pill.is-active {
-          background: #3b82f6;
-          color: #fff;
-          border-color: #3b82f6;
+        .zs-cta-btn.ant-btn:hover {
+          transform: translateY(-1px);
+          box-shadow: 0 4px 14px rgba(37, 99, 235, 0.32);
         }
 
-        .zs-toolbar-right { display: flex; align-items: center; gap: 12px; }
-        .zs-search.ant-input-affix-wrapper {
-          width: 320px;
-          height: 38px;
-          border-radius: 10px;
-          border: 1px solid var(--border-color);
-          padding: 0 12px;
+        /* Divider */
+        .zs-divider {
+          margin: 14px 0 0 0;
+          height: 1px;
+          background: var(--border-slate-200);
         }
-        .zs-search.ant-input-affix-wrapper:hover,
-        .zs-search.ant-input-affix-wrapper-focused {
-          border-color: #6366f1;
-          box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.12);
-        }
-        .zs-sort-btn {
+
+        /* FilterBar components */
+        .zs-filter-sort-btn {
           display: inline-flex;
           align-items: center;
-          gap: 8px;
-          height: 38px;
+          gap: 6px;
+          height: 32px;
           padding: 0 12px;
-          border-radius: 10px;
-          border: 1px solid var(--border-color);
+          border-radius: 6px;
+          border: 1px solid var(--border-slate-200);
           background: var(--bg-pure-white);
           color: var(--text-slate-700);
           font-weight: 600;
-          font-size: 13px;
+          font-size: 12px;
           cursor: pointer;
-          transition: border-color 0.15s ease, color 0.15s ease;
+          transition: border-color 0.15s ease, background 0.15s ease;
         }
-        .zs-sort-btn:hover { border-color: var(--text-slate-400); color: var(--text-primary); }
+        .zs-filter-sort-btn:hover {
+          border-color: var(--border-slate-300);
+          background: var(--bg-slate-50);
+        }
 
         /* Grid */
-        .zs-grid-wrap { max-width: 1280px; margin: 0 auto; }
+        .zs-grid-wrap {
+          padding: 20px 24px 0 24px;
+        }
 
         /* Card */
         .zs-card {
           position: relative;
           height: 100%;
           background: var(--bg-pure-white);
-          border: 1px solid var(--border-color);
-          border-radius: 0;
-          padding: 14px 15px 12px 15px;
+          border: 1px solid var(--border-slate-200);
+          border-radius: 10px;
+          padding: 12px 14px 10px 14px;
           cursor: pointer;
           overflow: hidden;
-          transition: border-color 0.2s ease, transform 0.2s ease;
+          transition: border-color 0.18s ease, transform 0.18s ease, box-shadow 0.18s ease;
           display: flex;
           flex-direction: column;
           min-height: 0;
+          box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03);
         }
         .zs-card:focus-visible {
           outline: none;
           border-color: var(--card-accent-from);
-          box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.18);
+          box-shadow: 0 0 0 2.5px rgba(59, 130, 246, 0.18);
         }
         .zs-card:hover {
           transform: translateY(-2px);
-          border-color: #3b82f6;
+          border-color: #93c5fd;
+          box-shadow: 0 6px 16px rgba(15, 23, 42, 0.07);
         }
-        .zs-card-accent {
-          display: none;
+        .zs-card-top-rail {
+          position: absolute;
+          top: 0;
+          left: 0;
+          right: 0;
+          height: 2.5px;
+          background: linear-gradient(90deg, var(--card-accent-from), var(--card-accent-to));
+          opacity: 0;
+          transition: opacity 0.2s ease;
+        }
+        .zs-card:hover .zs-card-top-rail {
+          opacity: 1;
         }
 
         .zs-card-head {
           display: flex;
           justify-content: space-between;
           align-items: flex-start;
-          gap: 10px;
+          gap: 8px;
           margin-bottom: 8px;
         }
         .zs-card-id {
           display: flex;
           align-items: center;
-          gap: 10px;
+          gap: 8px;
           min-width: 0;
           flex: 1;
         }
         .zs-card-mark {
           width: 30px; height: 30px;
-          border-radius: 8px;
+          border-radius: 7px;
           display: flex; align-items: center; justify-content: center;
           color: #fff;
           font-weight: 800;
           font-size: 11px;
-          letter-spacing: 0.04em;
-          background: #3b82f6;
+          letter-spacing: 0.03em;
           flex-shrink: 0;
+          box-shadow: 0 2px 6px rgba(15, 23, 42, 0.10);
         }
         .zs-card-id-text { min-width: 0; flex: 1; }
         .zs-card-name {
-          font-size: 14.5px;
+          font-size: 13.5px;
           font-weight: 700;
-          color: var(--text-primary);
-          letter-spacing: -0.01em;
+          color: var(--text-slate-900);
+          letter-spacing: -0.015em;
           line-height: 1.25;
           white-space: nowrap;
           overflow: hidden;
           text-overflow: ellipsis;
         }
         .zs-card-code {
-          font-size: 11px;
+          font-size: 10.5px;
           font-weight: 600;
-          color: var(--text-slate-500);
+          color: var(--text-slate-400);
           margin-top: 1px;
-          letter-spacing: 0.02em;
+          letter-spacing: 0.01em;
         }
 
-        .zs-card-head-right {
-          display: flex;
-          align-items: center;
-          gap: 6px;
-          flex-shrink: 0;
-        }
         .zs-status {
           display: inline-flex;
           align-items: center;
-          gap: 6px;
-          padding: 3px 10px;
-          border-radius: 8px;
-          font-size: 11px;
+          gap: 4px;
+          padding: 2px 7px;
+          border-radius: 999px;
+          font-size: 10px;
           font-weight: 700;
           text-transform: capitalize;
           background: var(--bg-slate-100);
-          color: var(--text-slate-700);
+          color: var(--text-slate-600);
           border: 1px solid var(--border-slate-200);
+          flex-shrink: 0;
         }
         .zs-status-dot {
-          width: 6px; height: 6px; border-radius: 999px;
+          width: 5px; height: 5px; border-radius: 999px;
           background: var(--text-slate-400);
         }
         .zs-status-active { background: #ecfdf5; color: #047857; border-color: #a7f3d0; }
@@ -805,17 +741,16 @@ function ProjectSelectContent() {
         .zs-status-completed { background: #eff6ff; color: #1d4ed8; border-color: #bfdbfe; }
         .zs-status-completed .zs-status-dot { background: #3b82f6; }
 
-        .zs-card-delete.ant-btn { border-radius: 8px; }
-
         .zs-card-desc {
-          font-size: 12px;
-          line-height: 1.45;
-          color: var(--text-secondary);
+          font-size: 11.5px;
+          line-height: 1.4;
+          color: var(--text-slate-500);
           margin-bottom: 8px;
           display: -webkit-box;
           -webkit-line-clamp: 2;
           -webkit-box-orient: vertical;
           overflow: hidden;
+          min-height: 32px;
         }
 
         .zs-card-progress { margin-bottom: 8px; }
@@ -826,77 +761,83 @@ function ProjectSelectContent() {
           margin-bottom: 4px;
         }
         .zs-card-progress-label {
-          font-size: 12px;
-          font-weight: 600;
-          color: var(--text-secondary);
+          font-size: 11px;
+          font-weight: 500;
+          color: var(--text-slate-500);
+        }
+        .zs-card-progress-label strong {
+          font-weight: 700;
+          color: var(--text-slate-800);
         }
         .zs-card-progress-pct {
-          font-size: 13px;
-          font-weight: 700;
-          color: var(--text-primary);
+          font-size: 11px;
+          font-weight: 800;
           letter-spacing: -0.01em;
         }
         .zs-card-progress-track {
-          height: 6px;
+          height: 4px;
           background: var(--bg-slate-100);
           border-radius: 999px;
           overflow: hidden;
         }
         .zs-card-progress-fill {
           height: 100%;
-          background: #3b82f6;
           border-radius: 999px;
           transition: width 0.4s ease;
         }
 
         .zs-card-foot {
           margin-top: auto;
-          padding-top: 6px;
-          border-top: 1px solid var(--border-color);
+          padding-top: 8px;
+          border-top: 1px solid var(--border-slate-100);
           display: flex;
           align-items: center;
           justify-content: space-between;
-          gap: 12px;
+          gap: 8px;
         }
         .zs-card-meta {
           display: flex;
           align-items: center;
-          gap: 16px;
+          gap: 10px;
         }
         .zs-card-meta-item {
           display: inline-flex;
           align-items: center;
-          gap: 6px;
-          font-size: 11.5px;
-          color: var(--text-slate-600);
+          gap: 4px;
+          font-size: 11px;
+          color: var(--text-slate-500);
         }
-        .zs-card-meta-item .anticon { color: var(--text-slate-400); }
-        .zs-card-meta-item strong { color: var(--text-primary); font-weight: 700; }
-        .zs-card-meta-mute { color: var(--text-slate-500); }
+        .zs-card-meta-item .anticon { color: var(--text-slate-400); font-size: 11px; }
+        .zs-card-meta-item strong { color: var(--text-slate-800); font-weight: 700; }
 
+        .zs-card-foot-right {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+        }
         .zs-card-arrow {
-          position: absolute;
-          top: 12px;
-          right: 12px;
-          width: 28px; height: 28px;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          width: 20px; height: 20px;
           border-radius: 999px;
-          display: flex; align-items: center; justify-content: center;
           color: var(--card-accent-text);
           background: var(--card-accent-soft);
+          font-size: 9px;
           opacity: 0;
-          transform: translate(-6px, 0);
-          transition: opacity 0.2s ease, transform 0.2s ease;
+          transform: translateX(-3px);
+          transition: all 0.15s ease;
         }
         .zs-card:hover .zs-card-arrow {
           opacity: 1;
-          transform: translate(0, 0);
+          transform: translateX(0);
         }
 
         /* Skeleton */
         .zs-skeleton {
-          height: 180px;
-          border-radius: 18px;
-          border: 1px solid var(--border-color);
+          height: 140px;
+          border-radius: 10px;
+          border: 1px solid var(--border-slate-200);
           background:
             linear-gradient(90deg, transparent, rgba(148, 163, 184, 0.08), transparent),
             var(--bg-pure-white);
@@ -911,8 +852,8 @@ function ProjectSelectContent() {
         /* Empty */
         .zs-empty {
           background: var(--bg-pure-white);
-          border: 1px dashed var(--border-color);
-          border-radius: 18px;
+          border: 1px dashed var(--border-slate-300);
+          border-radius: 16px;
           padding: 72px 32px;
           text-align: center;
           display: flex;
@@ -920,48 +861,38 @@ function ProjectSelectContent() {
           align-items: center;
         }
         .zs-empty-icon {
-          width: 64px; height: 64px;
-          border-radius: 18px;
-          background: linear-gradient(135deg, #eff6ff, #f5f3ff);
-          color: #6366f1;
-          font-size: 28px;
+          width: 60px; height: 60px;
+          border-radius: 16px;
+          background: rgba(59, 130, 246, 0.1);
+          color: #2563eb;
+          font-size: 26px;
           display: flex; align-items: center; justify-content: center;
-          margin-bottom: 16px;
+          margin-bottom: 14px;
         }
-        .zs-empty-title { font-size: 18px; color: var(--text-primary); margin-bottom: 6px; }
-        .zs-empty-sub { color: var(--text-secondary); font-size: 14px; max-width: 420px; }
+        .zs-empty-title { font-size: 16px; font-weight: 700; color: var(--text-slate-900); margin-bottom: 4px; }
+        .zs-empty-sub { color: var(--text-slate-500); font-size: 13.5px; max-width: 420px; }
         .zs-empty-cta.ant-btn {
-          margin-top: 20px;
-          height: 40px;
+          margin-top: 18px;
+          height: 38px;
           border-radius: 10px;
-          font-weight: 600;
-          background: linear-gradient(135deg, #3b82f6, #6366f1);
+          font-weight: 700;
+          background: linear-gradient(135deg, #2563eb, #3b82f6);
           border: none;
+        }
+
+        @media (max-width: 768px) {
+          .zs-projects-shell {
+            padding: 16px;
+          }
+          .zs-search.ant-input-affix-wrapper {
+            width: 100%;
+          }
+          .zs-toolbar-right {
+            width: 100%;
+          }
         }
       `}</style>
     </MainLayout>
-  );
-}
-
-function StatTile({
-  icon,
-  label,
-  value,
-  tint,
-}: {
-  icon: React.ReactNode;
-  label: string;
-  value: string;
-  tint: 'blue' | 'emerald' | 'violet' | 'amber' | 'grey';
-}) {
-  return (
-    <div className="zs-stat">
-      <div className="zs-stat-top">
-        <div className={`zs-stat-icon tint-${tint}`}>{icon}</div>
-        <div className="zs-stat-label">{label}</div>
-      </div>
-      <div className="zs-stat-value">{value}</div>
-    </div>
   );
 }
 
@@ -969,7 +900,7 @@ export default function ProjectSelectPage() {
   return (
     <Suspense
       fallback={
-        <MainLayout>
+        <MainLayout noPadding>
           <div
             style={{
               display: 'flex',
@@ -988,3 +919,4 @@ export default function ProjectSelectPage() {
     </Suspense>
   );
 }
+

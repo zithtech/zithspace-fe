@@ -23,7 +23,7 @@ import PlaybookEditor from "@/components/qa/PlaybookEditor";
 import type { PlaybookDetail } from "@/components/qa/playbookShared";
 
 export default function EditPlaybookPage() {
-  useActivitySource({ section: "WORK", module: "QA", page: "EditPlaybook" });
+  useActivitySource({ section: "WORK", module: "Playbooks", page: "QaPlaybooks" });
 
   const params = useParams();
   const slug = String((params as any)?.slug ?? "");

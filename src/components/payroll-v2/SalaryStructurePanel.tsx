@@ -36,8 +36,8 @@ import {
 } from '@ant-design/icons';
 import { usePermission } from '@/hooks/usePermission';
 import { StatCards } from '@/components/payroll-v2/ui';
-import { SearchableDropdown } from '@/components/common/SearchableDropdown';
 import ConfirmDialog from '@/components/common/ConfirmDialog';
+import SearchableDropdown from '@/components/common/SearchableDropdown';
 import PayrollV2Service, {
   PayComponent,
   PayStructureListItem,
@@ -48,6 +48,7 @@ import PayrollV2Service, {
   ComponentPercentageOf,
 } from '@/services/payrollV2Service';
 import { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
+import { FilterBar, FilterToggleButton, TicketFilterPill, FilterPillOption } from '@/components/common/FilterBar';
 
 const PALETTE = { blue: '#3B82F6', green: '#10B981', red: '#EF4444', violet: '#8B5CF6', amber: '#F59E0B', grey: '#94A3B8' } as const;
 const TINT = {
@@ -134,6 +135,7 @@ export default function SalaryStructurePanel() {
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('active');
+  const [isFilterRowOpen, setIsFilterRowOpen] = useState(false);
 
   // pagination
   const [total, setTotal] = useState(0);
@@ -407,6 +409,11 @@ export default function SalaryStructurePanel() {
             <SearchOutlined className="pvs-search-icon" />
             <input className="pvs-search" placeholder="Search name or code…" value={search} onChange={(e) => setSearch(e.target.value)} />
           </div>
+          <FilterToggleButton
+            isOpen={isFilterRowOpen}
+            onToggle={() => setIsFilterRowOpen((prev) => !prev)}
+            activeCount={statusFilter !== 'all' ? 1 : 0}
+          />
           <Tooltip title="Refresh"><button type="button" className="pvs-ghost-btn" onClick={() => load()}><ReloadOutlined spin={loading} /></button></Tooltip>
           {canCreatePayrollStructures && <Button type="primary" icon={<PlusOutlined />} onClick={openCreate} className="pvs-add-btn">New Structure</Button>}
         </div>
@@ -416,18 +423,24 @@ export default function SalaryStructurePanel() {
       <StatCards cells={statCells.map(s => ({ label: s.title, value: s.value, icon: s.icon, color: s.color, tint: s.tint }))} />
 
       {/* FILTERS */}
-      <div className="pvs-filters">
-        <span className="pvs-filter-label"><FilterOutlined /> Filter</span>
-        <SearchableDropdown
-          className="pvs-filter-dd" placeholder="Status" searchPlaceholder="Search statuses" itemNoun="statuses"
-          value={statusFilter === 'all' ? undefined : statusFilter}
-          onChange={(v) => setStatusFilter((v as StatusFilter) ?? 'all')}
-          options={[{ value: 'active', label: 'Active' }, { value: 'inactive', label: 'Inactive' }]}
-          style={{ width: 160 }} width={210}
-        />
-        <span className="pvs-filter-count">{total} structures</span>
-        {hasActiveFilters && <button type="button" className="pvs-clear" onClick={clearFilters}><CloseCircleOutlined /> Clear</button>}
-      </div>
+      {isFilterRowOpen && (
+        <FilterBar
+          activeCount={statusFilter !== 'all' ? 1 : 0}
+          onReset={() => setStatusFilter('all')}
+          onClose={() => setIsFilterRowOpen(false)}
+        >
+          <TicketFilterPill
+            label="Status"
+            icon={<CheckCircleOutlined />}
+            value={statusFilter === 'all' ? undefined : statusFilter}
+            options={[
+              { value: 'active', label: 'Active', dotColor: '#10b981' },
+              { value: 'inactive', label: 'Inactive', dotColor: '#ef4444' },
+            ]}
+            onChange={(v) => setStatusFilter((v as StatusFilter) || 'all')}
+          />
+        </FilterBar>
+      )}
 
       {/* TABLE */}
       <div className="pv-table-wrap">
@@ -501,7 +514,7 @@ export default function SalaryStructurePanel() {
                 <SearchableDropdown
                   className="pvs-add-dd" placeholder="+ Add a component" searchPlaceholder="Search components" itemNoun="components"
                   value={undefined}
-                  onChange={(v) => v && addComponent(v as string)}
+                  onChange={(v: any) => v && addComponent(v as string)}
                   options={availableComponents.map((c) => ({ value: c.id, label: `${c.name} · ${CATEGORY_META[c.category].label}` }))}
                   style={{ width: '100%', height: 40 }} width={360}
                 />
@@ -576,7 +589,7 @@ export default function SalaryStructurePanel() {
 
       <style jsx global>{`
         .pvs { display: flex; flex-direction: column; flex: 1; min-height: 0; }
-        .pvs-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding-bottom: 14px; margin-bottom: 14px; border-bottom: 1px solid var(--border-slate-200); flex-wrap: wrap; }
+        .pvs-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding-bottom: 14px; margin-bottom: 0; border-bottom: 1px solid var(--border-slate-200); flex-wrap: wrap; }
         .pvs-header-about { display: flex; align-items: center; gap: 12px; flex: 1 1 auto; min-width: 250px; }
         .pvs-header-icon { width: 38px; height: 38px; border-radius: 10px; flex-shrink: 0; background: ${TINT.violet}; color: ${PALETTE.violet}; display: inline-flex; align-items: center; justify-content: center; font-size: 18px; }
         .pvs-header-title { font-size: 17px; font-weight: 800; color: var(--text-slate-900); letter-spacing: -0.02em; line-height: 1.15; }

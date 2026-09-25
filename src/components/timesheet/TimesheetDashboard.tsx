@@ -214,6 +214,9 @@ export default function DashboardTab() {
 
       <div style={{ flex: 1, overflowY: "auto", padding: "16px 32px 32px 32px", scrollbarWidth: "none" }}>
         <StatCards
+          title="Timesheets Overview"
+          statusText="ACTIVE"
+          progressPct={total > 0 ? Math.round((approved / total) * 100) : 0}
           style={{ marginBottom: 16 }}
           cards={[
             {

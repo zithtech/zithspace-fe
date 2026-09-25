@@ -703,7 +703,14 @@ export default function EscalationTrashPage() {
           <div className="es-divider" />
 
           {/* Stat cards */}
-          <StatCards cards={statCells} />
+          <StatCards
+            title="Escalation Trash Overview"
+            statusText="TRASHED"
+            statusColor="#ef4444"
+            statusBorder="rgba(239, 68, 68, 0.32)"
+            progressPct={statsData.total > 0 ? Math.round((statsData.resolved / statsData.total) * 100) : 0}
+            cards={statCells}
+          />
 
           {/* Table / Grid Wrap */}
           <div className="es-body">

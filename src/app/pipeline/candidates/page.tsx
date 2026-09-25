@@ -43,6 +43,7 @@ import { SearchableDropdown } from "@/components/common/SearchableDropdown";
 import ConfirmDialog from '@/components/common/ConfirmDialog';
 import { usePermission } from '@/hooks/usePermission';
 import { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
+import { FilterBar, FilterToggleButton, TicketFilterPill } from '@/components/common/FilterBar';
 
 const PAGE_SIZE_OPTIONS = [10, 15, 20, 25, 50, 100];
 
@@ -59,6 +60,7 @@ export default function CandidatesPage() {
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [roleFilter, setRoleFilter] = useState<string>("all");
   const [expFilter, setExpFilter] = useState<string>("all");
+  const [isFilterRowOpen, setIsFilterRowOpen] = useState(false);
   const { canCreateRecruitment, canUpdateRecruitment, canDeleteRecruitment } = usePermission();
 
   const [tablePage, setTablePage] = useState(1);
@@ -312,6 +314,11 @@ export default function CandidatesPage() {
               <LayoutGrid size={14} />
             </button>
           </div>
+          <FilterToggleButton
+            isOpen={isFilterRowOpen}
+            onToggle={() => setIsFilterRowOpen((prev) => !prev)}
+            activeCount={(statusFilter !== 'all' ? 1 : 0) + (roleFilter !== 'all' ? 1 : 0) + (expFilter !== 'all' ? 1 : 0)}
+          />
           <button
             type="button"
             className="pl-refresh-btn"
@@ -335,57 +342,75 @@ export default function CandidatesPage() {
       <StatCards
         title="Candidate Overview"
         statusText="ACTIVE"
+        progressPct={(() => {
+          const totalCandidates = statsData.total || total;
+          return totalCandidates > 0 ? Math.round(((statsData.hired || 0) / totalCandidates) * 100) : 0;
+        })()}
         cells={statCells}
       />
 
-      <div className="flex flex-wrap items-center gap-4 py-3 px-5 border-b border-slate-200 dark:border-slate-800">
-        <div className="text-xs font-bold text-slate-500 uppercase tracking-wider">Filters</div>
-        <div className="w-48">
-          <SearchableDropdown
-            value={statusFilter}
-            onChange={(val) => { setStatusFilter(val); setTablePage(1); }}
-            placeholder="All Statuses"
+      {isFilterRowOpen && (
+        <FilterBar
+          activeCount={(statusFilter !== 'all' ? 1 : 0) + (roleFilter !== 'all' ? 1 : 0) + (expFilter !== 'all' ? 1 : 0)}
+          onReset={() => {
+            setStatusFilter('all');
+            setRoleFilter('all');
+            setExpFilter('all');
+            setTablePage(1);
+          }}
+          onClose={() => setIsFilterRowOpen(false)}
+        >
+          <TicketFilterPill
+            label="Status"
+            icon={<CheckCircle2 size={14} />}
+            value={statusFilter !== 'all' ? statusFilter : undefined}
             options={[
-              { label: 'All Statuses', value: 'all' },
-              { label: 'Applied', value: 'applied' },
-              { label: 'Screening', value: 'screening' },
-              { label: 'Shortlisted', value: 'shortlisted' },
-              { label: 'Interview', value: 'interview' },
-              { label: 'Offer', value: 'offer' },
-              { label: 'Hired', value: 'hired' },
-              { label: 'Rejected', value: 'rejected' },
-              { label: 'Withdrawn', value: 'withdrawn' },
-              { label: 'On Hold', value: 'on hold' },
+              { value: 'applied', label: 'Applied', dotColor: '#3b82f6' },
+              { value: 'screening', label: 'Screening', dotColor: '#6366f1' },
+              { value: 'shortlisted', label: 'Shortlisted', dotColor: '#8b5cf6' },
+              { value: 'interview', label: 'Interview', dotColor: '#f59e0b' },
+              { value: 'offer', label: 'Offer', dotColor: '#10b981' },
+              { value: 'hired', label: 'Hired', dotColor: '#059669' },
+              { value: 'rejected', label: 'Rejected', dotColor: '#ef4444' },
+              { value: 'withdrawn', label: 'Withdrawn', dotColor: '#64748b' },
+              { value: 'on hold', label: 'On Hold', dotColor: '#f97316' },
             ]}
+            onChange={(v) => {
+              setStatusFilter(v ? String(v) : 'all');
+              setTablePage(1);
+            }}
           />
-        </div>
 
-        <div className="w-56">
-          <SearchableDropdown
-            value={roleFilter}
-            onChange={(val) => { setRoleFilter(val); setTablePage(1); }}
-            placeholder="All Roles"
-            options={[
-              { label: 'All Roles', value: 'all' },
-              ...roles.map(r => ({ label: r as string, value: r as string }))
-            ]}
+          <TicketFilterPill
+            label="Role"
+            icon={<Users size={14} />}
+            value={roleFilter !== 'all' ? roleFilter : undefined}
+            options={roles.map((r) => ({
+              value: String(r),
+              label: String(r),
+            }))}
+            onChange={(v) => {
+              setRoleFilter(v ? String(v) : 'all');
+              setTablePage(1);
+            }}
           />
-        </div>
 
-        <div className="w-48">
-          <SearchableDropdown
-            value={expFilter}
-            onChange={(val) => { setExpFilter(val); setTablePage(1); }}
-            placeholder="Any Experience"
+          <TicketFilterPill
+            label="Experience"
+            icon={<Clock size={14} />}
+            value={expFilter !== 'all' ? expFilter : undefined}
             options={[
-              { label: 'Any Experience', value: 'all' },
-              { label: '0 - 2 Years', value: '0-2' },
-              { label: '3 - 5 Years', value: '3-5' },
-              { label: '5+ Years', value: '5+' },
+              { value: '0-2', label: '0 - 2 Years' },
+              { value: '3-5', label: '3 - 5 Years' },
+              { value: '5+', label: '5+ Years' },
             ]}
+            onChange={(v) => {
+              setExpFilter(v ? String(v) : 'all');
+              setTablePage(1);
+            }}
           />
-        </div>
-      </div>
+        </FilterBar>
+      )}
 
       <div className="pl-body">
         <ZukvoLoadingOverlay loading={loading} message="">

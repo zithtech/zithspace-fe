@@ -179,13 +179,8 @@ export default function AttendanceLayout({ children }: { children: React.ReactNo
             padding: 0 20px !important;
           }
 
-          /* Restore the gap below the header that was removed by margin-bottom: 0 */
-          .att-content > * > [class*="-header"] + * {
-            margin-top: 6px !important;
-          }
-
           /* Stretch panel headers to the edges and make them sticky */
-          .att-content > * > [class*="-header"] {
+          .att-content > * > [class*="-header"]:not([class*="sprint"]) {
             position: sticky;
             top: 0;
             z-index: 20;

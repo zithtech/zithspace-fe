@@ -536,6 +536,7 @@ export default function BidIqPage() {
                 <StatCards
                   title="BidIq Overview"
                   statusText="ACTIVE"
+                  progressPct={counts.avg ? Math.round(Number(counts.avg)) : (counts.total > 0 ? Math.round((counts.hot / counts.total) * 100) : 0)}
                   cells={[
                     {
                       label: "Analyzed",

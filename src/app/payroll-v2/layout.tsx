@@ -215,15 +215,19 @@ export default function PayrollV2Layout({ children }: { children: React.ReactNod
              and z-index live here so all pages behave identically. */
           .pv-header, .pvpb-header, .pvw-header, .pvep-header, .pvg-header,
           .pvr-header, .pvss-header, .rpt-header, .pvs-header, .pvc-header,
-          .pvst-header, .mps-header {
+          .pvst-header, .mps-header,
+          .pv-content > * > [class*="-header"]:not([class*="sprint"]) {
             position: sticky;
             top: 0;
             z-index: 20;
             background: var(--bg-pure-white);
             box-shadow: 0 6px 16px -14px rgba(15, 23, 42, 0.4);
+            margin-top: 0 !important;
+            margin-bottom: 0 !important;
             margin-left: 0 !important;
             margin-right: 0 !important;
-            padding-top: 16px;
+            padding-top: 14px;
+            padding-bottom: 14px;
             padding-left: 22px;
             padding-right: 22px;
           }

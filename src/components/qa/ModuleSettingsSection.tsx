@@ -13,7 +13,7 @@
  */
 
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { Button, Form, Input, Modal, Table, Tooltip } from "antd";
+import { Button, Form, Input, Modal, Table, Tooltip, Select } from "antd";
 import { message } from "@/providers/AntdGlobalProvider";
 import { CloseOutlined } from "@ant-design/icons";
 import { ArrowUpRight, Boxes, FolderKanban, Lock, Pencil, Plus, Trash2, Search } from "lucide-react";
@@ -23,7 +23,8 @@ import SearchableDropdown from "@/components/common/SearchableDropdown";
 import ZukvoLoader from "@/components/common/ZukvoLoader";
 import PostCreationSuccessScreen from "@/components/common/PostCreationSuccessScreen";
 import { ProjectService } from "@/services/projectService";
-import { api as axios } from "@/lib/axios";
+import { api as axios, apiClient } from "@/lib/axios";
+import { useDebounce } from "@/hooks/useDebounce";
 
 const { TextArea } = Input;
 
@@ -63,28 +64,48 @@ const norm = (s: any) => String(s ?? "").trim().toLowerCase();
 const apiError = (err: any, fallback: string) =>
   err?.details?.error || err?.response?.data?.error || err?.message || fallback;
 
+export interface QaModulesParams {
+  page?: number;
+  pageSize?: number;
+  search?: string;
+  projectId?: string;
+  enabled?: boolean;
+}
+
 /** The module list, shared by the sidebar count and the pane. */
-export function useQaModules(enabled = true) {
+export function useQaModules(paramsOrEnabled: boolean | QaModulesParams = true) {
+  const params = typeof paramsOrEnabled === "boolean" ? { enabled: paramsOrEnabled } : paramsOrEnabled;
+  const { page, pageSize, search, projectId, enabled = true } = params;
+
   const [items, setItems] = useState<QaModule[]>([]);
+  const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(enabled);
 
   const refetch = useCallback(async () => {
     if (!enabled) return;
     setLoading(true);
     try {
-      const res: any = await axios.get(`/api/v2/qa/modules?_t=${Date.now()}`);
-      const data = Array.isArray(res) ? res : (res?.data ?? []);
+      const qParams: any = { _t: Date.now() };
+      if (page !== undefined) qParams.page = page;
+      if (pageSize !== undefined) qParams.pageSize = pageSize;
+      if (search) qParams.search = search;
+      if (projectId) qParams.projectId = projectId;
+
+      const res: any = await apiClient.get(`/api/v2/qa/modules`, { params: qParams });
+      const data = res.data?.data || (Array.isArray(res.data) ? res.data : []);
+      const totalCount = res.data?.pagination?.total ?? (Array.isArray(data) ? data.length : 0);
       setItems(Array.isArray(data) ? data : []);
+      setTotal(totalCount);
     } catch (err) {
       console.error("Failed to fetch QA modules", err);
     } finally {
       setLoading(false);
     }
-  }, [enabled]);
+  }, [enabled, page, pageSize, search, projectId]);
 
   useEffect(() => { refetch(); }, [refetch]);
 
-  return { items, loading, refetch };
+  return { items, total, loading, refetch };
 }
 
 /** The projects the signed-in user can file a module under. */
@@ -212,229 +233,278 @@ function LockedDeleteTip({ links, count }: { links: ScopeLink[]; count: number }
 }
 
 interface ModulesTableProps {
-  items: QaModule[];
-  loading: boolean;
+  items?: QaModule[];
+  loading?: boolean;
   canManage: boolean;
   /** Module name → the scopes that named it. */
   scopeIndex: ScopeModuleIndex;
   onCreate: () => void;
   onEdit: (item: QaModule) => void;
-  onChanged: () => void;
+  onChanged?: () => void;
 }
 
 export function ModulesTable({
-  items, loading, canManage, scopeIndex, onCreate, onEdit, onChanged,
+  canManage, scopeIndex, onCreate, onEdit, onChanged,
 }: ModulesTableProps) {
   /** "" = every project. Modules are filed per project, so this is how you read the list. */
   const [projectFilter, setProjectFilter] = useState<string>("");
   const [searchTerm, setSearchTerm] = useState("");
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(15);
+  const debouncedSearch = useDebounce(searchTerm, 300);
+
+  const { options: userProjectOptions } = useProjectOptions(true);
+  const projectOptions = useMemo(() => [
+    { value: "", label: "All projects" },
+    ...userProjectOptions,
+  ], [userProjectOptions]);
+
+  const { items, total, loading, refetch } = useQaModules({
+    page,
+    pageSize,
+    search: debouncedSearch,
+    projectId: projectFilter || undefined,
+    enabled: true,
+  });
 
   const handleDelete = async (id: string) => {
     try {
       await axios.delete(`/api/v2/qa/modules/${id}`);
       message.success("Deleted");
-      onChanged();
+      refetch();
+      onChanged?.();
     } catch (err: any) {
       // The API refuses modules that scopes, scenarios or suites still use.
       message.error(apiError(err, "Failed to delete"));
     }
   };
 
-  /** Project options come from the modules themselves, so the filter can't offer an empty bucket. */
-  const projectOptions = useMemo(() => {
-    const seen = new Map<string, { value: string; label: string; description?: string }>();
-    items.forEach(m => {
-      const key = m.project_id || norm(m.project_name) || "__none__";
-      if (seen.has(key)) return;
-      seen.set(key, {
-        value: key,
-        label: m.project_name || "No project",
-        description: m.project_name ? undefined : "Added before projects were required",
-      });
-    });
-    return [{ value: "", label: "All projects" }, ...Array.from(seen.values())];
-  }, [items]);
+  useEffect(() => {
+    setPage(1);
+  }, [debouncedSearch, projectFilter]);
 
-  const visible = useMemo(() => {
-    let result = items;
-    if (projectFilter) {
-      result = result.filter(m => (m.project_id || norm(m.project_name) || "__none__") === projectFilter);
-    }
-    if (searchTerm) {
-      const lowerSearch = searchTerm.toLowerCase();
-      result = result.filter(m => 
-        m.module_name.toLowerCase().includes(lowerSearch) ||
-        (m.description && m.description.toLowerCase().includes(lowerSearch))
-      );
-    }
-    return result;
-  }, [items, projectFilter, searchTerm]);
+  const pageCount = Math.max(1, Math.ceil(total / pageSize));
+  const safePage = Math.min(page, pageCount);
+  const pageStart = total === 0 ? 0 : (safePage - 1) * pageSize + 1;
+  const pageEnd = Math.min(safePage * pageSize, total);
 
   return (
-    <div className="sc-tablewrap">
-      <div className="st-head">
-        <div className="min-w-0">
-          <div className="st-head__title">Modules</div>
-          <div className="st-head__desc">{MODULES_HELP}</div>
-        </div>
-        <div className="st-head__actions" style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-          <Input
-            placeholder="Search modules…"
-            prefix={<Search size={14} style={{ color: "var(--text-slate-400)" }} />}
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            style={{ width: 200 }}
-            allowClear
+    <div style={{ display: "flex", flexDirection: "column", height: "100%", minHeight: 0, flex: 1 }}>
+      <div className="dh-main-scroll" style={{ flex: 1, overflowY: "auto", padding: 0 }}>
+        <div className="sc-tablewrap" style={{ borderLeft: "none", borderRight: "none", borderTop: "none", borderRadius: 0, margin: 0 }}>
+          <div className="st-head">
+            <div className="min-w-0">
+              <div className="st-head__title">Modules</div>
+              <div className="st-head__desc">{MODULES_HELP}</div>
+            </div>
+            <div className="st-head__actions" style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+              <Input
+                placeholder="Search modules…"
+                prefix={<Search size={14} style={{ color: "var(--text-slate-400)" }} />}
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                style={{ width: 200 }}
+                allowClear
+              />
+              {projectOptions.length > 1 && (
+                <SearchableDropdown
+                  options={projectOptions}
+                  value={projectFilter}
+                  onChange={(v: any) => setProjectFilter(v || "")}
+                  placeholder="All projects"
+                  searchPlaceholder="Search projects…"
+                  itemNoun="projects"
+                  allowClear={false}
+                  width={260}
+                  className="mod-filter"
+                />
+              )}
+              {canManage && (
+                <Button type="primary" size="small" icon={<Plus size={14} />} onClick={onCreate}>Add Module</Button>
+              )}
+            </div>
+          </div>
+
+          <Table
+            className="ts-table sc-table"
+            dataSource={items}
+            rowKey="id"
+            size="middle"
+            pagination={false}
+            scroll={{ x: "max-content" }}
+            locale={{
+              emptyText: loading ? (
+                <ZukvoLoader size="md" message="Loading modules…" />
+              ) : (
+                <div className="sc-empty">
+                  <Boxes size={26} className="sc-empty__icon" />
+                  <p className="sc-empty__title">{projectFilter ? "No modules in this project" : "No modules yet"}</p>
+                  <p className="sc-empty__desc">{MODULES_HELP}</p>
+                  {canManage && (
+                    <Button type="primary" size="small" icon={<Plus size={14} />} onClick={onCreate}>Add the first module</Button>
+                  )}
+                </div>
+              ),
+            }}
+            columns={[
+              {
+                title: "Module",
+                dataIndex: "module_name",
+                render: (name: string) => (
+                  <div className="st-option">
+                    <span className="st-tag">{name}</span>
+                    <span className="st-option__hint">as it appears in dropdowns</span>
+                  </div>
+                ),
+              },
+              {
+                title: "Project",
+                dataIndex: "project_name",
+                width: 200,
+                render: (v: string | null) =>
+                  v ? (
+                    <span className="mod-project"><FolderKanban size={13} />{v}</span>
+                  ) : (
+                    <Tooltip title="Added before projects were required — edit it to pick one.">
+                      <span className="st-usage is-empty">Not set</span>
+                    </Tooltip>
+                  ),
+              },
+              {
+                title: "Description",
+                dataIndex: "description",
+                ellipsis: true,
+                render: (v: string | null) =>
+                  v ? <Tooltip title={v}><span className="st-desc">{v}</span></Tooltip>
+                    : <span className="st-usage is-empty">No description</span>,
+              },
+              {
+                title: "Used by",
+                key: "usage",
+                width: 260,
+                render: (_: any, record: QaModule) => {
+                  const cases = Number(record.case_count || 0);
+                  const suites = Number(record.suite_count || 0);
+                  const scopes = scopeCountOf(record, scopeIndex);
+                  if (!cases && !suites && !scopes) return <span className="st-usage is-empty">Not used</span>;
+                  return (
+                    <span className="st-usage">
+                      {[
+                        scopes ? `${scopes} scope${scopes === 1 ? "" : "s"}` : null,
+                        cases ? `${cases} scenario${cases === 1 ? "" : "s"}` : null,
+                        suites ? `${suites} suite${suites === 1 ? "" : "s"}` : null,
+                      ].filter(Boolean).join(" · ")}
+                    </span>
+                  );
+                },
+              },
+              {
+                title: "Actions",
+                key: "actions",
+                width: 100,
+                align: "right" as const,
+                render: (_: any, record: QaModule) => {
+                  if (!canManage) return <span className="sc-muted">—</span>;
+                  const inUse = usageOf(record);
+                  const links = scopeLinksFor(scopeIndex, record);
+                  const scopeCount = scopeCountOf(record, scopeIndex);
+
+                  return (
+                    <div className="sc-rowactions">
+                      <Tooltip title="Edit">
+                        <button onClick={() => onEdit(record)} aria-label="Edit"><Pencil size={15} /></button>
+                      </Tooltip>
+
+                      {scopeCount > 0 ? (
+                        // Locked rather than disabled: a disabled button swallows the
+                        // hover, and the whole point here is to explain why.
+                        <Tooltip
+                          title={<LockedDeleteTip links={links} count={scopeCount} />}
+                          overlayClassName="mlock-tip"
+                          color="var(--bg-pure-white)"
+                          placement="topRight"
+                        >
+                          <button
+                            className="is-locked"
+                            aria-disabled="true"
+                            aria-label={`Can't delete — linked to ${scopeCount} test scope${scopeCount === 1 ? "" : "s"}`}
+                            onClick={e => e.preventDefault()}
+                          >
+                            <Trash2 size={15} />
+                            <span className="is-locked__badge"><Lock size={9} /></span>
+                          </button>
+                        </Tooltip>
+                      ) : (
+                        <ConfirmDialog
+                          tone="danger"
+                          title="Delete this module?"
+                          description={inUse > 0
+                            ? `${inUse} record${inUse === 1 ? "" : "s"} still use it — reassign them before deleting.`
+                            : "It will no longer be selectable on scenarios, cases or suites."}
+                          confirmText="Delete"
+                          onConfirm={() => handleDelete(record.id)}
+                        >
+                          <Tooltip title="Delete">
+                            <button className="is-danger" aria-label="Delete"><Trash2 size={15} /></button>
+                          </Tooltip>
+                        </ConfirmDialog>
+                      )}
+                    </div>
+                  );
+                },
+              },
+            ]}
           />
-          {projectOptions.length > 1 && (
-            <SearchableDropdown
-              options={projectOptions}
-              value={projectFilter}
-              onChange={(v: any) => setProjectFilter(v || "")}
-              placeholder="All projects"
-              searchPlaceholder="Search projects…"
-              itemNoun="projects"
-              allowClear={false}
-              width={260}
-              className="mod-filter"
-            />
-          )}
-          {canManage && (
-            <Button type="primary" size="small" icon={<Plus size={14} />} onClick={onCreate}>Add Module</Button>
-          )}
         </div>
       </div>
 
-      <Table
-        className="ts-table sc-table"
-        dataSource={visible}
-        rowKey="id"
-        size="middle"
-        pagination={false}
-        scroll={{ x: "max-content" }}
-        locale={{
-          emptyText: loading ? (
-            <ZukvoLoader size="md" message="Loading modules…" />
-          ) : (
-            <div className="sc-empty">
-              <Boxes size={26} className="sc-empty__icon" />
-              <p className="sc-empty__title">{projectFilter ? "No modules in this project" : "No modules yet"}</p>
-              <p className="sc-empty__desc">{MODULES_HELP}</p>
-              {canManage && (
-                <Button type="primary" size="small" icon={<Plus size={14} />} onClick={onCreate}>Add the first module</Button>
-              )}
-            </div>
-          ),
-        }}
-        columns={[
-          {
-            title: "Module",
-            dataIndex: "module_name",
-            render: (name: string) => (
-              <div className="st-option">
-                <span className="st-tag">{name}</span>
-                <span className="st-option__hint">as it appears in dropdowns</span>
-              </div>
-            ),
-          },
-          {
-            title: "Project",
-            dataIndex: "project_name",
-            width: 200,
-            render: (v: string | null) =>
-              v ? (
-                <span className="mod-project"><FolderKanban size={13} />{v}</span>
-              ) : (
-                <Tooltip title="Added before projects were required — edit it to pick one.">
-                  <span className="st-usage is-empty">Not set</span>
-                </Tooltip>
-              ),
-          },
-          {
-            title: "Description",
-            dataIndex: "description",
-            ellipsis: true,
-            render: (v: string | null) =>
-              v ? <Tooltip title={v}><span className="st-desc">{v}</span></Tooltip>
-                : <span className="st-usage is-empty">No description</span>,
-          },
-          {
-            title: "Used by",
-            key: "usage",
-            width: 260,
-            render: (_: any, record: QaModule) => {
-              const cases = Number(record.case_count || 0);
-              const suites = Number(record.suite_count || 0);
-              const scopes = scopeCountOf(record, scopeIndex);
-              if (!cases && !suites && !scopes) return <span className="st-usage is-empty">Not used</span>;
-              return (
-                <span className="st-usage">
-                  {[
-                    scopes ? `${scopes} scope${scopes === 1 ? "" : "s"}` : null,
-                    cases ? `${cases} scenario${cases === 1 ? "" : "s"}` : null,
-                    suites ? `${suites} suite${suites === 1 ? "" : "s"}` : null,
-                  ].filter(Boolean).join(" · ")}
-                </span>
-              );
-            },
-          },
-          {
-            title: "Actions",
-            key: "actions",
-            width: 100,
-            align: "right" as const,
-            render: (_: any, record: QaModule) => {
-              if (!canManage) return <span className="sc-muted">—</span>;
-              const inUse = usageOf(record);
-              const links = scopeLinksFor(scopeIndex, record);
-              const scopeCount = scopeCountOf(record, scopeIndex);
-
-              return (
-                <div className="sc-rowactions">
-                  <Tooltip title="Edit">
-                    <button onClick={() => onEdit(record)} aria-label="Edit"><Pencil size={15} /></button>
-                  </Tooltip>
-
-                  {scopeCount > 0 ? (
-                    // Locked rather than disabled: a disabled button swallows the
-                    // hover, and the whole point here is to explain why.
-                    <Tooltip
-                      title={<LockedDeleteTip links={links} count={scopeCount} />}
-                      overlayClassName="mlock-tip"
-                      color="var(--bg-pure-white)"
-                      placement="topRight"
-                    >
-                      <button
-                        className="is-locked"
-                        aria-disabled="true"
-                        aria-label={`Can't delete — linked to ${scopeCount} test scope${scopeCount === 1 ? "" : "s"}`}
-                        onClick={e => e.preventDefault()}
-                      >
-                        <Trash2 size={15} />
-                        <span className="is-locked__badge"><Lock size={9} /></span>
-                      </button>
-                    </Tooltip>
-                  ) : (
-                    <ConfirmDialog
-                      tone="danger"
-                      title="Delete this module?"
-                      description={inUse > 0
-                        ? `${inUse} record${inUse === 1 ? "" : "s"} still use it — reassign them before deleting.`
-                        : "It will no longer be selectable on scenarios, cases or suites."}
-                      confirmText="Delete"
-                      onConfirm={() => handleDelete(record.id)}
-                    >
-                      <Tooltip title="Delete">
-                        <button className="is-danger" aria-label="Delete"><Trash2 size={15} /></button>
-                      </Tooltip>
-                    </ConfirmDialog>
-                  )}
-                </div>
-              );
-            },
-          },
-        ]}
-      />
+      {total > 0 && (
+        <div className="pp-footer">
+          <div className="pp-footer-info">
+            Showing <strong>{pageStart}–{pageEnd}</strong> of <strong>{total}</strong>
+          </div>
+          <div className="pp-pager">
+            <button
+              type="button"
+              className="pp-pager-btn"
+              disabled={safePage <= 1}
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+            >
+              ‹
+            </button>
+            {Array.from({ length: pageCount }, (_, i) => i + 1)
+              .slice(Math.max(0, safePage - 3), Math.max(0, safePage - 3) + 5)
+              .map((p) => (
+                <button
+                  key={p}
+                  type="button"
+                  className={`pp-pager-num ${p === safePage ? "is-active" : ""}`}
+                  onClick={() => setPage(p)}
+                >
+                  {p}
+                </button>
+              ))}
+            <button
+              type="button"
+              className="pp-pager-btn"
+              disabled={safePage >= pageCount}
+              onClick={() => setPage((p) => Math.min(pageCount, p + 1))}
+            >
+              ›
+            </button>
+            <Select
+              className="pp-pagesize"
+              value={pageSize}
+              onChange={(v) => {
+                setPageSize(v);
+                setPage(1);
+              }}
+              options={[10, 15, 20, 25, 50, 100].map((n) => ({ value: n, label: `${n} / page` }))}
+              popupMatchSelectWidth={120}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }

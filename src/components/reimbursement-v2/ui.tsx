@@ -222,12 +222,63 @@ export interface StatCell {
   tint: string;
 }
 
-export function StatCards({ cells, title = "Reimbursement Overview", tag = "LIVE", dotColor = "#3b82f6", progressPct = "100%" }: { cells: StatCell[], title?: string, tag?: string, dotColor?: string, progressPct?: string }) {
+export function StatCards({
+  cells,
+  title = "Reimbursement Overview",
+  tag = "LIVE",
+  dotColor = "#3b82f6",
+  progressPct,
+}: {
+  cells: StatCell[];
+  title?: string;
+  tag?: string;
+  dotColor?: string;
+  progressPct?: string | number;
+}) {
+  const { pctNumber, pctString } = React.useMemo(() => {
+    if (progressPct !== undefined && progressPct !== null && progressPct !== "") {
+      const parsed = typeof progressPct === "number" ? progressPct : parseFloat(String(progressPct));
+      if (!isNaN(parsed)) {
+        const clamped = Math.min(100, Math.max(0, parsed));
+        return { pctNumber: clamped, pctString: `${clamped}%` };
+      }
+    }
+    if (cells && cells.length > 0) {
+      let total = 0;
+      let completed = 0;
+      let hasTotal = false;
+      for (const item of cells) {
+        const lbl = String(item.label || "").toLowerCase();
+        const rawVal = item.value;
+        const numVal = typeof rawVal === "number" ? rawVal : parseFloat(String(rawVal).replace(/[^0-9.-]/g, ""));
+        if (!isNaN(numVal)) {
+          if (lbl.includes("total") || lbl.includes("all") || lbl.includes("count")) {
+            total = numVal;
+            hasTotal = true;
+          } else if (lbl.includes("approved") || lbl.includes("paid") || lbl.includes("completed")) {
+            completed += numVal;
+          }
+        }
+      }
+      if (hasTotal && total > 0) {
+        const computed = Math.min(100, Math.max(0, Math.round((completed / total) * 100)));
+        return { pctNumber: computed, pctString: `${computed}%` };
+      }
+    }
+    return { pctNumber: 0, pctString: "0%" };
+  }, [progressPct, cells]);
+
   return (
     <div className="rvp-sprint-header-v2">
       <div className="rvp-sprint-row1">
         <div className="rvp-sprint-title-block">
-          <div className="rvp-sprint-dot" style={{ background: dotColor }} />
+          <div
+            className="rvp-sprint-dot"
+            style={{
+              background: dotColor,
+              boxShadow: `0 0 0 3px ${dotColor}33`,
+            }}
+          />
           <h2 className="rvp-sprint-title">{title}</h2>
           <div className="rvp-sprint-tags">
             <span className="rvp-sprint-tag rvp-sprint-tag-active">{tag}</span>
@@ -237,9 +288,17 @@ export function StatCards({ cells, title = "Reimbursement Overview", tag = "LIVE
       <div className="rvp-sprint-row2">
         {cells.map((c) => (
           <span key={c.label} className="rvp-sprint-meta">
-            <span style={{ color: c.color, display: 'flex', alignItems: 'center' }}>{c.icon}</span>
-            {c.label}: <b>{c.value}</b>
-            {c.hint && <span style={{ color: 'var(--text-slate-400)', marginLeft: 4, fontWeight: 400 }}>{c.hint}</span>}
+            <span style={{ color: c.color, display: "flex", alignItems: "center" }}>
+              {c.icon}
+            </span>
+            <span>
+              <b>{c.value}</b> {c.label}
+            </span>
+            {c.hint && (
+              <span style={{ color: "var(--text-slate-400)", marginLeft: 4, fontWeight: 400 }}>
+                {c.hint}
+              </span>
+            )}
           </span>
         ))}
       </div>
@@ -247,10 +306,10 @@ export function StatCards({ cells, title = "Reimbursement Overview", tag = "LIVE
         <div className="rvp-sprint-progress-bar">
           <div
             className="rvp-sprint-progress-fill"
-            style={{ width: progressPct, background: 'linear-gradient(90deg, #3b82f6, #6366f1)' }}
+            style={{ width: `${pctNumber}%` }}
           />
         </div>
-        <span className="rvp-sprint-progress-pct">{progressPct}</span>
+        <span className="rvp-sprint-progress-pct">{pctString}</span>
       </div>
     </div>
   );
@@ -329,20 +388,21 @@ export function RmbStyles() {
       .rvp-head-actions .ant-btn { height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; }
       .rvp-search.ant-input-affix-wrapper { width: 240px; height: 32px; border-radius: 8px; }
       /* Sprint Header (Stats) */
-      .rvp-sprint-header-v2 { display: flex; flex-direction: column; gap: 2px; padding: 8px 20px 10px; background: var(--bg-pure-white); border-bottom: 1px solid var(--border-slate-200); margin-bottom: 0px; flex-shrink: 0; }
-      .rvp-sprint-row1 { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; margin-bottom: 2px; }
-      .rvp-sprint-title-block { display: flex; align-items: center; gap: 6px; min-width: 0; flex: 1 1 auto; }
-      .rvp-sprint-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
-      .rvp-sprint-title { font-size: 13px !important; font-weight: 800 !important; color: var(--text-slate-900) !important; letter-spacing: -0.01em; margin: 0; }
-      .rvp-sprint-tags { display: inline-flex; align-items: center; gap: 4px; flex-shrink: 0; }
-      .rvp-sprint-tag { display: inline-flex; align-items: center; height: 16px; padding: 0 4px; font-size: 9px; font-weight: 800; letter-spacing: 0.04em; border-radius: 4px; border: 1px solid transparent; text-transform: uppercase; line-height: 1; }
-      .rvp-sprint-tag-active { background: transparent; color: #34d399; border-color: rgba(16, 185, 129, 0.32); }
-      .rvp-sprint-row2 { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; padding-left: 14px; margin-bottom: 4px; }
-      .rvp-sprint-meta { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; font-weight: 600; color: var(--text-slate-500); letter-spacing: -0.005em; }
-      .rvp-sprint-meta b { color: var(--text-slate-900); font-weight: 800; }
-      .rvp-sprint-row3 { display: flex; align-items: center; gap: 10px; padding-left: 14px; }
-      .rvp-sprint-progress-bar { flex: 1 1 auto; position: relative; height: 5px; background: var(--bg-slate-100); border-radius: 999px; overflow: hidden; min-width: 60px; }
-      .rvp-sprint-progress-fill { position: absolute; inset: 0; border-radius: 999px; transition: width 0.4s ease; }
+      .rvp-sprint-header-v2 { display: flex; flex-direction: column; gap: 6px; padding: 10px 24px; background: var(--bg-slate-50, #f8fafc); border-bottom: 1px solid var(--border-slate-200, #e2e8f0); margin-bottom: 0px; flex-shrink: 0; }
+      .rvp-sprint-row1 { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+      .rvp-sprint-title-block { display: flex; align-items: center; gap: 8px; min-width: 0; flex: 1 1 auto; }
+      .rvp-sprint-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+      .rvp-sprint-title { font-size: 13.5px !important; font-weight: 800 !important; color: var(--text-slate-900, #0f172a) !important; letter-spacing: -0.01em; margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+      .rvp-sprint-tags { display: inline-flex; align-items: center; gap: 6px; flex-shrink: 0; }
+      .rvp-sprint-tag { display: inline-flex; align-items: center; height: 18px; padding: 0 6px; font-size: 9px; font-weight: 800; letter-spacing: 0.04em; border-radius: 4px; border: 1px solid transparent; text-transform: uppercase; line-height: 1; }
+      .rvp-sprint-tag-active { background: transparent; color: #10b981; border-color: rgba(16, 185, 129, 0.32); }
+      .rvp-sprint-row2 { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; padding-left: 15px; }
+      .rvp-sprint-meta { display: inline-flex; align-items: center; gap: 6px; font-size: 11.5px; font-weight: 600; color: var(--text-slate-500, #64748b); letter-spacing: -0.005em; }
+      .rvp-sprint-meta b { color: var(--text-slate-900, #0f172a); font-weight: 800; }
+      .rvp-sprint-row3 { display: flex; align-items: center; gap: 12px; padding-left: 15px; }
+      .rvp-sprint-progress-bar { flex: 1 1 auto; position: relative; height: 6px; background: var(--bg-slate-100, #f1f5f9); border-radius: 999px; overflow: hidden; min-width: 60px; }
+      .rvp-sprint-progress-fill { position: absolute; inset: 0; background: linear-gradient(90deg, #3b82f6, #2563eb); border-radius: 999px; transition: width 0.4s ease; }
+      .rvp-sprint-progress-pct { flex-shrink: 0; font-size: 12px; font-weight: 800; color: var(--text-slate-900, #0f172a); font-variant-numeric: tabular-nums; min-width: 36px; }
       .rvp-filters { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; padding: 0 20px; }
       .rvp-filter-count { font-size: 12px; color: var(--text-slate-500); margin-left: auto; }
       .rvp > .ant-tabs { display: flex; flex-direction: column; flex: 1; min-height: 0; overflow: hidden; }

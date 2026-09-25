@@ -447,7 +447,12 @@ function TemplatesContent() {
 
           <div className="pp-divider" />
 
-          <StatCards cards={cards} />
+          <StatCards
+            title="Templates Overview"
+            statusText="ACTIVE"
+            progressPct={(activeCount + archivedCount) > 0 ? Math.round((activeCount / (activeCount + archivedCount)) * 100) : 0}
+            cards={cards}
+          />
 
           <div className="pp-body">
             {view === 'list' ? (

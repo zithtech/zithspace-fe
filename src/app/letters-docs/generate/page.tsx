@@ -160,13 +160,15 @@ function LetterGenerationContent() {
   };
 
   const statCells = useMemo(() => {
+    const totalCount = stats.total || total;
+    const activeCount = stats.activeCount !== undefined ? stats.activeCount : templates.filter(t => t.status === 'active' || t.status === 'ACTIVE').length;
     return [
-      { label: 'Total Templates', value: stats.total || total, icon: <SnippetsOutlined />, color: PALETTE.blue, tint: TINT.blue },
-      { label: 'Active Templates', value: stats.activeCount || total, icon: <CheckCircleOutlined />, color: PALETTE.green, tint: TINT.green },
+      { label: 'Total Templates', value: totalCount, icon: <SnippetsOutlined />, color: PALETTE.blue, tint: TINT.blue },
+      { label: 'Active Templates', value: activeCount, icon: <CheckCircleOutlined />, color: PALETTE.green, tint: TINT.green },
       { label: 'Global Templates', value: stats.globalCount || 0, icon: <StarOutlined />, color: PALETTE.violet, tint: TINT.violet },
       { label: 'New This Week', value: stats.recentCount || 0, icon: <FileTextOutlined />, color: PALETTE.amber, tint: TINT.amber },
     ];
-  }, [stats, total]);
+  }, [stats, total, templates]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -1052,7 +1054,16 @@ function LetterGenerationContent() {
         ) : (
           /* Step 1: Template Selector */
           <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-            <StatCards title="Document Generator Overview" statusText="ACTIVE" cells={statCells} />
+            <StatCards
+              title="Document Generator Overview"
+              statusText="ACTIVE"
+              progressPct={(() => {
+                const totalCount = stats.total || total;
+                const activeCount = stats.activeCount !== undefined ? stats.activeCount : templates.filter(t => t.status === 'active' || t.status === 'ACTIVE').length;
+                return totalCount > 0 ? Math.round((activeCount / totalCount) * 100) : 0;
+              })()}
+              cells={statCells}
+            />
 
             <div className="doc-table-wrap">
               {loading ? (

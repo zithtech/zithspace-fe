@@ -422,7 +422,7 @@ export default function PaySchedulePanel() {
 
       <style jsx global>{`
         .pvg { display: flex; flex-direction: column; flex: 1; min-height: 0; }
-        .pvg-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding-bottom: 14px; margin-bottom: 14px; border-bottom: 1px solid var(--border-slate-200); flex-wrap: wrap; }
+        .pvg-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding-bottom: 14px; margin-bottom: 0; border-bottom: 1px solid var(--border-slate-200); flex-wrap: wrap; }
         .pvg-header-about { display: flex; align-items: center; gap: 12px; flex: 1 1 auto; min-width: 250px; }
         .pvg-header-icon { width: 38px; height: 38px; border-radius: 10px; flex-shrink: 0; background: ${TINT.amber}; color: ${PALETTE.amber}; display: inline-flex; align-items: center; justify-content: center; font-size: 18px; }
         .pvg-header-title { font-size: 17px; font-weight: 800; color: var(--text-slate-900); letter-spacing: -0.02em; line-height: 1.15; }
@@ -435,7 +435,7 @@ export default function PaySchedulePanel() {
         .pvg-ghost-btn { width: 34px; height: 34px; border-radius: 8px; border: 1px solid var(--border-slate-200); background: var(--bg-slate-50); color: var(--text-slate-700); cursor: pointer; font-size: 14px; display: inline-flex; align-items: center; justify-content: center; }
         .pvg-add-btn { height: 34px !important; border-radius: 8px !important; font-weight: 600 !important; }
 
-        .pvg-toolbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+        .pvg-toolbar { display: flex; align-items: center; justify-content: space-between; margin-top: 14px; margin-bottom: 14px; padding-left: 20px; padding-right: 20px; }
         .pvg-count { font-size: 12px; color: var(--text-slate-500); }
         .pvg-tabs { display: inline-flex; gap: 4px; padding: 4px; background: var(--bg-slate-50); border: 1px solid var(--border-slate-200); border-radius: 12px; }
         .pvg-tab { display: inline-flex; align-items: center; gap: 8px; height: 36px; padding: 0 16px; border: none; background: transparent; border-radius: 9px; font-size: 13px; font-weight: 600; line-height: 1; white-space: nowrap; color: var(--text-slate-500); cursor: pointer; transition: color .15s ease, background .15s ease, box-shadow .15s ease; }

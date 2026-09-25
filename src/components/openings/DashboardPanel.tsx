@@ -16,9 +16,11 @@ import {
   UserCheck,
   Users,
   XCircle,
+  Layers,
 } from 'lucide-react';
 
 import { SearchableDropdown } from '@/components/common/SearchableDropdown';
+import { FilterBar, FilterToggleButton, TicketFilterPill } from '@/components/common/FilterBar';
 import OpeningV2Service, {
   type DashboardOverview,
   type OpeningMetrics,
@@ -56,6 +58,7 @@ export default function DashboardPanel() {
   const [status, setStatus] = useState<OpeningStatus[]>([]);
   const [departmentId, setDepartmentId] = useState<string | null>(null);
   const [includeClosed, setIncludeClosed] = useState(false);
+  const [isFilterRowOpen, setIsFilterRowOpen] = useState(false);
   const [tablePage, setTablePage] = useState(1);
   const [tablePageSize, setTablePageSize] = useState(15);
 
@@ -150,6 +153,8 @@ export default function DashboardPanel() {
     },
   ];
 
+  const activeFilterCount = status.length + (departmentId ? 1 : 0) + (includeClosed ? 1 : 0);
+
   return (
     <div className="omp">
       <OpeningStyles />
@@ -159,12 +164,18 @@ export default function DashboardPanel() {
         title="Hiring Dashboard"
         subtitle="Live funnel across every opening"
       >
+        <FilterToggleButton
+          isOpen={isFilterRowOpen}
+          onToggle={() => setIsFilterRowOpen(!isFilterRowOpen)}
+          activeCount={activeFilterCount}
+        />
         <Button icon={<RotateCw size={14} />} loading={loading} onClick={load} />
       </PanelHeader>
 
       <StatCards
         title="Hiring Overview"
         statusText="ACTIVE"
+        progressPct={(s?.applications || 0) > 0 ? Math.round(((s?.joined || 0) / s!.applications) * 100) : 0}
         cells={[
           { label: 'Active Openings', value: s?.openings ?? 0, icon: <Briefcase size={16} />, color: PALETTE.blue, tint: TINT.blue },
           { label: 'Open Positions', value: s?.openPositions ?? 0, icon: <Users size={16} />, color: PALETTE.ash, tint: TINT.ash },
@@ -177,37 +188,54 @@ export default function DashboardPanel() {
         ]}
       />
 
-      <div style={{ padding: '0 20px 20px 20px' }}>
-        <div className="omp-filters" style={{ marginTop: 14, marginBottom: 16 }}>
-          <SearchableDropdown
-            mode="multiple"
-            value={status}
-            onChange={(v: any) => setStatus(v ?? [])}
-            options={STATUS_ORDER.map((x) => ({ value: x, label: STATUS_META[x].label }))}
-            placeholder="Status"
-            itemNoun="statuses"
-            hideAvatar
-            width={260}
-            style={{ minWidth: 150 }}
+      {isFilterRowOpen && (
+        <FilterBar
+          activeCount={activeFilterCount}
+          onReset={() => {
+            setStatus([]);
+            setDepartmentId(null);
+            setIncludeClosed(false);
+          }}
+          onClose={() => setIsFilterRowOpen(false)}
+        >
+          <TicketFilterPill
+            label="Status"
+            icon={<CheckCircle2 size={14} />}
+            values={status}
+            multiple
+            options={STATUS_ORDER.map((x) => ({
+              value: x,
+              label: STATUS_META[x].label,
+              dotColor: STATUS_META[x].tone === 'blue' ? '#3b82f6' : STATUS_META[x].tone === 'green' ? '#10b981' : STATUS_META[x].tone === 'red' ? '#ef4444' : '#64748b',
+            }))}
+            onChange={(v) => setStatus(Array.isArray(v) ? (v as OpeningStatus[]) : v ? [v as OpeningStatus] : [])}
           />
-          <SearchableDropdown
-            value={departmentId}
-            onChange={(v: any) => setDepartmentId(v ?? null)}
-            options={reference.departments}
-            loading={reference.loading}
-            placeholder="Department"
-            itemNoun="departments"
-            width={260}
-            style={{ minWidth: 160 }}
+
+          <TicketFilterPill
+            label="Department"
+            icon={<Layers size={14} />}
+            value={departmentId || undefined}
+            options={reference.departments.map((d) => ({
+              value: String(d.value),
+              label: d.label,
+            }))}
+            onChange={(v) => setDepartmentId(Array.isArray(v) ? v[0] : (v || null))}
           />
-          <Button
-            size="small"
-            type={includeClosed ? 'primary' : 'default'}
-            onClick={() => setIncludeClosed((v) => !v)}
-          >
-            {includeClosed ? 'Including closed' : 'Active only'}
-          </Button>
-        </div>
+
+          <TicketFilterPill
+            label="Scope"
+            icon={<Briefcase size={14} />}
+            value={includeClosed ? 'all' : 'active'}
+            options={[
+              { value: 'active', label: 'Active only' },
+              { value: 'all', label: 'Including closed' },
+            ]}
+            onChange={(v) => setIncludeClosed(v === 'all')}
+          />
+        </FilterBar>
+      )}
+
+      <div style={{ padding: '16px 20px 20px 20px' }}>
 
       {loading && !data ? (
         <Skeleton active paragraph={{ rows: 8 }} />

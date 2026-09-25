@@ -2343,10 +2343,11 @@ export default function MembersPage() {
             <StatCards
               title="Members Overview"
               statusText="ACTIVE"
+              progressPct={viewCounts.all > 0 ? Math.round((viewCounts.active / viewCounts.all) * 100) : 0}
               cells={[
                 {
                   label: "Total Members",
-                  value: memberStats.total,
+                  value: viewCounts.all,
                   icon: <TeamOutlined />,
                   color: "#3b82f6",
                   tint: "rgba(59,130,246,0.10)",

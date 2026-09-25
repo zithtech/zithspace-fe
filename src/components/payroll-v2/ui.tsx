@@ -46,40 +46,88 @@ export function StatCards({
   progressPct,
   title = "Payroll Status",
   statusText = "ACTIVE",
-  statusColor = "#34d399",
+  statusColor = "#10b981",
   statusBorder = "rgba(16, 185, 129, 0.32)",
 }: {
   cells: { label: React.ReactNode; value: React.ReactNode; icon: React.ReactNode; color: string; tint: string }[];
-  progressPct?: string;
+  progressPct?: string | number;
   title?: string;
   statusText?: string;
   statusColor?: string;
   statusBorder?: string;
 }) {
+  const { pctNumber, pctString } = React.useMemo(() => {
+    if (progressPct !== undefined && progressPct !== null && progressPct !== "") {
+      const parsed = typeof progressPct === "number" ? progressPct : parseFloat(String(progressPct));
+      if (!isNaN(parsed)) {
+        const clamped = Math.min(100, Math.max(0, parsed));
+        return { pctNumber: clamped, pctString: `${clamped}%` };
+      }
+    }
+    if (cells && cells.length > 0) {
+      let total = 0;
+      let completed = 0;
+      let hasTotal = false;
+      for (const item of cells) {
+        const lbl = String(item.label || "").toLowerCase();
+        const rawVal = item.value;
+        const numVal = typeof rawVal === "number" ? rawVal : parseFloat(String(rawVal).replace(/[^0-9.-]/g, ""));
+        if (!isNaN(numVal)) {
+          if (lbl.includes("total") || lbl.includes("all") || lbl.includes("count")) {
+            total = numVal;
+            hasTotal = true;
+          } else if (lbl.includes("paid") || lbl.includes("completed") || lbl.includes("processed")) {
+            completed += numVal;
+          }
+        }
+      }
+      if (hasTotal && total > 0) {
+        const computed = Math.min(100, Math.max(0, Math.round((completed / total) * 100)));
+        return { pctNumber: computed, pctString: `${computed}%` };
+      }
+    }
+    return { pctNumber: 0, pctString: "0%" };
+  }, [progressPct, cells]);
+
   return (
     <div className="pvp-sprint-header-v2">
       <div className="pvp-sprint-row1">
         <div className="pvp-sprint-title-block">
-          <div className="pvp-sprint-dot" style={{ background: '#3B82F6' }} />
+          <div
+            className="pvp-sprint-dot"
+            style={{ background: "#3b82f6", boxShadow: "0 0 0 3px rgba(59, 130, 246, 0.2)" }}
+          />
           <h2 className="pvp-sprint-title">{title}</h2>
           <div className="pvp-sprint-tags">
-            <Tag className="pvp-sprint-tag pvp-sprint-tag-active" bordered={false} style={{ color: statusColor, borderColor: statusBorder }}>{statusText}</Tag>
+            <span
+              className="pvp-sprint-tag pvp-sprint-tag-active"
+              style={{ color: statusColor, borderColor: statusBorder }}
+            >
+              {statusText}
+            </span>
           </div>
         </div>
       </div>
       <div className="pvp-sprint-row2">
         {cells.map((c, i) => (
           <div key={i} className="pvp-sprint-meta">
-            <span style={{ color: c.color }}>{c.icon}</span>
-            <span>{c.label}: <b>{c.value}</b></span>
+            <span style={{ color: c.color, display: "inline-flex", alignItems: "center" }}>
+              {c.icon}
+            </span>
+            <span>
+              <b>{c.value}</b> {c.label}
+            </span>
           </div>
         ))}
       </div>
       <div className="pvp-sprint-row3">
         <div className="pvp-sprint-progress-bar">
-          <div className="pvp-sprint-progress-fill" style={{ width: progressPct || '100%', background: '#3B82F6' }} />
+          <div
+            className="pvp-sprint-progress-fill"
+            style={{ width: `${pctNumber}%` }}
+          />
         </div>
-        <div className="pvp-sprint-progress-pct">{progressPct || '100%'}</div>
+        <div className="pvp-sprint-progress-pct">{pctString}</div>
       </div>
     </div>
   );
@@ -90,21 +138,40 @@ export function PvStyles() {
   return (
     <style jsx global>{`
       /* Sprint Header (Stats) */
-      .pvp-sprint-header-v2 { display: flex; flex-direction: column; gap: 2px; padding: 8px 20px 10px; background: var(--bg-pure-white); border-bottom: 1px solid var(--border-slate-200); margin-bottom: 0px; flex-shrink: 0; }
-      .pvp-sprint-row1 { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; margin-bottom: 2px; }
-      .pvp-sprint-title-block { display: flex; align-items: center; gap: 6px; min-width: 0; flex: 1 1 auto; }
-      .pvp-sprint-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
-      .pvp-sprint-title { font-size: 13px !important; font-weight: 800 !important; color: var(--text-slate-900) !important; letter-spacing: -0.01em; margin: 0; }
-      .pvp-sprint-tags { display: inline-flex; align-items: center; gap: 4px; flex-shrink: 0; }
-      .pvp-sprint-tag { display: inline-flex; align-items: center; height: 16px; padding: 0 4px; font-size: 9px; font-weight: 800; letter-spacing: 0.04em; border-radius: 4px; border: 1px solid transparent; text-transform: uppercase; line-height: 1; }
-      .pvp-sprint-tag-active { background: transparent; color: #34d399; border-color: rgba(16, 185, 129, 0.32); }
-      .pvp-sprint-row2 { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; padding-left: 14px; margin-bottom: 4px; }
-      .pvp-sprint-meta { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; font-weight: 600; color: var(--text-slate-500); letter-spacing: -0.005em; }
-      .pvp-sprint-meta b { color: var(--text-slate-900); font-weight: 800; }
-      .pvp-sprint-row3 { display: flex; align-items: center; gap: 10px; padding-left: 14px; }
-      .pvp-sprint-progress-bar { flex: 1 1 auto; position: relative; height: 5px; background: var(--bg-slate-100); border-radius: 999px; overflow: hidden; min-width: 60px; }
-      .pvp-sprint-progress-fill { position: absolute; inset: 0; border-radius: 999px; transition: width 0.4s ease; }
-      .pvp-sprint-progress-pct { flex-shrink: 0; font-size: 11px; font-weight: 800; color: var(--text-slate-900); font-variant-numeric: tabular-nums; min-width: 32px; }
+      .pvp-sprint-header-v2 {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        padding: 10px 24px;
+        background: var(--bg-slate-50, #f8fafc) !important;
+        border-bottom: 1px solid var(--border-slate-200, #e2e8f0);
+        margin-top: 0 !important;
+        margin-bottom: 0 !important;
+        flex-shrink: 0;
+      }
+      .pvp-sprint-row1 { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+      .pvp-sprint-title-block { display: flex; align-items: center; gap: 8px; min-width: 0; flex: 1 1 auto; }
+      .pvp-sprint-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; background: #3b82f6; box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2); }
+      .pvp-sprint-title { font-size: 13.5px !important; font-weight: 800 !important; color: var(--text-slate-900, #0f172a) !important; letter-spacing: -0.01em; margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+      [data-theme='dark'] .pvp-sprint-title { color: #f1f5f9 !important; }
+      .pvp-sprint-tags { display: inline-flex; align-items: center; gap: 6px; flex-shrink: 0; }
+      .pvp-sprint-tag { display: inline-flex; align-items: center; height: 18px; padding: 0 6px; font-size: 9px; font-weight: 800; letter-spacing: 0.04em; border-radius: 4px; border: 1px solid transparent; text-transform: uppercase; line-height: 1; }
+      .pvp-sprint-tag-active { background: transparent; color: #10b981; border-color: rgba(16, 185, 129, 0.32); }
+      .pvp-sprint-tag-neutral { background: transparent; color: var(--text-slate-500); border-color: var(--border-slate-200); }
+      .pvp-sprint-tag-delayed { background: transparent; color: #ef4444; border-color: rgba(239, 68, 68, 0.32); }
+      [data-theme='dark'] .pvp-sprint-tag-neutral { border-color: rgba(255, 255, 255, 0.12); }
+      [data-theme='dark'] .pvp-sprint-tag-delayed { color: #fca5a5; }
+      .pvp-sprint-row2 { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; padding-left: 15px; }
+      .pvp-sprint-meta { display: inline-flex; align-items: center; gap: 6px; font-size: 11.5px; font-weight: 600; color: var(--text-slate-500, #64748b); letter-spacing: -0.005em; }
+      .pvp-sprint-meta b { color: var(--text-slate-900, #0f172a); font-weight: 800; }
+      [data-theme='dark'] .pvp-sprint-meta { color: #94a3b8 !important; }
+      [data-theme='dark'] .pvp-sprint-meta b { color: #f1f5f9 !important; }
+      .pvp-sprint-row3 { display: flex; align-items: center; gap: 12px; padding-left: 15px; }
+      .pvp-sprint-progress-bar { flex: 1 1 auto; position: relative; height: 6px; background: var(--bg-slate-100, #f1f5f9); border-radius: 999px; overflow: hidden; min-width: 60px; }
+      [data-theme='dark'] .pvp-sprint-progress-bar { background: #1f2937 !important; }
+      .pvp-sprint-progress-fill { position: absolute; inset: 0; background: linear-gradient(90deg, #3b82f6, #2563eb); border-radius: 999px; transition: width 0.4s ease; }
+      .pvp-sprint-progress-pct { flex-shrink: 0; font-size: 12px; font-weight: 800; color: var(--text-slate-900, #0f172a); font-variant-numeric: tabular-nums; min-width: 36px; }
+      [data-theme='dark'] .pvp-sprint-progress-pct { color: #f1f5f9 !important; }
 
       /* Payroll Global Table Wrap */
       .pv-table-wrap {

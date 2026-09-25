@@ -602,13 +602,15 @@ export const useMarkBugRecurring = () => {
 // ==================== Config: Severity options ====================
 export const severityKeys = {
   all: ["bug-list", "config", "severities"] as const,
+  list: (params?: { page?: number; pageSize?: number; search?: string }) =>
+    params ? ([...severityKeys.all, params] as const) : severityKeys.all,
 };
 
-export const useBugSeverityOptions = () =>
+export const useBugSeverityOptions = (params?: { page?: number; pageSize?: number; search?: string }) =>
   useQuery({
-    queryKey: severityKeys.all,
-    queryFn: () => BugListService.listSeverityOptions(),
-    staleTime: 5 * 60 * 1000,
+    queryKey: severityKeys.list(params),
+    queryFn: () => BugListService.listSeverityOptions(params),
+    staleTime: params ? 0 : 5 * 60 * 1000,
   });
 
 export const useCreateBugSeverity = () => {
@@ -655,13 +657,15 @@ export const useDeleteBugSeverity = () => {
 // ==================== Config: Type options ====================
 export const bugTypeKeys = {
   all: ["bug-list", "config", "types"] as const,
+  list: (params?: { page?: number; pageSize?: number; search?: string }) =>
+    params ? ([...bugTypeKeys.all, params] as const) : bugTypeKeys.all,
 };
 
-export const useBugTypeOptions = () =>
+export const useBugTypeOptions = (params?: { page?: number; pageSize?: number; search?: string }) =>
   useQuery({
-    queryKey: bugTypeKeys.all,
-    queryFn: () => BugListService.listTypeOptions(),
-    staleTime: 5 * 60 * 1000,
+    queryKey: bugTypeKeys.list(params),
+    queryFn: () => BugListService.listTypeOptions(params),
+    staleTime: params ? 0 : 5 * 60 * 1000,
   });
 
 export const useCreateBugType = () => {
@@ -708,13 +712,15 @@ export const useDeleteBugType = () => {
 // ==================== Config: Bug List Type options ====================
 export const bugListTypeKeys = {
   all: ["bug-list", "config", "bug-types"] as const,
+  list: (params?: { page?: number; pageSize?: number; search?: string }) =>
+    params ? ([...bugListTypeKeys.all, params] as const) : bugListTypeKeys.all,
 };
 
-export const useBugListTypeOptions = () =>
+export const useBugListTypeOptions = (params?: { page?: number; pageSize?: number; search?: string }) =>
   useQuery({
-    queryKey: bugListTypeKeys.all,
-    queryFn: () => BugListService.listBugListTypeOptions(),
-    staleTime: 5 * 60 * 1000,
+    queryKey: bugListTypeKeys.list(params),
+    queryFn: () => BugListService.listBugListTypeOptions(params),
+    staleTime: params ? 0 : 5 * 60 * 1000,
   });
 
 export const useCreateBugListType = () => {
@@ -762,13 +768,15 @@ export const useDeleteBugListType = () => {
 // Shared by the bug list and the QA workspace (test cases, runs).
 export const priorityKeys = {
   all: ["bug-list", "config", "priorities"] as const,
+  list: (params?: { page?: number; pageSize?: number; search?: string }) =>
+    params ? ([...priorityKeys.all, params] as const) : priorityKeys.all,
 };
 
-export const useBugPriorityOptions = () =>
+export const useBugPriorityOptions = (params?: { page?: number; pageSize?: number; search?: string }) =>
   useQuery({
-    queryKey: priorityKeys.all,
-    queryFn: () => BugListService.listPriorityOptions(),
-    staleTime: 5 * 60 * 1000,
+    queryKey: priorityKeys.list(params),
+    queryFn: () => BugListService.listPriorityOptions(params),
+    staleTime: params ? 0 : 5 * 60 * 1000,
   });
 
 export const useCreateBugPriority = () => {

@@ -38,8 +38,8 @@ import {
   SafetyCertificateOutlined,
 } from '@ant-design/icons';
 import { usePermission } from '@/hooks/usePermission';
-import { SearchableDropdown } from '@/components/common/SearchableDropdown';
 import ConfirmDialog from '@/components/common/ConfirmDialog';
+import SearchableDropdown from '@/components/common/SearchableDropdown';
 import { StatCards } from '@/components/payroll-v2/ui';
 import PayrollV2Service, {
   CreateComponentInput,
@@ -49,6 +49,7 @@ import PayrollV2Service, {
   ComponentPercentageOf,
 } from '@/services/payrollV2Service';
 import { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
+import { FilterBar, FilterToggleButton, TicketFilterPill, FilterPillOption } from '@/components/common/FilterBar';
 
 const { TextArea } = Input;
 
@@ -232,6 +233,7 @@ export default function SalaryComponentPanel() {
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<CategoryFilter>('all');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('active');
+  const [isFilterRowOpen, setIsFilterRowOpen] = useState(false);
 
   // pagination
   const [total, setTotal] = useState(0);
@@ -486,6 +488,11 @@ export default function SalaryComponentPanel() {
             <SearchOutlined className="pvc-search-icon" />
             <input className="pvc-search" placeholder="Search name or code…" value={search} onChange={(e) => setSearch(e.target.value)} />
           </div>
+          <FilterToggleButton
+            isOpen={isFilterRowOpen}
+            onToggle={() => setIsFilterRowOpen((prev) => !prev)}
+            activeCount={(categoryFilter !== 'all' ? 1 : 0) + (statusFilter !== 'all' ? 1 : 0)}
+          />
           <Tooltip title="Refresh"><button type="button" className="pvc-ghost-btn" onClick={() => load()}><ReloadOutlined spin={loading} /></button></Tooltip>
           {canCreatePayrollComponents && (
             <Button type="primary" icon={<PlusOutlined />} onClick={openCreate} className="pvc-add-btn">New Component</Button>
@@ -497,43 +504,39 @@ export default function SalaryComponentPanel() {
       <StatCards cells={statCells.map(s => ({ label: s.title, value: s.value, icon: s.icon, color: s.color, tint: s.tint }))} />
 
       {/* ── FILTERS ────────────────────────────────────────────────────────── */}
-      <div className="pvc-filters">
-        <span className="pvc-filter-label"><FilterOutlined /> Filter</span>
-        <SearchableDropdown
-          className="pvc-filter-dd"
-          placeholder="Category"
-          searchPlaceholder="Search categories"
-          itemNoun="categories"
-          value={categoryFilter === 'all' ? undefined : categoryFilter}
-          onChange={(v) => setCategoryFilter((v as CategoryFilter) ?? 'all')}
-          options={[
-            { value: 'earning', label: 'Earning' },
-            { value: 'deduction', label: 'Deduction' },
-            { value: 'reimbursement', label: 'Reimbursement' },
-            { value: 'benefit', label: 'Benefit' },
-          ]}
-          style={{ width: 170 }}
-          width={210}
-        />
-        <SearchableDropdown
-          className="pvc-filter-dd"
-          placeholder="Status"
-          searchPlaceholder="Search statuses"
-          itemNoun="statuses"
-          value={statusFilter === 'all' ? undefined : statusFilter}
-          onChange={(v) => setStatusFilter((v as StatusFilter) ?? 'all')}
-          options={[
-            { value: 'active', label: 'Active' },
-            { value: 'inactive', label: 'Inactive' },
-          ]}
-          style={{ width: 160 }}
-          width={210}
-        />
-        <span className="pvc-filter-count">{total} components</span>
-        {hasActiveFilters && (
-          <button type="button" className="pvc-clear" onClick={clearFilters}><CloseCircleOutlined /> Clear</button>
-        )}
-      </div>
+      {isFilterRowOpen && (
+        <FilterBar
+          activeCount={(categoryFilter !== 'all' ? 1 : 0) + (statusFilter !== 'all' ? 1 : 0)}
+          onReset={() => {
+            setCategoryFilter('all');
+            setStatusFilter('all');
+          }}
+          onClose={() => setIsFilterRowOpen(false)}
+        >
+          <TicketFilterPill
+            label="Category"
+            icon={<PieChartOutlined />}
+            value={categoryFilter === 'all' ? undefined : categoryFilter}
+            options={[
+              { value: 'earning', label: 'Earning', dotColor: '#10b981' },
+              { value: 'deduction', label: 'Deduction', dotColor: '#ef4444' },
+              { value: 'reimbursement', label: 'Reimbursement', dotColor: '#3b82f6' },
+              { value: 'benefit', label: 'Benefit', dotColor: '#8b5cf6' },
+            ]}
+            onChange={(v) => setCategoryFilter((v as CategoryFilter) || 'all')}
+          />
+          <TicketFilterPill
+            label="Status"
+            icon={<CheckCircleOutlined />}
+            value={statusFilter === 'all' ? undefined : statusFilter}
+            options={[
+              { value: 'active', label: 'Active', dotColor: '#10b981' },
+              { value: 'inactive', label: 'Inactive', dotColor: '#ef4444' },
+            ]}
+            onChange={(v) => setStatusFilter((v as StatusFilter) || 'all')}
+          />
+        </FilterBar>
+      )}
 
       {/* ── TABLE ──────────────────────────────────────────────────────────── */}
       <div className="pv-table-wrap">
@@ -748,7 +751,7 @@ export default function SalaryComponentPanel() {
 
       <style jsx global>{`
         .pvc { display: flex; flex-direction: column; flex: 1; min-height: 0; }
-        .pvc-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding-bottom: 14px; margin-bottom: 14px; border-bottom: 1px solid var(--border-slate-200); flex-wrap: wrap; }
+        .pvc-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding-bottom: 14px; margin-bottom: 0; border-bottom: 1px solid var(--border-slate-200); flex-wrap: wrap; }
         .pvc-header-about { display: flex; align-items: center; gap: 12px; flex: 1 1 auto; min-width: 250px; }
         .pvc-header-icon { width: 38px; height: 38px; border-radius: 10px; flex-shrink: 0; background: ${TINT.blue}; color: ${PALETTE.blue}; display: inline-flex; align-items: center; justify-content: center; font-size: 18px; }
         .pvc-header-title { font-size: 17px; font-weight: 800; color: var(--text-slate-900); letter-spacing: -0.02em; line-height: 1.15; }

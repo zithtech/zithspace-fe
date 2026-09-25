@@ -44,6 +44,7 @@ import {
 import { usePermission } from '@/hooks/usePermission';
 import { SearchableDropdown } from '@/components/common/SearchableDropdown';
 import ConfirmDialog from '@/components/common/ConfirmDialog';
+import { FilterBar, FilterToggleButton, TicketFilterPill } from '@/components/common/FilterBar';
 import LeaveV2Service, {
   LeavePolicyListItem,
   LeavePolicyDetail,
@@ -153,6 +154,7 @@ export default function LeavePolicyPanel() {
   // filters
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
+  const [isFilterRowOpen, setIsFilterRowOpen] = useState(false);
 
   // pagination
   const [tablePage, setTablePage] = useState(1);
@@ -556,6 +558,11 @@ export default function LeavePolicyPanel() {
             <SearchOutlined className="lvp-search-icon" />
             <input className="lvp-search" placeholder="Search name or code…" value={search} onChange={(e) => setSearch(e.target.value)} />
           </div>
+          <FilterToggleButton
+            isOpen={isFilterRowOpen}
+            onToggle={() => setIsFilterRowOpen((prev) => !prev)}
+            activeCount={statusFilter !== 'all' ? 1 : 0}
+          />
           <Tooltip title="Refresh"><button type="button" className="lvp-ghost-btn" onClick={() => load()}><ReloadOutlined spin={loading} /></button></Tooltip>
           {canCreateLeavePolicy && (
             <Button type="primary" icon={<PlusOutlined />} onClick={openCreate} className="lvp-add-btn">New Policy</Button>
@@ -564,9 +571,10 @@ export default function LeavePolicyPanel() {
       </div>
 
       {/* 2) STAT CARDS */}
-            <StatCards
+      <StatCards
         title="Leave Overview"
         statusText="LIVE"
+        progressPct={stats.total > 0 ? Math.round((stats.active / stats.total) * 100) : 0}
         cells={statCells.map(s => ({
           label: s.title,
           value: <>{s.value} <span style={{ fontSize: 11, fontWeight: 500, color: 'var(--text-slate-400)' }}>{s.period}</span></>,
@@ -577,24 +585,24 @@ export default function LeavePolicyPanel() {
       />
 
       {/* 3) FILTERS */}
-      <div className="lvp-filters">
-        <span className="lvp-filter-label"><FilterOutlined /> Filter</span>
-        <SearchableDropdown
-          className="lvp-filter-dd"
-          placeholder="Status"
-          searchPlaceholder="Search statuses"
-          itemNoun="statuses"
-          value={statusFilter === 'all' ? undefined : statusFilter}
-          onChange={(v) => setStatusFilter((v as StatusFilter) ?? 'all')}
-          options={[{ value: 'active', label: 'Active' }, { value: 'inactive', label: 'Inactive' }]}
-          style={{ width: 160 }}
-          width={210}
-        />
-        <span className="lvp-filter-count">{total} of {stats.total}</span>
-        {hasActiveFilters && (
-          <button type="button" className="lvp-clear" onClick={clearFilters}><CloseCircleOutlined /> Clear</button>
-        )}
-      </div>
+      {isFilterRowOpen && (
+        <FilterBar
+          activeCount={statusFilter !== 'all' ? 1 : 0}
+          onReset={clearFilters}
+          onClose={() => setIsFilterRowOpen(false)}
+        >
+          <TicketFilterPill
+            label="Status"
+            icon={<CheckCircleOutlined />}
+            value={statusFilter === 'all' ? undefined : statusFilter}
+            options={[
+              { value: 'active', label: 'Active', dotColor: '#10b981' },
+              { value: 'inactive', label: 'Inactive', dotColor: '#ef4444' },
+            ]}
+            onChange={(v) => setStatusFilter((v as StatusFilter) || 'all')}
+          />
+        </FilterBar>
+      )}
 
       {/* 4) TABLE */}
       <div className="lv-table-wrap">

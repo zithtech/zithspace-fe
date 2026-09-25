@@ -35,10 +35,17 @@ export default function OpeningsLayout({ children }: { children: React.ReactNode
       return;
     }
 
-    const currentAllowed = visibleItems.some((item) =>
-      pathname === item.href || pathname.startsWith(item.href + '/')
-    );
-    if (!currentAllowed) {
+    const isOpeningDetail =
+      pathname.startsWith('/openings/') &&
+      !['/openings/list', '/openings/dashboard', '/openings/approvals', '/openings/closing', '/openings/archive', '/openings/settings'].includes(pathname);
+    const hasListAccess = visibleItems.some((item) => item.key === 'list');
+
+    const currentAllowed =
+      pathname === '/openings' ||
+      (isOpeningDetail && hasListAccess) ||
+      visibleItems.some((item) => pathname === item.href || pathname.startsWith(item.href + '/'));
+
+    if (!currentAllowed && pathname !== '/openings') {
       router.replace(visibleItems[0].href);
     }
   }, [isLoading, pathname, perms.canReadOpening, perms.canManageOpenings, visibleItems, router]);
@@ -74,7 +81,12 @@ export default function OpeningsLayout({ children }: { children: React.ReactNode
               <div className="om-side-section-label">Pages</div>
               <div className="om-side-list">
                 {visibleItems.map((item) => {
-                  const active = pathname === item.href || pathname.startsWith(item.href + '/');
+                  const active =
+                    pathname === item.href ||
+                    pathname.startsWith(item.href + '/') ||
+                    (item.key === 'list' &&
+                      pathname.startsWith('/openings/') &&
+                      !visibleItems.some((other) => other.key !== 'list' && (pathname === other.href || pathname.startsWith(other.href + '/'))));
                   return (
                     <Link
                       key={item.key}

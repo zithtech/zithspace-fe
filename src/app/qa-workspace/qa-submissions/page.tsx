@@ -54,7 +54,8 @@ import { usePermission } from "@/hooks/usePermission";
 import { useActivitySource } from "@/hooks/useActivitySource";
 import { api as axios } from "@/lib/axios";
 import ConfirmDialog from "@/components/common/ConfirmDialog";
-import TicketFilterPill from "@/components/projects/TicketFilterPill";
+import StatCards from "@/components/common/StatCards";
+import { FilterBar, FilterToggleButton, TicketFilterPill } from "@/components/common/FilterBar";
 import QaSubmissionsFilters from "./QaSubmissionsFilters";
 import ZukvoLoader, { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
 import { MembersService } from "@/services/membersService";
@@ -679,7 +680,7 @@ function QaSubmissionsContent() {
         </aside>
 
         <main className="dh-main">
-          <div className="dh-main-topbar sc-topbar">
+          <div className="dh-main-topbar sc-topbar" style={{ padding: "8px 16px", minHeight: 52 }}>
             <div className="sc-topbar__title" style={{ display: 'flex', alignItems: 'center' }}>
               <Button
                 className="dh-mobile-menu-btn"
@@ -694,7 +695,21 @@ function QaSubmissionsContent() {
               </span>
             </div>
 
-            <div className="dh-main-controls">
+            <div className="dh-main-controls" style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <Input
+                style={{ width: 220, height: 32 }}
+                placeholder="Search submissions, scopes…"
+                prefix={<SearchOutlined style={{ color: "var(--text-slate-400)", fontSize: 12 }} />}
+                className="saas-input"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                allowClear
+              />
+              <FilterToggleButton
+                isOpen={isFilterRowOpen}
+                onToggle={() => setIsFilterRowOpen((prev) => !prev)}
+                activeCount={activeFilterCount}
+              />
               <Button
                 type="default"
                 icon={<RotateCw size={14} className={loading ? "animate-spin" : ""} />}
@@ -719,174 +734,119 @@ function QaSubmissionsContent() {
             </div>
           </div>
 
-          <div className="dh-main-scroll">
-            {/* Dashboard cards (§4) — the whole lifecycle reads left to right on
-                one row, so the shape of the pipeline is visible at a glance.
-                The per-card hint moves into a tooltip; at this width the tile
-                only has room for the count and its label. */}
-            <div className="qs-statrow">
-              {DASHBOARD_CARDS.map((card) => {
-                return (
-                  <Tooltip key={card.key} title={card.sub} mouseEnterDelay={0.4}>
-                  <div>
-                    <StatTile
-                      compact
-                      label={card.label}
-                      value={stats?.[card.key] ?? "—"}
-                      icon={card.icon}
-                      color={card.color}
-                      bgColor={card.bg}
-                    />
-                  </div>
-                  </Tooltip>
-                );
-              })}
-            </div>
+          <div className="dh-main-scroll" style={{ padding: 0 }}>
+            {/* Dashboard StatCards */}
+            <StatCards
+              title="QA Submissions Overview"
+              statusText="ACTIVE"
+              statusColor="#10b981"
+              style={{ margin: 0, borderRadius: 0 }}
+              progressPct={
+                stats && stats.total > 0
+                  ? Math.min(100, Math.round(((stats.qa_signed_off + (stats.approved || 0)) / stats.total) * 100))
+                  : 0
+              }
+              cards={[
+                { label: "Total Submissions", value: stats?.total ?? 0, icon: <Layers size={14} />, color: "#3B82F6" },
+                { label: "Draft", value: stats?.draft ?? 0, icon: <FileEdit size={14} />, color: "#64748b" },
+                { label: "Submitted", value: stats?.submitted ?? 0, icon: <Send size={14} />, color: "#3B82F6" },
+                { label: "Retesting", value: stats?.retesting ?? 0, icon: <RefreshCcw size={14} />, color: "#f59e0b" },
+                { label: "Ready for Sign-off", value: stats?.ready_for_signoff ?? 0, icon: <CheckCircle2 size={14} />, color: "#3B82F6" },
+                { label: "Approved", value: stats?.approved ?? 0, icon: <ThumbsUp size={14} />, color: "#10b981" },
+                { label: "QA Signed-off", value: stats?.qa_signed_off ?? 0, icon: <ShieldCheck size={14} />, color: "#10b981" },
+                { label: "Sent Back", value: stats?.sent_back ?? 0, icon: <Undo2 size={14} />, color: "#ef4444" },
+              ]}
+            />
 
-            {/* Filters and Search (§5) — matches Ticket List pattern exactly */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 0', flexWrap: 'wrap' }}>
-              <Input
-                style={{ width: 240, height: 30 }}
-                placeholder="Search submissions, scopes…"
-                prefix={<SearchOutlined style={{ color: "var(--text-slate-400)", fontSize: 12 }} />}
-                className="saas-input"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                allowClear
-              />
-
-              <Space.Compact className="ticket-filter-group">
-                <Popover
-                  content={
-                    <QaSubmissionsFilters
-                      filters={{ projectFilter, scopeFilter, ownerFilter, statusFilter, recommendationFilter, dateRange }}
-                      onFilterChange={(key: keyof import('./QaSubmissionsFilters').QaSubmissionsFiltersState, val: any) => {
-                        if (key === 'projectFilter') setProjectFilter(val);
-                        if (key === 'scopeFilter') setScopeFilter(val);
-                        if (key === 'ownerFilter') setOwnerFilter(val);
-                        if (key === 'statusFilter') setStatusFilter(val);
-                        if (key === 'recommendationFilter') setRecommendationFilter(val);
-                        if (key === 'dateRange') setDateRange(val);
-                      }}
-                      onReset={clearFilters}
-                      projectOptions={projectOptions}
-                      scopeOptions={scopeOptions}
-                      ownerOptions={memberOptions}
-                      statusOptions={SUBMISSION_STATUSES.map(s => ({ value: s, label: s }))}
-                      recommendationOptions={RECOMMENDATIONS.map(r => ({ value: r, label: r }))}
-                    />
-                  }
-                  trigger="click"
-                  open={isFilterPanelOpen}
-                  onOpenChange={setIsFilterPanelOpen}
-                  placement="bottomLeft"
-                  overlayClassName="tf-popover-overlay"
-                  styles={{ body: { padding: 0 } }}
-                >
-                  <Button
-                    icon={<FilterOutlined />}
-                    className={activeFilterCount > 0 ? 'saas-tag-blue' : ''}
-                    style={{ height: 30, fontWeight: 600, fontSize: 12 }}
-                  >
-                    Filters {activeFilterCount > 0 && `(${activeFilterCount})`}
-                  </Button>
-                </Popover>
-                <Button
-                  icon={<ExpandAltOutlined />}
-                  style={{ height: 30 }}
-                  aria-label="Expand filters"
-                  onClick={() => setIsFilterRowOpen(prev => !prev)}
-                />
-              </Space.Compact>
-            </div>
-
-            {/* Inline Filter Row — compact TicketFilterPill row, same as Ticket List */}
+            {/* Unified FilterBar */}
             {isFilterRowOpen && (
-              <div className="tl-filter-row">
-                <div className="tl-filter-row-label">
-                  <FilterOutlined style={{ fontSize: 11 }} />
-                  <span>Filters</span>
-                  <span className="tl-filter-row-count">
-                    {activeFilterCount > 0 ? activeFilterCount : '0'}
+              <FilterBar
+                activeCount={activeFilterCount}
+                onReset={clearFilters}
+                onClose={() => setIsFilterRowOpen(false)}
+                actions={
+                  <span style={{ fontSize: 12, color: "var(--text-slate-500)", whiteSpace: "nowrap" }}>
+                    <b>{rows.length}</b> of <b>{total}</b> submissions
                   </span>
-                </div>
-                <div className="tl-filter-row-pills">
-                  <TicketFilterPill
-                    icon={<ProjectOutlined style={{ fontSize: 11 }} />}
-                    label="Project"
-                    value={projectFilter || ""}
-                    options={projectOptions}
-                    onChange={setProjectFilter}
-                    itemNoun="projects"
-                    multiple={false}
-                  />
-                  <TicketFilterPill
-                    icon={<AimOutlined style={{ fontSize: 11 }} />}
-                    label="Scope"
-                    value={scopeFilter || ""}
-                    options={scopeOptions}
-                    onChange={setScopeFilter}
-                    itemNoun="scopes"
-                    multiple={false}
-                  />
-                  <TicketFilterPill
-                    icon={<UserOutlined style={{ fontSize: 11 }} />}
-                    label="Owner"
-                    value={ownerFilter || ""}
-                    options={memberOptions}
-                    onChange={setOwnerFilter}
-                    itemNoun="people"
-                    multiple={false}
-                    showAvatar
-                  />
-                  <TicketFilterPill
-                    icon={<CheckCircleOutlined style={{ fontSize: 11 }} />}
-                    label="Status"
-                    value={statusFilter || ""}
-                    options={SUBMISSION_STATUSES.map(s => ({ value: s, label: s }))}
-                    onChange={setStatusFilter}
-                    itemNoun="statuses"
-                    multiple={false}
-                  />
-                  <TicketFilterPill
-                    icon={<CheckCircleOutlined style={{ fontSize: 11 }} />}
-                    label="Outcome"
-                    value={recommendationFilter || ""}
-                    options={RECOMMENDATIONS.map(r => ({ value: r, label: r }))}
-                    onChange={setRecommendationFilter}
-                    itemNoun="recommendations"
-                    multiple={false}
-                  />
-                  {dateRange && dateRange[0] && dateRange[1] && (
-                    <TicketFilterPill
-                      icon={<CalendarOutlined style={{ fontSize: 11 }} />}
-                      label="Date"
-                      value={`${dayjs(dateRange[0]).format('MMM D')} – ${dayjs(dateRange[1]).format('MMM D')}`}
-                      options={[]}
-                      onChange={() => setDateRange(null)}
-                      itemNoun="dates"
-                      multiple={false}
-                    />
-                  )}
-                  {activeFilterCount > 0 && (
-                    <button type="button" className="sc-clear" onClick={clearFilters} style={{ marginLeft: 'auto' }}>
-                      Clear All
-                    </button>
-                  )}
-                </div>
-              </div>
+                }
+              >
+                <TicketFilterPill
+                  icon={<ProjectOutlined style={{ fontSize: 11 }} />}
+                  label="Project"
+                  value={projectFilter || ""}
+                  options={projectOptions}
+                  onChange={setProjectFilter}
+                  itemNoun="projects"
+                  multiple={false}
+                />
+                <TicketFilterPill
+                  icon={<AimOutlined style={{ fontSize: 11 }} />}
+                  label="Scope"
+                  value={scopeFilter || ""}
+                  options={scopeOptions}
+                  onChange={setScopeFilter}
+                  itemNoun="scopes"
+                  multiple={false}
+                />
+                <TicketFilterPill
+                  icon={<UserOutlined style={{ fontSize: 11 }} />}
+                  label="Owner"
+                  value={ownerFilter || ""}
+                  options={memberOptions}
+                  onChange={setOwnerFilter}
+                  itemNoun="people"
+                  multiple={false}
+                  showAvatar
+                />
+                <TicketFilterPill
+                  icon={<CheckCircleOutlined style={{ fontSize: 11 }} />}
+                  label="Status"
+                  value={statusFilter || ""}
+                  options={SUBMISSION_STATUSES.map((s) => ({ value: s, label: s }))}
+                  onChange={setStatusFilter}
+                  itemNoun="statuses"
+                  multiple={false}
+                />
+                <TicketFilterPill
+                  icon={<CheckCircleOutlined style={{ fontSize: 11 }} />}
+                  label="Outcome"
+                  value={recommendationFilter || ""}
+                  options={RECOMMENDATIONS.map((r) => ({ value: r, label: r }))}
+                  onChange={setRecommendationFilter}
+                  itemNoun="recommendations"
+                  multiple={false}
+                />
+                <RangePicker
+                  size="small"
+                  style={{ height: 28, borderRadius: 6 }}
+                  placeholder={["Start", "End"]}
+                  value={dateRange as any}
+                  onChange={(dates) => setDateRange(dates as any)}
+                  format="MMM D, YYYY"
+                  allowEmpty={[true, true]}
+                />
+              </FilterBar>
             )}
 
             {/* Only the results blur — blurring the filters above would disable
                 the search box mid-keystroke, since every keystroke refetches. */}
-            <div style={{ marginTop: 12 }}>
+            <div>
             <ZukvoLoadingOverlay
               loading={loading}
               message="Loading QA submissions…"
               minHeight={firstLoad ? 360 : undefined}
             >
             {viewMode === "list" ? (
-              <div className="sc-tablewrap">
+              <div
+                className="sc-tablewrap"
+                style={{
+                  borderLeft: "none",
+                  borderRight: "none",
+                  borderTop: "none",
+                  borderRadius: 0,
+                  margin: 0,
+                }}
+              >
                 {/* Nothing to show behind the blur on a cold load, and the table's
                     "No submissions yet" text would be a lie while still loading. */}
                 {firstLoad ? (

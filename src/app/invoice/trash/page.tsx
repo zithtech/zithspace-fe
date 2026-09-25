@@ -56,6 +56,7 @@ import { useActivitySource } from "@/hooks/useActivitySource";
 import ConfirmDialog from "@/components/common/ConfirmDialog";
 import { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
 import { currencySymbol } from "@/utils/currencies";
+import { FilterBar, FilterToggleButton, TicketFilterPill, FilterPillOption } from "@/components/common/FilterBar";
 
 const { Title } = Typography;
 const { RangePicker } = DatePicker;
@@ -129,7 +130,21 @@ export default function InvoiceTrashPage() {
     [dayjs.Dayjs | null, dayjs.Dayjs | null] | null
   >(null);
   const [statusFilter, setStatusFilter] = useState<string | null>(null);
+  const [isFilterRowOpen, setIsFilterRowOpen] = useState(false);
   const [pagination, setPagination] = useState({ page: 1, limit: 15 });
+
+  const statusFilterOptions: FilterPillOption[] = [
+    { value: 'DRAFT', label: 'Draft', dotColor: '#94a3b8' },
+    { value: 'PENDING', label: 'Pending', dotColor: '#3b82f6' },
+    { value: 'APPROVED', label: 'Approved', dotColor: '#06b6d4' },
+    { value: 'SENT', label: 'Sent', dotColor: '#6366f1' },
+    { value: 'PAID', label: 'Paid', dotColor: '#10b981' },
+    { value: 'PARTIALLY_PAID', label: 'Partially Paid', dotColor: '#f59e0b' },
+    { value: 'OVERDUE', label: 'Overdue', dotColor: '#ef4444' },
+    { value: 'CANCELLED', label: 'Cancelled', dotColor: '#64748b' },
+  ];
+
+  const activeFilterCount = (statusFilter ? 1 : 0) + (dateRange && (dateRange[0] || dateRange[1]) ? 1 : 0);
 
   useEffect(() => {
     const handler = setTimeout(() => {
@@ -645,6 +660,11 @@ export default function InvoiceTrashPage() {
             </div>
 
             <div className="pp-topbar-actions">
+              <FilterToggleButton
+                isOpen={isFilterRowOpen}
+                onToggle={() => setIsFilterRowOpen((prev) => !prev)}
+                activeCount={activeFilterCount}
+              />
               <Tooltip title="Refresh">
                 <button
                   type="button"
@@ -732,126 +752,98 @@ export default function InvoiceTrashPage() {
               </div>
             </div>
 
-            {/* FILTERS — compact row */}
-            <div
-              className="flex flex-wrap items-center gap-2 py-1.5"
-              style={{
-                background: "var(--bg-slate-50)",
-                borderBottom: "1px solid var(--border-slate-200)",
-                boxSizing: "border-box",
-                padding: "6px 24px",
-              }}
-            >
-              {/* Status */}
-              <div className="flex items-center gap-1.5">
-                <span
-                  className="text-[10px] font-semibold uppercase tracking-[0.08em] whitespace-nowrap"
-                  style={{ color: "var(--text-secondary)" }}
-                >
-                  Status
-                </span>
-                <Select
-                  placeholder="Any status"
-                  allowClear
-                  value={statusFilter}
-                  onChange={(value) => setStatusFilter(value)}
-                  style={{ width: 140, height: 28 }}
-                  size="small"
-                  options={[
-                    { label: "Draft", value: "DRAFT" },
-                    { label: "Pending", value: "PENDING" },
-                    { label: "Approved", value: "APPROVED" },
-                    { label: "Sent", value: "SENT" },
-                    { label: "Paid", value: "PAID" },
-                    { label: "Partially Paid", value: "PARTIALLY_PAID" },
-                    { label: "Overdue", value: "OVERDUE" },
-                    { label: "Cancelled", value: "CANCELLED" },
-                  ]}
+            {isFilterRowOpen && (
+              <FilterBar
+                activeCount={activeFilterCount}
+                onReset={() => {
+                  setStatusFilter(null);
+                  setDateRange(null);
+                }}
+                onClose={() => setIsFilterRowOpen(false)}
+              >
+                <TicketFilterPill
+                  label="Status"
+                  icon={<Clock size={13} />}
+                  value={statusFilter || undefined}
+                  options={statusFilterOptions}
+                  onChange={(v) => setStatusFilter((v as string) || null)}
                 />
-              </div>
-
-              <span className="h-4 w-px" style={{ background: "var(--border-color)" }} />
-
-              {/* Date Range */}
-              <div className="flex items-center gap-1.5">
-                <span
-                  className="text-[10px] font-semibold uppercase tracking-[0.08em] whitespace-nowrap"
-                  style={{ color: "var(--text-secondary)" }}
-                >
-                  Date range
-                </span>
-                <RangePicker
-                  value={dateRange as any}
-                  onChange={(values) => setDateRange(values)}
-                  allowClear
-                  size="small"
-                  style={{ height: 28 }}
-                />
-              </div>
-
-              {/* Bulk actions banner if rows selected */}
-              {selectedRowKeys.length > 0 && (
-                <div
-                  className="ml-auto flex items-center gap-2 px-2.5 py-1 rounded-md"
-                  style={{
-                    background: "rgba(59,130,246,0.1)",
-                    border: "1px solid rgba(59,130,246,0.2)",
-                  }}
-                >
-                  <div className="flex items-center gap-1.5">
-                    <CheckCircle2 size={13} style={{ color: "#3B82F6" }} />
-                    <span className="text-[11.5px] font-semibold text-blue-600">
-                      {selectedRowKeys.length} selected
-                    </span>
-                  </div>
-                  {canRestoreInvoiceTrash && (
-                    <Button
-                      size="small"
-                      icon={<RotateCcw size={11} />}
-                      onClick={handleBulkRestore}
-                      loading={bulkRestoreMutation.isPending}
-                      style={{
-                        borderRadius: 5,
-                        height: 24,
-                        fontSize: 11,
-                        fontWeight: 600,
-                      }}
-                    >
-                      Restore
-                    </Button>
-                  )}
-                  {canDeleteInvoiceTrash && (
-                    <Button
-                      size="small"
-                      danger
-                      type="primary"
-                      icon={<Trash2 size={11} />}
-                      onClick={openBulkDeleteModal}
-                      loading={bulkDeleteProgress.isDeleting}
-                      style={{
-                        borderRadius: 5,
-                        height: 24,
-                        fontSize: 11,
-                        fontWeight: 600,
-                        background: "#f87171",
-                      }}
-                    >
-                      Delete
-                    </Button>
-                  )}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setSelectedRowKeys([]);
-                      setSelectedInvoices([]);
-                    }}
-                    className="p-1 rounded hover:bg-white text-slate-500"
-                  >
-                    <X size={12} />
-                  </button>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[11px] font-semibold" style={{ color: "var(--text-secondary)" }}>
+                    Date Range
+                  </span>
+                  <RangePicker
+                    value={dateRange as any}
+                    onChange={(values) => setDateRange(values)}
+                    allowClear
+                    size="small"
+                    style={{ height: 28, borderRadius: 6 }}
+                  />
                 </div>
-              )}
-            </div>
+              </FilterBar>
+            )}
+
+            {/* Bulk actions banner if rows selected */}
+            {selectedRowKeys.length > 0 && (
+              <div
+                className="flex items-center gap-2 px-6 py-2"
+                style={{
+                  background: "rgba(59,130,246,0.08)",
+                  borderBottom: "1px solid rgba(59,130,246,0.2)",
+                }}
+              >
+                <div className="flex items-center gap-1.5">
+                  <CheckCircle2 size={13} style={{ color: "#3B82F6" }} />
+                  <span className="text-[11.5px] font-semibold text-blue-600">
+                    {selectedRowKeys.length} selected
+                  </span>
+                </div>
+                {canRestoreInvoiceTrash && (
+                  <Button
+                    size="small"
+                    icon={<RotateCcw size={11} />}
+                    onClick={handleBulkRestore}
+                    loading={bulkRestoreMutation.isPending}
+                    style={{
+                      borderRadius: 5,
+                      height: 24,
+                      fontSize: 11,
+                      fontWeight: 600,
+                    }}
+                  >
+                    Restore
+                  </Button>
+                )}
+                {canDeleteInvoiceTrash && (
+                  <Button
+                    size="small"
+                    danger
+                    type="primary"
+                    icon={<Trash2 size={11} />}
+                    onClick={openBulkDeleteModal}
+                    loading={bulkDeleteMutation.isPending}
+                    style={{
+                      borderRadius: 5,
+                      height: 24,
+                      fontSize: 11,
+                      fontWeight: 600,
+                    }}
+                  >
+                    Delete Permanently
+                  </Button>
+                )}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedRowKeys([]);
+                    setSelectedInvoices([]);
+                  }}
+                  className="p-1 rounded hover:bg-white text-slate-500 ml-auto"
+                >
+                  <X size={12} />
+                </button>
+              </div>
+            )}
 
             {/* CONTENT */}
             {isLoading || (invoices.length === 0 && isFetching) ? (
@@ -1098,11 +1090,11 @@ export default function InvoiceTrashPage() {
       <style jsx global>{`
         /* --- TicketList sprint-head banner styles --- */
         .invoice-overview-banner {
-          background: var(--bg-pure-white);
+          background: var(--bg-slate-50, #f8fafc);
           border-top: none;
           border-left: none;
           border-right: none;
-          border-bottom: 1px solid var(--border-slate-200);
+          border-bottom: 1px solid var(--border-slate-200, #e2e8f0);
           border-radius: 0;
           padding: 10px 24px;
           margin: 0;
@@ -1128,11 +1120,13 @@ export default function InvoiceTrashPage() {
           height: 7px;
           border-radius: 50%;
           flex-shrink: 0;
+          background: #ef4444;
+          box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.2);
         }
         .invoice-overview-banner .tl-sprint-title {
-          font-size: 13px !important;
-          font-weight: 700 !important;
-          color: var(--text-slate-900) !important;
+          font-size: 13.5px !important;
+          font-weight: 800 !important;
+          color: var(--text-slate-900, #0f172a) !important;
           letter-spacing: -0.01em;
           margin: 0 !important;
           white-space: nowrap;
@@ -1142,44 +1136,51 @@ export default function InvoiceTrashPage() {
         .invoice-overview-banner .tl-sprint-tags {
           display: inline-flex;
           align-items: center;
-          gap: 5px;
+          gap: 6px;
           flex-shrink: 0;
         }
         .invoice-overview-banner .tl-sprint-tag {
-          font-size: 9.5px;
-          font-weight: 700;
+          font-size: 9px;
+          font-weight: 800;
           letter-spacing: 0.04em;
           text-transform: uppercase;
-          padding: 1.5px 6px;
+          height: 18px;
+          padding: 0 6px;
           border-radius: 4px;
+          display: inline-flex;
+          align-items: center;
+          line-height: 1;
         }
         .invoice-overview-banner .tl-sprint-tag-neutral {
-          background: var(--bg-slate-100);
-          color: var(--text-slate-600);
+          background: transparent;
+          color: var(--text-slate-500);
           border: 1px solid var(--border-slate-200);
         }
         .invoice-overview-banner .tl-sprint-tag-delayed {
-          background: rgba(248, 113, 113, 0.1);
-          color: #f87171;
-          border: 1px solid rgba(248, 113, 113, 0.25);
+          background: transparent;
+          color: #ef4444;
+          border: 1px solid rgba(239, 68, 68, 0.32);
         }
         .invoice-overview-banner .tl-sprint-row2 {
           display: flex;
           align-items: center;
-          gap: 14px;
+          gap: 18px;
+          padding-left: 15px;
           margin-bottom: 6px;
           flex-wrap: wrap;
         }
         .invoice-overview-banner .tl-sprint-meta {
           display: inline-flex;
           align-items: center;
-          gap: 4px;
-          font-size: 11px;
-          color: var(--text-slate-500);
+          gap: 6px;
+          font-size: 11.5px;
+          font-weight: 600;
+          color: var(--text-slate-500, #64748b);
+          letter-spacing: -0.005em;
         }
         .invoice-overview-banner .tl-sprint-meta b {
-          color: var(--text-slate-800);
-          font-weight: 700;
+          color: var(--text-slate-900, #0f172a);
+          font-weight: 800;
         }
         .invoice-overview-banner .tl-sprint-row3 {
           display: flex;
@@ -1191,7 +1192,7 @@ export default function InvoiceTrashPage() {
           flex: 1 1 auto;
           position: relative;
           height: 6px !important;
-          background: var(--bg-slate-100);
+          background: var(--bg-slate-100, #f1f5f9);
           border-radius: 999px;
           overflow: hidden;
           min-width: 60px;
@@ -1209,7 +1210,7 @@ export default function InvoiceTrashPage() {
           flex-shrink: 0;
           font-size: 12px !important;
           font-weight: 800 !important;
-          color: var(--text-slate-900) !important;
+          color: var(--text-slate-900, #0f172a) !important;
           font-variant-numeric: tabular-nums;
           min-width: 36px;
           text-align: right;

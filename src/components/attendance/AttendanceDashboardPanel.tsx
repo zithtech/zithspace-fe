@@ -239,9 +239,10 @@ export default function AttendanceDashboardPanel() {
       </div>
 
       {/* ── STAT CARDS ─────────────────────────────────────────────────────── */}
-            <StatCards
+      <StatCards
         title="Attendance Overview"
         statusText="LIVE"
+        progressPct={summary?.expectedToday ? Math.round(((summary.presentToday || 0) / summary.expectedToday) * 100) : (summary?.attendanceRate ?? 0)}
         cells={statCells.map(s => ({
           label: s.title,
           value: <>{s.value} <span style={{ fontSize: 11, fontWeight: 500, color: 'var(--text-slate-400)' }}>{s.period}</span></>,
@@ -370,7 +371,7 @@ export default function AttendanceDashboardPanel() {
         .adb-stat-period { font-size: 11px; color: var(--text-slate-400); font-weight: 500; }
 
         /* Two-column grid */
-        .adb-grid { display: grid; grid-template-columns: 1.7fr 1fr; gap: 14px; align-items: start; }
+        .adb-grid { display: grid; grid-template-columns: 1.7fr 1fr; gap: 14px; align-items: start; margin-top: 14px; }
         .adb-card { background: var(--bg-pure-white); border: 1px solid var(--border-slate-200); border-radius: 0; box-shadow: 0 1px 2px rgba(15,23,42,0.04); }
         .adb-card-head {
           display: flex; align-items: center; justify-content: space-between; gap: 10px;

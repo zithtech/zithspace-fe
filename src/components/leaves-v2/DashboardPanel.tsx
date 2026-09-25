@@ -77,6 +77,7 @@ export default function DashboardPanel() {
 
   // ── Derived ────────────────────────────────────────────────────────────────
   const totalAvailable = useMemo(() => balances.reduce((s, b) => s + b.available, 0), [balances]);
+  const totalCredited = useMemo(() => balances.reduce((s, b) => s + (b.credited || b.available), 0), [balances]);
   const myPending = useMemo(() => requests.filter((r) => r.status === 'pending').length, [requests]);
   const daysTaken = useMemo(
     () => requests.filter((r) => r.status === 'approved').reduce((s, r) => s + r.paidUnits, 0),
@@ -138,6 +139,7 @@ export default function DashboardPanel() {
       <StatCards
         title="Leave Balances & Status"
         statusText="LIVE"
+        progressPct={totalCredited > 0 ? Math.round((totalAvailable / totalCredited) * 100) : 0}
         cells={statCells.map(s => ({
           label: s.title,
           value: <>{s.value} <span style={{ fontSize: 11, fontWeight: 500, color: 'var(--text-slate-400)' }}>{s.period}</span></>,

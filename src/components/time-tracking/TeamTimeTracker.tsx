@@ -949,6 +949,9 @@ export const TeamTimeTracker: React.FC<TeamTimeTrackerProps> = ({ refreshKey }) 
       {/* KPI Strip */}
       <div style={{ flexShrink: 0 }}>
         <StatCards
+          title="Team Time Overview"
+          statusText="ACTIVE"
+          progressPct={members.length > 0 ? Math.min(100, Math.round((stats.activeUsers / members.length) * 100)) : (stats.activeUsers > 0 ? 100 : 0)}
           cards={teamCards.map((s) => ({
             label: s.title,
             value: s.value,

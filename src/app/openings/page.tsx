@@ -6,7 +6,7 @@ import { useAuth } from '@/context/AuthContext';
 import { usePermission } from '@/hooks/usePermission';
 import { OPENING_NAV_ITEMS, canAccessOpeningItem } from '@/components/openings/navItems';
 
-// Index route: redirect to the first sub-page the user can access.
+// Index route: redirect to first accessible sub-page (Dashboard).
 export default function OpeningsIndex() {
   const router = useRouter();
   const { hasAnySubscriptionFeature, isLoading } = useAuth();

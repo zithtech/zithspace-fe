@@ -25,6 +25,7 @@ import LeaveV2Service, { CatalogHoliday, HolidayType } from '@/services/leaveV2S
 import { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
 
 import { PALETTE, TINT, StatCards } from '@/components/leaves-v2/ui';
+import { FilterBar, FilterToggleButton, TicketFilterPill } from '@/components/common/FilterBar';
 
 const COUNTRY_NAME: Record<string, string> = { IN: 'India', US: 'United States', AE: 'United Arab Emirates', GB: 'United Kingdom', SG: 'Singapore' };
 const countryLabel = (c: string) => `${COUNTRY_NAME[c] ?? c} (${c})`;
@@ -51,6 +52,7 @@ export default function GovernmentHolidaysPanel() {
   const [selected, setSelected] = useState<React.Key[]>([]);
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState<TypeFilter>('all');
+  const [isFilterRowOpen, setIsFilterRowOpen] = useState(false);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(15);
 
@@ -195,14 +197,29 @@ export default function GovernmentHolidaysPanel() {
           </div>
         </div>
         <div className="lvgh-header-actions">
-          <SearchableDropdown placeholder="Country" itemNoun="countries" allowClear={false} value={country} onChange={(v) => setCountry(v as string)} options={countries.map((c) => ({ value: c, label: countryLabel(c) }))} style={{ width: 200, height: 34 }} width={220} />
+          <div className="lvgh-search-wrap">
+            <SearchOutlined className="lvgh-search-icon" />
+            <input className="lvgh-search" placeholder="Search holiday…" value={search} onChange={(e) => setSearch(e.target.value)} />
+          </div>
+          <FilterToggleButton
+            isOpen={isFilterRowOpen}
+            onToggle={() => setIsFilterRowOpen((prev) => !prev)}
+            activeCount={typeFilter !== 'all' ? 1 : 0}
+          />
+          <SearchableDropdown placeholder="Country" itemNoun="countries" allowClear={false} value={country} onChange={(v) => setCountry(v as string)} options={countries.map((c) => ({ value: c, label: countryLabel(c) }))} style={{ width: 170, height: 32 }} width={200} />
           <Tooltip title="Refresh"><button type="button" className="lvgh-ghost-btn" onClick={() => load(country)}><ReloadOutlined spin={loading} /></button></Tooltip>
+          {canCreateLeaveHoliday && (
+            <Button type="primary" icon={<PlusOutlined />} loading={adding} disabled={selected.length === 0} onClick={addSelected} className="lvgh-add-btn">
+              Add {selected.length > 0 ? selected.length : ''} to our holidays
+            </Button>
+          )}
         </div>
       </div>
 
-            <StatCards
+      <StatCards
         title="Leave Overview"
         statusText="LIVE"
+        progressPct={stats.total > 0 ? Math.round((stats.added / stats.total) * 100) : 0}
         cells={statCells.map(s => ({
           label: s.title,
           value: <>{s.value} <span style={{ fontSize: 11, fontWeight: 500, color: 'var(--text-slate-400)' }}>{s.period}</span></>,
@@ -212,21 +229,21 @@ export default function GovernmentHolidaysPanel() {
         }))}
       />
 
-      <div className="lvgh-bar">
-        <div className="lvgh-filters">
-          <div className="lvgh-search-wrap">
-            <SearchOutlined className="lvgh-search-icon" />
-            <input className="lvgh-search" placeholder="Search holiday…" value={search} onChange={(e) => setSearch(e.target.value)} />
-          </div>
-          <SearchableDropdown placeholder="Type" itemNoun="types" value={typeFilter === 'all' ? undefined : typeFilter} onChange={(v) => setTypeFilter((v as TypeFilter) ?? 'all')} options={TYPE_OPTIONS} style={{ width: 150 }} width={200} />
-          {(search || typeFilter !== 'all') && <button type="button" className="lvgh-clear" onClick={() => { setSearch(''); setTypeFilter('all'); setPage(1); }}><CloseCircleOutlined /> Clear</button>}
-        </div>
-        {canCreateLeaveHoliday && (
-          <Button type="primary" icon={<PlusOutlined />} loading={adding} disabled={selected.length === 0} onClick={addSelected} className="lvgh-add-btn">
-            Add {selected.length > 0 ? selected.length : ''} to our holidays
-          </Button>
-        )}
-      </div>
+      {isFilterRowOpen && (
+        <FilterBar
+          activeCount={typeFilter !== 'all' ? 1 : 0}
+          onReset={() => { setSearch(''); setTypeFilter('all'); setPage(1); }}
+          onClose={() => setIsFilterRowOpen(false)}
+        >
+          <TicketFilterPill
+            label="Type"
+            icon={<GlobalOutlined />}
+            value={typeFilter === 'all' ? undefined : typeFilter}
+            options={TYPE_OPTIONS.map((t) => ({ value: t.value, label: t.label }))}
+            onChange={(v) => setTypeFilter((v as TypeFilter) || 'all')}
+          />
+        </FilterBar>
+      )}
 
       <div className="lv-table-wrap">
         <ZukvoLoadingOverlay loading={loading} message="">

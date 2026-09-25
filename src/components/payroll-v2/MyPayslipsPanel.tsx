@@ -130,7 +130,7 @@ export default function MyPayslipsPanel({ hideSidebarToggle }: { hideSidebarTogg
 
       <style jsx global>{`
         .mps { display: flex; flex-direction: column; flex: 1; min-height: 0; }
-        .mps-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding-bottom: 14px; margin-bottom: 14px; border-bottom: 1px solid var(--border-slate-200); flex-wrap: wrap; }
+        .mps-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding-bottom: 14px; margin-bottom: 0; border-bottom: 1px solid var(--border-slate-200); flex-wrap: wrap; }
         .mps-header-about { display: flex; align-items: center; gap: 12px; }
         .mps-header-icon { width: 38px; height: 38px; border-radius: 10px; background: ${TINT.cyan}; color: ${PALETTE.cyan}; display: inline-flex; align-items: center; justify-content: center; font-size: 18px; }
         .mps-header-title { font-size: 17px; font-weight: 800; color: var(--text-slate-900); letter-spacing: -0.02em; line-height: 1.15; }

@@ -197,13 +197,8 @@ export default function LeavesV2Layout({ children }: { children: React.ReactNode
             padding: 0 20px !important;
           }
 
-          /* Restore the gap below the header that was removed by margin-bottom: 0 */
-          .lv-content > * > [class*="-header"] + * {
-            margin-top: 6px !important;
-          }
-
           /* Stretch panel headers to the edges and make them sticky */
-          .lv-content > * > [class*="-header"] {
+          .lv-content > * > [class*="-header"]:not([class*="sprint"]) {
             position: sticky;
             top: 0;
             z-index: 20;
@@ -213,8 +208,8 @@ export default function LeavesV2Layout({ children }: { children: React.ReactNode
             margin-bottom: 0 !important;
             margin-left: 0 !important;
             margin-right: 0 !important;
-            padding-top: 16px;
-            padding-bottom: 12px;
+            padding-top: 14px;
+            padding-bottom: 14px;
             padding-left: 22px;
             padding-right: 22px;
           }

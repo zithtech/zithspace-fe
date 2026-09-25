@@ -68,7 +68,7 @@ import { useActivitySource } from '@/hooks/useActivitySource';
 import { History, Sparkles, Menu, X, UploadCloud, FileText, Trash2, ExternalLink, Paperclip, Download, Eye, ArrowUpRight, ArrowDownLeft } from "lucide-react";
 import TransactionHistoryDrawer from "@/components/common/TransactionHistoryDrawer";
 import { SearchableDropdown } from '@/components/common/SearchableDropdown';
-import TicketFilterPill from "@/components/projects/TicketFilterPill";
+import { FilterBar, FilterToggleButton, TicketFilterPill } from '@/components/common/FilterBar';
 import ConfirmDialog from "@/components/common/ConfirmDialog";
 import { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
 
@@ -344,6 +344,16 @@ export default function AccountsPage() {
   const [savedView, setSavedView] = useState<'all' | 'mine' | 'credit' | 'debit'>('all');
   const [view, setView] = useState<'list' | 'grid'>('list');
   const [isMobileOpen, setIsMobileOpen] = useState(false);
+  const [isFilterRowOpen, setIsFilterRowOpen] = useState(false);
+
+  const activeFilterCount = useMemo(() => {
+    let count = 0;
+    if (categoryFilter) count++;
+    if (memberFilter) count++;
+    if (dateRange) count++;
+    if (thisMonthOnly) count++;
+    return count;
+  }, [categoryFilter, memberFilter, dateRange, thisMonthOnly]);
 
   const searchRef = useRef<any>(null);
 
@@ -820,11 +830,32 @@ export default function AccountsPage() {
         const isCredit = record.type === 'credit';
         const color = isCredit ? '#10b981' : '#64748b';
         const bg = isCredit ? 'rgba(16,185,129,0.10)' : 'rgba(100,116,139,0.10)';
+        const formattedCategory = (category || '—').replace(/_/g, ' ').toUpperCase();
         return (
-          <span className="pp-tag" style={{ background: bg, color }}>
-            <span className="pp-tag-dot" />
-            {category.replace('_', ' ').toUpperCase()}
-          </span>
+          <Tooltip title={formattedCategory} placement="topLeft">
+            <span
+              className="pp-tag"
+              style={{
+                background: bg,
+                color,
+                maxWidth: '160px',
+                display: 'inline-flex',
+                alignItems: 'center',
+              }}
+            >
+              <span className="pp-tag-dot" style={{ flexShrink: 0 }} />
+              <span
+                style={{
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                  display: 'inline-block',
+                }}
+              >
+                {formattedCategory}
+              </span>
+            </span>
+          </Tooltip>
         );
       },
       sorter: true,
@@ -997,66 +1028,6 @@ export default function AccountsPage() {
               })}
             </div>
 
-            <div className="pp-side-section-label">Filters</div>
-            <div className="pp-side-filters">
-              <SearchableDropdown
-                className="pp-side-sd"
-                placeholder="Category"
-                searchPlaceholder="Search categories"
-                itemNoun="categories"
-                value={categoryFilter ?? undefined}
-                onChange={(v) => setCategoryFilter(v ?? undefined)}
-                options={expenseCategories.map((c: any) => ({ value: c.name, label: c.name }))}
-                width={212}
-                disabled={expenseCategories.length === 0}
-              />
-              {(canCreateAccount || canUpdateAccount || canDeleteAccount) && (
-                <SearchableDropdown
-                  className="pp-side-sd"
-                  placeholder="Member"
-                  searchPlaceholder="Search members"
-                  itemNoun="members"
-                  value={memberFilter ?? undefined}
-                  onChange={(v) => setMemberFilter(v ?? undefined)}
-                  options={memberOptions}
-                  width={212}
-                  disabled={members.length === 0}
-                />
-              )}
-              <RangePicker
-                className="pp-side-range"
-                value={dateRange}
-                onChange={handleDateRangeChange}
-                placeholder={['Start date', 'End date']}
-                separator={<span style={{ color: 'var(--text-slate-400)' }}>›</span>}
-                suffixIcon={null}
-                format="MMM D"
-              />
-              <div className="pp-side-switch-wrap">
-                <span className="pp-side-switch-label">This month only</span>
-                <Switch
-                  size="small"
-                  checked={thisMonthOnly}
-                  onChange={handleThisMonthToggle}
-                />
-              </div>
-              {(categoryFilter || memberFilter || dateRange || !thisMonthOnly || searchText) && (
-                <button
-                  type="button"
-                  className="pp-clear-filters"
-                  onClick={() => {
-                    setCategoryFilter(undefined);
-                    setMemberFilter(undefined);
-                    setDateRange(null);
-                    setThisMonthOnly(false);
-                    setSearchText('');
-                  }}
-                >
-                  <CloseCircleOutlined /> Clear filters
-                </button>
-              )}
-            </div>
-
             <div className="pp-side-section-label">Actions</div>
             <div className="pp-side-list">
               <button
@@ -1125,6 +1096,11 @@ export default function AccountsPage() {
             </div>
 
             <div className="pp-topbar-actions">
+              <FilterToggleButton
+                isOpen={isFilterRowOpen}
+                onToggle={() => setIsFilterRowOpen((v) => !v)}
+                activeCount={activeFilterCount}
+              />
               <div className="pp-segmented">
                 <button type="button" className={view === 'list' ? 'is-active' : ''} onClick={() => setView('list')} aria-label="List view"><UnorderedListOutlined /></button>
                 <button type="button" className={view === 'grid' ? 'is-active' : ''} onClick={() => setView('grid')} aria-label="Grid view"><AppstoreOutlined /></button>
@@ -1141,10 +1117,29 @@ export default function AccountsPage() {
           <div className="pp-sprint-head-v2">
             <div className="pp-sprint-row1">
               <div className="pp-sprint-title-block">
-                <div className="pp-sprint-dot" style={{ background: '#10b981' }} />
+                <span
+                  className="pp-sprint-dot"
+                  style={{
+                    background: '#10b981',
+                    boxShadow: '0 0 0 3px rgba(16, 185, 129, 0.2)',
+                  }}
+                />
                 <h2 className="pp-sprint-title">Accounts — Financial Overview</h2>
                 <div className="pp-sprint-tags">
                   <span className="pp-sprint-tag pp-sprint-tag-active">LIVE</span>
+                  <span className="pp-sprint-tag pp-sprint-tag-neutral">
+                    {summary?.balance?.totalCount ?? pagination.total ?? 0} TOTAL
+                  </span>
+                  {(summary?.balance?.creditCount ?? 0) > 0 && (
+                    <span className="pp-sprint-tag pp-sprint-tag-active">
+                      {summary?.balance?.creditCount} CREDITS
+                    </span>
+                  )}
+                  {(summary?.balance?.debitCount ?? 0) > 0 && (
+                    <span className="pp-sprint-tag pp-sprint-tag-delayed">
+                      {summary?.balance?.debitCount} DEBITS
+                    </span>
+                  )}
                 </div>
               </div>
             </div>
@@ -1164,12 +1159,90 @@ export default function AccountsPage() {
               <div className="pp-sprint-progress-bar">
                 <div
                   className="pp-sprint-progress-fill"
-                  style={{ width: `100%`, background: 'linear-gradient(90deg, #3b82f6, #6366f1)' }}
+                  style={{
+                    width: `${
+                      (summary?.balance?.totalCount ?? pagination.total ?? 0) === 0
+                        ? 0
+                        : ((summary?.balance?.credits ?? 0) + (summary?.balance?.debits ?? 0)) > 0
+                        ? Math.min(100, Math.max(0, Math.round(((summary?.balance?.credits ?? 0) / ((summary?.balance?.credits ?? 0) + (summary?.balance?.debits ?? 0))) * 100)))
+                        : 100
+                    }%`,
+                    background: 'linear-gradient(90deg, #3b82f6, #2563eb)',
+                  }}
                 />
               </div>
-              <span className="pp-sprint-progress-pct">100%</span>
+              <span className="pp-sprint-progress-pct">
+                {
+                  (summary?.balance?.totalCount ?? pagination.total ?? 0) === 0
+                    ? 0
+                    : ((summary?.balance?.credits ?? 0) + (summary?.balance?.debits ?? 0)) > 0
+                    ? Math.min(100, Math.max(0, Math.round(((summary?.balance?.credits ?? 0) / ((summary?.balance?.credits ?? 0) + (summary?.balance?.debits ?? 0))) * 100)))
+                    : 100
+                }%
+              </span>
             </div>
           </div>
+
+          {/* ── Inline filter row (when opened) ── */}
+          <FilterBar
+            isOpen={isFilterRowOpen}
+            activeCount={activeFilterCount}
+            onClose={() => setIsFilterRowOpen(false)}
+            onReset={() => {
+              setCategoryFilter(undefined);
+              setMemberFilter(undefined);
+              setDateRange(null);
+              setThisMonthOnly(false);
+              setSearchText('');
+            }}
+          >
+            {/* Category Pill */}
+            {expenseCategories.length > 0 && (
+              <TicketFilterPill
+                label="Category"
+                value={categoryFilter || ''}
+                options={expenseCategories.map((c: any) => ({ value: c.name, label: c.name }))}
+                onChange={(val: any) => setCategoryFilter(val || undefined)}
+                itemNoun="categories"
+                multiple={false}
+              />
+            )}
+
+            {/* Member Pill */}
+            {(canCreateAccount || canUpdateAccount || canDeleteAccount) && members.length > 0 && (
+              <TicketFilterPill
+                icon={<UserOutlined style={{ fontSize: 11 }} />}
+                label="Member"
+                value={memberFilter || ''}
+                options={memberOptions}
+                onChange={(val: any) => setMemberFilter(val || undefined)}
+                itemNoun="members"
+                showAvatar
+                width={260}
+                multiple={false}
+              />
+            )}
+
+            {/* Date Range Picker */}
+            <DatePicker.RangePicker
+              value={dateRange}
+              onChange={handleDateRangeChange}
+              placeholder={['Start date', 'End date']}
+              style={{ height: 28, borderRadius: 6, fontSize: 12 }}
+              format="MMM D, YYYY"
+              allowClear
+            />
+
+            {/* This month only Switch */}
+            <div className="flex items-center gap-2 px-2.5 py-1 bg-white dark:bg-slate-800 rounded-md border border-slate-200 dark:border-slate-700 h-[28px]">
+              <span className="text-xs font-semibold text-slate-700 dark:text-slate-200">This month only</span>
+              <Switch
+                size="small"
+                checked={thisMonthOnly}
+                onChange={handleThisMonthToggle}
+              />
+            </div>
+          </FilterBar>
 
           {/* Main View Area */}
           <div className="pp-body">
@@ -2494,24 +2567,140 @@ export default function AccountsPage() {
         }
         .pp-ghost-btn:hover { color: #3B82F6; border-color: #bfdbfe; }
 
-        .pp-divider { height: 1px; background: var(--border-slate-200); margin: 0 0 10px 0; flex-shrink: 0; }
+        .pp-divider { display: none; }
 
         /* Sprint Header (Stats) */
-        .pp-sprint-head-v2 { display: flex; flex-direction: column; gap: 2px; padding: 8px 20px 10px; background: var(--bg-pure-white); border-bottom: 1px solid var(--border-slate-200); margin-bottom: 0px; flex-shrink: 0; }
-        .pp-sprint-row1 { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; margin-bottom: 2px; }
-        .pp-sprint-title-block { display: flex; align-items: center; gap: 6px; min-width: 0; flex: 1 1 auto; }
-        .pp-sprint-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
-        .pp-sprint-title { font-size: 13px !important; font-weight: 800 !important; color: var(--text-slate-900) !important; letter-spacing: -0.01em; margin: 0; }
-        .pp-sprint-tags { display: inline-flex; align-items: center; gap: 4px; flex-shrink: 0; }
-        .pp-sprint-tag { display: inline-flex; align-items: center; height: 16px; padding: 0 4px; font-size: 9px; font-weight: 800; letter-spacing: 0.04em; border-radius: 4px; border: 1px solid transparent; text-transform: uppercase; line-height: 1; }
-        .pp-sprint-tag-active { background: transparent; color: #34d399; border-color: rgba(16, 185, 129, 0.32); }
-        .pp-sprint-row2 { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; padding-left: 14px; margin-bottom: 4px; }
-        .pp-sprint-meta { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; font-weight: 600; color: var(--text-slate-500); letter-spacing: -0.005em; }
-        .pp-sprint-meta b { color: var(--text-slate-900); font-weight: 800; }
-        .pp-sprint-row3 { display: flex; align-items: center; gap: 10px; padding-left: 14px; }
-        .pp-sprint-progress-bar { flex: 1 1 auto; position: relative; height: 5px; background: var(--bg-slate-100); border-radius: 999px; overflow: hidden; min-width: 60px; }
-        .pp-sprint-progress-fill { position: absolute; inset: 0; border-radius: 999px; transition: width 0.4s ease; }
-        .pp-sprint-progress-pct { flex-shrink: 0; font-size: 11px; font-weight: 800; color: var(--text-slate-900); font-variant-numeric: tabular-nums; min-width: 32px; }
+        .pp-sprint-head-v2 {
+          display: flex;
+          flex-direction: column;
+          gap: 6px;
+          padding: 10px 24px;
+          background: var(--bg-slate-50, #f8fafc);
+          border-bottom: 1px solid var(--border-slate-200, #e2e8f0);
+          margin-bottom: 0px;
+          flex-shrink: 0;
+        }
+        .pp-sprint-row1 {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 12px;
+          flex-wrap: wrap;
+        }
+        .pp-sprint-title-block {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          min-width: 0;
+          flex: 1 1 auto;
+        }
+        .pp-sprint-dot {
+          width: 7px;
+          height: 7px;
+          border-radius: 50%;
+          flex-shrink: 0;
+        }
+        .pp-sprint-title {
+          font-size: 13.5px !important;
+          font-weight: 800 !important;
+          color: var(--text-slate-900, #0f172a) !important;
+          letter-spacing: -0.01em;
+          margin: 0;
+        }
+        [data-theme='dark'] .pp-sprint-title { color: #f1f5f9 !important; }
+        .pp-sprint-tags {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          flex-shrink: 0;
+        }
+        .pp-sprint-tag {
+          display: inline-flex;
+          align-items: center;
+          height: 18px;
+          padding: 0 6px;
+          font-size: 9px;
+          font-weight: 800;
+          letter-spacing: 0.04em;
+          border-radius: 4px;
+          border: 1px solid transparent;
+          text-transform: uppercase;
+          line-height: 1;
+        }
+        .pp-sprint-tag-neutral {
+          background: transparent;
+          color: var(--text-slate-500);
+          border-color: var(--border-slate-200);
+        }
+        .pp-sprint-tag-active {
+          background: transparent;
+          color: #10b981;
+          border-color: rgba(16, 185, 129, 0.32);
+        }
+        .pp-sprint-tag-delayed {
+          background: transparent;
+          color: #ef4444;
+          border-color: rgba(239, 68, 68, 0.32);
+        }
+        [data-theme='dark'] .pp-sprint-tag-neutral {
+          border-color: rgba(255, 255, 255, 0.12);
+        }
+        [data-theme='dark'] .pp-sprint-tag-delayed {
+          color: #fca5a5;
+        }
+        .pp-sprint-row2 {
+          display: flex;
+          align-items: center;
+          gap: 18px;
+          flex-wrap: wrap;
+          padding-left: 15px;
+        }
+        .pp-sprint-meta {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          font-size: 11.5px;
+          font-weight: 600;
+          color: var(--text-slate-500);
+          letter-spacing: -0.005em;
+        }
+        .pp-sprint-meta b {
+          color: var(--text-slate-900);
+          font-weight: 800;
+        }
+        [data-theme='dark'] .pp-sprint-meta { color: #94a3b8 !important; }
+        [data-theme='dark'] .pp-sprint-meta b { color: #f1f5f9 !important; }
+        .pp-sprint-row3 {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          padding-left: 15px;
+        }
+        .pp-sprint-progress-bar {
+          flex: 1 1 auto;
+          position: relative;
+          height: 6px;
+          background: var(--bg-slate-100, #f1f5f9);
+          border-radius: 999px;
+          overflow: hidden;
+          min-width: 60px;
+        }
+        [data-theme='dark'] .pp-sprint-progress-bar { background: #1f2937 !important; }
+        .pp-sprint-progress-fill {
+          position: absolute;
+          inset: 0;
+          border-radius: 999px;
+          transition: width 0.4s ease;
+        }
+        .pp-sprint-progress-pct {
+          flex-shrink: 0;
+          font-size: 11px;
+          font-weight: 800;
+          color: var(--text-slate-900, #0f172a);
+          font-variant-numeric: tabular-nums;
+          min-width: 32px;
+        }
+        [data-theme='dark'] .pp-sprint-progress-pct { color: #f1f5f9 !important; }
 
         /* Table */
         .pp-table-wrap { background: var(--bg-pure-white); border: none; border-bottom: 1px solid var(--border-slate-200); border-radius: 0; overflow: visible; }

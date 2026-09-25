@@ -699,6 +699,9 @@ export default function TimesheetsTab({ goToSubmitTimesheet, teamMode, approvalM
 
             {/* Stats Cards */}
             <StatCards
+              title="Timesheets Overview"
+              statusText="ACTIVE"
+              progressPct={viewCounts.all > 0 ? Math.round((viewCounts.approved / viewCounts.all) * 100) : 0}
               cards={[
                 {
                   label: "Total Timesheets",

@@ -64,6 +64,7 @@ const { RangePicker } = DatePicker;
 
 // ── Module palette: blue / green / red / grey only ──────────────────────────
 import { PALETTE, TINT, StatCards } from '@/components/attendance/ui';
+import { FilterBar, FilterToggleButton, TicketFilterPill } from '@/components/common/FilterBar';
 
 type StatusValue = 'present' | 'late' | 'absent';
 
@@ -176,6 +177,7 @@ export default function ManageAttendancePanel() {
     dayjs().startOf('day'),
     dayjs().endOf('day'),
   ]);
+  const [isFilterRowOpen, setIsFilterRowOpen] = useState(false);
 
   // pagination (server-side)
   const [tablePage, setTablePage] = useState(1);
@@ -714,6 +716,11 @@ export default function ManageAttendancePanel() {
             <SearchOutlined className="att-search-icon" />
             <input className="att-search" placeholder="Search by member name…" value={search} onChange={(e) => setSearch(e.target.value)} />
           </div>
+          <FilterToggleButton
+            isOpen={isFilterRowOpen}
+            onToggle={() => setIsFilterRowOpen((prev) => !prev)}
+            activeCount={(statusFilter ? 1 : 0) + (memberFilter ? 1 : 0) + (projectFilter ? 1 : 0) + (dateRange ? 1 : 0)}
+          />
           <Tooltip title="Refresh"><button type="button" className="att-ghost-btn" onClick={load}><ReloadOutlined spin={loading} /></button></Tooltip>
           {canCreateAttendance && (
             <Button type="primary" icon={<PlusOutlined />} onClick={openCreate} className="att-add-btn">Add Record</Button>
@@ -722,9 +729,10 @@ export default function ManageAttendancePanel() {
       </div>
 
       {/* ── 2) STAT CARDS ─────────────────────────────────────────────────────── */}
-            <StatCards
+      <StatCards
         title="Attendance Overview"
         statusText="LIVE"
+        progressPct={(stats.present + stats.late + stats.absent) > 0 ? Math.round((stats.present / (stats.present + stats.late + stats.absent)) * 100) : 0}
         cells={statCells.map(s => ({
           label: s.title,
           value: <>{s.value} <span style={{ fontSize: 11, fontWeight: 500, color: 'var(--text-slate-400)' }}>{s.period}</span></>,
@@ -733,64 +741,55 @@ export default function ManageAttendancePanel() {
           tint: s.tint
         }))}
       />
-      <div style={{ padding: '0 20px', flexShrink: 0 }}>
 
       {/* ── 3) FILTERS ────────────────────────────────────────────────────────── */}
-      <div className="att-filters">
-        <span className="att-filter-label"><FilterOutlined /> Filter</span>
-        <SearchableDropdown
-          className="att-filter-dd"
-          placeholder="Status"
-          searchPlaceholder="Search statuses"
-          itemNoun="statuses"
-          value={statusFilter}
-          onChange={(v) => setStatusFilter((v as StatusValue) ?? undefined)}
-          options={[
-            { value: 'present', label: 'Present' },
-            { value: 'late', label: 'Late' },
-            { value: 'absent', label: 'Absent' },
-          ]}
-          style={{ width: 150 }}
-          width={210}
-        />
-        <SearchableDropdown
-          className="att-filter-dd"
-          placeholder="Member"
-          searchPlaceholder="Search members"
-          itemNoun="members"
-          value={memberFilter}
-          onChange={(v) => setMemberFilter((v as string) ?? undefined)}
-          options={members.map((m) => ({ value: m.id, label: m.name || '—', avatarUrl: m.avatarUrl }))}
-          style={{ width: 170 }}
-          width={240}
-        />
-        <SearchableDropdown
-          className="att-filter-dd"
-          placeholder="Project"
-          searchPlaceholder="Search projects"
-          itemNoun="projects"
-          value={projectFilter}
-          onChange={(v) => setProjectFilter((v as string) ?? undefined)}
-          options={projects}
-          style={{ width: 170 }}
-          width={240}
-        />
-        <RangePicker
-          className="att-range"
-          value={dateRange}
-          onChange={(dates) => {
-            if (dates && dates[0] && dates[1]) setDateRange([dates[0].startOf('day'), dates[1].endOf('day')]);
-            else setDateRange(null);
-          }}
-        />
-        <span className="att-filter-count">{rows.length} of {total}</span>
-        {hasActiveFilters && (
-          <button type="button" className="att-clear" onClick={clearFilters}><CloseCircleOutlined /> Clear</button>
-        )}
-      </div>
-
-      {/* ── 4) TABLE ──────────────────────────────────────────────────────────── */}
-      </div>
+      {isFilterRowOpen && (
+        <FilterBar
+          activeCount={(statusFilter ? 1 : 0) + (memberFilter ? 1 : 0) + (projectFilter ? 1 : 0) + (dateRange ? 1 : 0)}
+          onReset={clearFilters}
+          onClose={() => setIsFilterRowOpen(false)}
+        >
+          <TicketFilterPill
+            label="Status"
+            icon={<CheckCircleOutlined />}
+            value={statusFilter}
+            options={[
+              { value: 'present', label: 'Present', dotColor: '#10b981' },
+              { value: 'late', label: 'Late', dotColor: '#f59e0b' },
+              { value: 'absent', label: 'Absent', dotColor: '#ef4444' },
+            ]}
+            onChange={(v) => setStatusFilter((v as StatusValue) || undefined)}
+          />
+          <TicketFilterPill
+            label="Member"
+            icon={<UserOutlined />}
+            value={memberFilter}
+            options={members.map((m) => ({
+              value: m.id,
+              label: m.name || '—',
+              initials: initialsFor(m.name || '—'),
+              avatarColor: avatarColorFor(m.name || '—'),
+            }))}
+            onChange={(v) => setMemberFilter((v as string) || undefined)}
+          />
+          <TicketFilterPill
+            label="Project"
+            icon={<TeamOutlined />}
+            value={projectFilter}
+            options={projects.map((p) => ({ value: p.value, label: p.label }))}
+            onChange={(v) => setProjectFilter((v as string) || undefined)}
+          />
+          <RangePicker
+            className="att-range"
+            value={dateRange}
+            style={{ borderRadius: 8, height: 32 }}
+            onChange={(dates) => {
+              if (dates && dates[0] && dates[1]) setDateRange([dates[0].startOf('day'), dates[1].endOf('day')]);
+              else setDateRange(null);
+            }}
+          />
+        </FilterBar>
+      )}
       <div className="att-table-wrap" style={{ overflowX: 'auto' }}>
         <ZukvoLoadingOverlay loading={loading} message="">
           <Table

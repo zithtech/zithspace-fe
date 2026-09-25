@@ -1020,7 +1020,7 @@ export default function ClientsV2ListPage() {
                   ]}
                   title="Client Analytics"
                   statusText="ACTIVE"
-                  progressPct={`${globalStats.totalClients > 0 ? Math.round((globalStats.activeClients / globalStats.totalClients) * 100) : 100}%`}
+                  progressPct={`${globalStats.totalClients > 0 ? Math.round((globalStats.activeClients / globalStats.totalClients) * 100) : 0}%`}
                   style={{ borderBottom: "1px solid var(--border-slate-200)" }}
                 />
 

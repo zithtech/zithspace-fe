@@ -45,6 +45,8 @@ import {
   FolderOpen,
   Plus,
   Menu,
+  RotateCw,
+  User,
 } from 'lucide-react';
 import type { UploadFile } from 'antd/es/upload/interface';
 import type { RcFile } from 'antd/es/upload';
@@ -55,6 +57,7 @@ import type { EmployeeDocument, DocumentStats } from '@/services/onboardingServi
 import { drawerFormStyles } from '@/components/common/DrawerSection';
 import { SearchableDropdown } from '@/components/common/SearchableDropdown';
 import { StatCards } from '@/components/onboarding/ui';
+import { FilterBar, FilterToggleButton, TicketFilterPill, initialsFor, avatarColorFor } from '@/components/common/FilterBar';
 
 const { Text } = Typography;
 const { Dragger } = Upload;
@@ -406,6 +409,7 @@ export default function OnboardingDocumentsPanel() {
   const [filterEmployee, setFilterEmployee] = useState<string | undefined>();
   const [filterType, setFilterType] = useState<string | undefined>();
   const [filterStatus, setFilterStatus] = useState<string | undefined>();
+  const [isFilterRowOpen, setIsFilterRowOpen] = useState(false);
   const [tablePage, setTablePage] = useState(1);
   const [tablePageSize, setTablePageSize] = useState(15);
   const [total, setTotal] = useState(0);
@@ -543,20 +547,46 @@ export default function OnboardingDocumentsPanel() {
             <p className="ob-doc-subtitle">Manage HR documents for employees</p>
           </div>
         </div>
-        <Button
-          type="primary"
-          icon={<Plus size={16} />}
-          className="onb-add-btn"
-          onClick={() => setWizardOpen(true)}
-        >
-          Add Document
-        </Button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <div className="onb-search-wrap">
+            <SearchOutlined className="onb-search-icon" />
+            <input
+              className="onb-search"
+              placeholder="Search by name or document…"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+          </div>
+          <FilterToggleButton
+            isOpen={isFilterRowOpen}
+            onToggle={() => setIsFilterRowOpen((prev) => !prev)}
+            activeCount={(filterStatus ? 1 : 0) + (filterEmployee ? 1 : 0) + (filterType ? 1 : 0)}
+          />
+          <Tooltip title="Refresh">
+            <button
+              type="button"
+              className="onb-ghost-btn"
+              onClick={fetchDocuments}
+            >
+              <RotateCw size={14} className={loading ? "onb-spin" : ""} />
+            </button>
+          </Tooltip>
+          <Button
+            type="primary"
+            icon={<Plus size={16} />}
+            className="onb-add-btn"
+            onClick={() => setWizardOpen(true)}
+          >
+            Add Document
+          </Button>
+        </div>
       </div>
 
       {/* ── Stats ───────────────────────────────────────────────────────── */}
       <StatCards
         title="Documents Overview"
         statusText="ACTIVE"
+        progressPct={stats.total > 0 ? Math.round((stats.uploaded / stats.total) * 100) : 0}
         cells={[
           { label: 'Total Documents', value: stats.total, icon: <FolderOpen size={14} />, color: '#3b82f6', tint: 'rgba(59,130,246,0.1)' },
           { label: 'Uploaded', value: stats.uploaded, icon: <CheckCircle2 size={14} />, color: '#059669', tint: 'rgba(5,150,105,0.1)' },
@@ -566,34 +596,44 @@ export default function OnboardingDocumentsPanel() {
       />
 
       {/* ── Filters ─────────────────────────────────────────────────────── */}
-      <div className="ob-doc-filters">
-        <div className="ob-doc-filter-label">Filters</div>
-        <Input
-          placeholder="Search by name or document…"
-          prefix={<SearchOutlined style={{ color: 'var(--text-slate-400)' }} />}
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          allowClear
-          style={{ width: 240 }}
-        />
-        <SearchableDropdown
-          placeholder="All employees"
-          width={220}
-          value={filterEmployee}
-          onChange={setFilterEmployee}
-          allowClear
-          options={employeeOptions}
-          showSelectedAvatar
-        />
-        <SearchableDropdown
-          placeholder="All types"
-          width={180}
-          value={filterType}
-          onChange={setFilterType}
-          allowClear
-          options={docTypeOptions.map((t) => ({ value: t, label: t }))}
-        />
-      </div>
+      {isFilterRowOpen && (
+        <FilterBar
+          activeCount={(filterStatus ? 1 : 0) + (filterEmployee ? 1 : 0) + (filterType ? 1 : 0)}
+          onReset={() => { setSearch(''); setFilterStatus(undefined); setFilterEmployee(undefined); setFilterType(undefined); }}
+          onClose={() => setIsFilterRowOpen(false)}
+        >
+          <TicketFilterPill
+            label="Status"
+            icon={<CheckCircle2 size={14} />}
+            value={filterStatus}
+            options={[
+              { value: 'uploaded', label: 'Uploaded', dotColor: '#10b981' },
+              { value: 'pending', label: 'Pending', dotColor: '#f59e0b' },
+              { value: 'expired', label: 'Expired', dotColor: '#ef4444' },
+            ]}
+            onChange={(v) => setFilterStatus(v as string || undefined)}
+          />
+          <TicketFilterPill
+            label="Employee"
+            icon={<User size={14} />}
+            value={filterEmployee}
+            options={employeeOptions.map((e) => ({
+              value: e.value,
+              label: e.label,
+              initials: initialsFor(e.label),
+              avatarColor: avatarColorFor(e.label),
+            }))}
+            onChange={(v) => setFilterEmployee(v as string || undefined)}
+          />
+          <TicketFilterPill
+            label="Type"
+            icon={<FileText size={14} />}
+            value={filterType}
+            options={docTypeOptions.map((t) => ({ value: t, label: t }))}
+            onChange={(v) => setFilterType(v as string || undefined)}
+          />
+        </FilterBar>
+      )}
 
       {/* ── Table ───────────────────────────────────────────────────────── */}
       <div className="ob-doc-table-wrap">
@@ -729,7 +769,7 @@ export default function OnboardingDocumentsPanel() {
         .ob-doc-wrap {
           display: flex;
           flex-direction: column;
-          gap: 16px;
+          gap: 0;
           flex: 1;
           min-height: 0;
           padding-bottom: 24px;
@@ -741,7 +781,7 @@ export default function OnboardingDocumentsPanel() {
           align-items: flex-start;
           justify-content: space-between;
           gap: 16px;
-          margin: 0 0 4px 0;
+          margin: 0 !important;
           padding: 12px 20px 14px 20px;
           border-bottom: 1px solid var(--border-slate-200, #e2e8f0);
           background: var(--bg-pure-white);

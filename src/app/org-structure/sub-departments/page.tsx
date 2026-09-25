@@ -381,6 +381,7 @@ export default function SubDepartmentsPage() {
             onRefresh={fetchSubDepartments}
             loading={subDepartmentsLoading}
             stats={stats}
+            progressPct={totalSubDepartments > 0 ? Math.round((activeSubDepartments / totalSubDepartments) * 100) : 0}
             columns={columns}
             data={paginatedSubDepartments}
             rowKey="id"

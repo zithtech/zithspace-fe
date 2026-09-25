@@ -1237,7 +1237,12 @@ export default function EscalationSettingsPage() {
           <div className="es-divider" />
 
           {/* Stats overview */}
-          <StatCards cards={statCells} />
+          <StatCards
+            title="Escalation Settings Overview"
+            statusText="ACTIVE"
+            progressPct={stats.categoriesTotal + stats.prioritiesTotal + stats.statusesTotal > 0 ? Math.round(((stats.categoriesActive + stats.prioritiesActive + stats.statusesActive) / (stats.categoriesTotal + stats.prioritiesTotal + stats.statusesTotal)) * 100) : 0}
+            cards={statCells}
+          />
 
           {/* Switcher + content card */}
           {/* Table / Panel */}

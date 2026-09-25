@@ -26,6 +26,7 @@ import {
   Tabs,
   Badge,
   Grid,
+  Select,
 } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import {
@@ -41,6 +42,7 @@ import {
 } from "@ant-design/icons";
 import { Boxes, Menu, Pencil, Plus, RotateCw, Settings, Trash2, Search } from "lucide-react";
 import { useTour } from "@/context/TourContext";
+import { useDebounce } from "@/hooks/useDebounce";
 import {
   MODULE_SETTINGS_STYLES,
   ModuleModal,
@@ -471,7 +473,7 @@ export default function BugListConfigManager() {
           </div>
           <ZukvoLoadingOverlay 
             loading={isRefreshing} 
-            className="dh-main-scroll bcm-pane"
+            className="dh-main-overlay"
             message="Refreshing configurations..."
             size="lg"
           >
@@ -500,18 +502,9 @@ export default function BugListConfigManager() {
             ) : (
             <ConfigSection
               key={activeSection.key}
+              sectionKey={activeSection.key as SectionKey}
               title={activeSection.title}
               description={activeSection.description}
-              loading={loadingMap[activeSection.key as SectionKey]}
-              options={
-                activeSection.key === "severity"
-                  ? severities.data || []
-                  : activeSection.key === "priority"
-                    ? priorities.data || []
-                    : activeSection.key === "bug_type"
-                      ? bugTypes.data || []
-                      : types.data || []
-              }
               showColor={activeSection.key === "severity" || activeSection.key === "priority"}
               canManage={activeSection.key === "type" ? canManageQa : canManageBugs}
               onCreate={() => setEditing({ kind: activeSection.key as EditorKind, option: null })}
@@ -643,10 +636,9 @@ export default function BugListConfigManager() {
 // ─────────────────────────────────────────────────────────────────────────
 
 interface ConfigSectionProps {
+  sectionKey: SectionKey;
   title: string;
   description: string;
-  loading: boolean;
-  options: BugConfigOption[];
   showColor: boolean;
   canManage: boolean;
   onCreate: () => void;
@@ -656,10 +648,9 @@ interface ConfigSectionProps {
 }
 
 function ConfigSection({
+  sectionKey,
   title,
   description,
-  loading,
-  options,
   showColor,
   canManage,
   onCreate,
@@ -669,17 +660,33 @@ function ConfigSection({
 }: ConfigSectionProps) {
   const lowerTitle = title.toLowerCase();
   const [searchTerm, setSearchTerm] = useState("");
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(15);
+  const debouncedSearch = useDebounce(searchTerm, 300);
 
-  const visibleOptions = React.useMemo(() => {
-    if (!searchTerm) return options;
-    const lowerSearch = searchTerm.toLowerCase();
-    return options.filter(
-      (o) =>
-        o.label.toLowerCase().includes(lowerSearch) ||
-        o.key.toLowerCase().includes(lowerSearch) ||
-        (o.description && o.description.toLowerCase().includes(lowerSearch))
-    );
-  }, [options, searchTerm]);
+  const isSeverity = sectionKey === "severity";
+  const isPriority = sectionKey === "priority";
+  const isBugType = sectionKey === "bug_type";
+  const isType = sectionKey === "type";
+
+  const severityQuery = useBugSeverityOptions(isSeverity ? { page, pageSize, search: debouncedSearch } : undefined);
+  const priorityQuery = useBugPriorityOptions(isPriority ? { page, pageSize, search: debouncedSearch } : undefined);
+  const bugTypeQuery = useBugListTypeOptions(isBugType ? { page, pageSize, search: debouncedSearch } : undefined);
+  const typeQuery = useBugTypeOptions(isType ? { page, pageSize, search: debouncedSearch } : undefined);
+
+  const activeQuery = isSeverity ? severityQuery : isPriority ? priorityQuery : isBugType ? bugTypeQuery : typeQuery;
+  const options: BugConfigOption[] = (activeQuery.data as any) || [];
+  const total = (activeQuery.data as any)?.total ?? (activeQuery.data as any)?.pagination?.total ?? options.length;
+  const loading = activeQuery.isLoading;
+
+  React.useEffect(() => {
+    setPage(1);
+  }, [debouncedSearch, sectionKey]);
+
+  const pageCount = Math.max(1, Math.ceil(total / pageSize));
+  const safePage = Math.min(page, pageCount);
+  const pageStart = total === 0 ? 0 : (safePage - 1) * pageSize + 1;
+  const pageEnd = Math.min(safePage * pageSize, total);
 
   const columns: ColumnsType<BugConfigOption> = [
     {
@@ -765,50 +772,102 @@ function ConfigSection({
   ];
 
   return (
-    <div className="sc-tablewrap">
-      <div className="st-head">
-        <div className="min-w-0">
-          <div className="st-head__title">{title} options</div>
-          <div className="st-head__desc">{description}</div>
-        </div>
-        <div className="st-head__actions" style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-          <Input
-            placeholder="Search…"
-            prefix={<Search size={14} style={{ color: "var(--text-slate-400)" }} />}
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            style={{ width: 200 }}
-            allowClear
+    <div style={{ display: "flex", flexDirection: "column", height: "100%", minHeight: 0, flex: 1 }}>
+      <div className="dh-main-scroll" style={{ flex: 1, overflowY: "auto", padding: 0 }}>
+        <div className="sc-tablewrap" style={{ borderLeft: "none", borderRight: "none", borderTop: "none", borderRadius: 0, margin: 0 }}>
+          <div className="st-head">
+            <div className="min-w-0">
+              <div className="st-head__title">{title} options</div>
+              <div className="st-head__desc">{description}</div>
+            </div>
+            <div className="st-head__actions" style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+              <Input
+                placeholder="Search…"
+                prefix={<Search size={14} style={{ color: "var(--text-slate-400)" }} />}
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                style={{ width: 200 }}
+                allowClear
+              />
+              {canManage && (
+                <Button type="primary" size="small" icon={<Plus size={14} />} onClick={onCreate}>Add Option</Button>
+              )}
+            </div>
+          </div>
+
+          <Table
+            className="ts-table sc-table"
+            rowKey="id"
+            size="middle"
+            columns={columns}
+            dataSource={options}
+            pagination={false}
+            scroll={{ x: "max-content" }}
+            locale={{
+              emptyText: loading ? (
+                <ZukvoLoader size="md" message="Loading options…" />
+              ) : (
+                <div className="sc-empty">
+                  <Settings size={26} className="sc-empty__icon" />
+                  <p className="sc-empty__title">No {lowerTitle} options yet</p>
+                  <p className="sc-empty__desc">{description}</p>
+                  {canManage && (
+                    <Button type="primary" size="small" icon={<Plus size={14} />} onClick={onCreate}>Add the first option</Button>
+                  )}
+                </div>
+              ),
+            }}
           />
-          {canManage && (
-            <Button type="primary" size="small" icon={<Plus size={14} />} onClick={onCreate}>Add Option</Button>
-          )}
         </div>
       </div>
 
-      <Table
-        className="ts-table sc-table"
-        rowKey="id"
-        size="middle"
-        columns={columns}
-        dataSource={visibleOptions}
-        pagination={false}
-        scroll={{ x: "max-content" }}
-        locale={{
-          emptyText: loading ? (
-            <ZukvoLoader size="md" message="Loading options…" />
-          ) : (
-            <div className="sc-empty">
-              <Settings size={26} className="sc-empty__icon" />
-              <p className="sc-empty__title">No {lowerTitle} options yet</p>
-              <p className="sc-empty__desc">{description}</p>
-              {canManage && (
-                <Button type="primary" size="small" icon={<Plus size={14} />} onClick={onCreate}>Add the first option</Button>
-              )}
-            </div>
-          ),
-        }}
-      />
+      {total > 0 && (
+        <div className="pp-footer">
+          <div className="pp-footer-info">
+            Showing <strong>{pageStart}–{pageEnd}</strong> of <strong>{total}</strong>
+          </div>
+          <div className="pp-pager">
+            <button
+              type="button"
+              className="pp-pager-btn"
+              disabled={safePage <= 1}
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+            >
+              ‹
+            </button>
+            {Array.from({ length: pageCount }, (_, i) => i + 1)
+              .slice(Math.max(0, safePage - 3), Math.max(0, safePage - 3) + 5)
+              .map((p) => (
+                <button
+                  key={p}
+                  type="button"
+                  className={`pp-pager-num ${p === safePage ? "is-active" : ""}`}
+                  onClick={() => setPage(p)}
+                >
+                  {p}
+                </button>
+              ))}
+            <button
+              type="button"
+              className="pp-pager-btn"
+              disabled={safePage >= pageCount}
+              onClick={() => setPage((p) => Math.min(pageCount, p + 1))}
+            >
+              ›
+            </button>
+            <Select
+              className="pp-pagesize"
+              value={pageSize}
+              onChange={(v) => {
+                setPageSize(v);
+                setPage(1);
+              }}
+              options={[10, 15, 20, 25, 50, 100].map((n) => ({ value: n, label: `${n} / page` }))}
+              popupMatchSelectWidth={120}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -1166,6 +1225,21 @@ function BcmStyles() {
       }
 
       /* Removed Tabs styling as we are using standard dh-shell */
+
+      .dh-main-overlay {
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+        min-height: 0;
+        flex: 1;
+      }
+      .dh-main-overlay .zlo__content {
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+        min-height: 0;
+        flex: 1;
+      }
 
       .bcm-pane {
         min-width: 0;

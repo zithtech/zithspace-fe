@@ -422,11 +422,27 @@ export default function DocumentRepositoryPage() {
       <StatCards
         title="Records Overview"
         statusText="ACTIVE"
+        progressPct={(() => {
+          const thisWeek = documents.filter(d => {
+            if (!d.generatedAt) return false;
+            return (new Date().getTime() - new Date(d.generatedAt).getTime()) < 7 * 24 * 60 * 60 * 1000;
+          }).length;
+          return total > 0 ? Math.min(100, Math.round((thisWeek / total) * 100)) : 0;
+        })()}
         cells={[
           { label: 'Generated Records', value: total, icon: <Archive size={15} />, color: PALETTE.blue, tint: TINT.blue },
-          { label: 'PDF Exports', value: total, icon: <FileCheck size={15} />, color: PALETTE.green, tint: TINT.green },
+          {
+            label: 'This Week',
+            value: documents.filter(d => {
+              if (!d.generatedAt) return false;
+              return (new Date().getTime() - new Date(d.generatedAt).getTime()) < 7 * 24 * 60 * 60 * 1000;
+            }).length,
+            icon: <FileCheck size={15} />,
+            color: PALETTE.green,
+            tint: TINT.green
+          },
           { label: 'Categories', value: categories.length, icon: <Layers size={15} />, color: PALETTE.violet, tint: TINT.violet },
-          { label: 'Templates Used', value: templates.length, icon: <FileText size={15} />, color: PALETTE.amber, tint: TINT.amber },
+          { label: 'Templates Used', value: new Set(documents.map(d => d.templateId).filter(Boolean)).size || (templates.length > 0 ? Math.min(templates.length, total) : 0), icon: <FileText size={15} />, color: PALETTE.amber, tint: TINT.amber },
         ]}
       />
 

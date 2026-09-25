@@ -59,6 +59,7 @@ import {
 import TicketFilterPill, {
   FilterPillOption,
 } from "@/components/projects/TicketFilterPill";
+import { FilterBar, FilterToggleButton } from "@/components/common/FilterBar";
 
 dayjs.extend(quarterOfYear);
 
@@ -319,22 +320,11 @@ export default function PortalInvoicesPage() {
             allowClear
           />
 
-          <Space.Compact className="ticket-filter-group">
-            <Button
-              icon={<FilterOutlined />}
-              className={activeFilterCount > 0 ? "saas-tag-blue" : ""}
-              style={{ height: 32, fontWeight: 600, fontSize: 12 }}
-              onClick={() => setIsFilterRowOpen((v) => !v)}
-            >
-              Filters {activeFilterCount > 0 && `(${activeFilterCount})`}
-            </Button>
-            <Button
-              icon={<ExpandAltOutlined />}
-              style={{ height: 32 }}
-              aria-label="Expand filters"
-              onClick={() => setIsFilterRowOpen((v) => !v)}
-            />
-          </Space.Compact>
+          <FilterToggleButton
+            isOpen={isFilterRowOpen}
+            onToggle={() => setIsFilterRowOpen((v) => !v)}
+            activeCount={activeFilterCount}
+          />
 
           {/* View Toggle */}
           <div className="premium-view-toggle" role="group" aria-label="View mode">
@@ -370,91 +360,64 @@ export default function PortalInvoicesPage() {
       </div>
 
       {/* ── Inline filter row (when opened) ── */}
-      {isFilterRowOpen && (
-        <div className="tl-filter-row">
-          <div className="tl-filter-row-label">
-            <FilterOutlined style={{ fontSize: 11 }} />
-            <span>Filters</span>
-            <span className="tl-filter-row-count">{activeFilterCount}</span>
-          </div>
+      <FilterBar
+        isOpen={isFilterRowOpen}
+        activeCount={activeFilterCount}
+        onClose={() => setIsFilterRowOpen(false)}
+        onReset={() => {
+          setStatus("ALL");
+          setCustomerFilter("");
+          setDatePicked(null);
+          setPage(1);
+        }}
+      >
+        {/* Status Pill */}
+        <TicketFilterPill
+          icon={<CheckCircle2 size={12} />}
+          label="Status"
+          value={status === "ALL" ? "" : status}
+          options={STATUS_FILTER_OPTIONS}
+          onChange={(val: any) => {
+            setStatus(val || "ALL");
+            setPage(1);
+          }}
+          itemNoun="statuses"
+          multiple={false}
+        />
 
-          <div className="tl-filter-row-pills">
-            {/* Status Pill */}
-            <TicketFilterPill
-              icon={<CheckCircle2 size={12} />}
-              label="Status"
-              value={status === "ALL" ? "" : status}
-              options={STATUS_FILTER_OPTIONS}
-              onChange={(val: any) => {
-                setStatus(val || "ALL");
-                setPage(1);
-              }}
-              itemNoun="statuses"
-              multiple={false}
-            />
+        {/* Customer Pill */}
+        {customerOptions.length > 0 && (
+          <TicketFilterPill
+            icon={<User size={12} />}
+            label="Customer"
+            value={customerFilter}
+            options={customerOptions}
+            onChange={(val: any) => {
+              setCustomerFilter(val || "");
+              setPage(1);
+            }}
+            itemNoun="customers"
+            width={260}
+            multiple={false}
+          />
+        )}
 
-            {/* Customer Pill */}
-            {customerOptions.length > 0 && (
-              <TicketFilterPill
-                icon={<User size={12} />}
-                label="Customer"
-                value={customerFilter}
-                options={customerOptions}
-                onChange={(val: any) => {
-                  setCustomerFilter(val || "");
-                  setPage(1);
-                }}
-                itemNoun="customers"
-                width={260}
-                multiple={false}
-              />
-            )}
-
-            {/* Date Range Picker */}
-            <RangePicker
-              value={datePicked}
-              onChange={(dates) => {
-                setDatePicked(dates as [Dayjs | null, Dayjs | null] | null);
-                setPage(1);
-              }}
-              presets={rangePresets}
-              className="premium-rangepicker"
-              style={{ height: 28, borderRadius: 6, fontSize: 12 }}
-              placeholder={["Start", "End"]}
-              format="DD MMM YY"
-              suffixIcon={<Calendar size={12} color={p.textFaint} />}
-              allowClear
-            />
-          </div>
-
-          <div className="tl-filter-row-actions">
-            {activeFilterCount > 0 && (
-              <button
-                type="button"
-                className="tl-filter-row-reset"
-                onClick={() => {
-                  setStatus("ALL");
-                  setCustomerFilter("");
-                  setDatePicked(null);
-                  setPage(1);
-                }}
-              >
-                <ReloadOutlined style={{ fontSize: 10 }} />
-                Reset
-              </button>
-            )}
-            <button
-              type="button"
-              className="tl-filter-row-close"
-              onClick={() => setIsFilterRowOpen(false)}
-              aria-label="Close filters"
-              title="Close filters"
-            >
-              <CloseOutlined style={{ fontSize: 10 }} />
-            </button>
-          </div>
-        </div>
-      )}
+        {/* Date Range Picker */}
+        <RangePicker
+          value={datePicked}
+          onChange={(dates) => {
+            setDatePicked(dates as [Dayjs | null, Dayjs | null] | null);
+            setPage(1);
+          }}
+          presets={rangePresets}
+          className="premium-rangepicker"
+          style={{ height: 28, borderRadius: 6, fontSize: 12 }}
+          placeholder={["Start", "End"]}
+          format="DD MMM YY"
+          suffixIcon={<Calendar size={12} color={p.textFaint} />}
+          allowClear
+        />
+      </FilterBar>
 
       {/* ── Main Overview Banner (Sprint head style) ── */}
       <div className="tl-section-head tl-sprint-head-v2 tl-section-head--static">

@@ -130,6 +130,7 @@ export default function InvoiceTemplatePage() {
   }, [templates]);
 
   const progressPct = counts.all > 0 ? Math.round((counts.active / counts.all) * 100) : 0;
+
   const activeViewTitle = useMemo(() => {
     switch (statusFilter) {
       case "active": return "Active Templates";
@@ -1032,11 +1033,11 @@ export default function InvoiceTemplatePage() {
 
         /* Overview Banner (Sprint head v2 style) */
         .invoice-overview-banner {
-          background: var(--bg-pure-white);
+          background: var(--bg-slate-50, #f8fafc);
           border-top: none;
           border-left: none;
           border-right: none;
-          border-bottom: 1px solid var(--border-slate-200);
+          border-bottom: 1px solid var(--border-slate-200, #e2e8f0);
           border-radius: 0;
           margin: 0;
         }
@@ -1044,7 +1045,7 @@ export default function InvoiceTemplatePage() {
           display: flex !important;
           flex-direction: column;
           gap: 6px;
-          padding: 10px 24px 10px 14px !important;
+          padding: 10px 24px !important;
         }
         .tl-sprint-row1 {
           display: flex;
@@ -1065,11 +1066,13 @@ export default function InvoiceTemplatePage() {
           height: 7px;
           border-radius: 50%;
           flex-shrink: 0;
+          background: #3b82f6;
+          box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
         }
         .tl-sprint-title {
-          font-size: 14px !important;
+          font-size: 13.5px !important;
           font-weight: 800 !important;
-          color: var(--text-slate-900) !important;
+          color: var(--text-slate-900, #0f172a) !important;
           letter-spacing: -0.01em;
           max-width: 460px;
         }
@@ -1138,11 +1141,11 @@ export default function InvoiceTemplatePage() {
           gap: 6px;
           font-size: 11.5px;
           font-weight: 600;
-          color: var(--text-slate-500);
+          color: var(--text-slate-500, #64748b);
           letter-spacing: -0.005em;
         }
         .tl-sprint-meta b {
-          color: var(--text-slate-900);
+          color: var(--text-slate-900, #0f172a);
           font-weight: 800;
         }
         [data-theme='dark'] .tl-sprint-meta { color: #94a3b8 !important; }
@@ -1158,7 +1161,7 @@ export default function InvoiceTemplatePage() {
           flex: 1 1 auto;
           position: relative;
           height: 6px;
-          background: var(--bg-slate-100);
+          background: var(--bg-slate-100, #f1f5f9);
           border-radius: 999px;
           overflow: hidden;
           min-width: 60px;
@@ -1167,7 +1170,7 @@ export default function InvoiceTemplatePage() {
         .tl-sprint-progress-fill {
           position: absolute;
           inset: 0;
-          background: linear-gradient(90deg, #3b82f6, #10b981);
+          background: linear-gradient(90deg, #3b82f6, #2563eb);
           border-radius: 999px;
           transition: width 0.4s ease;
         }
@@ -1175,7 +1178,7 @@ export default function InvoiceTemplatePage() {
           flex-shrink: 0;
           font-size: 12px;
           font-weight: 800;
-          color: var(--text-slate-900);
+          color: var(--text-slate-900, #0f172a);
           font-variant-numeric: tabular-nums;
           min-width: 36px;
         }

@@ -88,6 +88,7 @@ import { useActiveSettingsProfiles } from "@/hooks/useInvoiceSettings";
 import { useActivitySource } from "@/hooks/useActivitySource";
 import ConfirmDialog from "@/components/common/ConfirmDialog";
 import { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
+import { FilterBar, FilterToggleButton, TicketFilterPill } from "@/components/common/FilterBar";
 
 const { Title, Text } = Typography;
 
@@ -291,6 +292,15 @@ export default function InvoiceInvoicesPage() {
   const [customerFilter, setCustomerFilter] = useState<string | null>(null);
   const [previewInvoiceNumber, setPreviewInvoiceNumber] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<"card" | "table">("table");
+  const [isFilterRowOpen, setIsFilterRowOpen] = useState(false);
+
+  const activeFilterCount = useMemo(() => {
+    let count = 0;
+    if (customerFilter) count++;
+    if (dateRange && dateRange[0] && dateRange[1]) count++;
+    if (activeView !== "all") count++;
+    return count;
+  }, [customerFilter, dateRange, activeView]);
 
   // Pagination states
   const [currentPage, setCurrentPage] = useState(1);
@@ -1153,44 +1163,6 @@ export default function InvoiceInvoicesPage() {
                 <span className="pp-view-count">{viewCounts.overdue}</span>
               </button>
             </div>
-
-            <div className="pp-side-section-label">Filters</div>
-            <div className="pp-side-filters" style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-              <Select
-                showSearch
-                optionFilterProp="label"
-                className="pp-side-select"
-                placeholder="Select Customer"
-                value={customerFilter}
-                onChange={(v) => setCustomerFilter(v || null)}
-                allowClear
-                options={customerOptions}
-                style={{ width: "100%" }}
-              />
-              <RangePicker
-                className="pp-side-range"
-                value={dateRange as any}
-                onChange={(d) => setDateRange(d as any)}
-                placeholder={['Start date', 'End date']}
-                separator={<span style={{ color: 'var(--text-slate-400)' }}>›</span>}
-                suffixIcon={null}
-                format="MMM D"
-                style={{ width: "100%", height: "36px" }}
-              />
-              {(customerFilter || (dateRange && (dateRange[0] || dateRange[1]))) && (
-                <button
-                  type="button"
-                  className="pp-clear-filters"
-                  onClick={() => {
-                    setCustomerFilter(null);
-                    setDateRange(null);
-                  }}
-                  style={{ display: "inline-flex", alignItems: "center", gap: "5px", background: "none", border: "none", cursor: "pointer", padding: "3px", fontSize: "12px", fontWeight: "600", color: "#f87171" }}
-                >
-                  <XCircle size={12} /> Clear filters
-                </button>
-              )}
-            </div>
           </div>
 
           <div className="pp-side-bottom-actions">
@@ -1237,6 +1209,11 @@ export default function InvoiceInvoicesPage() {
             </div>
 
             <div className="pp-topbar-actions">
+              <FilterToggleButton
+                isOpen={isFilterRowOpen}
+                onToggle={() => setIsFilterRowOpen((v) => !v)}
+                activeCount={activeFilterCount}
+              />
               <div className="pp-segmented">
                 <button
                   type="button"
@@ -1254,7 +1231,6 @@ export default function InvoiceInvoicesPage() {
                 >
                   <LayoutGrid size={14} />
                 </button>
-
               </div>
               <Tooltip title="Refresh">
                 <button type="button" className="pp-ghost-btn" onClick={() => refetch()}><ReloadOutlined spin={isLoading || isFetching} /></button>
@@ -1343,6 +1319,68 @@ export default function InvoiceInvoicesPage() {
                 <span className="tl-sprint-progress-pct">{progressPct}%</span>
               </div>
             </div>
+
+            {/* ── Inline filter row (when opened) ── */}
+            <FilterBar
+              isOpen={isFilterRowOpen}
+              activeCount={activeFilterCount}
+              onClose={() => setIsFilterRowOpen(false)}
+              onReset={() => {
+                setCustomerFilter(null);
+                setDateRange(null);
+                setActiveView("all");
+                setSearchText("");
+                setCurrentPage(1);
+              }}
+            >
+              {/* Status/View Pill */}
+              <TicketFilterPill
+                label="Status"
+                value={activeView === "all" ? "" : activeView}
+                options={[
+                  { value: "draft", label: "Draft" },
+                  { value: "awaiting", label: "Awaiting Payment" },
+                  { value: "paid", label: "Paid" },
+                  { value: "overdue", label: "Overdue" },
+                ]}
+                onChange={(val: any) => {
+                  setActiveView((val as any) || "all");
+                  setCurrentPage(1);
+                }}
+                itemNoun="statuses"
+                multiple={false}
+              />
+
+              {/* Customer Pill */}
+              {customerOptions.length > 0 && (
+                <TicketFilterPill
+                  icon={<User size={12} />}
+                  label="Customer"
+                  value={customerFilter || ""}
+                  options={customerOptions}
+                  onChange={(val: any) => {
+                    setCustomerFilter(val || null);
+                    setCurrentPage(1);
+                  }}
+                  itemNoun="customers"
+                  width={260}
+                  multiple={false}
+                />
+              )}
+
+              {/* Date Range Picker */}
+              <DatePicker.RangePicker
+                value={dateRange}
+                onChange={(dates) => {
+                  setDateRange(dates);
+                  setCurrentPage(1);
+                }}
+                placeholder={['Start date', 'End date']}
+                style={{ height: 28, borderRadius: 6, fontSize: 12 }}
+                format="MMM D, YYYY"
+                allowClear
+              />
+            </FilterBar>
 
             {/* Bulk Action Bar */}
             {selectedRowKeys.length > 0 && (
@@ -2824,11 +2862,11 @@ export default function InvoiceInvoicesPage() {
 
         /* Overview Banner (Sprint head v2 style) */
         .invoice-overview-banner {
-          background: var(--bg-pure-white);
+          background: var(--bg-slate-50, #f8fafc);
           border-top: none;
           border-left: none;
           border-right: none;
-          border-bottom: 1px solid var(--border-slate-200);
+          border-bottom: 1px solid var(--border-slate-200, #e2e8f0);
           border-radius: 0;
           margin: 0;
         }
@@ -2836,7 +2874,7 @@ export default function InvoiceInvoicesPage() {
           display: flex !important;
           flex-direction: column;
           gap: 6px;
-          padding: 10px 24px 10px 14px !important;
+          padding: 10px 24px !important;
         }
         .tl-sprint-row1 {
           display: flex;
@@ -2857,11 +2895,13 @@ export default function InvoiceInvoicesPage() {
           height: 7px;
           border-radius: 50%;
           flex-shrink: 0;
+          background: #3b82f6;
+          box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
         }
         .tl-sprint-title {
-          font-size: 14px !important;
+          font-size: 13.5px !important;
           font-weight: 800 !important;
-          color: var(--text-slate-900) !important;
+          color: var(--text-slate-900, #0f172a) !important;
           letter-spacing: -0.01em;
           max-width: 460px;
         }
@@ -2984,7 +3024,7 @@ export default function InvoiceInvoicesPage() {
           flex: 1 1 auto;
           position: relative;
           height: 6px;
-          background: var(--bg-slate-100);
+          background: var(--bg-slate-100, #f1f5f9);
           border-radius: 999px;
           overflow: hidden;
           min-width: 60px;
@@ -2993,7 +3033,7 @@ export default function InvoiceInvoicesPage() {
         .tl-sprint-progress-fill {
           position: absolute;
           inset: 0;
-          background: linear-gradient(90deg, #3b82f6, #10b981);
+          background: linear-gradient(90deg, #3b82f6, #2563eb);
           border-radius: 999px;
           transition: width 0.4s ease;
         }

@@ -58,6 +58,7 @@ interface OrgModuleScaffoldProps<T> {
   loading?: boolean;
 
   stats: OrgStatDef[];
+  progressPct?: string | number;
 
   columns: ColumnsType<T>;
   data: T[];
@@ -133,6 +134,7 @@ export function OrgModuleScaffold<T extends Record<string, any>>({
   onRefresh,
   loading,
   stats,
+  progressPct,
   columns,
   data,
   rowKey,
@@ -249,6 +251,7 @@ export function OrgModuleScaffold<T extends Record<string, any>>({
         <StatCards
           title={title || "Org Structure Overview"}
           statusText="ACTIVE"
+          progressPct={progressPct}
           cells={statCells}
         />
       )}

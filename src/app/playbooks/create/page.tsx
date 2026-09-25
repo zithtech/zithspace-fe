@@ -15,7 +15,7 @@ import { api as axios } from "@/lib/axios";
 import PlaybookEditor from "@/components/qa/PlaybookEditor";
 
 function CreatePlaybook() {
-  useActivitySource({ section: "WORK", module: "QA", page: "CreatePlaybook" });
+  useActivitySource({ section: "WORK", module: "Playbooks", page: "QaPlaybooks" });
 
   const { user } = useAuth();
   const { canCreatePlaybook } = usePermission();

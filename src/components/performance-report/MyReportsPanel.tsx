@@ -140,98 +140,100 @@ export default function MyReportsPanel() {
         </div>
       </div>
 
-      {loading ? (
-        <div className="mr-grid">
-          {Array.from({ length: 6 }).map((_, i) => (
-            <div key={i} className="mr-skel">
-              <div className="mr-skel-line" style={{ width: '52%' }} />
-              <div className="mr-skel-line" style={{ width: '32%' }} />
-              <div className="mr-skel-block" />
-              <div className="mr-skel-row">
-                {Array.from({ length: 5 }).map((__, j) => (
-                  <div key={j} className="mr-skel-cell" />
-                ))}
+      <div className="mr-body">
+        {loading ? (
+          <div className="mr-grid">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <div key={i} className="mr-skel">
+                <div className="mr-skel-line" style={{ width: '52%' }} />
+                <div className="mr-skel-line" style={{ width: '32%' }} />
+                <div className="mr-skel-block" />
+                <div className="mr-skel-row">
+                  {Array.from({ length: 5 }).map((__, j) => (
+                    <div key={j} className="mr-skel-cell" />
+                  ))}
+                </div>
+                <div className="mr-skel-line" style={{ width: '100%', height: 34 }} />
               </div>
-              <div className="mr-skel-line" style={{ width: '100%', height: 34 }} />
-            </div>
-          ))}
-        </div>
-      ) : !latest ? (
-        <div className="mr-empty">
-          <span className="mr-empty-ic">
-            <FileSearch size={26} />
-          </span>
-          <div className="mr-empty-title">No reports yet</div>
-          <p className="mr-empty-sub">
-            Your monthly performance report appears here once it’s generated for you. Nothing to do
-            in the meantime.
-          </p>
-        </div>
-      ) : (
-        <div className="mr-grid">
-          {sorted.map((r, i) => {
-            const band = performanceBand(r.overallScore);
-            const pct = Math.max(0, Math.min(100, r.overallScore ?? 0));
-            return (
-              <div key={r.id} className="mr-card">
-                <span className="mr-card-rail" />
+            ))}
+          </div>
+        ) : !latest ? (
+          <div className="mr-empty">
+            <span className="mr-empty-ic">
+              <FileSearch size={26} />
+            </span>
+            <div className="mr-empty-title">No reports yet</div>
+            <p className="mr-empty-sub">
+              Your monthly performance report appears here once it’s generated for you. Nothing to do
+              in the meantime.
+            </p>
+          </div>
+        ) : (
+          <div className="mr-grid">
+            {sorted.map((r, i) => {
+              const band = performanceBand(r.overallScore);
+              const pct = Math.max(0, Math.min(100, r.overallScore ?? 0));
+              return (
+                <div key={r.id} className="mr-card">
+                  <span className="mr-card-rail" />
 
-                <div className="mr-card-top">
-                  <div style={{ minWidth: 0 }}>
-                    <div className="mr-month">
-                      {periodLabel(r.periodKey)}
-                      {i === 0 && <span className="mr-latest">Latest</span>}
-                    </div>
-                    <div className="mr-gen">Generated {dayjs(r.generatedAt).format('MMM D, YYYY')}</div>
-                  </div>
-                  <span className="mr-band" style={{ color: band.color, background: `${band.color}14` }}>
-                    {band.label}
-                  </span>
-                </div>
-
-                <div className="mr-score-block">
-                  <div className="mr-score-row">
-                    <span className="mr-score" style={{ color: pointsColor(r.overallScore) }}>
-                      {r.overallScore ?? '—'}
-                    </span>
-                    <span className="mr-score-max">/ 100</span>
-                    <span className="mr-score-label">Overall performance</span>
-                  </div>
-                  <div className="mr-score-bar">
-                    <span style={{ width: `${pct}%`, background: pointsColor(r.overallScore) }} />
-                  </div>
-                </div>
-
-                <div className="mr-modules">
-                  {MODULES.map((m) => {
-                    const v = r[m.key] as number | null;
-                    return (
-                      <div key={m.label} className="mr-mod">
-                        <div className="mr-mod-val" style={{ color: pointsColor(v) }}>{v ?? '—'}</div>
-                        <div className="mr-mod-label">{m.label}</div>
-                        <div className="mr-mod-bar">
-                          <span style={{ width: `${Math.max(0, Math.min(100, v ?? 0))}%`, background: pointsColor(v) }} />
-                        </div>
+                  <div className="mr-card-top">
+                    <div style={{ minWidth: 0 }}>
+                      <div className="mr-month">
+                        {periodLabel(r.periodKey)}
+                        {i === 0 && <span className="mr-latest">Latest</span>}
                       </div>
-                    );
-                  })}
-                </div>
+                      <div className="mr-gen">Generated {dayjs(r.generatedAt).format('MMM D, YYYY')}</div>
+                    </div>
+                    <span className="mr-band" style={{ color: band.color, background: `${band.color}14` }}>
+                      {band.label}
+                    </span>
+                  </div>
 
-                <div className="mr-foot">
-                  <a href={r.fileUrl} target="_blank" rel="noopener noreferrer" style={{ flex: 1 }}>
-                    <Button block icon={<FilePdfOutlined />}>Open PDF</Button>
-                  </a>
-                  <Button
-                    icon={<DownloadOutlined />}
-                    title="Download PDF"
-                    onClick={() => forceDownload(r.fileUrl, fileNameOf(r.fileUrl))}
-                  />
+                  <div className="mr-score-block">
+                    <div className="mr-score-row">
+                      <span className="mr-score" style={{ color: pointsColor(r.overallScore) }}>
+                        {r.overallScore ?? '—'}
+                      </span>
+                      <span className="mr-score-max">/ 100</span>
+                      <span className="mr-score-label">Overall performance</span>
+                    </div>
+                    <div className="mr-score-bar">
+                      <span style={{ width: `${pct}%`, background: pointsColor(r.overallScore) }} />
+                    </div>
+                  </div>
+
+                  <div className="mr-modules">
+                    {MODULES.map((m) => {
+                      const v = r[m.key] as number | null;
+                      return (
+                        <div key={m.label} className="mr-mod">
+                          <div className="mr-mod-val" style={{ color: pointsColor(v) }}>{v ?? '—'}</div>
+                          <div className="mr-mod-label">{m.label}</div>
+                          <div className="mr-mod-bar">
+                            <span style={{ width: `${Math.max(0, Math.min(100, v ?? 0))}%`, background: pointsColor(v) }} />
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  <div className="mr-foot">
+                    <a href={r.fileUrl} target="_blank" rel="noopener noreferrer" style={{ flex: 1 }}>
+                      <Button block icon={<FilePdfOutlined />}>Open PDF</Button>
+                    </a>
+                    <Button
+                      icon={<DownloadOutlined />}
+                      title="Download PDF"
+                      onClick={() => forceDownload(r.fileUrl, fileNameOf(r.fileUrl))}
+                    />
+                  </div>
                 </div>
-              </div>
-            );
-          })}
-        </div>
-      )}
+              );
+            })}
+          </div>
+        )}
+      </div>
 
       {total > 0 && (
         <div className="mr-footer mr-footer--sticky">
@@ -257,17 +259,18 @@ export default function MyReportsPanel() {
 
       <style jsx global>{`
         .mr-wrap { display: flex; flex-direction: column; flex: 1; min-height: 100%; position: relative; }
+        .mr-body { flex: 1; min-height: 0; padding: 20px 24px 24px 24px; }
 
-        .mr-footer { display: flex; align-items: center; justify-content: flex-end; padding: 10px 16px; background: var(--bg-pure-white); border-top: 1px solid var(--border-slate-200); margin-top: auto; }
+        .mr-footer { display: flex; align-items: center; justify-content: flex-end; padding: 10px 24px; background: var(--bg-pure-white); border-top: 1px solid var(--border-slate-200); margin-top: auto; }
         .mr-footer--sticky { position: sticky; bottom: 0; z-index: 30; box-shadow: 0 -4px 14px rgba(15, 23, 42, 0.08); }
         .mr-footer .ant-pagination { width: 100%; display: flex; align-items: center; justify-content: space-between; margin: 0 !important; padding: 0 !important; border-top: none !important; background: transparent !important; flex-wrap: wrap; gap: 8px; }
         .mr-footer .ant-pagination-total-text { margin-right: auto; color: var(--text-slate-500); font-size: 12.5px; }
 
-        /* ── Hero band (full-bleed via the layout's -header rule) ───────────── */
+        /* ── Hero band ───────────────────────────────────────────────────────── */
         .mr-header {
           position: relative; overflow: hidden;
-          margin-top: -12px; padding: 14px 0 13px; margin-bottom: 16px;
-          border-bottom: 1px solid var(--border-slate-100);
+          padding: 14px 24px; margin: 0;
+          border-bottom: 1px solid var(--border-slate-200);
           background:
             linear-gradient(180deg, rgba(59, 130, 246, 0.055), rgba(59, 130, 246, 0) 82%),
             var(--bg-pure-white);

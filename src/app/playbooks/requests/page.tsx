@@ -89,7 +89,7 @@ function priceText(row: {
 }
 
 export default function PlaybookRequestsPage() {
-  useActivitySource({ section: "WORK", module: "QA", page: "PlaybookRequests" });
+  useActivitySource({ section: "WORK", module: "Playbooks", page: "RequestedPlaybooks" });
 
   const router = useRouter();
   const queryClient = useQueryClient();

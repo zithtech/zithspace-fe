@@ -409,7 +409,11 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
             label: "Trash",
             icon: I(Trash2),
             path: "/playbooks/trash",
-            requiredSubscriptionFeature: ["work_playbooks_playbook_trash"],
+            requiredSubscriptionFeature: [
+              "work_playbooks_qa_playbooks_upload",
+              "work_playbooks_collections_new_collections",
+              "work_playbooks_qa_playbooks_new_playbook",
+            ],
             requiredPermission: Permissions.PLAYBOOK_TRASH_READ,
           },
         ],

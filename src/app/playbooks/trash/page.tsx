@@ -96,7 +96,7 @@ interface TrashData {
 }
 
 export default function PlaybooksTrashPage() {
-  useActivitySource({ section: "WORK", module: "QA", page: "PlaybooksTrash" });
+  useActivitySource({ section: "WORK", module: "Playbooks", page: "PlaybookTrash" });
 
   const router = useRouter();
   const searchParams = useSearchParams();

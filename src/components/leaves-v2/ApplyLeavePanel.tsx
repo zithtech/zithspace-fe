@@ -676,7 +676,7 @@ export default function ApplyLeavePanel({ hideSidebarToggle }: { hideSidebarTogg
 
       <style jsx global>{`
         .lva { display: flex; flex-direction: column; flex: 1; min-height: 0; }
-        .lva-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding-bottom: 14px; margin-bottom: 14px; border-bottom: 1px solid var(--border-slate-200); flex-wrap: wrap; }
+        .lva-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 14px 22px; margin-bottom: 0; border-bottom: 1px solid var(--border-slate-200); flex-wrap: wrap; background: var(--bg-pure-white); }
         .lva-header-about { display: flex; align-items: center; gap: 12px; min-width: 200px; }
         .lva-header-icon { width: 38px; height: 38px; border-radius: 10px; background: ${TINT.green}; color: ${PALETTE.green}; display: inline-flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; }
         .lva-header-title { font-size: 17px; font-weight: 800; color: var(--text-slate-900); letter-spacing: -0.02em; }
@@ -707,7 +707,7 @@ export default function ApplyLeavePanel({ hideSidebarToggle }: { hideSidebarTogg
         .lva-filter-label .anticon { color: var(--text-slate-400); }
         .lva-filter-count { font-size: 12px; color: var(--text-slate-500); }
         .lva-clear { display: inline-flex; align-items: center; gap: 5px; background: none; border: none; cursor: pointer; padding: 3px 6px; font-size: 12px; font-weight: 600; color: ${PALETTE.red}; margin-left: auto; }
-        .lva-table-wrap { background: var(--bg-pure-white); border: 1px solid var(--border-slate-200); border-radius: 0; overflow: hidden; margin-bottom: 24px; }
+        .lva-table-wrap { background: var(--bg-pure-white); border: 1px solid var(--border-slate-200); border-radius: 0; overflow: hidden; margin-bottom: 0; }
         .lva-table, .lva-table.ant-table-wrapper, .lva-table .ant-table, .lva-table .ant-table-container, .lva-table .ant-table-content, .lva-table .ant-table-header, .lva-table .ant-table-body { background: transparent; font-size: 12px; border-radius: 0 !important; }
         .lva-table .ant-table-body { min-height: 200px; scrollbar-width: none; -ms-overflow-style: none; }
         .lva-table .ant-table-body::-webkit-scrollbar, .lva-table .ant-table-content::-webkit-scrollbar, .lva-table .ant-table-container::-webkit-scrollbar { display: none; }
@@ -727,8 +727,8 @@ export default function ApplyLeavePanel({ hideSidebarToggle }: { hideSidebarTogg
         .lva-detail { display: flex; flex-wrap: wrap; gap: 10px 40px; padding: 12px 16px 12px 46px; }
         .lva-detail-item { display: flex; flex-direction: column; gap: 4px; min-width: 120px; }
         .lva-detail-label { font-size: 10px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: var(--text-slate-400); }
-        .lva-footer { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; height: 52px; box-sizing: border-box; }
-        .lva-footer--sticky { position: sticky; bottom: 0; z-index: 20; margin: 20px -32px 0; padding: 0 32px; background: var(--bg-pure-white); border-top: 1px solid var(--border-slate-200); box-shadow: 0 -4px 14px rgba(15,23,42,0.05); }
+        .lva-footer { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; height: 52px; box-sizing: border-box; padding: 0 22px; }
+        .lva-footer--sticky { position: sticky; bottom: 0; z-index: 20; margin: auto 0 0 0; padding: 0 22px; background: var(--bg-pure-white); border-top: 1px solid var(--border-slate-200); box-shadow: 0 -4px 14px rgba(15,23,42,0.05); }
         .lva-footer-info { font-size: 12px; color: var(--text-slate-500); }
         .lva-footer-info strong { color: var(--text-slate-700); font-weight: 700; }
         .lva-pager { display: flex; align-items: center; gap: 3px; }

@@ -840,62 +840,95 @@ export default function EscalationListPage() {
 
         {/* ============================ MAIN ============================ */}
         <main className="es-main">
-          {/* My Hub: header moved here from the (removed) left rail */}
-          {isMyHub && (
-            <div className="es-mh-header">
-              <div className="es-side-logo"><AlertOutlined style={{ color: isDark ? '#ffffff' : '#3b82f6' }} /></div>
-              <div className="es-side-head-text">
-                <div className="es-side-title">Escalations</div>
-                <div className="es-side-subtitle">Quality & Performance</div>
+          {/* Header */}
+          {isMyHub ? (
+            <div className="es-header es-header--myhub">
+              <div className="es-header-about">
+                <div className="es-side-logo"><AlertOutlined style={{ color: isDark ? '#ffffff' : '#3b82f6' }} /></div>
+                <div className="es-side-head-text">
+                  <div className="es-side-title">Escalations</div>
+                  <div className="es-side-subtitle">Quality & Performance</div>
+                </div>
+              </div>
+
+              <div className="es-header-actions">
+                <div className="es-search-wrap">
+                  <SearchOutlined className="es-search-icon" />
+                  <input
+                    ref={searchRef}
+                    className="es-search"
+                    placeholder="Search subject, target, project…"
+                    value={searchText}
+                    onChange={(e) => setSearchText(e.target.value)}
+                  />
+                </div>
+
+                <div className="es-topbar-meta">
+                  <span className="es-meta-item"><span className="es-pulse" /><strong>{totalEscalations}</strong> total</span>
+                  <span className="es-meta-dot">·</span>
+                  <span className="es-meta-item"><strong>{statsData.pending}</strong> pending</span>
+                </div>
+
+                <FilterToggleButton
+                  isOpen={isFilterOpen}
+                  onToggle={() => setIsFilterOpen((prev) => !prev)}
+                  activeCount={(categoryFilter.length > 0 ? 1 : 0) + (priorityFilter.length > 0 ? 1 : 0) + (statusFilter.length > 0 ? 1 : 0)}
+                />
+                <div className="es-segmented">
+                  <button type="button" className={view === 'grid' ? 'is-active' : ''} onClick={() => setView('grid')} aria-label="Grid view"><AppstoreOutlined /></button>
+                  <button type="button" className={view === 'list' ? 'is-active' : ''} onClick={() => setView('list')} aria-label="List view"><UnorderedListOutlined /></button>
+                </div>
+                <Tooltip title="Refresh">
+                  <button type="button" className="es-ghost-btn" onClick={handleRefresh}><ReloadOutlined spin={loading} /></button>
+                </Tooltip>
               </div>
             </div>
+          ) : (
+            <>
+              <div className="es-topbar">
+                <div className="es-topbar-left" style={{ display: 'flex', flex: 1, alignItems: 'center', gap: 8, maxWidth: 520 }}>
+                  <Button
+                    className="es-mobile-menu-btn"
+                    type="text"
+                    icon={<Menu size={18} />}
+                    onClick={() => setMobileSidebarOpen(true)}
+                  />
+                  <div className="es-search-wrap" style={{ maxWidth: 'none' }}>
+                    <SearchOutlined className="es-search-icon" />
+                    <input
+                      ref={searchRef}
+                      className="es-search"
+                      placeholder="Search subject, target, project…"
+                      value={searchText}
+                      onChange={(e) => setSearchText(e.target.value)}
+                    />
+                  </div>
+                </div>
+
+                <div className="es-topbar-meta">
+                  <span className="es-meta-item"><span className="es-pulse" /><strong>{totalEscalations}</strong> total</span>
+                  <span className="es-meta-dot">·</span>
+                  <span className="es-meta-item"><strong>{statsData.pending}</strong> pending</span>
+                </div>
+
+                <div className="es-topbar-actions">
+                  <FilterToggleButton
+                    isOpen={isFilterOpen}
+                    onToggle={() => setIsFilterOpen((prev) => !prev)}
+                    activeCount={(categoryFilter.length > 0 ? 1 : 0) + (priorityFilter.length > 0 ? 1 : 0) + (statusFilter.length > 0 ? 1 : 0)}
+                  />
+                  <div className="es-segmented">
+                    <button type="button" className={view === 'grid' ? 'is-active' : ''} onClick={() => setView('grid')} aria-label="Grid view"><AppstoreOutlined /></button>
+                    <button type="button" className={view === 'list' ? 'is-active' : ''} onClick={() => setView('list')} aria-label="List view"><UnorderedListOutlined /></button>
+                  </div>
+                  <Tooltip title="Refresh">
+                    <button type="button" className="es-ghost-btn" onClick={handleRefresh}><ReloadOutlined spin={loading} /></button>
+                  </Tooltip>
+                </div>
+              </div>
+              <div className="es-divider" />
+            </>
           )}
-          <div className="es-topbar">
-            <div className="es-topbar-left" style={{ display: 'flex', flex: 1, alignItems: 'center', gap: 8, maxWidth: 520 }}>
-              {!isMyHub && (
-                <Button
-                  className="es-mobile-menu-btn"
-                  type="text"
-                  icon={<Menu size={18} />}
-                  onClick={() => setMobileSidebarOpen(true)}
-                />
-              )}
-              <div className="es-search-wrap" style={{ maxWidth: 'none' }}>
-                <SearchOutlined className="es-search-icon" />
-                <input
-                  ref={searchRef}
-                  className="es-search"
-                  placeholder="Search subject, target, project…"
-                  value={searchText}
-                  onChange={(e) => setSearchText(e.target.value)}
-                />
-
-              </div>
-            </div>
-
-            <div className="es-topbar-meta">
-              <span className="es-meta-item"><span className="es-pulse" /><strong>{totalEscalations}</strong> total</span>
-              <span className="es-meta-dot">·</span>
-              <span className="es-meta-item"><strong>{statsData.pending}</strong> pending</span>
-            </div>
-
-            <div className="es-topbar-actions">
-              <FilterToggleButton
-                isOpen={isFilterOpen}
-                onToggle={() => setIsFilterOpen((prev) => !prev)}
-                activeCount={(categoryFilter.length > 0 ? 1 : 0) + (priorityFilter.length > 0 ? 1 : 0) + (statusFilter.length > 0 ? 1 : 0)}
-              />
-              <div className="es-segmented">
-                <button type="button" className={view === 'grid' ? 'is-active' : ''} onClick={() => setView('grid')} aria-label="Grid view"><AppstoreOutlined /></button>
-                <button type="button" className={view === 'list' ? 'is-active' : ''} onClick={() => setView('list')} aria-label="List view"><UnorderedListOutlined /></button>
-              </div>
-              <Tooltip title="Refresh">
-                <button type="button" className="es-ghost-btn" onClick={handleRefresh}><ReloadOutlined spin={loading} /></button>
-              </Tooltip>
-            </div>
-          </div>
-
-          <div className="es-divider" />
 
           {/* Stat cards */}
           <StatCards
@@ -1630,13 +1663,17 @@ export default function EscalationListPage() {
         }
 
         /* ---------------- Main ---------------- */
-        .es-main { flex: 1; min-width: 0; padding: 8px 0 0 0; display: flex; flex-direction: column; height: 100%; }
-        /* My Hub header (moved here from the removed left rail) */
-        .es-mh-header {
-          display: flex; align-items: center; gap: 12px;
-          padding: 4px 0 12px; margin-bottom: 10px;
-          border-bottom: 1px solid var(--border-slate-100);
+        .es-main { flex: 1; min-width: 0; padding: 0; display: flex; flex-direction: column; height: 100%; }
+        /* My Hub unified header */
+        .es-header--myhub {
+          display: flex; align-items: center; justify-content: space-between; gap: 16px;
+          padding: 14px 24px; margin-bottom: 0;
+          border-bottom: 1px solid var(--border-slate-200); background: var(--bg-pure-white);
+          flex-wrap: wrap;
         }
+        .es-header-about { display: flex; align-items: center; gap: 12px; min-width: 200px; }
+        .es-header-actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-left: auto; }
+        .es-header-actions .es-search-wrap { width: 220px; max-width: 260px; }
         .es-body { flex: 1; min-height: 0; overflow-y: auto; }
         .es-topbar { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; padding: 12px 24px 8px 24px; }
         .es-search-wrap {

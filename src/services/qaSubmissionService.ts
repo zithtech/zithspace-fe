@@ -252,6 +252,7 @@ export interface SubmissionListItem {
   qa_owner_id?: string | null;
   qa_owner_name?: string | null;
   qa_owner_avatar?: string | null;
+  owner_reports_to_id?: string | null;
   run_count: number;
   total_cases: number;
   executed: number;

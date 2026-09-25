@@ -40,6 +40,7 @@ import type { SortOrder } from "antd/es/table/interface";
 
 import { usePermission } from "@/hooks/usePermission";
 import { useActivitySource } from "@/hooks/useActivitySource";
+import { useAuth } from "@/context/AuthContext";
 import { useTour } from "@/context/TourContext";
 import { api as axios } from "@/lib/axios";
 import { SearchableDropdown } from "@/components/common/SearchableDropdown";
@@ -135,6 +136,7 @@ function ApprovalsContent() {
 
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { user } = useAuth();
   const { canReadPmApproval, canApproveSubmission, canSendBackSubmission, canApproveScope } = usePermission();
   const { run, currentTourKey, stepIndex, setStepIndex, steps } = useTour();
 
@@ -188,6 +190,8 @@ function ApprovalsContent() {
   const [approveComment, setApproveComment] = useState("");
   const [sendBackTarget, setSendBackTarget] = useState<SubmissionListItem | null>(null);
   const [sendBackReason, setSendBackReason] = useState("");
+  const [retestTarget, setRetestTarget] = useState<SubmissionListItem | null>(null);
+  const [retestComment, setRetestComment] = useState("");
 
   const bucket = useMemo(
     () => BUCKETS.find((b) => b.key === bucketKey) || BUCKETS[0],
@@ -296,6 +300,22 @@ function ApprovalsContent() {
     }
   };
 
+  const confirmRetest = async () => {
+    if (!retestTarget) return;
+    try {
+      setBusy(true);
+      await QaSubmissionService.changeStatus(retestTarget.id, "Retesting", retestComment.trim() || undefined);
+      message.success(`${retestTarget.submission_name} moved to Retesting`);
+      setRetestTarget(null);
+      setRetestComment("");
+      await Promise.all([fetchList(), fetchStats()]);
+    } catch (e: any) {
+      message.error(e?.response?.data?.error || "The submission could not be moved to Retesting");
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const confirmSendBack = async () => {
     if (!sendBackTarget) return;
     // The server rejects an empty reason too — asking here saves the round trip
@@ -339,7 +359,7 @@ function ApprovalsContent() {
     [members],
   );
 
-  const openSubmission = (id: string) => router.push(`/qa-workspace/qa-submissions/${id}`);
+  const openSubmission = (id: string) => router.push(`/qa-workspace/qa-submissions/${id}?from=approvals`);
 
   // Either queue is enough to have business here — an approver who only signs
   // off test scopes still needs this page.
@@ -437,6 +457,8 @@ function ApprovalsContent() {
         // record moves on to QA's sign-off, so the row states the outcome
         // instead of showing an inert pair of buttons.
         const decided = r.status === "Approved" || r.status === "QA Signed-off";
+        const isReportsTo = !!user && !!r.owner_reports_to_id && String(user.id) === String(r.owner_reports_to_id);
+
         return (
           <div className="sc-rowactions" onClick={(ev) => ev.stopPropagation()}>
             <Tooltip title="Open the full submission">
@@ -449,19 +471,33 @@ function ApprovalsContent() {
                 Approved {fmtDate(r.approved_at)}
                 {r.status === "QA Signed-off" ? " · signed off" : " · awaiting QA sign-off"}
               </span>
-            ) : (
+            ) : isReportsTo ? (
               <>
-                {canSendBackSubmission && (
-                  <Button
-                    size="small"
-                    icon={<Undo2 size={13} />}
-                    onClick={() => {
-                      setSendBackReason("");
-                      setSendBackTarget(r);
-                    }}
-                  >
-                    Send Back
-                  </Button>
+                {canSendBackSubmission && !["Draft", "Approved", "Sent Back"].includes(r.status) && (
+                  <Tooltip title="Send Back">
+                    <Button
+                      size="small"
+                      icon={<Undo2 size={13} />}
+                      onClick={() => {
+                        setSendBackReason("");
+                        setSendBackTarget(r);
+                      }}
+                      aria-label="Send Back"
+                    />
+                  </Tooltip>
+                )}
+                {canSendBackSubmission && !["Draft", "Approved", "QA Signed-off", "Retesting"].includes(r.status) && (
+                  <Tooltip title="Retesting">
+                    <Button
+                      size="small"
+                      icon={<RefreshCcw size={13} />}
+                      onClick={() => {
+                        setRetestComment("");
+                        setRetestTarget(r);
+                      }}
+                      aria-label="Retesting"
+                    />
+                  </Tooltip>
                 )}
                 {canApproveSubmission && (
                   <Button
@@ -478,6 +514,8 @@ function ApprovalsContent() {
                   </Button>
                 )}
               </>
+            ) : (
+              <span className="qs-muted">Awaiting decision</span>
             )}
           </div>
         );
@@ -902,6 +940,53 @@ function ApprovalsContent() {
           onChange={(ev) => setSendBackReason(ev.target.value)}
           placeholder="What does QA need to do before this can be approved?"
         />
+      </Modal>
+
+      {/* Retesting modal */}
+      <Modal
+        open={!!retestTarget}
+        onCancel={() => setRetestTarget(null)}
+        title="Move submission to Retesting"
+        okText="Confirm Retesting"
+        confirmLoading={busy}
+        onOk={confirmRetest}
+        width={560}
+      >
+        {retestTarget && (
+          <>
+            <p style={{ marginBottom: 10 }}>
+              Move <strong>{retestTarget.submission_name}</strong>
+              {retestTarget.scope_name ? ` (${retestTarget.scope_name})` : ""} to <strong>Retesting</strong>.
+            </p>
+            <div className="qs-metrics" style={{ marginBottom: 12 }}>
+              <div className="qs-metric">
+                <span className="qs-metric__label">Total</span>
+                <span className="qs-metric__value">{retestTarget.total_cases}</span>
+              </div>
+              <div className="qs-metric qs-metric--green">
+                <span className="qs-metric__label">Passed</span>
+                <span className="qs-metric__value">{retestTarget.passed}</span>
+              </div>
+              <div className="qs-metric qs-metric--red">
+                <span className="qs-metric__label">Failed</span>
+                <span className="qs-metric__value">{retestTarget.failed}</span>
+              </div>
+              <div className="qs-metric qs-metric--amber">
+                <span className="qs-metric__label">Open bugs</span>
+                <span className="qs-metric__value">{retestTarget.open_bugs}</span>
+              </div>
+            </div>
+            <p className="qs-hint" style={{ marginBottom: 10 }}>
+              Moving to Retesting allows QA to link retest runs and re-verify fixes for failing test cases.
+            </p>
+            <Input.TextArea
+              rows={3}
+              value={retestComment}
+              onChange={(ev) => setRetestComment(ev.target.value)}
+              placeholder="Reason or instructions for retesting (optional)"
+            />
+          </>
+        )}
       </Modal>
     </MainLayout>
   );

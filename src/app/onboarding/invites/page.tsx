@@ -49,6 +49,7 @@ import { commonDrawerProps, drawerFormStyles, SectionCard } from '@/components/c
 import SearchableDropdown from '@/components/common/SearchableDropdown';
 import { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
 import { StatCards } from "@/components/onboarding/ui";
+import { FilterBar, FilterToggleButton, TicketFilterPill } from "@/components/common/FilterBar";
 
 // ── Module palette: blue / green / red / grey / gold (status only) ───────────
 const PALETTE = {
@@ -149,6 +150,8 @@ function InvitesContent() {
   const [candidateSearch, setCandidateSearch] = useState('');
 
   const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'invited' | 'employee_submitted' | 'completed' | 'expired' | 'revoked'>('all');
+  const [isFilterRowOpen, setIsFilterRowOpen] = useState(false);
   const [total, setTotal] = useState(0);
   const [apiStats, setApiStats] = useState({ total: 0, invited: 0, submitted: 0, completed: 0 });
 
@@ -157,6 +160,7 @@ function InvitesContent() {
     try {
       const res = await EmployeeOnboardingService.listInvites({
         search,
+        status: statusFilter === 'all' ? undefined : statusFilter,
         limit: tablePageSize,
         offset: (tablePage - 1) * tablePageSize,
       });
@@ -179,7 +183,7 @@ function InvitesContent() {
     } finally {
       setLoading(false);
     }
-  }, [search, tablePage, tablePageSize]);
+  }, [search, statusFilter, tablePage, tablePageSize]);
 
   useEffect(() => {
     load();
@@ -570,6 +574,11 @@ function InvitesContent() {
               }}
             />
           </div>
+          <FilterToggleButton
+            isOpen={isFilterRowOpen}
+            onToggle={() => setIsFilterRowOpen((prev) => !prev)}
+            activeCount={statusFilter !== 'all' ? 1 : 0}
+          />
           <Tooltip title="Refresh">
             <button type="button" className="onbi-ghost-btn" onClick={load} aria-label="Refresh">
               <RefreshCw size={15} className={loading ? 'onbi-spin' : ''} />
@@ -589,10 +598,10 @@ function InvitesContent() {
       </div>
 
       {/* ── STAT CARDS ──────────────────────────────────────────────────── */}
-      {/* ── STAT CARDS ──────────────────────────────────────────────────── */}
       <StatCards
         title="Invites Overview"
         statusText="ACTIVE"
+        progressPct={apiStats.total > 0 ? Math.round((apiStats.completed / apiStats.total) * 100) : 0}
         cells={[
           { key: 'total', label: 'Total Invites', value: apiStats.total, icon: <Mail size={14} />, color: PALETTE.blue, tint: TINT.blue, period: 'sent' },
           { key: 'invited', label: 'Awaiting', value: apiStats.invited, icon: <Link2 size={14} />, color: PALETTE.blue, tint: TINT.blue, period: 'not started' },
@@ -606,6 +615,29 @@ function InvitesContent() {
           tint: s.tint
         }))}
       />
+
+      {/* ── FILTERS ─────────────────────────────────────────────────────── */}
+      {isFilterRowOpen && (
+        <FilterBar
+          activeCount={statusFilter !== 'all' ? 1 : 0}
+          onReset={() => { setSearch(''); setStatusFilter('all'); }}
+          onClose={() => setIsFilterRowOpen(false)}
+        >
+          <TicketFilterPill
+            label="Status"
+            icon={<CheckCircle2 size={14} />}
+            value={statusFilter === 'all' ? undefined : statusFilter}
+            options={[
+              { value: 'invited', label: 'Awaiting', dotColor: '#3b82f6' },
+              { value: 'employee_submitted', label: 'Submitted', dotColor: '#f59e0b' },
+              { value: 'completed', label: 'Completed', dotColor: '#10b981' },
+              { value: 'expired', label: 'Expired', dotColor: '#ef4444' },
+              { value: 'revoked', label: 'Revoked', dotColor: '#94a3b8' },
+            ]}
+            onChange={(v) => setStatusFilter((v as any) || 'all')}
+          />
+        </FilterBar>
+      )}
 
       {/* ── TABLE ───────────────────────────────────────────────────────── */}
       <div className="onbi-table-wrap">
@@ -1012,7 +1044,7 @@ function InvitesContent() {
         /* Header */
         .onbi-header {
           display: flex; align-items: center; justify-content: space-between; gap: 16px;
-          margin: 0 0 14px 0; padding: 12px 20px 14px 20px; border-bottom: 1px solid var(--border-slate-200);
+          margin: 0 !important; padding: 12px 20px 14px 20px; border-bottom: 1px solid var(--border-slate-200);
           background: var(--bg-pure-white);
           position: sticky; top: 0; z-index: 30;
         }

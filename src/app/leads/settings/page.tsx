@@ -1600,6 +1600,7 @@ export default function LeadSettingsPage() {
                             <StatCards
                                 title="Lead Settings Overview"
                                 statusText="ACTIVE"
+                                progressPct={Number(statCells[0]?.value) > 0 ? Math.round((Number(statCells[1]?.value) / Number(statCells[0]?.value)) * 100) : 0}
                                 cells={[
                                     {
                                         label: "Total Definitions",

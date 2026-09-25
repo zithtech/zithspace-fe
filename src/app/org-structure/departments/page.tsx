@@ -413,6 +413,7 @@ export default function DepartmentsPage() {
             onViewChange={setView}
             loading={loading}
             stats={stats}
+            progressPct={totalDepartments > 0 ? Math.round((withLeader / totalDepartments) * 100) : 0}
             columns={columns}
             data={paginatedDepartments}
             rowKey="id"

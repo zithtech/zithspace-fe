@@ -85,7 +85,7 @@ function LoginInner() {
                 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
             }}
           >
-            Z
+            P
           </div>
           <div
             style={{
@@ -97,7 +97,7 @@ function LoginInner() {
               marginBottom: 4,
             }}
           >
-            Zukvo · Client Portal
+            Client Portal
           </div>
           <Title level={3} style={{ margin: 0, color: "#0f172a" }}>
             Welcome back

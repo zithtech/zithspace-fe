@@ -68,6 +68,7 @@ import TransactionHistoryDrawer from '@/components/common/TransactionHistoryDraw
 import ConfirmDialog from '@/components/common/ConfirmDialog';
 import { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
 import { StatCards } from "@/components/common/StatCards";
+import { FilterBar, FilterToggleButton, TicketFilterPill } from "@/components/common/FilterBar";
 
 dayjs.extend(relativeTime);
 
@@ -156,6 +157,7 @@ export default function EscalationListPage() {
   const [statuses, setStatuses] = useState<any[]>([]);
 
   // Filters
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [statusFilter, setStatusFilter] = useState<string[]>([]);
   const [priorityFilter, setPriorityFilter] = useState<string[]>([]);
   const [categoryFilter, setCategoryFilter] = useState<string[]>([]);
@@ -878,6 +880,11 @@ export default function EscalationListPage() {
             </div>
 
             <div className="es-topbar-actions">
+              <FilterToggleButton
+                isOpen={isFilterOpen}
+                onToggle={() => setIsFilterOpen((prev) => !prev)}
+                activeCount={(categoryFilter.length > 0 ? 1 : 0) + (priorityFilter.length > 0 ? 1 : 0) + (statusFilter.length > 0 ? 1 : 0)}
+              />
               <div className="es-segmented">
                 <button type="button" className={view === 'grid' ? 'is-active' : ''} onClick={() => setView('grid')} aria-label="Grid view"><AppstoreOutlined /></button>
                 <button type="button" className={view === 'list' ? 'is-active' : ''} onClick={() => setView('list')} aria-label="List view"><UnorderedListOutlined /></button>
@@ -891,49 +898,65 @@ export default function EscalationListPage() {
           <div className="es-divider" />
 
           {/* Stat cards */}
-          <StatCards cards={statCells} />
+          <StatCards
+            title="Escalations Overview"
+            statusText="ACTIVE"
+            progressPct={statsData.total > 0 ? Math.round((statsData.resolved / statsData.total) * 100) : 0}
+            cards={statCells}
+          />
 
-          {/* Filters (moved from the left sidebar to a bar above the table) */}
-          <div className="es-filter-bar">
-            <SearchableDropdown
-              mode="multiple"
-              className="es-side-sd"
-              placeholder="Category"
-              searchPlaceholder="Search category"
-              itemNoun="categories"
-              value={categoryFilter}
-              onChange={(v) => setCategoryFilter(v || [])}
-              options={categoryOptions}
-              width="180px"
-            />
-            <SearchableDropdown
-              mode="multiple"
-              className="es-side-sd"
-              placeholder="Priority"
-              searchPlaceholder="Search priority"
-              itemNoun="priorities"
-              value={priorityFilter}
-              onChange={(v) => setPriorityFilter(v || [])}
-              options={priorityOptions}
-              width="180px"
-            />
-            <SearchableDropdown
-              mode="multiple"
-              className="es-side-sd"
-              placeholder="Status"
-              searchPlaceholder="Search status"
-              itemNoun="statuses"
-              value={statusFilter}
-              onChange={(v) => setStatusFilter(v || [])}
-              options={statusOptions}
-              width="180px"
-            />
-            {hasActiveFilters && (
-              <button type="button" className="es-clear-filters" onClick={handleClearFilters}>
-                <CloseCircleOutlined /> Clear filters
-              </button>
-            )}
-          </div>
+          {/* Unified FilterBar */}
+          {isFilterOpen && (
+            <FilterBar
+              activeCount={(categoryFilter.length > 0 ? 1 : 0) + (priorityFilter.length > 0 ? 1 : 0) + (statusFilter.length > 0 ? 1 : 0)}
+              onReset={handleClearFilters}
+              onClose={() => setIsFilterOpen(false)}
+              actions={
+                <span style={{ fontSize: 12, color: 'var(--text-slate-500)', whiteSpace: 'nowrap' }}>
+                  <b>{filteredEscalations.length}</b> of <b>{totalEscalations}</b> escalations
+                </span>
+              }
+            >
+              <TicketFilterPill
+                label="Category"
+                icon={<AppstoreOutlined />}
+                values={categoryFilter}
+                multiple
+                options={categoryOptions.map((c) => ({
+                  value: c.value,
+                  label: c.label,
+                  dotColor: c.color || '#3b82f6',
+                }))}
+                onChange={(v) => setCategoryFilter(Array.isArray(v) ? (v as string[]) : v ? [String(v)] : [])}
+              />
+
+              <TicketFilterPill
+                label="Priority"
+                icon={<FireOutlined />}
+                values={priorityFilter}
+                multiple
+                options={priorityOptions.map((p) => ({
+                  value: p.value,
+                  label: p.label,
+                  dotColor: p.color || '#ef4444',
+                }))}
+                onChange={(v) => setPriorityFilter(Array.isArray(v) ? (v as string[]) : v ? [String(v)] : [])}
+              />
+
+              <TicketFilterPill
+                label="Status"
+                icon={<CheckCircleOutlined />}
+                values={statusFilter}
+                multiple
+                options={statusOptions.map((s) => ({
+                  value: s.value,
+                  label: s.label,
+                  dotColor: s.color || '#10b981',
+                }))}
+                onChange={(v) => setStatusFilter(Array.isArray(v) ? (v as string[]) : v ? [String(v)] : [])}
+              />
+            </FilterBar>
+          )}
 
           {/* Table / grid */}
           <div className="es-body">

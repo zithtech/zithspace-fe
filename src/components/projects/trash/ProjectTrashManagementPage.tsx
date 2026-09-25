@@ -1,25 +1,19 @@
 "use client";
 
 import NoData from "@/components/common/NoData";
-import React, { useState, useEffect } from "react";
+import React, { useState, useMemo } from "react";
 import {
-  Card,
   Table,
   Button,
   Typography,
   Tooltip,
-  message,
-  Input,
   Avatar,
-  Empty,
   Tag,
   App,
   Skeleton,
   Badge,
-  Select,
   DatePicker,
   Pagination,
-  Divider,
 } from "antd";
 import ConfirmDialog from "@/components/common/ConfirmDialog";
 import {
@@ -27,15 +21,11 @@ import {
   UndoOutlined,
   SearchOutlined,
   ReloadOutlined,
-  InboxOutlined,
-  ExclamationCircleOutlined,
-  CloseOutlined,
   AppstoreOutlined,
   UnorderedListOutlined,
-  CloseCircleOutlined,
-  MenuOutlined,
-  MenuFoldOutlined,
-  MenuUnfoldOutlined,
+  ProjectOutlined,
+  UserOutlined,
+  CloseOutlined,
 } from "@ant-design/icons";
 import { FolderKanban, Trash2, AlertTriangle, Clock } from "lucide-react";
 import {
@@ -47,72 +37,27 @@ import {
   useBulkPermanentDeleteProjects,
 } from "@/hooks/useProjectTrash";
 import { useQueryClient } from "@tanstack/react-query";
-
-import dayjs from "dayjs";
+import dayjs, { Dayjs } from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
-import { SearchableDropdown } from "@/components/common/SearchableDropdown";
 import { useTheme } from "@/context/ThemeContext";
 import { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
+import StatCards from "@/components/common/StatCards";
+import { FilterBar, FilterToggleButton, TicketFilterPill } from "@/components/common/FilterBar";
 
 dayjs.extend(relativeTime);
 
-const { Title, Text } = Typography;
-
-const { Option } = Select;
-
-const Sparkline: React.FC<{ data: number[]; color: string; height?: number }> = ({ data, color, height = 22 }) => {
-  const min = Math.min(...data);
-  const max = Math.max(...data, min + 1);
-  const range = max - min;
-  const width = 72;
-  const bottomPadding = 4;
-
-  const points = data.map((d, i) => {
-    const x = (i / (data.length - 1)) * width;
-    let y = height - bottomPadding;
-    if (max > min) {
-      y = height - bottomPadding - ((d - min) / range) * (height - bottomPadding - 2);
-    }
-    return { x, y };
-  });
-
-  let pathD = `M ${points[0].x},${points[0].y}`;
-  for (let i = 1; i < points.length; i++) {
-    pathD += ` L ${points[i].x},${points[i].y}`;
-  }
-
-  const fillD = `${pathD} L ${width},${height} L 0,${height} Z`;
-
-  const isFlat = data.every(d => d === data[0]);
-  const flatY = 2;
-  const flatPathD = `M 0,${flatY} L ${width},${flatY}`;
-  const flatFillD = `${flatPathD} L ${width},${height} L 0,${height} Z`;
-
-  const gradId = `spark-grad-${color.replace('#', '')}`;
-
-  return (
-    <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`} style={{ overflow: 'visible' }}>
-      <defs>
-        <linearGradient id={gradId} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor={color} stopOpacity={0.3} />
-          <stop offset="100%" stopColor={color} stopOpacity={0.05} />
-        </linearGradient>
-      </defs>
-      <path d={isFlat ? flatFillD : fillD} fill={`url(#${gradId})`} />
-      <path d={isFlat ? flatPathD : pathD} fill="none" stroke={color} strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
-};
+const { Text } = Typography;
 
 export default function ProjectTrashManagementPage() {
-  console.log("Forcing HMR reload for ProjectTrashManagementPage");
   const [searchQuery, setSearchQuery] = useState("");
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [viewMode, setViewMode] = useState<"card" | "table">("table");
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
   const { theme } = useTheme();
   const isDark = theme === "dark";
   const [pagination, setPagination] = useState({ current: 1, pageSize: 15 });
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
+  const [dateRange, setDateRange] = useState<[Dayjs | null, Dayjs | null] | null>(null);
   const [filters, setFilters] = useState<{
     projectId?: string;
     projectManagerId?: string;
@@ -122,21 +67,13 @@ export default function ProjectTrashManagementPage() {
   const { message } = App.useApp();
   const queryClient = useQueryClient();
 
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
-
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      setIsSidebarOpen(window.innerWidth >= 1100);
-    }
-  }, []);
-
-  // Fetch all for stats and filters
+  // Fetch all for stats and dropdown options
   const { data: allTrashRes } = useProjectTrash();
-  // Fetch paginated for the table
-  const { data: paginatedTrashRes, isLoading, refetch } = useProjectTrash({
+  // Fetch paginated for the table / cards
+  const { data: paginatedTrashRes, isLoading } = useProjectTrash({
     page: pagination.current,
     limit: pagination.pageSize,
-    search: searchQuery || undefined
+    search: searchQuery || undefined,
   });
 
   const restoreProject = useRestoreProject();
@@ -145,37 +82,127 @@ export default function ProjectTrashManagementPage() {
   const bulkRestore = useBulkRestoreProjects();
   const bulkDelete = useBulkPermanentDeleteProjects();
 
-  const allTrashProjects = Array.isArray(allTrashRes) ? allTrashRes : (allTrashRes?.data || []);
-  const paginatedTrashProjects = Array.isArray(paginatedTrashRes) ? paginatedTrashRes : (paginatedTrashRes?.data || []);
-  const totalTrashItems = Array.isArray(paginatedTrashRes) ? paginatedTrashRes.length : (paginatedTrashRes?.pagination?.total || 0);
+  const allTrashProjects: any[] = Array.isArray(allTrashRes)
+    ? allTrashRes
+    : allTrashRes?.data || [];
+  const paginatedTrashProjects: any[] = Array.isArray(paginatedTrashRes)
+    ? paginatedTrashRes
+    : paginatedTrashRes?.data || [];
+  const totalTrashItems = Array.isArray(paginatedTrashRes)
+    ? paginatedTrashRes.length
+    : paginatedTrashRes?.pagination?.total || 0;
 
-  const uniqueProjects = Array.from(new Map(allTrashProjects?.map((p: any) => [p.id, p.name])).entries());
-  const uniqueManagers = Array.from(new Map(allTrashProjects?.filter((p: any) => p.projectManager).map((p: any) => [p.projectManager.id, { name: p.projectManager.name, avatarUrl: p.projectManager.avatarUrl }])).entries());
+  const uniqueProjects = useMemo(() => {
+    return Array.from(new Map(allTrashProjects.map((p: any) => [p.id, p.name])).entries());
+  }, [allTrashProjects]);
 
-  // We filter the ALL projects for the stats and sidebar filters
-  const filteredProjectsForStats = allTrashProjects?.filter((p: any) => {
-    const matchesSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase()) || p.code.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesProject = !filters.projectId || p.id === filters.projectId;
-    const matchesManager = !filters.projectManagerId || p.projectManager?.id === filters.projectManagerId;
+  const uniqueManagers = useMemo(() => {
+    return Array.from(
+      new Map(
+        allTrashProjects
+          .filter((p: any) => p.projectManager)
+          .map((p: any) => [
+            p.projectManager.id,
+            { name: p.projectManager.name, avatarUrl: p.projectManager.avatarUrl },
+          ])
+      ).entries()
+    );
+  }, [allTrashProjects]);
 
-    let matchesDate = true;
-    if (filters.startDate && filters.endDate && p.updatedAt) {
-      const deletedAt = dayjs(p.updatedAt);
-      const start = dayjs(filters.startDate).startOf('day');
-      const end = dayjs(filters.endDate).endOf('day');
-      matchesDate = deletedAt.isAfter(start) && deletedAt.isBefore(end);
-    }
+  // Client-side filtering on all projects for statistics
+  const filteredProjectsForStats = useMemo(() => {
+    return (
+      allTrashProjects.filter((p: any) => {
+        const matchesSearch =
+          !searchQuery ||
+          p.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          p.code?.toLowerCase().includes(searchQuery.toLowerCase());
+        const matchesProject = !filters.projectId || p.id === filters.projectId;
+        const matchesManager =
+          !filters.projectManagerId || p.projectManager?.id === filters.projectManagerId;
 
-    return matchesSearch && matchesProject && matchesManager && matchesDate;
-  }) || [];
+        let matchesDate = true;
+        if (filters.startDate && filters.endDate && p.updatedAt) {
+          const deletedAt = dayjs(p.updatedAt);
+          const start = dayjs(filters.startDate).startOf("day");
+          const end = dayjs(filters.endDate).endOf("day");
+          matchesDate =
+            (deletedAt.isAfter(start) || deletedAt.isSame(start)) &&
+            (deletedAt.isBefore(end) || deletedAt.isSame(end));
+        }
 
-  const stats = {
-    total: filteredProjectsForStats.length,
-    recent: filteredProjectsForStats.filter((p: any) => dayjs().diff(dayjs(p.updatedAt), 'day') <= 7).length,
-    older: filteredProjectsForStats.filter((p: any) => dayjs().diff(dayjs(p.updatedAt), 'day') > 7 && dayjs().diff(dayjs(p.updatedAt), 'day') <= 30).length,
-    purgeReady: filteredProjectsForStats.filter((p: any) => dayjs().diff(dayjs(p.updatedAt), 'day') > 30).length,
+        return matchesSearch && matchesProject && matchesManager && matchesDate;
+      }) || []
+    );
+  }, [allTrashProjects, searchQuery, filters]);
+
+  const stats = useMemo(() => {
+    const total = filteredProjectsForStats.length;
+    const recent = filteredProjectsForStats.filter(
+      (p: any) => dayjs().diff(dayjs(p.updatedAt), "day") <= 7
+    ).length;
+    const older = filteredProjectsForStats.filter(
+      (p: any) =>
+        dayjs().diff(dayjs(p.updatedAt), "day") > 7 &&
+        dayjs().diff(dayjs(p.updatedAt), "day") <= 30
+    ).length;
+    const purgeReady = filteredProjectsForStats.filter(
+      (p: any) => dayjs().diff(dayjs(p.updatedAt), "day") > 30
+    ).length;
+    return { total, recent, older, purgeReady };
+  }, [filteredProjectsForStats]);
+
+  const activeFilterCount =
+    (filters.projectId ? 1 : 0) +
+    (filters.projectManagerId ? 1 : 0) +
+    (filters.startDate ? 1 : 0);
+
+  const handleResetFilters = () => {
+    setFilters({});
+    setDateRange(null);
+    setSearchQuery("");
   };
 
+  const statCells = useMemo(() => {
+    return [
+      {
+        key: "total",
+        label: "Total Trashed",
+        value: stats.total,
+        icon: <FolderKanban size={15} />,
+        color: "#3b82f6",
+        tint: "rgba(59,130,246,0.10)",
+      },
+      {
+        key: "recent",
+        label: "Recently Deleted",
+        value: stats.recent,
+        suffix: stats.recent > 0 ? " (≤ 7d)" : "",
+        icon: <Trash2 size={15} />,
+        color: "#ef4444",
+        tint: "rgba(239,68,68,0.10)",
+      },
+      {
+        key: "older",
+        label: "Older than 7 days",
+        value: stats.older,
+        icon: <Clock size={15} />,
+        color: "#64748b",
+        tint: "rgba(100,116,139,0.10)",
+      },
+      {
+        key: "purgeReady",
+        label: "Pending Purge",
+        value: stats.purgeReady,
+        suffix: stats.purgeReady > 0 ? " (> 30d)" : "",
+        icon: <AlertTriangle size={15} />,
+        color: "#f59e0b",
+        tint: "rgba(245,158,11,0.10)",
+      },
+    ];
+  }, [stats]);
+
+  // Original columns as before
   const columns = [
     {
       title: "Project",
@@ -183,14 +210,16 @@ export default function ProjectTrashManagementPage() {
       width: 250,
       render: (record: any) => (
         <div style={{ display: "flex", flexDirection: "column" }}>
-          <Text style={{ fontSize: "12.5px", fontWeight: 600, color: "var(--text-slate-900)" }}>{record.name}</Text>
+          <Text style={{ fontSize: "12.5px", fontWeight: 600, color: "var(--text-slate-900)" }}>
+            {record.name}
+          </Text>
         </div>
       ),
     },
     {
-      title: 'Project Code',
-      dataIndex: 'code',
-      key: 'code',
+      title: "Project Code",
+      dataIndex: "code",
+      key: "code",
       width: 200,
       render: (code: string) => (
         <div style={{ display: "flex", flexDirection: "column" }}>
@@ -219,7 +248,9 @@ export default function ProjectTrashManagementPage() {
       width: 180,
       render: (date: string) => (
         <Tooltip title={dayjs(date).format("YYYY-MM-DD HH:mm:ss")}>
-          <Text style={{ fontSize: "12px", color: "var(--text-slate-500)" }}>{dayjs(date).fromNow()}</Text>
+          <Text style={{ fontSize: "12px", color: "var(--text-slate-500)" }}>
+            {dayjs(date).fromNow()}
+          </Text>
         </Tooltip>
       ),
     },
@@ -241,11 +272,13 @@ export default function ProjectTrashManagementPage() {
             <Button
               type="text"
               icon={<UndoOutlined style={{ color: "#52c41a" }} />}
-              onClick={() => restoreProject.mutate(record.id, {
-                onSuccess: () => {
-                  message.success("Project restored successfully");
-                }
-              })}
+              onClick={() =>
+                restoreProject.mutate(record.id, {
+                  onSuccess: () => {
+                    message.success("Project restored successfully");
+                  },
+                })
+              }
               loading={restoreProject.isPending}
             />
           </Tooltip>
@@ -253,17 +286,19 @@ export default function ProjectTrashManagementPage() {
             tone="danger"
             title="Permanently delete project?"
             description="This action cannot be undone. All associated data will be lost."
-            onConfirm={() => new Promise<void>((resolve, reject) => {
-              permanentDelete.mutate(record.id, {
-                onSuccess: () => {
-                  message.success("Project permanently deleted");
-                  resolve();
-                },
-                onError: (err) => {
-                  reject(err);
-                }
-              });
-            })}
+            onConfirm={() =>
+              new Promise<void>((resolve, reject) => {
+                permanentDelete.mutate(record.id, {
+                  onSuccess: () => {
+                    message.success("Project permanently deleted");
+                    resolve();
+                  },
+                  onError: (err) => {
+                    reject(err);
+                  },
+                });
+              })
+            }
             confirmText="Yes, delete"
             cancelText="Cancel"
             placement="left"
@@ -283,661 +318,646 @@ export default function ProjectTrashManagementPage() {
   ];
 
   return (
-    <div className="pm2-page">
-      <div className={`pm2-shell-wrap ${isSidebarOpen ? 'is-sidebar-open' : 'is-sidebar-closed'}`}>
-        <div
-          className="pm2-sidebar-backdrop"
-          onClick={() => setIsSidebarOpen(false)}
-          aria-hidden
-        />
-        <div className="pm2-shell">
-          {/* ── Sidebar ───────────────────────────────────────────── */}
-          <aside className="pm2-sidebar">
-            <div className="pm2-sidebar-top">
-              <div className="pm2-sidebar-brand">
-                <div className="pm2-hero-icon-box">
-                  <InboxOutlined style={{ fontSize: 24, color: 'var(--text-slate-900)' }} />
-                </div>
-                <div className="min-w-0">
-                  <h1 className="pm2-sidebar-title">Trash Repository</h1>
-                  <p className="pm2-sidebar-subtitle">Recover or purge</p>
-                </div>
-              </div>
+    <div className="pm2-page" style={{ display: "flex", flexDirection: "column", height: "calc(100vh - 60px)", maxHeight: "calc(100vh - 60px)", overflow: "hidden" }}>
+      {/* ── Top Header Toolbar ── */}
+      <div className="pm2-toolbar" style={{ margin: 0, padding: "10px 24px", position: "relative", flexShrink: 0, display: "flex", alignItems: "center", gap: 14 }}>
+        {/* Title before search */}
+        <div style={{ display: "flex", alignItems: "center", gap: 10, flexShrink: 0 }}>
+          <div
+            style={{
+              width: 32,
+              height: 32,
+              borderRadius: 8,
+              background: isDark ? "rgba(239, 68, 68, 0.15)" : "#fff1f0",
+              color: "#ff4d4f",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              border: isDark ? "1px solid rgba(239, 68, 68, 0.3)" : "1px solid #ffccc7",
+            }}
+          >
+            <Trash2 size={16} />
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", lineHeight: 1.15 }}>
+            <span style={{ fontSize: 13.5, fontWeight: 700, color: "var(--text-slate-900)", letterSpacing: "-0.01em" }}>
+              Trash Repository
+            </span>
+            <span style={{ fontSize: 11, color: "var(--text-slate-400)", fontWeight: 500 }}>
+              Recover or purge
+            </span>
+          </div>
+        </div>
 
-              <ConfirmDialog
-                tone="danger"
-                title="Empty trash repository?"
-                description="This will permanently delete all projects currently in the trash. This action cannot be undone."
-                onConfirm={() => new Promise<void>((resolve, reject) => {
-                  emptyTrash.mutate(undefined, {
-                    onSuccess: () => {
-                      message.success("Trash emptied successfully");
-                      resolve();
-                    },
-                    onError: (err) => {
-                      reject(err);
-                    }
-                  });
-                })}
-                confirmText="Yes, empty all"
-                cancelText="Cancel"
-                placement="bottom"
-                icon={<AlertTriangle size={16} />}
-                disabled={totalTrashItems === 0 || isLoading}
-              >
-                <Button
-                  danger
-                  type="primary"
-                  icon={<DeleteOutlined />}
-                  loading={emptyTrash.isPending}
-                  block
-                  style={{
-                    borderRadius: 6,
-                    fontWeight: 600,
-                    height: 36,
-                    backgroundColor: totalTrashItems === 0 || isLoading
-                      ? (isDark ? '#1f1f1f' : '#f5f5f5')
-                      : (isDark ? 'transparent' : '#fff2f0'),
-                    color: totalTrashItems === 0 || isLoading
-                      ? '#8c8c8c'
-                      : '#ff4d4f',
-                    borderColor: totalTrashItems === 0 || isLoading
-                      ? '#d9d9d9'
-                      : (isDark ? '#ff4d4f' : 'transparent'),
-                  }}
-                  disabled={totalTrashItems === 0 || isLoading}
-                >
-                  Empty Trash
-                </Button>
-              </ConfirmDialog>
-            </div>
+        <div style={{ width: 1, height: 22, background: "var(--border-slate-200)", flexShrink: 0 }} />
 
-            <div className="pm2-sidebar-scroll">
-              <div className="pm2-side-group">
-                <div className="pm2-side-label">Filters</div>
-                <div className="pm2-side-filters flex flex-col gap-2">
-                  <SearchableDropdown
-                    className="pm2-side-filter-select"
-                    placeholder="Project"
-                    searchPlaceholder="Search projects"
-                    itemNoun="projects"
-                    value={filters.projectId || undefined}
-                    onChange={(val) => setFilters(prev => ({ ...prev, projectId: val ?? undefined }))}
-                    options={uniqueProjects.map(([id, name]) => ({ value: id as string, label: name as string }))}
-                    width="100%"
-                    style={{ width: '100%' }}
-                  />
+        <div className="pp-search-wrap" style={{ maxWidth: 360 }}>
+          <SearchOutlined className="pp-search-icon" />
+          <input
+            className="pp-search"
+            placeholder="Search project name..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
+        </div>
 
-                  <SearchableDropdown
-                      className="pm2-side-filter-select"
-                      placeholder="Project Manager"
-                      searchPlaceholder="Search managers"
-                      itemNoun="managers"
-                      value={filters.projectManagerId || undefined}
-                      onChange={(val) => setFilters(prev => ({ ...prev, projectManagerId: val ?? undefined }))}
-                      options={uniqueManagers.map(([id, pm]) => ({
-                        value: id as string,
-                        label: (pm as any).name as string,
-                        badge: (
-                          <Avatar
-                            src={(pm as any).avatarUrl || undefined}
-                            size={20}
-                            style={{
-                              background: "linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)",
-                              fontSize: 9,
-                              fontWeight: 800,
-                            }}
-                          >
-                            {((pm as any).name || "?").charAt(0).toUpperCase()}
-                          </Avatar>
-                        )
-                      }))}
-                      width="100%"
-                      style={{ width: '100%' }}
-                    />
+        <div className="pm2-main-stats">
+          <span className="inline-flex items-center gap-1.5" style={{ fontSize: 12, color: "var(--text-slate-500)" }}>
+            <span
+              className="pm2-pulse-dot"
+              style={{ background: "#ff4d4f", boxShadow: "none", animation: "none", width: 6, height: 6, borderRadius: "50%" }}
+            />
+            <span className="font-semibold" style={{ color: "var(--text-slate-700)", fontWeight: 700 }}>
+              {totalTrashItems}
+            </span>{" "}
+            {totalTrashItems === 1 ? "project in trash" : "projects in trash"}
+          </span>
+        </div>
 
-                  <DatePicker.RangePicker
-                    className="premium-range-picker"
-                    placeholder={["Start", "End"]}
-                    onChange={(dates) => {
-                      if (dates && dates.length === 2) {
-                        setFilters(prev => ({ ...prev, startDate: dates[0]?.format("YYYY-MM-DD"), endDate: dates[1]?.format("YYYY-MM-DD") }));
-                      } else {
-                        setFilters(prev => ({ ...prev, startDate: undefined, endDate: undefined }));
-                      }
-                    }}
-                    style={{ width: '100%', background: 'transparent', height: 35 }}
-                    format="MMM D, YYYY"
-                  />
+        <div className="pm2-main-controls" style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 8 }}>
+          <FilterToggleButton
+            isOpen={isFilterOpen}
+            onToggle={() => setIsFilterOpen((prev) => !prev)}
+            activeCount={activeFilterCount}
+          />
 
-                  {(filters.projectId || filters.projectManagerId || filters.startDate) && (
-                    <button
-                      type="button"
-                      className="pm2-sidebar-clear"
-                      onClick={() => setFilters({})}
-                    >
-                      <CloseCircleOutlined style={{ fontSize: 12 }} />
-                      Clear filters
-                    </button>
-                  )}
-                </div>
-              </div>
-            </div>
-          </aside>
+          <div className="pp-segmented">
+            <button
+              type="button"
+              className={viewMode === "card" ? "is-active" : ""}
+              onClick={() => setViewMode("card")}
+              aria-label="Grid view"
+              title="Card view"
+            >
+              <AppstoreOutlined />
+            </button>
+            <button
+              type="button"
+              className={viewMode === "table" ? "is-active" : ""}
+              onClick={() => setViewMode("table")}
+              aria-label="List view"
+              title="Table view"
+            >
+              <UnorderedListOutlined />
+            </button>
+          </div>
 
-          {/* ── Main ──────────────────────────────────────────────── */}
-          <main className="pm2-main">
-            <div className="pm2-toolbar">
-              <Tooltip title={isSidebarOpen ? 'Hide sidebar' : 'Show sidebar'} placement="bottom">
-                <button
-                  type="button"
-                  className="pm2-sidebar-show-toggle"
-                  onClick={() => setIsSidebarOpen((v) => !v)}
-                  aria-label={isSidebarOpen ? 'Hide sidebar' : 'Show sidebar'}
-                  aria-pressed={!isSidebarOpen}
-                >
-                  {isSidebarOpen ? (
-                    <MenuFoldOutlined style={{ fontSize: 14 }} />
-                  ) : (
-                    <MenuUnfoldOutlined style={{ fontSize: 14 }} />
-                  )}
-                </button>
-              </Tooltip>
+          <Tooltip title="Refresh view">
+            <button
+              type="button"
+              className="pp-ghost-btn"
+              onClick={async () => {
+                setIsRefreshing(true);
+                await queryClient.invalidateQueries({ queryKey: ["projects-trash"] });
+                setIsRefreshing(false);
+                message.success("Trash view refreshed");
+              }}
+              disabled={isLoading || isRefreshing}
+            >
+              <ReloadOutlined spin={isRefreshing} />
+            </button>
+          </Tooltip>
 
-              <div className="pp-search-wrap">
-                <SearchOutlined className="pp-search-icon" />
-                <input
-                  className="pp-search"
-                  placeholder="Search project name..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                />
-                {/* {!searchQuery && <span className="pp-kbd">⌘K</span>} */}
-              </div>
-              <div className="pm2-main-stats">
-                <span className="inline-flex items-center gap-1.5">
-                  <span className="pm2-pulse-dot" style={{ background: '#ff4d4f', boxShadow: 'none', animation: 'none' }} />
-                  <span className="font-semibold" style={{ color: 'var(--text-slate-700)' }}>{totalTrashItems}</span> {totalTrashItems === 1 ? "project in trash" : "projects in trash"}
-                </span>
-              </div>
-              <div className="pm2-main-controls">
-                <div className="pp-segmented">
-                  <button type="button" className={viewMode === 'card' ? 'is-active' : ''} onClick={() => setViewMode('card')} aria-label="Grid view"><AppstoreOutlined /></button>
-                  <button type="button" className={viewMode === 'table' ? 'is-active' : ''} onClick={() => setViewMode('table')} aria-label="List view"><UnorderedListOutlined /></button>
-                </div>
-                <Tooltip title="Refresh view">
-                  <button
-                    type="button"
-                    className="pp-ghost-btn"
-                    onClick={async () => {
-                      setIsRefreshing(true);
-                      await queryClient.invalidateQueries({ queryKey: ["projects-trash"] });
-                      setIsRefreshing(false);
-                      message.success("Trash view refreshed");
-                    }}
-                    disabled={isLoading || isRefreshing}
-                  >
-                    <ReloadOutlined spin={isRefreshing} />
-                  </button>
-                </Tooltip>
-              </div>
-            </div>
-
-            {/* Premium KPI Hero Row */}
-            <div className="pp-stats">
-              <div className="pp-stat-card">
-                <div className="pp-stat-top">
-                  <div className="pp-stat-left">
-                    <span className="pp-stat-icon" style={{ background: 'rgba(59,130,246,0.10)', color: '#3b82f6' }}>
-                      <FolderKanban size={14} />
-                    </span>
-                    <span className="pp-stat-label">Total Projects</span>
-                  </div>
-                </div>
-                <div className="pp-stat-bottom">
-                  <div className="pp-stat-value-wrap">
-                    <span className="pp-stat-value">{stats.total}</span>
-                    <span className="pp-stat-period">projects</span>
-                  </div>
-                  <div className="pp-stat-spark">
-                    <Sparkline data={[0.0, 0.2, 0.4, 0.55, 0.75, 0.85, 1.0].map(r => r * (stats.total || 1))} color="#3b82f6" />
-                  </div>
-                </div>
-              </div>
-              <div className="pp-stat-card">
-                <div className="pp-stat-top">
-                  <div className="pp-stat-left">
-                    <span className="pp-stat-icon" style={{ background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444' }}>
-                      <Trash2 size={14} />
-                    </span>
-                    <span className="pp-stat-label">Recently Deleted</span>
-                  </div>
-                </div>
-                <div className="pp-stat-bottom">
-                  <div className="pp-stat-value-wrap">
-                    <span className="pp-stat-value">{stats.recent}</span>
-                    <span className="pp-stat-period">last 7 days</span>
-                  </div>
-                  <div className="pp-stat-spark">
-                    <Sparkline data={[0.0, 0.1, 0.3, 0.5, 0.7, 0.8, 1.0].map(r => r * (stats.recent || 1))} color="#ef4444" />
-                  </div>
-                </div>
-              </div>
-              <div className="pp-stat-card">
-                <div className="pp-stat-top">
-                  <div className="pp-stat-left">
-                    <span className="pp-stat-icon" style={{ background: 'rgba(151, 151, 151, 0.10)', color: '#979797' }}>
-                      <Clock size={14} />
-                    </span>
-                    <span className="pp-stat-label">Older than 7 days</span>
-                  </div>
-                </div>
-                <div className="pp-stat-bottom">
-                  <div className="pp-stat-value-wrap">
-                    <span className="pp-stat-value">{stats.older}</span>
-                    <span className="pp-stat-period">projects</span>
-                  </div>
-                  <div className="pp-stat-spark">
-                    <Sparkline data={[0.0, 0.05, 0.2, 0.4, 0.6, 0.8, 1.0].map(r => r * (stats.older || 1))} color="#979797" />
-                  </div>
-                </div>
-              </div>
-              <div className="pp-stat-card">
-                <div className="pp-stat-top">
-                  <div className="pp-stat-left">
-                    <span className="pp-stat-icon" style={{ background: 'rgba(59, 130, 246, 0.10)', color: '#3b82f6' }}>
-                      <AlertTriangle size={14} />
-                    </span>
-                    <span className="pp-stat-label">Pending Purge</span>
-                  </div>
-                </div>
-                <div className="pp-stat-bottom">
-                  <div className="pp-stat-value-wrap">
-                    <span className="pp-stat-value">{stats.purgeReady}</span>
-                    <span className="pp-stat-period">{">"} 30 days</span>
-                  </div>
-                  <div className="pp-stat-spark">
-                    <Sparkline data={[0.0, 0.2, 0.5, 0.8, 0.9, 0.95, 1.0].map(r => r * (stats.purgeReady || 1))} color="#3b82f6" />
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div className="pm2-main-content">
-              {selectedRowKeys.length > 0 && (
-                <div className="saas-bulk-actions">
-                  <div className="saas-bulk-content">
-                    <Badge count={selectedRowKeys.length} style={{ backgroundColor: '#1890ff' }} />
-                    <Text strong style={{ marginLeft: 8 }}>Projects Selected</Text>
-                  </div>
-                  <div className="saas-bulk-buttons">
-                    <Button
-                      type="text"
-                      size="small"
-                      icon={<UndoOutlined />}
-                      onClick={() => {
-                        bulkRestore.mutate(selectedRowKeys as string[], {
-                          onSuccess: () => setSelectedRowKeys([])
-                        });
-                      }}
-                      loading={bulkRestore.isPending}
-                      className="saas-bulk-btn restore"
-                    >
-                      Restore
-                    </Button>
-                    <ConfirmDialog
-                      tone="danger"
-                      title={`Purge ${selectedRowKeys.length} projects?`}
-                      description="This will permanently delete the selected projects. This action cannot be undone."
-                      onConfirm={() => new Promise<void>((resolve, reject) => {
-                        bulkDelete.mutate(selectedRowKeys as string[], {
-                          onSuccess: () => {
-                            setSelectedRowKeys([]);
-                            resolve();
-                          },
-                          onError: (err) => {
-                            reject(err);
-                          }
-                        });
-                      })}
-                      confirmText="Purge Selected"
-                      cancelText="Cancel"
-                      placement="bottomRight"
-                      icon={<AlertTriangle size={16} />}
-                    >
-                      <Button
-                        type="text"
-                        size="small"
-                        icon={<DeleteOutlined />}
-                        loading={bulkDelete.isPending}
-                        className="saas-bulk-btn purge"
-                      >
-                        Purge
-                      </Button>
-                    </ConfirmDialog>
-                    <Button
-                      type="text"
-                      size="small"
-                      icon={<CloseOutlined />}
-                      onClick={() => setSelectedRowKeys([])}
-                      className="saas-bulk-btn cancel"
-                    />
-                  </div>
-                </div>
-              )}
-
-              {viewMode === "table" ? (
-                <div className="pm2-table-shell" style={{ background: "var(--bg-pure-white)", border: "1px solid var(--border-slate-200)", borderRadius: 0, overflow: "hidden" }}>
-                  <Table
-                    size="small"
-                    className="premium-table"
-                    rowSelection={(isLoading || isRefreshing) ? undefined : {
-                      selectedRowKeys,
-                      onChange: (keys) => setSelectedRowKeys(keys)
-                    }}
-                    dataSource={(isLoading || isRefreshing) ? Array(5).fill({}) : paginatedTrashProjects}
-                    columns={columns.map(col => ({
-                      ...col,
-                      render: (text: any, record: any, index: number) => {
-                        if (isLoading || isRefreshing) {
-                          return <Skeleton.Input active size="small" block style={{ height: 20 }} />;
-                        }
-                        return col.render ? (col.render as any)(text, record, index) : text;
-                      }
-                    }))}
-                    loading={false}
-                    rowKey={(record: any) => record.id || Math.random()}
-                    pagination={false}
-                    scroll={{ x: "max-content" }}
-                    locale={{
-                      emptyText: (
-                        <NoData description={<Text type="secondary">No projects found in trash</Text>} />
-                      ),
-                    }}
-                  />
-                </div>
-              ) : (
-                <div className="pm2-grid">
-                  {(isLoading || isRefreshing)
-                    ? [1, 2, 3, 4, 5, 6].map((i) => (
-                      <div key={i} className="pm2-list-card pm2-list-card-skel">
-                        <Skeleton active paragraph={{ rows: 2 }} />
-                      </div>
-                    ))
-                    : paginatedTrashProjects.length === 0 ? (
-                      <div style={{ gridColumn: '1 / -1', padding: '40px 0' }}>
-                        <NoData description={<Text type="secondary">No projects found in trash</Text>} />
-                      </div>
-                    ) : paginatedTrashProjects.map((project: any) => {
-                      const pm = project.projectManager;
-                      const pmFullName = pm?.name ? pm.name : "Unassigned";
-
-                      return (
-                        <article
-                          key={project.id}
-                          className="pm2-list-card"
-                          style={{ ["--row-accent" as any]: "#ff4d4f", borderRadius: 6 }}
-                        >
-                          <header className="pm2-list-head" style={{ padding: '8px 12px' }}>
-                            <div
-                              className="pm2-list-row"
-                              style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}
-                            >
-                              <div className="pm2-list-avatar" style={{ background: '#3b82f6', color: '#fff', top: '-3px' }}>
-                                <span className="pm2-list-avatar-letter">{(project.code || project.name).slice(0, 2).toUpperCase()}</span>
-                              </div>
-                              <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0, flex: 1 }}>
-                                <span style={{ fontWeight: 700, fontSize: 15, color: 'var(--text-slate-900)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                                  {project.name}
-                                </span>
-                                <span style={{ fontSize: 12, color: 'var(--text-slate-500)', display: 'flex', alignItems: 'center', gap: 6, marginTop: 2 }}>
-                                  <span>Deleted: {dayjs(project.updatedAt).fromNow()}</span>
-                                </span>
-                              </div>
-                            </div>
-                          </header>
-                          <div className="pm2-list-foot">
-                            <div className="pm2-list-foot-row">
-                              <Typography.Paragraph
-                                style={{ fontSize: 12.5, color: "var(--text-slate-500)", margin: 0, lineHeight: 1.5, minHeight: 36 }}
-                                ellipsis={{ rows: 2 }}
-                              >
-                                {project.description || "No description provided."}
-                              </Typography.Paragraph>
-                            </div>
-
-                            <div className="pm2-list-foot-row" >
-                              <span className="pm2-list-foot-item" >
-                                <span className="pm2-list-foot-key">Manager:</span>
-                                <Avatar size={18} src={pm?.avatarUrl} style={{ fontSize: 9, background: '#e2e8f0', color: '#64748b' }}>
-                                  {pmFullName.charAt(0)}
-                                </Avatar>
-                                <span style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-slate-700)' }}>
-                                  {pmFullName.split(' ')[0]}
-                                </span>
-                                       <ConfirmDialog
-                                  tone="success"
-                                  title="Restore project?"
-                                  description="This will restore the project back to active status."
-                                  onConfirm={() => new Promise<void>((resolve, reject) => {
-                                    restoreProject.mutate(project.id, {
-                                      onSuccess: () => {
-                                        message.success("Project restored successfully");
-                                        resolve();
-                                      },
-                                      onError: (err) => {
-                                        reject(err);
-                                      }
-                                    });
-                                  })}
-                                  confirmText="Yes, restore"
-                                  cancelText="Cancel"
-                                  placement="topRight"
-                                  icon={<UndoOutlined />}
-                                >
-                                  <button
-                                    type="button"
-                                    onClick={(e) => e.stopPropagation()}
-                                    className="pc-view-btn"
-                                    style={{ color: '#10b981', display: 'flex', alignItems: 'center', gap: 4 }}
-                                  >
-                                    <UndoOutlined />
-                                    Restore
-                                  </button>
-                                </ConfirmDialog>
-                                <ConfirmDialog
-                                  tone="danger"
-                                  title="Permanently delete project?"
-                                  description="This action cannot be undone."
-                                  onConfirm={() => new Promise<void>((resolve, reject) => {
-                                    permanentDelete.mutate(project.id, {
-                                      onSuccess: () => {
-                                        message.success("Project permanently deleted");
-                                        resolve();
-                                      },
-                                      onError: (err) => {
-                                        reject(err);
-                                      }
-                                    });
-                                  })}
-                                  confirmText="Yes, Delete"
-                                  cancelText="Cancel"
-                                  placement="topRight"
-                                  icon={<AlertTriangle size={16} />}
-                                >
-                                  <button
-                                    type="button"
-                                    onClick={(e) => e.stopPropagation()}
-                                    className="pc-view-btn"
-                                    style={{ color: '#ff4d4f', display: 'flex', alignItems: 'center', gap: 4 }}
-                                  >
-                                    <DeleteOutlined />
-                                    Purge
-                                  </button>
-                                </ConfirmDialog>
-                              </span>
-                            </div>
-                          </div>
-                        </article>
-                      );
-                    })
-                  }
-                </div>
-              )}
-            </div>
-
-            {totalTrashItems > 0 && (
-              <div className="pm2-pagination" style={{ marginTop: 'auto' }}>
-                <Typography.Text style={{ fontSize: 13, color: 'var(--text-slate-500)' }}>
-                  Showing <span style={{ color: 'var(--text-slate-700)', fontWeight: 700 }}>
-                    {(pagination.current - 1) * pagination.pageSize + 1}–{Math.min(pagination.current * pagination.pageSize, totalTrashItems)}
-                  </span> of <span style={{ color: 'var(--text-slate-700)', fontWeight: 700 }}>{totalTrashItems}</span> project{totalTrashItems !== 1 ? 's' : ''}
-                </Typography.Text>
-                <Pagination
-                  current={pagination.current}
-                  pageSize={pagination.pageSize}
-                  total={totalTrashItems}
-                  onChange={(page, pageSize) => setPagination({ current: page, pageSize })}
-                  showSizeChanger
-                  pageSizeOptions={[10, 15, 20, 25, 50, 100]}
-                />
-              </div>
-            )}
-          </main>
+          <ConfirmDialog
+            tone="danger"
+            title="Empty trash repository?"
+            description="This will permanently delete all projects currently in the trash. This action cannot be undone."
+            onConfirm={() =>
+              new Promise<void>((resolve, reject) => {
+                emptyTrash.mutate(undefined, {
+                  onSuccess: () => {
+                    message.success("Trash emptied successfully");
+                    resolve();
+                  },
+                  onError: (err) => {
+                    reject(err);
+                  },
+                });
+              })
+            }
+            confirmText="Yes, empty all"
+            cancelText="Cancel"
+            placement="bottomRight"
+            icon={<AlertTriangle size={16} />}
+            disabled={totalTrashItems === 0 || isLoading}
+          >
+            <Button
+              danger
+              type="primary"
+              icon={<DeleteOutlined />}
+              loading={emptyTrash.isPending}
+              disabled={totalTrashItems === 0 || isLoading}
+              style={{
+                borderRadius: 6,
+                fontWeight: 600,
+                height: 36,
+                backgroundColor:
+                  totalTrashItems === 0 || isLoading
+                    ? isDark
+                      ? "#1f1f1f"
+                      : "#f5f5f5"
+                    : isDark
+                    ? "transparent"
+                    : "#fff2f0",
+                color:
+                  totalTrashItems === 0 || isLoading
+                    ? "#8c8c8c"
+                    : "#ff4d4f",
+                borderColor:
+                  totalTrashItems === 0 || isLoading
+                    ? "#d9d9d9"
+                    : isDark
+                    ? "#ff4d4f"
+                    : "transparent",
+              }}
+            >
+              Empty Trash
+            </Button>
+          </ConfirmDialog>
         </div>
       </div>
 
+      <div style={{ height: 1, background: "var(--border-slate-200)", margin: 0, flexShrink: 0 }} />
+
+      {/* ── Stat Cards ── */}
+      <div style={{ flexShrink: 0 }}>
+        <StatCards
+          title="Project Trash Overview"
+          statusText="TRASHED"
+          statusColor="#ef4444"
+          statusBorder="rgba(239, 68, 68, 0.32)"
+          progressPct={totalTrashItems > 0 ? Math.round((stats.recent / totalTrashItems) * 100) : 0}
+          cards={statCells}
+        />
+      </div>
+
+      {/* ── Collapsible Unified FilterBar ── */}
+      {isFilterOpen && (
+        <div style={{ flexShrink: 0 }}>
+          <FilterBar
+            activeCount={activeFilterCount}
+            onReset={handleResetFilters}
+            onClose={() => setIsFilterOpen(false)}
+            actions={
+              <span style={{ fontSize: 12, color: "var(--text-slate-500)", whiteSpace: "nowrap" }}>
+                <b>{paginatedTrashProjects.length}</b> of <b>{totalTrashItems}</b> projects
+              </span>
+            }
+          >
+          <TicketFilterPill
+            label="Project"
+            icon={<ProjectOutlined />}
+            value={filters.projectId || ""}
+            options={uniqueProjects.map(([id, name]) => ({
+              value: id as string,
+              label: name as string,
+            }))}
+            onChange={(val) =>
+              setFilters((prev) => ({
+                ...prev,
+                projectId: val ? String(val) : undefined,
+              }))
+            }
+            itemNoun="projects"
+            multiple={false}
+          />
+          <TicketFilterPill
+            label="Project Manager"
+            icon={<UserOutlined />}
+            value={filters.projectManagerId || ""}
+            options={uniqueManagers.map(([id, pm]) => ({
+              value: id as string,
+              label: (pm as any).name as string,
+              avatarUrl: (pm as any).avatarUrl || undefined,
+            }))}
+            onChange={(val) =>
+              setFilters((prev) => ({
+                ...prev,
+                projectManagerId: val ? String(val) : undefined,
+              }))
+            }
+            itemNoun="managers"
+            width={240}
+            multiple={false}
+            showAvatar
+          />
+          <DatePicker.RangePicker
+            className="premium-range-picker"
+            size="small"
+            style={{ height: 28, borderRadius: 6 }}
+            placeholder={["Start", "End"]}
+            value={dateRange}
+            onChange={(dates) => {
+              setDateRange(dates as any);
+              if (dates && dates.length === 2) {
+                setFilters((prev) => ({
+                  ...prev,
+                  startDate: dates[0]?.format("YYYY-MM-DD"),
+                  endDate: dates[1]?.format("YYYY-MM-DD"),
+                }));
+              } else {
+                setFilters((prev) => ({
+                  ...prev,
+                  startDate: undefined,
+                  endDate: undefined,
+                }));
+              }
+            }}
+            format="MMM D, YYYY"
+            allowEmpty={[true, true]}
+          />
+        </FilterBar>
+      </div>
+    )}
+
+      {/* ── Main Content Area with Original Table and Card Views ── */}
+      <div className="pm2-main-content" style={{ padding: 0, flex: 1, minHeight: 0, overflowY: "auto", display: "flex", flexDirection: "column" }}>
+        {selectedRowKeys.length > 0 && (
+          <div className="saas-bulk-actions" style={{ margin: "12px 16px 8px 16px" }}>
+            <div className="saas-bulk-content">
+              <Badge count={selectedRowKeys.length} style={{ backgroundColor: "#1890ff" }} />
+              <Text strong style={{ marginLeft: 8 }}>
+                Projects Selected
+              </Text>
+            </div>
+            <div className="saas-bulk-buttons">
+              <Button
+                type="text"
+                size="small"
+                icon={<UndoOutlined />}
+                onClick={() => {
+                  bulkRestore.mutate(selectedRowKeys as string[], {
+                    onSuccess: () => setSelectedRowKeys([]),
+                  });
+                }}
+                loading={bulkRestore.isPending}
+                className="saas-bulk-btn restore"
+              >
+                Restore
+              </Button>
+              <ConfirmDialog
+                tone="danger"
+                title={`Purge ${selectedRowKeys.length} projects?`}
+                description="This will permanently delete the selected projects. This action cannot be undone."
+                onConfirm={() =>
+                  new Promise<void>((resolve, reject) => {
+                    bulkDelete.mutate(selectedRowKeys as string[], {
+                      onSuccess: () => {
+                        setSelectedRowKeys([]);
+                        resolve();
+                      },
+                      onError: (err) => {
+                        reject(err);
+                      },
+                    });
+                  })
+                }
+                confirmText="Purge Selected"
+                cancelText="Cancel"
+                placement="bottomRight"
+                icon={<AlertTriangle size={16} />}
+              >
+                <Button
+                  type="text"
+                  size="small"
+                  icon={<DeleteOutlined />}
+                  loading={bulkDelete.isPending}
+                  className="saas-bulk-btn purge"
+                >
+                  Purge
+                </Button>
+              </ConfirmDialog>
+              <Button
+                type="text"
+                size="small"
+                icon={<CloseOutlined />}
+                onClick={() => setSelectedRowKeys([])}
+                className="saas-bulk-btn cancel"
+              />
+            </div>
+          </div>
+        )}
+
+        {/* ── Original Table View (Flush edge-to-edge with 0 top/left/right spacing) ── */}
+        {viewMode === "table" ? (
+          <div
+            className="pm2-table-shell"
+            style={{
+              background: "var(--bg-pure-white)",
+              border: "1px solid var(--border-slate-200)",
+              borderLeft: "none",
+              borderRight: "none",
+              borderTop: "none",
+              borderRadius: 0,
+              overflow: "visible",
+            }}
+          >
+            <Table
+              size="small"
+              className="premium-table"
+              sticky={{ offsetHeader: 0 }}
+              rowSelection={
+                isLoading || isRefreshing
+                  ? undefined
+                  : {
+                      selectedRowKeys,
+                      onChange: (keys) => setSelectedRowKeys(keys),
+                    }
+              }
+              dataSource={isLoading || isRefreshing ? Array(5).fill({}) : paginatedTrashProjects}
+              columns={columns.map((col) => ({
+                ...col,
+                render: (text: any, record: any, index: number) => {
+                  if (isLoading || isRefreshing) {
+                    return <Skeleton.Input active size="small" block style={{ height: 20 }} />;
+                  }
+                  return col.render ? (col.render as any)(text, record, index) : text;
+                },
+              }))}
+              loading={false}
+              rowKey={(record: any) => record.id || Math.random()}
+              pagination={false}
+              scroll={{ x: "max-content" }}
+              locale={{
+                emptyText: <NoData description={<Text type="secondary">No projects found in trash</Text>} />,
+              }}
+            />
+          </div>
+        ) : (
+          /* ── Original Card View (0 border-radius) ── */
+          <div className="pm2-grid" style={{ padding: "16px 24px" }}>
+            {isLoading || isRefreshing ? (
+              [1, 2, 3, 4, 5, 6].map((i) => (
+                <div key={i} className="pm2-list-card pm2-list-card-skel" style={{ borderRadius: 0 }}>
+                  <Skeleton active paragraph={{ rows: 2 }} />
+                </div>
+              ))
+            ) : paginatedTrashProjects.length === 0 ? (
+              <div style={{ gridColumn: "1 / -1", padding: "40px 0" }}>
+                <NoData description={<Text type="secondary">No projects found in trash</Text>} />
+              </div>
+            ) : (
+              paginatedTrashProjects.map((project: any) => {
+                const pm = project.projectManager;
+                const pmFullName = pm?.name ? pm.name : "Unassigned";
+
+                return (
+                  <article
+                    key={project.id}
+                    className="pm2-list-card"
+                    style={{ ["--row-accent" as any]: "#ff4d4f", borderRadius: 0 }}
+                  >
+                    <header className="pm2-list-head" style={{ padding: "8px 12px" }}>
+                      <div
+                        className="pm2-list-row"
+                        style={{ flex: 1, display: "flex", alignItems: "center", gap: 12, minWidth: 0 }}
+                      >
+                        <div className="pm2-list-avatar" style={{ background: "#3b82f6", color: "#fff", top: "-3px" }}>
+                          <span className="pm2-list-avatar-letter">
+                            {(project.code || project.name).slice(0, 2).toUpperCase()}
+                          </span>
+                        </div>
+                        <div style={{ display: "flex", flexDirection: "column", minWidth: 0, flex: 1 }}>
+                          <span
+                            style={{
+                              fontWeight: 700,
+                              fontSize: 15,
+                              color: "var(--text-slate-900)",
+                              whiteSpace: "nowrap",
+                              overflow: "hidden",
+                              textOverflow: "ellipsis",
+                            }}
+                          >
+                            {project.name}
+                          </span>
+                          <span
+                            style={{
+                              fontSize: 12,
+                              color: "var(--text-slate-500)",
+                              display: "flex",
+                              alignItems: "center",
+                              gap: 6,
+                              marginTop: 2,
+                            }}
+                          >
+                            <span>Deleted: {dayjs(project.updatedAt).fromNow()}</span>
+                          </span>
+                        </div>
+                      </div>
+                    </header>
+                    <div className="pm2-list-foot">
+                      <div className="pm2-list-foot-row">
+                        <Typography.Paragraph
+                          style={{
+                            fontSize: 12.5,
+                            color: "var(--text-slate-500)",
+                            margin: 0,
+                            lineHeight: 1.5,
+                            minHeight: 36,
+                          }}
+                          ellipsis={{ rows: 2 }}
+                        >
+                          {project.description || "No description provided."}
+                        </Typography.Paragraph>
+                      </div>
+
+                      <div className="pm2-list-foot-row">
+                        <span className="pm2-list-foot-item">
+                          <span className="pm2-list-foot-key">Manager:</span>
+                          <Avatar
+                            size={18}
+                            src={pm?.avatarUrl}
+                            style={{ fontSize: 9, background: "#e2e8f0", color: "#64748b" }}
+                          >
+                            {pmFullName.charAt(0)}
+                          </Avatar>
+                          <span style={{ fontSize: 12, fontWeight: 500, color: "var(--text-slate-700)" }}>
+                            {pmFullName.split(" ")[0]}
+                          </span>
+                          <ConfirmDialog
+                            tone="success"
+                            title="Restore project?"
+                            description="This will restore the project back to active status."
+                            onConfirm={() =>
+                              new Promise<void>((resolve, reject) => {
+                                restoreProject.mutate(project.id, {
+                                  onSuccess: () => {
+                                    message.success("Project restored successfully");
+                                    resolve();
+                                  },
+                                  onError: (err) => {
+                                    reject(err);
+                                  },
+                                });
+                              })
+                            }
+                            confirmText="Yes, restore"
+                            cancelText="Cancel"
+                            placement="topRight"
+                            icon={<UndoOutlined />}
+                          >
+                            <button
+                              type="button"
+                              onClick={(e) => e.stopPropagation()}
+                              className="pc-view-btn"
+                              style={{ color: "#10b981", display: "flex", alignItems: "center", gap: 4 }}
+                            >
+                              <UndoOutlined />
+                              Restore
+                            </button>
+                          </ConfirmDialog>
+                          <ConfirmDialog
+                            tone="danger"
+                            title="Permanently delete project?"
+                            description="This action cannot be undone."
+                            onConfirm={() =>
+                              new Promise<void>((resolve, reject) => {
+                                permanentDelete.mutate(project.id, {
+                                  onSuccess: () => {
+                                    message.success("Project permanently deleted");
+                                    resolve();
+                                  },
+                                  onError: (err) => {
+                                    reject(err);
+                                  },
+                                });
+                              })
+                            }
+                            confirmText="Yes, Delete"
+                            cancelText="Cancel"
+                            placement="topRight"
+                            icon={<AlertTriangle size={16} />}
+                          >
+                            <button
+                              type="button"
+                              onClick={(e) => e.stopPropagation()}
+                              className="pc-view-btn"
+                              style={{ color: "#ff4d4f", display: "flex", alignItems: "center", gap: 4 }}
+                            >
+                              <DeleteOutlined />
+                              Purge
+                            </button>
+                          </ConfirmDialog>
+                        </span>
+                      </div>
+                    </div>
+                  </article>
+                );
+              })
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* ── Pagination Footer ── */}
+      {totalTrashItems > 0 && (
+        <div className="pm2-pagination" style={{ marginTop: "auto", flexShrink: 0 }}>
+          <Typography.Text style={{ fontSize: 13, color: "var(--text-slate-500)" }}>
+            Showing{" "}
+            <span style={{ color: "var(--text-slate-700)", fontWeight: 700 }}>
+              {(pagination.current - 1) * pagination.pageSize + 1}–
+              {Math.min(pagination.current * pagination.pageSize, totalTrashItems)}
+            </span>{" "}
+            of <span style={{ color: "var(--text-slate-700)", fontWeight: 700 }}>{totalTrashItems}</span> project
+            {totalTrashItems !== 1 ? "s" : ""}
+          </Typography.Text>
+          <Pagination
+            current={pagination.current}
+            pageSize={pagination.pageSize}
+            total={totalTrashItems}
+            onChange={(page, pageSize) => setPagination({ current: page, pageSize })}
+            showSizeChanger
+            pageSizeOptions={[10, 15, 20, 25, 50, 100]}
+          />
+        </div>
+      )}
+
       <style jsx global>{`
-        .pp-segmented { display: inline-flex; border: 1px solid var(--border-slate-200); border-radius: 9px; overflow: hidden; background: var(--bg-pure-white); }
-        .pp-segmented button {
-          width: 32px; height: 32px; border: none; background: transparent; cursor: pointer;
-          color: var(--text-slate-400); font-size: 14px; display: inline-flex; align-items: center; justify-content: center;
+        .pp-segmented {
+          display: inline-flex;
+          border: 1px solid var(--border-slate-200);
+          border-radius: 9px;
+          overflow: hidden;
+          background: var(--bg-pure-white);
         }
-        .pp-segmented button.is-active { background: var(--bg-blue-50); color: #3B82F6; }
+        .pp-segmented button {
+          width: 32px;
+          height: 32px;
+          border: none;
+          background: transparent;
+          cursor: pointer;
+          color: var(--text-slate-400);
+          font-size: 14px;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+        }
+        .pp-segmented button.is-active {
+          background: var(--bg-blue-50);
+          color: #3b82f6;
+        }
         .pp-search-wrap {
-          position: relative; flex: 1 1 auto; display: flex; align-items: center;
-          max-width: 480px; width: 100%; height: 38px; min-height: 38px; border-radius: 8px; background: var(--bg-pure-white);
-          border: 1px solid var(--border-slate-200); padding: 0 12px;
+          position: relative;
+          flex: 1 1 auto;
+          display: flex;
+          align-items: center;
+          max-width: 480px;
+          width: 100%;
+          height: 38px;
+          min-height: 38px;
+          border-radius: 8px;
+          background: var(--bg-pure-white);
+          border: 1px solid var(--border-slate-200);
+          padding: 0 12px;
           transition: all 0.2s;
         }
-        .pp-search-wrap:focus-within { border-color: #93c5fd; box-shadow: 0 0 0 3px rgba(59,130,246,0.15); max-width: 520px; }
-        .pp-search-icon { color: var(--text-slate-400); font-size: 14px; }
-        .pp-search {
-          flex: 1; border: none; outline: none; background: transparent; margin-left: 9px;
-          font-size: 13px; color: var(--text-slate-900); min-width: 0;
+        .pp-search-wrap:focus-within {
+          border-color: #93c5fd;
+          box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+          max-width: 520px;
         }
-        .pp-search::placeholder { color: var(--text-slate-400); }
-        .pp-kbd {
-          font-size: 10.5px; font-weight: 600; color: var(--text-slate-400);
-          background: var(--bg-slate-50); border: 1px solid var(--border-slate-200);
-          border-radius: 5px; padding: 1px 6px;
+        .pp-search-icon {
+          color: var(--text-slate-400);
+          font-size: 14px;
+        }
+        .pp-search {
+          flex: 1;
+          border: none;
+          outline: none;
+          background: transparent;
+          margin-left: 9px;
+          font-size: 13px;
+          color: var(--text-slate-900);
+          min-width: 0;
+        }
+        .pp-search::placeholder {
+          color: var(--text-slate-400);
         }
         .pp-ghost-btn {
-          width: 32px; height: 32px; border-radius: 8px; border: 1px solid var(--border-slate-200);
-          background: var(--bg-slate-50); color: var(--text-slate-700); cursor: pointer; font-size: 14px;
-          display: inline-flex; align-items: center; justify-content: center; transition: all 0.2s;
+          width: 32px;
+          height: 32px;
+          border-radius: 8px;
+          border: 1px solid var(--border-slate-200);
+          background: var(--bg-slate-50);
+          color: var(--text-slate-700);
+          cursor: pointer;
+          font-size: 14px;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          transition: all 0.2s;
         }
-        .pp-ghost-btn:hover { color: #3B82F6; border-color: #bfdbfe; }
-        .project-trash-container {
-          min-height: calc(100vh - 64px);
-          background: var(--bg-primary);
-          transition: background 0.3s ease;
-        }
-        
-        .ant-table-thead > tr > th {
-          background: var(--bg-slate-50) !important;
-          font-size: 12px !important;
-          text-transform: uppercase !important;
-          letter-spacing: 0.05em !important;
-          font-weight: 700 !important;
-          color: var(--text-slate-500) !important;
-          border-bottom: 1px solid var(--border-color) !important;
-        }
-
-        .ant-table-tbody > tr > td {
-          border-bottom: 1px solid var(--border-color) !important;
-        }
-
-        .ant-table-tbody > tr:hover > td {
-          background: var(--bg-slate-50) !important;
-        }
-
-        [data-theme='dark'] .project-trash-container {
-          background: #0B0F1A;
-        }
-
-        [data-theme='dark'] .pm2-sidebar {
-          background: #0B0F1A !important;
-          border-right-color: #1F2937 !important;
-        }
-        [data-theme='dark'] .pm2-sidebar-top {
-          border-bottom-color: #1F2937 !important;
-        }
-        [data-theme='dark'] .pm2-sidebar-title {
-          color: #FFFFFF !important;
-        }
-        [data-theme='dark'] .pm2-sidebar-subtitle {
-          color: #94A3B8 !important;
-        }
-        [data-theme='dark'] .pm2-side-label {
-          color: #94A3B8 !important;
-        }
-        [data-theme='dark'] .pm2-sidebar-divider {
-          background: #1F2937 !important;
-        }
-        [data-theme='dark'] .pm2-sidebar-clear {
-          color: #ef4444 !important;
-        }
-
-        [data-theme='dark'] .pm2-sidebar .ant-select-selector,
-        [data-theme='dark'] .pm2-sidebar .ant-picker {
-          background-color: #0B0F1A !important;
-          border-color: #1F2937 !important;
-        }
-        [data-theme='dark'] .pm2-sidebar .ant-select:hover .ant-select-selector,
-        [data-theme='dark'] .pm2-sidebar .ant-select-focused .ant-select-selector,
-        [data-theme='dark'] .pm2-sidebar .ant-select-open .ant-select-selector,
-        [data-theme='dark'] .pm2-sidebar .ant-picker:hover,
-        [data-theme='dark'] .pm2-sidebar .ant-picker-focused {
-          background-color: #161B22 !important;
-          border-color: #1F2937 !important;
-        }
-        [data-theme='dark'] .pm2-sidebar .ant-select-selection-item,
-        [data-theme='dark'] .pm2-sidebar .ant-select-selection-placeholder,
-        [data-theme='dark'] .pm2-sidebar .ant-picker-input > input,
-        [data-theme='dark'] .pm2-sidebar .ant-picker-input > input::placeholder {
-          color: #cbd5e1 !important;
-        }
-        [data-theme='dark'] .pm2-sidebar .ant-select-arrow {
-          color: #94A3B8 !important;
-        }
-
-        [data-theme='dark'] .premium-range-picker {
-          background-color: #0B0F1A !important;
-          border-color: #1F2937 !important;
-        }
-        [data-theme='dark'] .premium-range-picker:hover {
-          border-color: #1F2937 !important;
-        }
-        [data-theme='dark'] .premium-range-picker .ant-picker-input > input {
-          color: #cbd5e1 !important;
-        }
-        [data-theme='dark'] .premium-range-picker .ant-picker-suffix {
-          color: #94A3B8 !important;
-        }
-
-        [data-theme='dark'] .pm2-toolbar {
-          background: #0B0F1A !important;
-          border-bottom-color: #1F2937 !important;
+        .pp-ghost-btn:hover {
+          color: #3b82f6;
+          border-color: #bfdbfe;
         }
 
         [data-theme='dark'] .pp-segmented {
-          background: #0B0F1A !important;
-          border-color: #1F2937 !important;
+          background: #0b0f1a !important;
+          border-color: #1f2937 !important;
         }
         [data-theme='dark'] .pp-segmented button.is-active {
-          background: #161B22 !important;
-          color: #FFFFFF !important;
+          background: #161b22 !important;
+          color: #ffffff !important;
         }
         [data-theme='dark'] .pp-search-wrap {
           background: rgba(255, 255, 255, 0.04) !important;
@@ -948,114 +968,81 @@ export default function ProjectTrashManagementPage() {
           border-color: rgba(59, 130, 246, 0.5) !important;
         }
         [data-theme='dark'] .pp-search {
-          color: #FFFFFF !important;
-        }
-        [data-theme='dark'] .pp-kbd {
-          background: #161B22 !important;
-          border-color: #1F2937 !important;
-          color: #cbd5e1 !important;
+          color: #ffffff !important;
         }
         [data-theme='dark'] .pp-ghost-btn {
-          background: #0B0F1A !important;
-          border-color: #1F2937 !important;
-          color: #94A3B8 !important;
+          background: #0b0f1a !important;
+          border-color: #1f2937 !important;
+          color: #94a3b8 !important;
         }
         [data-theme='dark'] .pp-ghost-btn:hover {
-          background: #161B22 !important;
-          border-color: #1F2937 !important;
-          color: #3B82F6 !important;
+          background: #161b22 !important;
+          border-color: #1f2937 !important;
+          color: #3b82f6 !important;
         }
         [data-theme='dark'] .pm2-main-stats {
-          color: #94A3B8 !important;
+          color: #94a3b8 !important;
         }
         [data-theme='dark'] .pm2-main-stats .font-semibold {
           color: #cbd5e1 !important;
         }
 
-        [data-theme='dark'] .pp-stat-card {
-          background: #0B0F1A !important;
-          border-color: #1F2937 !important;
-        }
-        [data-theme='dark'] .pp-stat-card:hover {
-          border-color: #1F2937 !important;
-          box-shadow: none !important;
-        }
-        [data-theme='dark'] .pp-stat-label {
-          color: #94A3B8 !important;
-        }
-        [data-theme='dark'] .pp-stat-value {
-          color: #FFFFFF !important;
+        .pm2-table-shell {
+          background: var(--bg-pure-white);
+          border: 1px solid var(--border-slate-200);
+          border-radius: 0;
+          overflow: visible;
+          margin-top: 0px !important;
         }
 
-        [data-theme='dark'] .ant-table-thead > tr > th {
-          background: #0B0F1A !important;
-          color: #94A3B8 !important;
-          border-bottom-color: #1F2937 !important;
-        }
-
-        [data-theme='dark'] .ant-table-tbody > tr > td {
-          background: #0B0F1A !important;
-          border-bottom-color: #1F2937 !important;
-        }
-
-        [data-theme='dark'] .ant-table-tbody > tr:hover > td {
-          background: #161B22 !important;
-        }
-
-        [data-theme='dark'] .pm2-list-card {
-          background: #0B0F1A !important;
-          border-color: #374151 !important;
-        }
-        [data-theme='dark'] .pm2-list-card:hover {
-          background: #0B0F1A !important;
-          box-shadow: 0 12px 28px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(255, 255, 255, 0.05) !important;
-          border-color: #cbd5e1 !important;
-        }
-        [data-theme='dark'] .pm2-list-foot {
-          background: #161B22 !important;
-          border-top-color: #1F2937 !important;
-        }
-        [data-theme='dark'] .pm2-list-foot-item b {
-          color: #cbd5e1 !important;
-        }
-        [data-theme='dark'] .pm2-list-foot-div {
-          background: #1F2937 !important;
-        }
-        [data-theme='dark'] .pm2-list-divider {
-          background: #1F2937 !important;
-        }
-
-        [data-theme='dark'] .pm2-pagination {
-          background: #0B0F1A !important;
-          border-top-color: #1F2937 !important;
-        }
-        [data-theme='dark'] .pm2-pagination .ant-pagination-item,
-        [data-theme='dark'] .pm2-pagination .ant-pagination-prev .ant-pagination-item-link,
-        [data-theme='dark'] .pm2-pagination .ant-pagination-next .ant-pagination-item-link {
-          border: 1px solid #1F2937 !important;
+        .premium-table .ant-table,
+        .premium-table .ant-table-wrapper,
+        .premium-table .ant-table-container,
+        .premium-table .ant-table-content,
+        .premium-table .ant-table-header,
+        .premium-table .ant-table-body {
           background: transparent !important;
-          color: #94A3B8 !important;
+          border-radius: 0 !important;
         }
-        [data-theme='dark'] .pm2-pagination .ant-pagination-item-active {
-          background: #3b82f6 !important;
-          border-color: #3b82f6 !important;
+        .premium-table .ant-table-thead > tr > th,
+        .premium-table .ant-table-thead > tr > td {
+          background: var(--bg-slate-50) !important;
+          border-bottom: 1px solid var(--border-slate-200) !important;
+          font-size: 10px !important;
+          font-weight: 700 !important;
+          letter-spacing: 0.04em !important;
+          text-transform: uppercase !important;
+          color: var(--text-slate-400) !important;
+          padding: 6px 10px !important;
+          white-space: nowrap !important;
+          border-radius: 0 !important;
+          border-start-start-radius: 0 !important;
+          border-start-end-radius: 0 !important;
+          position: sticky !important;
+          top: 0 !important;
+          z-index: 10 !important;
         }
-        [data-theme='dark'] .pm2-pagination .ant-pagination-item-active a {
-          color: #fff !important;
+        .premium-table .ant-table-thead > tr > th::before {
+          display: none !important;
         }
-        [data-theme='dark'] .pm2-pagination .ant-select-selector {
-          border: 1px solid #1F2937 !important;
-          background: #161B22 !important;
-          color: #94A3B8 !important;
+        [data-theme='dark'] .premium-table .ant-table-thead > tr > th,
+        [data-theme='dark'] .premium-table .ant-table-thead > tr > td {
+          background: #161b22 !important;
+          border-bottom-color: #374151 !important;
+          color: #94a3b8 !important;
         }
-
-        [data-theme='dark'] .ant-card {
-          background: #161B22 !important;
-          border-color: #1F2937 !important;
+        .premium-table .ant-table-tbody > tr > td {
+          border-bottom: 1px solid var(--border-slate-100) !important;
+          padding: 6.5px 10px !important;
         }
-
-        .pm2-main-content {
-          padding-bottom: 24px;
+        [data-theme='dark'] .premium-table .ant-table-tbody > tr > td {
+          border-bottom-color: #1e293b;
+        }
+        .premium-table .ant-table-row:hover > td {
+          background: var(--bg-slate-50) !important;
+        }
+        [data-theme='dark'] .premium-table .ant-table-row:hover > td {
+          background: rgba(255, 255, 255, 0.02);
         }
 
         .saas-bulk-actions {
@@ -1114,9 +1101,15 @@ export default function ProjectTrashManagementPage() {
           background: var(--bg-slate-50) !important;
         }
 
+        .pm2-list-card,
+        .pm2-list-card:hover,
+        .pm2-list-card-skel {
+          border-radius: 0 !important;
+        }
+
         [data-theme='dark'] .saas-bulk-actions {
-          background: #161B22;
-          border-color: #1F2937;
+          background: #161b22;
+          border-color: #1f2937;
         }
         [data-theme='dark'] .saas-bulk-btn.restore:hover {
           background: rgba(82, 196, 26, 0.1) !important;
@@ -1125,218 +1118,9 @@ export default function ProjectTrashManagementPage() {
           background: rgba(255, 77, 79, 0.1) !important;
         }
         [data-theme='dark'] .saas-bulk-btn.cancel:hover {
-          background: #1F2937 !important;
-        }
-
-        /* ── Proposals Status Cards ────────────────────────────────────────── */
-        .pp-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 14px; margin-top: 10px; }
-        .pp-stat-card {
-          background: var(--bg-pure-white); border: 1px solid var(--border-slate-200);
-          border-radius: 0; padding: 12px 14px; min-height: 92px;
-          display: flex; flex-direction: column; justify-content: space-between; gap: 10px;
-          box-shadow: 0 1px 2px rgba(15,23,42,0.04);
-        }
-        .pp-stat-top { display: flex; align-items: center; justify-content: space-between; }
-        .pp-stat-left { display: flex; align-items: center; gap: 8px; }
-        .pp-stat-icon { width: 26px; height: 26px; border-radius: 8px; display: inline-flex; align-items: center; justify-content: center; font-size: 13px; }
-        .pp-stat-label { font-size: 12px; font-weight: 600; color: var(--text-slate-600); }
-        .pp-stat-delta {
-          display: inline-flex; align-items: center; gap: 2px; font-size: 10.5px; font-weight: 700;
-          color: #10b981; background: rgba(16,185,129,0.10); border-radius: 6px; padding: 1px 6px;
-        }
-        .pp-stat-bottom { display: flex; align-items: flex-end; justify-content: space-between; gap: 8px; }
-        .pp-stat-value-wrap { display: flex; align-items: baseline; gap: 6px; }
-        .pp-stat-value { font-size: 23px; font-weight: 800; color: var(--text-slate-900); letter-spacing: -0.02em; line-height: 1; }
-        .pp-stat-period { font-size: 11px; color: var(--text-slate-400); font-weight: 500; }
-        .pp-stat-spark { opacity: 0.95; }
-
-        @media (max-width: 1024px) {
-          .pp-stats {
-            grid-template-columns: repeat(3, minmax(0, 1fr));
-          }
-        }
-        @media (max-width: 640px) {
-          .pp-stats {
-            grid-template-columns: 1fr;
-          }
-        }
-
-        @keyframes slideIn {
-          from { transform: translateY(-10px); opacity: 0; }
-          to { transform: translateY(0); opacity: 1; }
-        }
-
-        .pm2-side-filter-select .ant-select-selection-item,
-        .pm2-side-filter-select .ant-select-selection-placeholder {
-          font-size: 13px !important;
-          height: 22px !important;
-          line-height: 22px !important;
-          display: flex;
-          align-items: center;
-        }
-
-        .pm2-side-filter-select .ant-select-selector {
-          height: 36px !important;
-          padding: 0px 10px !important;
-          display: flex;
-          align-items: center;
-        }
-          
-        .premium-range-picker{
-          border: 1px dashed var(--border-color) !important;    
-          height: 36px !important;
-          border-radius: 6px !important;
-        }
-
-        .premium-range-picker .ant-picker-input > input {
-          font-size: 13px !important;
-          padding: 8px !important;
-          
-        }
-        .premium-range-picker:hover{
-          border: 1px dashed var(--border-color) !important;    
-        }
-
-        .pm2-table-shell{
-           background: var(--bg-pure-white); 
-        border: 1px solid var(--border-slate-200);
-        border-radius: 0; 
-        overflow: hidden;
-        margin-top: 0px !important; 
-      }
-
-       .premium-table .ant-table, .premium-table .ant-table-wrapper, .premium-table .ant-table-container, .premium-table .ant-table-content, .premium-table .ant-table-header, .premium-table .ant-table-body {
-          background: transparent !important;
-          border-radius: 0 !important;
-        }
-        .premium-table .ant-table-thead > tr > th, .premium-table .ant-table-thead > tr > td {
-          background: var(--bg-slate-50) !important; border-bottom: 1px solid var(--border-slate-200) !important;
-          font-size: 10px !important; font-weight: 700 !important; letter-spacing: 0.04em !important;
-          text-transform: uppercase !important; color: var(--text-slate-400) !important; padding: 6px 10px !important;
-          white-space: nowrap !important;
-          border-radius: 0 !important;
-          border-start-start-radius: 0 !important;
-          border-start-end-radius: 0 !important;
-        }
-        .premium-table .ant-table-thead > tr > th::before {
-          display: none !important;
-        }
-        [data-theme='dark'] .premium-table .ant-table-thead > tr > th,
-        [data-theme='dark'] .premium-table .ant-table-thead > tr > td {
-          background: #161B22 !important;
-          border-bottom-color: #374151 !important;
-          color: #94a3b8 !important;
-        }
-        .premium-table .ant-table-tbody > tr > td {
-          border-bottom: 1px solid var(--border-slate-100) !important; 
-          padding: 6.5px 10px !important;
-        }
-        [data-theme='dark'] .premium-table .ant-table-tbody > tr > td {
-          border-bottom-color: #1e293b;
-        }
-        .premium-table .ant-table-row:hover > td {
-           background: var(--bg-slate-50) !important;
-        }
-        [data-theme='dark'] .premium-table .ant-table-row:hover > td {
-          background: rgba(255, 255, 255, 0.02);
-        }
-        .premium-table .ant-table-row-expand-icon-cell {
-          padding: 0 4px !important;
-        }
-        .premium-table .ant-table-expanded-row > td {
-          padding: 0 !important;
-          background: #f8fafc;
-          border-bottom: 1px solid #e2e8f0;
-        }
-        [data-theme='dark'] .premium-table .ant-table-expanded-row > td {
-          background: rgba(15, 23, 42, 0.5);
-          border-bottom-color: #1e293b;
-        }
-
-        /* ── Sidebar show/hide toggle (only visible < 1100px) ── */
-        .pm2-sidebar-show-toggle {
-          display: inline-flex;
-          align-items: center;
-          justify-content: center;
-          width: 30px;
-          height: 30px;
-          background: var(--bg-slate-50, #f8fafc);
-          border: 1px solid var(--border-slate-200, #e2e8f0);
-          border-radius: 8px;
-          color: var(--text-slate-600, #475569);
-          cursor: pointer;
-          flex-shrink: 0;
-          transition: background 0.12s ease, border-color 0.12s ease, color 0.12s ease;
-        }
-        .pm2-sidebar-show-toggle:hover {
-          background: var(--bg-slate-100, #f1f5f9);
-          border-color: var(--text-slate-400, #94a3b8);
-          color: var(--text-slate-900, #0f172a);
-        }
-        .pm2-sidebar-show-toggle[aria-pressed='true'] {
-          background: rgba(59, 130, 246, 0.10);
-          border-color: rgba(59, 130, 246, 0.32);
-          color: var(--premium-blue, #3b82f6);
-        }
-        [data-theme='dark'] .pm2-sidebar-show-toggle {
-          background: #111720 !important;
-          border-color: #2d3748 !important;
-          color: #cbd5e1;
-        }
-        [data-theme='dark'] .pm2-sidebar-show-toggle:hover {
-          background: #1c232e !important;
-          border-color: #475569 !important;
-          color: #f1f5f9;
-        }
-
-        /* Desktop > 1100px: Hide toggle */
-        @media (min-width: 1100px) {
-          .pm2-sidebar-show-toggle {
-            display: none !important;
-          }
-        }
-
-        /* Mobile < 1100px: Off-canvas drawer */
-        @media (max-width: 1099.98px) {
-          .pm2-shell {
-            display: flex;
-            flex-direction: column;
-            grid-template-columns: none;
-          }
-          .pm2-shell-wrap.is-sidebar-open .pm2-sidebar {
-            transform: translateX(0);
-          }
-          .pm2-shell-wrap.is-sidebar-closed .pm2-sidebar {
-            transform: translateX(-100%);
-          }
-          .pm2-shell-wrap .pm2-sidebar {
-            position: fixed;
-            top: 0; left: 0; width: 260px; height: 100vh;
-            max-height: none;
-            z-index: 9999;
-            box-shadow: 0 0 20px rgba(0,0,0,0.1);
-            transition: transform 0.3s cubic-bezier(0.25, 1, 0.5, 1);
-          }
-          .pm2-sidebar-backdrop {
-            display: none;
-            position: fixed;
-            top: 0; left: 0; right: 0; bottom: 0;
-            background: rgba(15, 23, 42, 0.4);
-            backdrop-filter: blur(2px);
-            z-index: 9998;
-            opacity: 0;
-            transition: opacity 0.3s ease;
-          }
-          .pm2-shell-wrap.is-sidebar-open .pm2-sidebar-backdrop {
-            display: block;
-            opacity: 1;
-          }
+          background: #1f2937 !important;
         }
       `}</style>
     </div>
   );
 }
-
-
-
-// comments added for testing

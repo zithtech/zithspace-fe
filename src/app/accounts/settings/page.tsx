@@ -429,7 +429,6 @@ export default function AccountsSettingsPage() {
 
             <div className="pp-topbar-actions">
               <div className="pp-segmented">
-
                 <button
                   type="button"
                   className={viewMode === "table" ? "is-active" : ""}
@@ -446,7 +445,6 @@ export default function AccountsSettingsPage() {
                 >
                   <LayoutGrid size={14} />
                 </button>
-
               </div>
               <Tooltip title="Refresh">
                 <button type="button" className="pp-ghost-btn" onClick={() => refetch()}><ReloadOutlined spin={loading || isFetching} /></button>

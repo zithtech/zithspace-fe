@@ -2179,13 +2179,13 @@ export default function InvoiceSettingPage() {
         __html: `
         /* --- TicketList sprint-head banner styles --- */
         .invoice-overview-banner {
-          background: var(--bg-pure-white);
+          background: var(--bg-slate-50, #f8fafc);
           border-top: none;
           border-left: none;
           border-right: none;
-          border-bottom: 1px solid var(--border-slate-200);
+          border-bottom: 1px solid var(--border-slate-200, #e2e8f0);
           border-radius: 0;
-          padding: 10px 24px 10px 14px;
+          padding: 10px 24px;
           margin: 0;
           box-sizing: border-box;
           flex-shrink: 0;
@@ -2209,11 +2209,13 @@ export default function InvoiceSettingPage() {
           height: 7px;
           border-radius: 50%;
           flex-shrink: 0;
+          background: #3b82f6;
+          box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
         }
         .invoice-overview-banner .tl-sprint-title {
-          font-size: 13px !important;
-          font-weight: 700 !important;
-          color: var(--text-slate-900) !important;
+          font-size: 13.5px !important;
+          font-weight: 800 !important;
+          color: var(--text-slate-900, #0f172a) !important;
           letter-spacing: -0.01em;
           margin: 0 !important;
           white-space: nowrap;
@@ -2223,49 +2225,56 @@ export default function InvoiceSettingPage() {
         .invoice-overview-banner .tl-sprint-tags {
           display: inline-flex;
           align-items: center;
-          gap: 5px;
+          gap: 6px;
           flex-shrink: 0;
         }
         .invoice-overview-banner .tl-sprint-tag {
-          font-size: 9.5px;
-          font-weight: 700;
+          font-size: 9px;
+          font-weight: 800;
           letter-spacing: 0.04em;
           text-transform: uppercase;
-          padding: 1.5px 6px;
+          height: 18px;
+          padding: 0 6px;
           border-radius: 4px;
+          display: inline-flex;
+          align-items: center;
+          line-height: 1;
         }
         .invoice-overview-banner .tl-sprint-tag-neutral {
-          background: var(--bg-slate-100);
-          color: var(--text-slate-600);
+          background: transparent;
+          color: var(--text-slate-500);
           border: 1px solid var(--border-slate-200);
         }
         .invoice-overview-banner .tl-sprint-tag-active {
-          background: rgba(16, 185, 129, 0.1);
+          background: transparent;
           color: #10b981;
-          border: 1px solid rgba(16, 185, 129, 0.25);
+          border: 1px solid rgba(16, 185, 129, 0.32);
         }
         .invoice-overview-banner .tl-sprint-tag-delayed {
-          background: rgba(248, 113, 113, 0.1);
-          color: #f87171;
-          border: 1px solid rgba(248, 113, 113, 0.25);
+          background: transparent;
+          color: #ef4444;
+          border: 1px solid rgba(239, 68, 68, 0.32);
         }
         .invoice-overview-banner .tl-sprint-row2 {
           display: flex;
           align-items: center;
-          gap: 14px;
+          gap: 18px;
+          padding-left: 15px;
           margin-bottom: 6px;
           flex-wrap: wrap;
         }
         .invoice-overview-banner .tl-sprint-meta {
           display: inline-flex;
           align-items: center;
-          gap: 4px;
-          font-size: 11px;
-          color: var(--text-slate-500);
+          gap: 6px;
+          font-size: 11.5px;
+          font-weight: 600;
+          color: var(--text-slate-500, #64748b);
+          letter-spacing: -0.005em;
         }
         .invoice-overview-banner .tl-sprint-meta b {
-          color: var(--text-slate-800);
-          font-weight: 700;
+          color: var(--text-slate-900, #0f172a);
+          font-weight: 800;
         }
         .invoice-overview-banner .tl-sprint-row3 {
           display: flex;
@@ -2277,7 +2286,7 @@ export default function InvoiceSettingPage() {
           flex: 1 1 auto;
           position: relative;
           height: 6px !important;
-          background: var(--bg-slate-100);
+          background: var(--bg-slate-100, #f1f5f9);
           border-radius: 999px;
           overflow: hidden;
           min-width: 60px;
@@ -2287,7 +2296,7 @@ export default function InvoiceSettingPage() {
           position: absolute;
           inset: 0;
           height: 100% !important;
-          background: linear-gradient(90deg, #3b82f6, #10b981) !important;
+          background: linear-gradient(90deg, #3b82f6, #2563eb) !important;
           border-radius: 999px;
           transition: width 0.4s ease;
         }
@@ -2295,7 +2304,7 @@ export default function InvoiceSettingPage() {
           flex-shrink: 0;
           font-size: 12px !important;
           font-weight: 800 !important;
-          color: var(--text-slate-900) !important;
+          color: var(--text-slate-900, #0f172a) !important;
           font-variant-numeric: tabular-nums;
           min-width: 36px;
           text-align: right;

@@ -322,9 +322,10 @@ export default function ClockInOutPanel() {
       </div>
 
       {/* ── 2) WORK HOURS INSIGHTS (horizontal, full width) ──────────────────── */}
-            <StatCards
+      <StatCards
         title="Work Hours Insights"
         statusText="LIVE"
+        progressPct={summary?.thisWeek?.totalMinutes ? Math.min(100, Math.round((summary.thisWeek.totalMinutes / (40 * 60)) * 100)) : (summary?.totalDays ? Math.round(((summary.presentDays || 0) / summary.totalDays) * 100) : 0)}
         cells={insights.map(s => ({
           label: s.title,
           value: <>{s.value} <span style={{ fontSize: 11, fontWeight: 500, color: 'var(--text-slate-400)' }}>{s.sub}</span></>,

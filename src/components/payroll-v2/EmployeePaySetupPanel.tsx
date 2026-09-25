@@ -20,6 +20,7 @@ import PayrollV2Service, {
   MemberOption, EmployeeAssignmentListItem, PayStructureListItem, AssignmentComponent, StructureTotals, ComponentCategory, EmployeeProfile,
 } from '@/services/payrollV2Service';
 import { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
+import { FilterBar, FilterToggleButton, TicketFilterPill, FilterPillOption } from '@/components/common/FilterBar';
 
 const PALETTE = { slate: '#64748B', blue: '#3B82F6', green: '#10B981', red: '#EF4444', violet: '#8B5CF6', amber: '#F59E0B', grey: '#94A3B8' } as const;
 const TINT = { slate: 'rgba(100,116,139,0.12)', blue: 'rgba(59,130,246,0.10)', green: 'rgba(16,185,129,0.10)', amber: 'rgba(245,158,11,0.10)' } as const;
@@ -77,6 +78,7 @@ export default function EmployeePaySetupPanel() {
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
+  const [isFilterRowOpen, setIsFilterRowOpen] = useState(false);
 
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(15);
@@ -310,20 +312,35 @@ export default function EmployeePaySetupPanel() {
             <SearchOutlined className="pvep-search-icon" />
             <input className="pvep-search" placeholder="Search name or role…" value={search} onChange={(e) => setSearch(e.target.value)} />
           </div>
+          <FilterToggleButton
+            isOpen={isFilterRowOpen}
+            onToggle={() => setIsFilterRowOpen((prev) => !prev)}
+            activeCount={statusFilter !== 'all' ? 1 : 0}
+          />
           <Tooltip title="Refresh"><button type="button" className="pvep-ghost-btn" onClick={() => load()}><ReloadOutlined spin={loading} /></button></Tooltip>
         </div>
       </div>
 
       <StatCards cells={statCells.map(s => ({ label: s.title, value: s.value, icon: s.icon, color: s.color, tint: s.tint }))} />
 
-      <div className="pvep-filters">
-        <span className="pvep-filter-label"><FilterOutlined /> Filter</span>
-        <SearchableDropdown className="pvep-dd" placeholder="Status" searchPlaceholder="Search" itemNoun="statuses"
-          value={statusFilter === 'all' ? undefined : statusFilter} onChange={(v) => setStatusFilter((v as StatusFilter) ?? 'all')}
-          options={[{ value: 'assigned', label: 'Assigned' }, { value: 'unassigned', label: 'Not set up' }]} style={{ width: 170 }} width={210} />
-        <span className="pvep-filter-count">{filtered.length}</span>
-        {hasFilters && <button type="button" className="pvep-clear" onClick={() => { setSearch(''); setStatusFilter('all'); }}><CloseCircleOutlined /> Clear</button>}
-      </div>
+      {isFilterRowOpen && (
+        <FilterBar
+          activeCount={statusFilter !== 'all' ? 1 : 0}
+          onReset={() => setStatusFilter('all')}
+          onClose={() => setIsFilterRowOpen(false)}
+        >
+          <TicketFilterPill
+            label="Status"
+            icon={<CheckCircleOutlined />}
+            value={statusFilter === 'all' ? undefined : statusFilter}
+            options={[
+              { value: 'assigned', label: 'Assigned', dotColor: '#10b981' },
+              { value: 'unassigned', label: 'Not set up', dotColor: '#f59e0b' },
+            ]}
+            onChange={(v) => setStatusFilter((v as StatusFilter) || 'all')}
+          />
+        </FilterBar>
+      )}
 
       <div className="pv-table-wrap">
         <ZukvoLoadingOverlay loading={loading} message="">
@@ -441,7 +458,7 @@ export default function EmployeePaySetupPanel() {
 
       <style jsx global>{`
         .pvep { display: flex; flex-direction: column; flex: 1; min-height: 0; }
-        .pvep-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding-bottom: 14px; margin-bottom: 14px; border-bottom: 1px solid var(--border-slate-200); flex-wrap: wrap; }
+        .pvep-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding-bottom: 14px; margin-bottom: 0; border-bottom: 1px solid var(--border-slate-200); flex-wrap: wrap; }
         .pvep-header-about { display: flex; align-items: center; gap: 12px; flex: 1 1 auto; min-width: 250px; }
         .pvep-header-icon { width: 38px; height: 38px; border-radius: 10px; flex-shrink: 0; background: ${TINT.slate}; color: ${PALETTE.slate}; display: inline-flex; align-items: center; justify-content: center; font-size: 18px; }
         .pvep-header-title { font-size: 17px; font-weight: 800; color: var(--text-slate-900); letter-spacing: -0.02em; line-height: 1.15; }

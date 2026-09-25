@@ -22,6 +22,7 @@ import { PALETTE, TINT, PanelHeader, StatCards, RmbStyles, money, fmtDate, Statu
 import { drawerFormStyles as formStyles, commonDrawerProps, SectionCard } from '@/components/common/DrawerSection';
 import SearchableDropdown from '@/components/common/SearchableDropdown';
 import { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
+import { FilterBar, FilterToggleButton, TicketFilterPill, FilterPillOption } from '@/components/common/FilterBar';
 
 const STATUS_OPTIONS = [
   { value: 'draft', label: 'Draft' },
@@ -48,6 +49,7 @@ export default function ClaimsPanel({ hideSidebarToggle }: { hideSidebarToggle?:
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [isFilterRowOpen, setIsFilterRowOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(15);
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -366,6 +368,20 @@ export default function ClaimsPanel({ hideSidebarToggle }: { hideSidebarToggle?:
 
   const isDraft = current?.status === 'draft';
 
+  const activeFilterCount = statusFilter !== 'all' ? 1 : 0;
+
+  const statusFilterOptions: FilterPillOption[] = [
+    { value: 'draft', label: 'Draft', dotColor: '#94a3b8' },
+    { value: 'submitted', label: 'Submitted', dotColor: '#3b82f6' },
+    { value: 'pending', label: 'Pending', dotColor: '#f59e0b' },
+    { value: 'approved', label: 'Approved', dotColor: '#10b981' },
+    { value: 'paid', label: 'Paid', dotColor: '#059669' },
+    { value: 'rejected', label: 'Rejected', dotColor: '#ef4444' },
+    { value: 'cancelled', label: 'Cancelled', dotColor: '#64748b' },
+    { value: 'partially_reconciled', label: 'Partially Reconciled', dotColor: '#8b5cf6' },
+    { value: 'reconciled', label: 'Reconciled', dotColor: '#06b6d4' },
+  ];
+
   if (!canRead) return <div className="rvp-empty">You don’t have permission to view claims.</div>;
 
   return (
@@ -377,14 +393,10 @@ export default function ClaimsPanel({ hideSidebarToggle }: { hideSidebarToggle?:
         search={search} onSearch={setSearch} searchPlaceholder="Search claims…"
         onRefresh={load} loading={loading}
       >
-        <SearchableDropdown
-          placeholder="All statuses"
-          itemNoun="statuses"
-          value={statusFilter === 'all' ? undefined : statusFilter}
-          onChange={(v) => setStatusFilter((v as string) ?? 'all')}
-          options={STATUS_OPTIONS}
-          style={{ width: 160 }}
-          width={220}
+        <FilterToggleButton
+          isOpen={isFilterRowOpen}
+          onToggle={() => setIsFilterRowOpen((prev) => !prev)}
+          activeCount={activeFilterCount}
         />
         {canCreate && <Button type="primary" size="small" icon={<PlusOutlined />} onClick={openCreate}>New Claim</Button>}
       </PanelHeader>
@@ -395,6 +407,22 @@ export default function ClaimsPanel({ hideSidebarToggle }: { hideSidebarToggle?:
         { label: 'Pending', value: stats.pending, icon: <SendOutlined />, color: PALETTE.amber, tint: TINT.amber },
         { label: 'Paid (base)', value: money(stats.paidAmt), icon: <DollarOutlined />, color: PALETTE.green, tint: TINT.green },
       ]} />
+
+      {isFilterRowOpen && (
+        <FilterBar
+          activeCount={activeFilterCount}
+          onReset={() => setStatusFilter('all')}
+          onClose={() => setIsFilterRowOpen(false)}
+        >
+          <TicketFilterPill
+            label="Status"
+            icon={<SolutionOutlined />}
+            value={statusFilter === 'all' ? undefined : statusFilter}
+            options={statusFilterOptions}
+            onChange={(v) => setStatusFilter((v as string) || 'all')}
+          />
+        </FilterBar>
+      )}
 
       <div className="rvp-table-wrap">
         <Table rowKey="id" size="middle" loading={loading} columns={columns} dataSource={rows}

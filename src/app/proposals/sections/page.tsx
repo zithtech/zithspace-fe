@@ -496,7 +496,12 @@ function SectionsContent() {
           <div className="pp-divider" />
 
           {/* Stat cards */}
-          <StatCards cards={cards} />
+          <StatCards
+            title="Sections Overview"
+            statusText="ACTIVE"
+            progressPct={activeCount > 0 ? Math.round((usedSections / activeCount) * 100) : 0}
+            cards={cards}
+          />
 
           {/* Grid of section cards */}
           <div className="pp-body">

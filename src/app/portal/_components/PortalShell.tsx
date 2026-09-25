@@ -83,6 +83,13 @@ export default function PortalShell({
     }
   }, [loading, user, enabledModules, pathname, router]);
 
+  // Update document title if tenantName is available
+  useEffect(() => {
+    if (user?.tenantName) {
+      document.title = `${user.tenantName} · Client Portal`;
+    }
+  }, [user?.tenantName]);
+
   if (loading) {
     return (
       <div
@@ -107,6 +114,9 @@ export default function PortalShell({
     if (!enabledModules) return true; // older session: show everything
     return enabledModules.includes(key);
   });
+
+  const tenantDisplayName = user.tenantName || "Client Portal";
+  const tenantInitial = (user.tenantName || "P").trim().charAt(0).toUpperCase();
 
   const initials = (user.displayName || user.username || "?")
     .split(" ")
@@ -154,11 +164,12 @@ export default function PortalShell({
                 letterSpacing: "-0.02em",
                 fontFamily:
                   'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+                flexShrink: 0,
               }}
             >
-              Z
+              {tenantInitial}
             </div>
-            <div style={{ minWidth: 0 }}>
+            <div style={{ minWidth: 0, flex: 1 }}>
               <div
                 style={{
                   fontSize: 15,
@@ -166,9 +177,13 @@ export default function PortalShell({
                   color: "#0f172a",
                   lineHeight: 1.1,
                   letterSpacing: "-0.01em",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  whiteSpace: "nowrap",
                 }}
+                title={tenantDisplayName}
               >
-                Zukvo
+                {tenantDisplayName}
               </div>
               <div
                 style={{

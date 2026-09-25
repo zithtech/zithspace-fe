@@ -621,6 +621,7 @@ export default function LeadsTrashPage() {
                 statusText="TRASHED"
                 statusColor="#ef4444"
                 statusBorder="rgba(239, 68, 68, 0.32)"
+                progressPct={stats.totalDeleted > 0 ? Math.round((stats.purgingSoon / stats.totalDeleted) * 100) : 0}
                 cells={[
                   {
                     label: "Trashed Leads",

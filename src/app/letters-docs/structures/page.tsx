@@ -113,12 +113,14 @@ export default function StructuresManagementPage() {
     return (new Date().getTime() - d.getTime()) < 7 * 24 * 60 * 60 * 1000;
   }).length, [structures]);
 
+  const customCount = useMemo(() => Math.max(0, total - globalCount), [total, globalCount]);
+
   const statCells = useMemo(() => [
-    { label: 'Total Structures', value: total, icon: <Layers size={15} />, color: PALETTE.blue, tint: TINT.blue },
-    { label: 'Global Structures', value: globalCount, icon: <StarOutlined />, color: PALETTE.violet, tint: TINT.violet },
+    { label: 'Total Formats', value: total, icon: <Layers size={15} />, color: PALETTE.blue, tint: TINT.blue },
+    { label: 'Global Formats', value: globalCount, icon: <StarOutlined />, color: PALETTE.violet, tint: TINT.violet },
+    { label: 'Custom Formats', value: customCount, icon: <CheckCircleOutlined />, color: PALETTE.green, tint: TINT.green },
     { label: 'New This Week', value: recentCount, icon: <FileTextOutlined />, color: PALETTE.amber, tint: TINT.amber },
-    { label: 'Active Structures', value: total, icon: <CheckCircleOutlined />, color: PALETTE.green, tint: TINT.green },
-  ], [total, globalCount, recentCount]);
+  ], [total, globalCount, customCount, recentCount]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -266,6 +268,7 @@ export default function StructuresManagementPage() {
       <StatCards
         title="Custom Formats Overview"
         statusText="ACTIVE"
+        progressPct={total > 0 ? Math.round((customCount / total) * 100) : 0}
         cells={statCells}
       />
 

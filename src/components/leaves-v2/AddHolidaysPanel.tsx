@@ -28,6 +28,7 @@ import LeaveV2Service, { Holiday, HolidayInput, HolidayType, HolidayRule } from 
 
 const { RangePicker } = DatePicker;
 import { PALETTE, TINT, StatCards } from '@/components/leaves-v2/ui';
+import { FilterBar, FilterToggleButton, TicketFilterPill } from '@/components/common/FilterBar';
 const PAGE_SIZE_OPTIONS = [10, 15, 20, 25, 50, 100];
 import { drawerFormStyles as formStyles, SectionCard } from "@/components/common/DrawerSection";
 import { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
@@ -78,6 +79,7 @@ export default function AddHolidaysPanel() {
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState<TypeFilter>('all');
   const [yearFilter, setYearFilter] = useState<number>(dayjs().year());
+  const [isFilterRowOpen, setIsFilterRowOpen] = useState(false);
   const [tablePage, setTablePage] = useState(1);
   const [tablePageSize, setTablePageSize] = useState(15);
 
@@ -289,14 +291,20 @@ export default function AddHolidaysPanel() {
             <SearchOutlined className="lvh-search-icon" />
             <input className="lvh-search" placeholder="Search holiday…" value={search} onChange={(e) => setSearch(e.target.value)} />
           </div>
+          <FilterToggleButton
+            isOpen={isFilterRowOpen}
+            onToggle={() => setIsFilterRowOpen((prev) => !prev)}
+            activeCount={(typeFilter !== 'all' ? 1 : 0) + (yearFilter !== dayjs().year() ? 1 : 0)}
+          />
           <Tooltip title="Refresh"><button type="button" className="lvh-ghost-btn" onClick={() => load(yearFilter)}><ReloadOutlined spin={loading} /></button></Tooltip>
           {canCreateLeaveHoliday && <Button type="primary" icon={<PlusOutlined />} onClick={openCreate} className="lvh-add-btn">Add Holiday</Button>}
         </div>
       </div>
 
-            <StatCards
+      <StatCards
         title="Leave Overview"
         statusText="LIVE"
+        progressPct={stats.total > 0 ? Math.round((stats.active / stats.total) * 100) : 0}
         cells={statCells.map(s => ({
           label: s.title,
           value: <>{s.value} <span style={{ fontSize: 11, fontWeight: 500, color: 'var(--text-slate-400)' }}>{s.period}</span></>,
@@ -306,13 +314,28 @@ export default function AddHolidaysPanel() {
         }))}
       />
 
-      <div className="lvh-filters">
-        <span className="lvh-filter-label"><FilterOutlined /> Filter</span>
-        <SearchableDropdown className="lvh-filter-dd" placeholder="Year" itemNoun="years" allowClear={false} value={String(yearFilter)} onChange={(v) => setYearFilter(Number(v))} options={years.map((y) => ({ value: String(y), label: String(y) }))} style={{ width: 120 }} width={140} />
-        <SearchableDropdown className="lvh-filter-dd" placeholder="Type" itemNoun="types" value={typeFilter === 'all' ? undefined : typeFilter} onChange={(v) => setTypeFilter((v as TypeFilter) ?? 'all')} options={TYPE_OPTIONS} style={{ width: 150 }} width={200} />
-        <span className="lvh-filter-count">{total} of {stats.total}</span>
-        {hasFilters && <button type="button" className="lvh-clear" onClick={() => { setSearch(''); setTypeFilter('all'); }}><CloseCircleOutlined /> Clear</button>}
-      </div>
+      {isFilterRowOpen && (
+        <FilterBar
+          activeCount={(typeFilter !== 'all' ? 1 : 0) + (yearFilter !== dayjs().year() ? 1 : 0)}
+          onReset={() => { setSearch(''); setTypeFilter('all'); setYearFilter(dayjs().year()); }}
+          onClose={() => setIsFilterRowOpen(false)}
+        >
+          <TicketFilterPill
+            label="Year"
+            icon={<CalendarOutlined />}
+            value={String(yearFilter)}
+            options={years.map((y) => ({ value: String(y), label: String(y) }))}
+            onChange={(v) => setYearFilter(Number(v) || dayjs().year())}
+          />
+          <TicketFilterPill
+            label="Type"
+            icon={<GlobalOutlined />}
+            value={typeFilter === 'all' ? undefined : typeFilter}
+            options={TYPE_OPTIONS.map((t) => ({ value: t.value, label: t.label }))}
+            onChange={(v) => setTypeFilter((v as TypeFilter) || 'all')}
+          />
+        </FilterBar>
+      )}
 
       <div className="lv-table-wrap">
         <ZukvoLoadingOverlay loading={loading} message="">

@@ -782,7 +782,13 @@ export const PerformanceTracker: React.FC<PerformanceTrackerProps> = ({ refreshK
     <div style={{ display: "flex", flexDirection: "column", flex: 1, height: "100%", minHeight: 0, overflow: "hidden" }}>
       <div style={{ flexShrink: 0 }}>
         {!embedded && (
-          <StatCards cards={perfCards} style={{ borderBottom: "1px solid var(--border-slate-200)", marginBottom: 0 }} />
+          <StatCards
+            title="Performance Overview"
+            statusText="ACTIVE"
+            progressPct={members.length > 0 ? Math.min(100, Math.round((memberDetails.length / members.length) * 100)) : (memberDetails.length > 0 ? 100 : 0)}
+            cards={perfCards}
+            style={{ borderBottom: "1px solid var(--border-slate-200)", marginBottom: 0 }}
+          />
         )}
         {/* ── Page header ── */}
         {!embedded && (

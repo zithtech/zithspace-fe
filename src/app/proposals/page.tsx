@@ -1052,7 +1052,12 @@ export default function ProposalsListPage() {
             <div className="pp-divider" />
 
             {/* Stat cards */}
-            <StatCards cards={cards} />
+            <StatCards
+              title="Proposals Overview"
+              statusText="ACTIVE"
+              progressPct={stats.winRate || 0}
+              cards={cards}
+            />
 
             {/* Table / grid */}
             <div className="pp-body">

@@ -33,6 +33,7 @@ import LeaveV2Service, {
 
 const { TextArea } = Input;
 import { PALETTE, TINT, StatCards } from '@/components/leaves-v2/ui';
+import { FilterBar, FilterToggleButton, TicketFilterPill } from '@/components/common/FilterBar';
 const PAGE_SIZE_OPTIONS = [10, 15, 20, 25, 50, 100];
 import { drawerFormStyles as formStyles, SectionCard } from "@/components/common/DrawerSection";
 import { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
@@ -67,6 +68,7 @@ export default function LeaveAdjustmentPanel() {
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState('');
   const [dirFilter, setDirFilter] = useState<'all' | 'credit' | 'debit'>('all');
+  const [isFilterRowOpen, setIsFilterRowOpen] = useState(false);
   const [tablePage, setTablePage] = useState(1);
   const [tablePageSize, setTablePageSize] = useState(15);
 
@@ -278,14 +280,20 @@ export default function LeaveAdjustmentPanel() {
             <SearchOutlined className="lvadj-search-icon" />
             <input className="lvadj-search" placeholder="Search employee or type…" value={search} onChange={(e) => setSearch(e.target.value)} />
           </div>
+          <FilterToggleButton
+            isOpen={isFilterRowOpen}
+            onToggle={() => setIsFilterRowOpen((prev) => !prev)}
+            activeCount={dirFilter !== 'all' ? 1 : 0}
+          />
           <Tooltip title="Refresh"><button type="button" className="lvadj-ghost-btn" onClick={() => load()}><ReloadOutlined spin={loading} /></button></Tooltip>
           {canCreateLeaveAdjustment && <Button type="primary" icon={<PlusOutlined />} onClick={openNew} className="lvadj-add-btn">New Adjustment</Button>}
         </div>
       </div>
 
-            <StatCards
+      <StatCards
         title="Leave Overview"
         statusText="LIVE"
+        progressPct={stats.total > 0 ? Math.round((stats.credited / stats.total) * 100) : 0}
         cells={statCells.map(s => ({
           label: s.title,
           value: <>{s.value} <span style={{ fontSize: 11, fontWeight: 500, color: 'var(--text-slate-400)' }}>{s.period}</span></>,
@@ -295,22 +303,24 @@ export default function LeaveAdjustmentPanel() {
         }))}
       />
 
-      <div className="lvadj-filters">
-        <span className="lvadj-filter-label"><FilterOutlined /> Filter</span>
-        <SearchableDropdown
-          className="lvadj-filter-dd"
-          placeholder="Direction"
-          searchPlaceholder="Search"
-          itemNoun="directions"
-          value={dirFilter === 'all' ? undefined : dirFilter}
-          onChange={(v) => setDirFilter((v as any) ?? 'all')}
-          options={[{ value: 'credit', label: 'Credits' }, { value: 'debit', label: 'Debits' }]}
-          style={{ width: 160 }}
-          width={210}
-        />
-        <span className="lvadj-filter-count">{total} of {stats.total}</span>
-        {hasFilters && <button type="button" className="lvadj-clear" onClick={() => { setSearch(''); setDirFilter('all'); }}><CloseCircleOutlined /> Clear</button>}
-      </div>
+      {isFilterRowOpen && (
+        <FilterBar
+          activeCount={dirFilter !== 'all' ? 1 : 0}
+          onReset={() => { setSearch(''); setDirFilter('all'); }}
+          onClose={() => setIsFilterRowOpen(false)}
+        >
+          <TicketFilterPill
+            label="Direction"
+            icon={<SwapOutlined />}
+            value={dirFilter === 'all' ? undefined : dirFilter}
+            options={[
+              { value: 'credit', label: 'Credits', dotColor: '#10b981' },
+              { value: 'debit', label: 'Debits', dotColor: '#ef4444' },
+            ]}
+            onChange={(v) => setDirFilter((v as any) || 'all')}
+          />
+        </FilterBar>
+      )}
 
       <div className="lv-table-wrap">
         <ZukvoLoadingOverlay loading={loading} message="">

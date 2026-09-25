@@ -505,8 +505,8 @@ const OnboardingContent = () => {
           background: var(--bg-pure-white);
           border-bottom: 1px solid var(--border-slate-200);
           backdrop-filter: blur(12px);
-          padding: 12px 24px 0 28px;
-          margin: -12px -22px 16px;
+          padding: 12px 24px 0 24px;
+          margin: 0 0 16px 0;
         }
         .onb-header-top {
           display: flex;
@@ -626,7 +626,7 @@ const OnboardingContent = () => {
         /* Body */
         .onb-body {
           flex: 1;
-          padding: 0 0 96px;
+          padding: 0 24px 96px;
         }
 
         /* Slim sticky footer */
@@ -638,11 +638,11 @@ const OnboardingContent = () => {
           align-items: center;
           justify-content: space-between;
           gap: 12px;
-          padding: 6px 28px;
+          padding: 10px 24px;
           background: var(--bg-pure-white);
           border-top: 1px solid var(--border-slate-200);
           box-shadow: 0 -4px 14px rgba(15, 23, 42, 0.05);
-          margin: 0 -22px;
+          margin: 0;
         }
         .onb-footer-actions {
           display: flex;
@@ -703,6 +703,12 @@ const OnboardingContent = () => {
         @media (max-width: 900px) {
           .onb-header {
             padding: 12px 16px 0 16px;
+          }
+          .onb-body {
+            padding: 0 16px 96px;
+          }
+          .onb-footer {
+            padding: 10px 16px;
           }
           .onb-header-top {
             flex-direction: column;

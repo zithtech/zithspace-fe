@@ -39,6 +39,7 @@ import { useAuth } from "@/context/AuthContext";
 import ConfirmDialog from "@/components/common/ConfirmDialog";
 import { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
 import { StatCards } from "@/components/onboarding/ui";
+import { FilterBar, FilterToggleButton, TicketFilterPill } from "@/components/common/FilterBar";
 
 // ── Module palette: blue / green / red / grey only ──────────────────────────
 const PALETTE = {
@@ -139,6 +140,8 @@ const Onboarded = () => {
   const [data, setData] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all');
+  const [isFilterRowOpen, setIsFilterRowOpen] = useState(false);
   const [total, setTotal] = useState(0);
   const [stats, setStats] = useState({ total: 0, active: 0, inactive: 0 });
   const [tablePage, setTablePage] = useState(1);
@@ -156,6 +159,7 @@ const Onboarded = () => {
     try {
       const res = await EmployeeOnboardingService.getAllEmployees({
         search,
+        status: statusFilter === 'all' ? undefined : statusFilter,
         limit: tablePageSize,
         offset: (tablePage - 1) * tablePageSize,
       });
@@ -189,7 +193,7 @@ const Onboarded = () => {
     if (canReadOnboarding) {
       fetchEmployees();
     }
-  }, [canReadOnboarding, search, tablePage, tablePageSize]);
+  }, [canReadOnboarding, search, statusFilter, tablePage, tablePageSize]);
 
   // ✅ Status Toggle
   const handleStatusChange = async (id: string, checked: boolean) => {
@@ -432,6 +436,11 @@ const Onboarded = () => {
               onChange={(e) => setSearch(e.target.value)}
             />
           </div>
+          <FilterToggleButton
+            isOpen={isFilterRowOpen}
+            onToggle={() => setIsFilterRowOpen((prev) => !prev)}
+            activeCount={statusFilter !== 'all' ? 1 : 0}
+          />
           <Tooltip title="Refresh">
             <button
               type="button"
@@ -454,10 +463,11 @@ const Onboarded = () => {
         </div>
       </div>
 
-      {/* ── 2) STAT CARDS (gradient) ───────────────────────────────────────────── */}
+      {/* ── 2) STAT CARDS ──────────────────────────────────────────────────────── */}
       <StatCards
         title="Onboarded Overview"
         statusText="ACTIVE"
+        progressPct={totalCount > 0 ? Math.round((activeCount / totalCount) * 100) : 0}
         cells={statCells.map(s => ({
           label: s.title,
           value: <>{s.value} <span style={{ fontSize: 11, fontWeight: 500, color: 'var(--text-slate-400)' }}>{s.caption}</span></>,
@@ -466,6 +476,26 @@ const Onboarded = () => {
           tint: s.tint
         }))}
       />
+
+      {/* ── 3) FILTERS ────────────────────────────────────────────────────────── */}
+      {isFilterRowOpen && (
+        <FilterBar
+          activeCount={statusFilter !== 'all' ? 1 : 0}
+          onReset={() => { setSearch(''); setStatusFilter('all'); }}
+          onClose={() => setIsFilterRowOpen(false)}
+        >
+          <TicketFilterPill
+            label="Status"
+            icon={<CheckCircle2 size={14} />}
+            value={statusFilter === 'all' ? undefined : statusFilter}
+            options={[
+              { value: 'active', label: 'Active', dotColor: '#10b981' },
+              { value: 'inactive', label: 'Inactive', dotColor: '#ef4444' },
+            ]}
+            onChange={(v) => setStatusFilter((v as any) || 'all')}
+          />
+        </FilterBar>
+      )}
 
       {/* ── 3) TABLE ─────────────────────────────────────────────────────────── */}
       <div className="onb-table-wrap">
@@ -513,7 +543,7 @@ const Onboarded = () => {
         /* 1) Header */
         .onb-header {
           display: flex; align-items: center; justify-content: space-between; gap: 16px;
-          margin: 0 0 14px 0; padding: 12px 20px 14px 20px; border-bottom: 1px solid var(--border-slate-200);
+          margin: 0 !important; padding: 12px 20px 14px 20px; border-bottom: 1px solid var(--border-slate-200);
           background: var(--bg-pure-white);
           position: sticky; top: 0; z-index: 30;
         }

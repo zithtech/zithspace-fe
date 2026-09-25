@@ -19,7 +19,7 @@ import NoData from "@/components/common/NoData";
 import React, { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import MainLayout from "@/components/layout/MainLayout";
 import { App, Button, DatePicker, Input, Modal, Select, Table, Tooltip  } from "antd";
-import { SearchOutlined, FileDoneOutlined } from "@ant-design/icons";
+import { SearchOutlined, FileDoneOutlined, UserOutlined } from "@ant-design/icons";
 import {
   Eye,
   Inbox,
@@ -43,6 +43,8 @@ import { useActivitySource } from "@/hooks/useActivitySource";
 import { useTour } from "@/context/TourContext";
 import { api as axios } from "@/lib/axios";
 import { SearchableDropdown } from "@/components/common/SearchableDropdown";
+import StatCards from "@/components/common/StatCards";
+import { FilterBar, FilterToggleButton, TicketFilterPill } from "@/components/common/FilterBar";
 import ZukvoLoader, { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
 import ScopeApprovals from "./ScopeApprovals";
 import { MembersService } from "@/services/membersService";
@@ -179,6 +181,7 @@ function ApprovalsContent() {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(15);
   const [total, setTotal] = useState(0);
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
 
   /** The decision modals — one submission at a time, each with its own note. */
   const [approveTarget, setApproveTarget] = useState<SubmissionListItem | null>(null);
@@ -617,7 +620,7 @@ function ApprovalsContent() {
             <ScopeApprovals onOpenSidebar={() => setMobileSidebarOpen(true)} />
           ) : (
           <>
-          <div className="dh-main-topbar sc-topbar">
+          <div className="dh-main-topbar sc-topbar" style={{ padding: "8px 16px", minHeight: 52 }}>
             <div className="sc-topbar__title" style={{ display: 'flex', alignItems: 'center' }}>
               <Button
                 className="dh-mobile-menu-btn"
@@ -631,7 +634,21 @@ function ApprovalsContent() {
                 Reported QA submissions waiting on a business decision — approve, or send back with a reason
               </span>
             </div>
-            <div className="dh-main-controls">
+            <div className="dh-main-controls" style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <Input
+                style={{ width: 220, height: 32 }}
+                placeholder="Search submissions, scopes…"
+                prefix={<SearchOutlined style={{ color: "var(--text-slate-400)", fontSize: 12 }} />}
+                className="saas-input"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                allowClear
+              />
+              <FilterToggleButton
+                isOpen={isFilterOpen}
+                onToggle={() => setIsFilterOpen((prev) => !prev)}
+                activeCount={activeFilterCount}
+              />
               <Button
                 type="default"
                 icon={<RotateCw size={14} className={loading ? "animate-spin" : ""} />}
@@ -643,77 +660,94 @@ function ApprovalsContent() {
             </div>
           </div>
 
-          <div className="dh-main-scroll">
-            <div className="qs-statrow">
-              {TILES.map((t) => (
-                <Tooltip key={t.key} title={t.sub} mouseEnterDelay={0.4}>
-                  <div>
-                    <StatTile
-                      compact
-                      label={t.label}
-                      value={tileValue(t.key)}
-                      icon={t.icon}
-                      color={t.color}
-                      bgColor={t.bg}
-                    />
-                  </div>
-                </Tooltip>
-              ))}
-            </div>
+          <div className="dh-main-scroll" style={{ padding: 0 }}>
+            {/* StatCards */}
+            <StatCards
+              title="Approvals Queue"
+              statusText="QUEUE"
+              statusColor="#3b82f6"
+              style={{ margin: 0, borderRadius: 0 }}
+              progressPct={
+                stats && stats.total > 0
+                  ? Math.min(100, Math.round(((stats.qa_signed_off + (stats.approved || 0)) / stats.total) * 100))
+                  : 0
+              }
+              cards={[
+                { label: "Awaiting Approval", value: tileValue("awaiting"), icon: <Inbox size={14} />, color: "#3B82F6" },
+                { label: "Approved", value: tileValue("approved"), icon: <ThumbsUp size={14} />, color: "#10b981" },
+                { label: "QA Signed-off", value: tileValue("qa_signed_off"), icon: <ShieldCheck size={14} />, color: "#10b981" },
+                { label: "Sent Back", value: tileValue("sent_back"), icon: <Undo2 size={14} />, color: "#ef4444" },
+                { label: "All Submissions", value: tileValue("total"), icon: <Layers size={14} />, color: "#64748b" },
+              ]}
+            />
 
-            <div className="sc-filters">
-              <Input
-                className="sc-filters__search"
-                placeholder="Search submissions, scopes…"
-                prefix={<SearchOutlined style={{ color: "var(--text-slate-400)" }} />}
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                allowClear
-              />
-              <SearchableDropdown
-                options={scopeOptions}
-                value={scopeFilter}
-                onChange={setScopeFilter}
-                placeholder="All scopes"
-                itemNoun="scopes"
-                className="sc-filters__field"
-              />
-              <SearchableDropdown
-                options={memberOptions}
-                value={ownerFilter}
-                onChange={setOwnerFilter}
-                placeholder="Any QA owner"
-                itemNoun="people"
-                className="sc-filters__field"
-              />
-              <SearchableDropdown
-                options={RECOMMENDATIONS.map((r) => ({ value: r, label: r }))}
-                value={recommendationFilter}
-                onChange={setRecommendationFilter}
-                placeholder="Any recommendation"
-                hideAvatar
-                itemNoun="recommendations"
-                className="sc-filters__field"
-              />
-              <RangePicker
-                value={dateRange as any}
-                onChange={(v) => setDateRange(v as any)}
-                format="DD MMM YYYY"
-                allowEmpty={[true, true]}
-              />
-              {activeFilterCount > 0 && (
-                <button type="button" className="sc-clear" onClick={clearFilters}>
-                  Clear ({activeFilterCount})
-                </button>
-              )}
-            </div>
+            {/* Unified FilterBar */}
+            {isFilterOpen && (
+              <FilterBar
+                activeCount={activeFilterCount}
+                onReset={clearFilters}
+                onClose={() => setIsFilterOpen(false)}
+                actions={
+                  <span style={{ fontSize: 12, color: "var(--text-slate-500)", whiteSpace: "nowrap" }}>
+                    <b>{rows.length}</b> of <b>{total}</b> submissions
+                  </span>
+                }
+              >
+                <TicketFilterPill
+                  icon={<Layers size={12} />}
+                  label="Scope"
+                  value={scopeFilter || ""}
+                  options={scopeOptions}
+                  onChange={setScopeFilter}
+                  itemNoun="scopes"
+                  multiple={false}
+                />
+                <TicketFilterPill
+                  icon={<UserOutlined style={{ fontSize: 11 }} />}
+                  label="Owner"
+                  value={ownerFilter || ""}
+                  options={memberOptions}
+                  onChange={setOwnerFilter}
+                  itemNoun="people"
+                  multiple={false}
+                  showAvatar
+                />
+                <TicketFilterPill
+                  icon={<ThumbsUp size={12} />}
+                  label="Outcome"
+                  value={recommendationFilter || ""}
+                  options={RECOMMENDATIONS.map((r) => ({ value: r, label: r }))}
+                  onChange={setRecommendationFilter}
+                  itemNoun="recommendations"
+                  multiple={false}
+                />
+                <RangePicker
+                  size="small"
+                  style={{ height: 28, borderRadius: 6 }}
+                  placeholder={["Start", "End"]}
+                  value={dateRange as any}
+                  onChange={(dates) => setDateRange(dates as any)}
+                  format="MMM D, YYYY"
+                  allowEmpty={[true, true]}
+                />
+              </FilterBar>
+            )}
 
             <ZukvoLoadingOverlay
               loading={loading || busy}
               message="Loading approvals…"
               minHeight={firstLoad ? 360 : undefined}
             >
-              <div className="sc-tablewrap">
+              <div
+                className="sc-tablewrap"
+                style={{
+                  borderLeft: "none",
+                  borderRight: "none",
+                  borderTop: "none",
+                  borderRadius: 0,
+                  margin: 0,
+                }}
+              >
                 {firstLoad ? (
                   <div style={{ minHeight: 360 }} />
                 ) : (

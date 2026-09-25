@@ -995,7 +995,14 @@ export default function ProposalsTrashPage() {
             <div className="pp-divider" />
 
             {/* Stat cards */}
-            <StatCards cards={cards} />
+            <StatCards
+              title="Proposal Trash Overview"
+              statusText="TRASHED"
+              statusColor="#ef4444"
+              statusBorder="rgba(239, 68, 68, 0.32)"
+              progressPct={stats.winRate || 0}
+              cards={cards}
+            />
 
             {/* Table / grid */}
             <div className="pp-body">

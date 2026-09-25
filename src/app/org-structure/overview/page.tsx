@@ -254,6 +254,12 @@ export default function OverviewPage() {
     };
   }, [grades, positions]);
 
+  const hierarchyCoverage = useMemo(() => {
+    if (positions.length === 0) return 0;
+    const mapped = positions.filter((p) => p.departmentId && p.gradeId).length;
+    return Math.round((mapped / positions.length) * 100);
+  }, [positions]);
+
   const selectedGrade = grades.find((g) => g.key === activeStep);
 
   const treeData = useMemo(() => {
@@ -425,6 +431,7 @@ export default function OverviewPage() {
           <StatCards
             title="Organization Overview"
             statusText="ACTIVE"
+            progressPct={hierarchyCoverage}
             cells={[
               { label: "Grades", value: orgStats.grades, icon: <ShieldCheck size={14} />, color: "#3b82f6", tint: "rgba(59,130,246,0.10)" },
               { label: "Departments", value: orgStats.departments, icon: <Building2 size={14} />, color: "#10b981", tint: "rgba(16,185,129,0.10)" },

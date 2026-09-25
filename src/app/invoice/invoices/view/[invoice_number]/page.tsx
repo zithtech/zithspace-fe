@@ -174,7 +174,7 @@ export default function ViewInvoicePage() {
   }
 
   const tableItems = (invoice.lineItems || (invoice as any).items || []) as any[];
-  const hasTax = tableItems.some(item => Number(item.taxRate || item.tax || 0) > 0);
+  const hasTax = Number(invoice?.taxTotal || 0) > 0 || tableItems.some(item => Number(item.taxRate || item.tax || 0) > 0);
 
   const tableData = tableItems.map((item, index: number) => {
     const qty = Number(item.quantity || item.qty || 0);

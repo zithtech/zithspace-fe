@@ -200,15 +200,16 @@ export default function PipelineLayout({ children }: { children: React.ReactNode
           /* Footer + pager */
           .pl-footer {
             display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;
-            padding: 10px 14px; border-top: 1px solid var(--border-slate-200);
+            padding: 10px 20px; border-top: 1px solid var(--border-slate-200);
           }
           .pl-footer--sticky {
             position: sticky; bottom: 0; z-index: 30;
-            margin: 8px -16px 0 -16px;
-            padding: 0 16px 0 16px;
+            margin: 0 !important;
+            padding: 10px 20px !important;
             background: var(--bg-pure-white);
             box-shadow: 0 -4px 14px rgba(15,23,42,0.05);
-            height: 45px;
+            min-height: 45px;
+            height: auto;
           }
           .pl-footer-info { font-size: 12px; color: var(--text-slate-500); }
           .pl-footer-info strong { color: var(--text-slate-700); font-weight: 700; }

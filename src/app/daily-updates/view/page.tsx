@@ -1061,7 +1061,12 @@ function ViewDailyUpdatesContent({ user }: { user: any }) {
 
         <div className="du-divider" style={{ height: 1, background: 'var(--border-slate-200)', margin: 0 }} />
 
-        <StatCards cards={cards} />
+        <StatCards
+          title="Daily Updates Overview"
+          statusText="ACTIVE"
+          progressPct={statsData.totalUpdates > 0 ? Math.round(((statsData.totalUpdates - statsData.missedUpdates) / statsData.totalUpdates) * 100) : 0}
+          cards={cards}
+        />
 
         <div className="du-main-scroll">
           <div style={{ display: "flex", flexDirection: "column", flex: 1, width: "100%" }}>

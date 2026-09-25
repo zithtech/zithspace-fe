@@ -138,7 +138,8 @@ export function MyTimeStatsStrip({ refreshKey }: { refreshKey?: number }) {
     const activePaused = entries.filter((e) => e.status === "PAUSED").length;
     const totalActive = activeRunning + activePaused;
 
-    return [
+    return {
+      list: [
         {
             key: 'today',
             title: "Today's Hours",
@@ -183,7 +184,9 @@ export function MyTimeStatsStrip({ refreshKey }: { refreshKey?: number }) {
             trend: dailyHoursTrend,
             footerText: `${daysWithWork} active days`
         }
-    ];
+      ],
+      progressPct: WEEK_GOAL_SECONDS > 0 ? Math.min(100, Math.round((weekSec / WEEK_GOAL_SECONDS) * 100)) : 0,
+    };
   }, [entries]);
 
   if (loading) {
@@ -205,7 +208,7 @@ export function MyTimeStatsStrip({ refreshKey }: { refreshKey?: number }) {
     );
   }
 
-  const statCards = stats.map((s) => ({
+  const statCards = stats.list.map((s) => ({
     label: s.title,
     value:
       typeof s.value === "string"
@@ -215,5 +218,12 @@ export function MyTimeStatsStrip({ refreshKey }: { refreshKey?: number }) {
     color: s.color,
   }));
 
-  return <StatCards cards={statCards} />;
+  return (
+    <StatCards
+      title="My Time Overview"
+      statusText="ACTIVE"
+      progressPct={stats.progressPct}
+      cards={statCards}
+    />
+  );
 }

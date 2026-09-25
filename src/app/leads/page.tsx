@@ -3,6 +3,7 @@
 import NoData from "@/components/common/NoData";
 import ZukvoLoader from "@/components/common/ZukvoLoader";
 import { StatCards } from "@/components/common/StatCards";
+import { FilterBar, FilterToggleButton, TicketFilterPill } from "@/components/common/FilterBar";
 
 
 import React, { useState, useEffect, useMemo, useRef, useCallback } from "react";
@@ -48,6 +49,7 @@ import {
   TrendingUp,
   TrendingDown,
   Activity,
+  ArrowUpDown,
   Target,
   Brain,
   CheckCircle,
@@ -2656,143 +2658,11 @@ export default function LeadsPage() {
                     style={{ height: 38, width: 38, borderRadius: 10, display: "flex", alignItems: "center", justifyContent: "center" }}
                     title="Refresh leads"
                   />
-                  <Space.Compact className="ticket-filter-group">
-                    <Popover
-                      trigger={["click"]}
-                      placement="bottomRight"
-                      classNames={{ root: "lm-toolbar-popover" }}
-                      content={
-                        <div className="lm-filters-popover-body">
-                          <div className="lm-popover-section-label">
-                            <Filter size={11} />
-                            <span>Workflow</span>
-                          </div>
-                          <Select
-                            placeholder="Any workflow"
-                            className="lm-filter-select"
-                            style={{ width: "100%" }}
-                            allowClear
-                            value={filterAction}
-                            onChange={setFilterAction}
-                          >
-                            {configActions.map(a => (
-                              <Select.Option key={a.id} value={a.name}>
-                                <Space size={6}>
-                                  {renderActionIcon(a.icon)}
-                                  {a.name}
-                                </Space>
-                              </Select.Option>
-                            ))}
-                          </Select>
-
-                          <div className="lm-popover-section-label" style={{ marginTop: 14 }}>
-                            <User size={11} />
-                            <span>Created by</span>
-                          </div>
-                          <Select
-                            placeholder="Anyone"
-                            className="lm-filter-select"
-                            style={{ width: "100%" }}
-                            allowClear
-                            value={filterCreatedBy}
-                            onChange={setFilterCreatedBy}
-                            showSearch
-                            filterOption={(input, option) =>
-                              String((option as any)?.value || "").toLowerCase().includes(input.toLowerCase())
-                            }
-                          >
-                            {creatorOptions.map((name) => {
-                              const palette = getAvatarStyle(name);
-                              return (
-                                <Select.Option key={name} value={name}>
-                                  <Space size={8}>
-                                    <span
-                                      className="lm-creator-avatar"
-                                      style={{ background: palette.bg, width: 20, height: 20, fontSize: 9 }}
-                                    >
-                                      {getInitials(name)}
-                                    </span>
-                                    <span style={{ fontSize: 12.5 }}>{name}</span>
-                                  </Space>
-                                </Select.Option>
-                              );
-                            })}
-                          </Select>
-
-                          <div className="lm-popover-section-label" style={{ marginTop: 14 }}>
-                            <Mail size={11} />
-                            <span>Mail status</span>
-                          </div>
-                          <Select
-                            placeholder="Any"
-                            className="lm-filter-select"
-                            style={{ width: "100%" }}
-                            allowClear
-                            value={filterMailStatus}
-                            onChange={setFilterMailStatus}
-                          >
-                            <Select.Option value="sent">
-                              <Space size={6}><CheckCircle size={14} style={{ color: '#10b981' }} /> Sent</Space>
-                            </Select.Option>
-                            <Select.Option value="not_sent">
-                              <Space size={6}><Mail size={14} style={{ color: '#94a3b8' }} /> Not Sent</Space>
-                            </Select.Option>
-                          </Select>
-
-                          <div className="lm-popover-section-label" style={{ marginTop: 14 }}>
-                            <Clock size={11} />
-                            <span>Posted on</span>
-                          </div>
-                          <DatePicker.RangePicker
-                            className="lm-filter-date"
-                            style={{ width: "100%" }}
-                            value={filterDateRange}
-                            onChange={(dates) => setFilterDateRange(dates as any)}
-                          />
-
-                          <div className="lm-popover-footer">
-                            <button
-                              type="button"
-                              className="lm-popover-reset"
-                              onClick={() => {
-                                setFilterStatus(null);
-                                setFilterPlatform(null);
-                                setFilterAction(null);
-                                setFilterDateRange(null);
-                                setFilterCreatedBy(null);
-                                setFilterMailStatus(null);
-                              }}
-                            >
-                              Reset
-                            </button>
-                          </div>
-                        </div>
-                      }
-                    >
-                      <Button
-                        icon={<Filter size={13} />}
-                        className={`lm-filter-settings-btn lm-toolbar-filters-btn lm-filter-group-left ${activeFilterChips.length > 0 ? 'saas-tag-blue' : ''}`}
-                        style={{ height: 38, display: 'flex', alignItems: 'center' }}
-                      >
-                        Filters
-                        {(() => {
-                          const n =
-                            (filterAction ? 1 : 0) +
-                            (filterCreatedBy ? 1 : 0) +
-                            (filterMailStatus ? 1 : 0) +
-                            (filterDateRange ? 1 : 0);
-                          return n > 0 ? <span className="lm-toolbar-pill">{n}</span> : null;
-                        })()}
-                      </Button>
-                    </Popover>
-                    <Button
-                      icon={<Maximize2 size={12} strokeWidth={2.5} />}
-                      className={`lm-filter-settings-btn lm-filter-group-right ${activeFilterChips.length > 0 ? 'saas-tag-blue' : ''}`}
-                      style={{ height: 38, display: 'flex', alignItems: 'center', padding: '0 8px' }}
-                      aria-label="Expand toolbar"
-                      onClick={() => setIsFilterRowOpen(prev => !prev)}
-                    />
-                  </Space.Compact>
+                  <FilterToggleButton
+                    isOpen={isFilterRowOpen}
+                    onToggle={() => setIsFilterRowOpen((prev) => !prev)}
+                    activeCount={activeFilterChips.length}
+                  />
 
                   <Popover
                     trigger={["click"]}
@@ -2904,261 +2774,11 @@ export default function LeadsPage() {
               </div>
               <div className="lm-divider" style={{ margin: 0 }} />
 
-              {/* Saved-View Segments */}
-              {/* <div className="lead-segments" style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 16, flexWrap: "wrap" }}>
-            {([
-              { key: "all", label: "All Leads", icon: <Layers size={13} />, count: segmentCounts.all },
-              { key: "hot", label: "Hot", icon: <Flame size={13} />, count: segmentCounts.hot, accent: "#ef4444" },
-              { key: "week", label: "This Week", icon: <Activity size={13} />, count: segmentCounts.week, accent: "#f59e0b" },
-              { key: "won", label: "Won / Closed", icon: <CheckCircle size={13} />, count: segmentCounts.won, accent: "#10b981" },
-            ] as const).map(seg => {
-              const isActive = activeSegment === seg.key;
-              const accent = (seg as any).accent || "#6366f1";
-              return (
-                <button
-                  key={seg.key}
-                  onClick={() => setActiveSegment(seg.key)}
-                  className={`lead-segment-btn${isActive ? " is-active" : ""}`}
-                  style={{
-                    display: "inline-flex",
-                    alignItems: "center",
-                    gap: 6,
-                    padding: "6px 12px",
-                    height: 32,
-                    borderRadius: 0,
-                    border: `1px solid ${isActive ? accent : "#e2e8f0"}`,
-                    background: isActive ? `${accent}10` : "#fff",
-                    color: isActive ? accent : "#475569",
-                    fontWeight: 700,
-                    fontSize: 12,
-                    letterSpacing: "0.01em",
-                    cursor: "pointer",
-                    transition: "all 0.15s ease",
-                  }}
-                >
-                  {seg.icon}
-                  {seg.label}
-                  <span
-                    style={{
-                      display: "inline-flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                                </Space>
-                              </Select.Option>
-                            ))}
-                          </Select>
-
-                          <div className="lm-popover-section-label" style={{ marginTop: 14 }}>
-                            <User size={11} />
-                            <span>Created by</span>
-                          </div>
-                          <Select
-                            placeholder="Anyone"
-                            className="lm-filter-select"
-                            style={{ width: "100%" }}
-                            allowClear
-                            value={filterCreatedBy}
-                            onChange={setFilterCreatedBy}
-                            showSearch
-                            filterOption={(input, option) =>
-                              String((option as any)?.value || "").toLowerCase().includes(input.toLowerCase())
-                            }
-                          >
-                            {creatorOptions.map((name) => {
-                              const palette = getAvatarStyle(name);
-                              return (
-                                <Select.Option key={name} value={name}>
-                                  <Space size={8}>
-                                    <span
-                                      className="lm-creator-avatar"
-                                      style={{ background: palette.bg, width: 20, height: 20, fontSize: 9 }}
-                                    >
-                                      {getInitials(name)}
-                                    </span>
-                                    <span style={{ fontSize: 12.5 }}>{name}</span>
-                                  </Space>
-                                </Select.Option>
-                              );
-                            })}
-                          </Select>
-
-                          <div className="lm-popover-section-label" style={{ marginTop: 14 }}>
-                            <Mail size={11} />
-                            <span>Mail status</span>
-                          </div>
-                          <Select
-                            placeholder="Any"
-                            className="lm-filter-select"
-                            style={{ width: "100%" }}
-                            allowClear
-                            value={filterMailStatus}
-                            onChange={setFilterMailStatus}
-                          >
-                            <Select.Option value="sent">
-                              <Space size={6}><CheckCircle size={14} style={{ color: '#10b981' }} /> Sent</Space>
-                            </Select.Option>
-                            <Select.Option value="not_sent">
-                              <Space size={6}><Mail size={14} style={{ color: '#94a3b8' }} /> Not Sent</Space>
-                            </Select.Option>
-                          </Select>
-
-                          <div className="lm-popover-section-label" style={{ marginTop: 14 }}>
-                            <Clock size={11} />
-                            <span>Posted on</span>
-                          </div>
-                          <DatePicker.RangePicker
-                            className="lm-filter-date"
-                            style={{ width: "100%" }}
-                            value={filterDateRange}
-                            onChange={(dates) => setFilterDateRange(dates as any)}
-                          />
-
-                          <div className="lm-popover-footer">
-                            <button
-                              type="button"
-                              className="lm-popover-reset"
-                              onClick={() => {
-                                setFilterStatus(null);
-                                setFilterPlatform(null);
-                                setFilterAction(null);
-                                setFilterDateRange(null);
-                                setFilterCreatedBy(null);
-                                setFilterMailStatus(null);
-                              }}
-                            >
-                              Reset
-                            </button>
-                          </div>
-                        </div>
-                      }
-                    >
-                      <Button
-                        icon={<Filter size={13} />}
-                        className={`lm-filter-settings-btn lm-toolbar-filters-btn lm-filter-group-left ${activeFilterChips.length > 0 ? 'saas-tag-blue' : ''}`}
-                        style={{ height: 38, display: 'flex', alignItems: 'center' }}
-                      >
-                        Filters
-                        {(() => {
-                          const n =
-                            (filterAction ? 1 : 0) +
-                            (filterCreatedBy ? 1 : 0) +
-                            (filterMailStatus ? 1 : 0) +
-                            (filterDateRange ? 1 : 0);
-                          return n > 0 ? <span className="lm-toolbar-pill">{n}</span> : null;
-                        })()}
-                      </Button>
-                    </Popover>
-                    <Button
-                      icon={<Maximize2 size={12} strokeWidth={2.5} />}
-                      className={`lm-filter-settings-btn lm-filter-group-right ${activeFilterChips.length > 0 ? 'saas-tag-blue' : ''}`}
-                      style={{ height: 38, display: 'flex', alignItems: 'center', padding: '0 8px' }}
-                      aria-label="Expand toolbar"
-                      onClick={() => setIsFilterRowOpen(prev => !prev)}
-                    />
-                  </Space.Compact>
-
-                  <Button
-                    className="lm-filter-settings-btn lm-toolbar-filters-btn"
-                    onClick={() => {
-                      const headers = ["Lead", "Company", "Pipeline", "Source", "Value", "Owner", "Priority", "Last Activity", "Created"];
-                      const rows = paginatedLeads.map(l => {
-                        const score = l.ai_score;
-                        const priority = score == null ? "" : score >= 80 ? "High" : score >= 60 ? "Medium" : "Low";
-                        return [
-                          l.title || "",
-                          l.client_name || "",
-                          l.status || "",
-                          l.platform || "",
-                          l.budget || (l.hour_based_amount ? `${l.hour_based_amount}/hr` : ""),
-                          getLeadCreator(l) || "",
-                          priority,
-                          l.last_mail_at || l.updated_at || l.created_at || "",
-                          l.created_at || "",
-                        ];
-                      });
-                      const escape = (v: string) => `"${String(v).replace(/"/g, '""')}"`;
-                      const csv = [headers, ...rows].map(r => r.map(escape).join(",")).join("\n");
-                      const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-                      const url = URL.createObjectURL(blob);
-                      const a = document.createElement("a");
-                      a.href = url;
-                      a.download = `leads-${dayjs().format("YYYY-MM-DD")}.csv`;
-                      a.click();
-                      URL.revokeObjectURL(url);
-                    }}
-                  >
-                    <Download size={13} />
-                    Export
-                  </Button>
-
-                  <div className="lm-segmented">
-                    <button type="button" className={view === 'grid' ? 'is-active' : ''} onClick={() => setView('grid')} aria-label="Grid view"><AppstoreOutlined /></button>
-                    <button type="button" className={view === 'list' ? 'is-active' : ''} onClick={() => setView('list')} aria-label="List view"><UnorderedListOutlined /></button>
-                  </div>
-                </div>
-              </div>
-              <div className="lm-divider" />
-
-              {/* Saved-View Segments */}
-              {/* <div className="lead-segments" style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 16, flexWrap: "wrap" }}>
-            {([
-              { key: "all", label: "All Leads", icon: <Layers size={13} />, count: segmentCounts.all },
-              { key: "hot", label: "Hot", icon: <Flame size={13} />, count: segmentCounts.hot, accent: "#ef4444" },
-              { key: "week", label: "This Week", icon: <Activity size={13} />, count: segmentCounts.week, accent: "#f59e0b" },
-              { key: "won", label: "Won / Closed", icon: <CheckCircle size={13} />, count: segmentCounts.won, accent: "#10b981" },
-            ] as const).map(seg => {
-              const isActive = activeSegment === seg.key;
-              const accent = (seg as any).accent || "#6366f1";
-              return (
-                <button
-                  key={seg.key}
-                  onClick={() => setActiveSegment(seg.key)}
-                  className={`lead-segment-btn${isActive ? " is-active" : ""}`}
-                  style={{
-                    display: "inline-flex",
-                    alignItems: "center",
-                    gap: 6,
-                    padding: "6px 12px",
-                    height: 32,
-                    borderRadius: 0,
-                    border: `1px solid ${isActive ? accent : "#e2e8f0"}`,
-                    background: isActive ? `${accent}10` : "#fff",
-                    color: isActive ? accent : "#475569",
-                    fontWeight: 700,
-                    fontSize: 12,
-                    letterSpacing: "0.01em",
-                    cursor: "pointer",
-                    transition: "all 0.15s ease",
-                  }}
-                >
-                  {seg.icon}
-                  {seg.label}
-                  <span
-                    style={{
-                      display: "inline-flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      minWidth: 20,
-                      height: 18,
-                      padding: "0 6px",
-                      borderRadius: 0,
-                      background: isActive ? accent : "#f1f5f9",
-                      color: isActive ? "#fff" : "#64748b",
-                      fontSize: 10,
-                      fontWeight: 800,
-                    }}
-                  >
-                    {seg.count}
-                  </span>
-                </button>
-              );
-            })}
-          </div> */}
-
               <div style={{ margin: 0 }}>
                 <StatCards
                   title="Leads Overview"
                   statusText="ACTIVE"
+                  progressPct={pipelineRate}
                   cells={[
                     {
                       label: "Total Leads",
@@ -3180,57 +2800,84 @@ export default function LeadsPage() {
                 />
               </div>
               {isFilterRowOpen && (
-                <div className="lm-table-toolbar">
-                  <span className="lm-toolbar-count">
-                    <b>{totalCount}</b> of <b>{leads.length}</b> leads
-                  </span>
-
-                  <span className="lm-toolbar-spacer" />
-
-                  <SearchableDropdown
-                    placeholder="Pipeline"
-                    options={stageDropdownOptions}
+                <FilterBar
+                  activeCount={activeFilterChips.length}
+                  onReset={() => {
+                    setFilterStatus(null);
+                    setFilterAction(null);
+                    setFilterCreatedBy(null);
+                    setFilterPlatform(null);
+                    setFilterMailStatus(null);
+                    setFilterDateRange(null);
+                    setSearchText("");
+                  }}
+                  onClose={() => setIsFilterRowOpen(false)}
+                  actions={
+                    <span style={{ fontSize: 12, color: "var(--text-slate-500)", whiteSpace: "nowrap" }}>
+                      <b>{totalCount}</b> of <b>{leads.length}</b> leads
+                    </span>
+                  }
+                >
+                  <TicketFilterPill
+                    label="Pipeline"
+                    icon={<CheckCircle2 size={13} />}
                     value={filterStatus || undefined}
+                    options={stageDropdownOptions.map((s) => ({
+                      value: s.value,
+                      label: s.label,
+                    }))}
                     onChange={(v) => {
-                      setFilterStatus(v || null);
+                      setFilterStatus(v ? String(v) : null);
                       setFilterPlatform(null);
                     }}
-                    style={{ height: 32, minWidth: 120, width: 120, borderRadius: 0 }}
-                    width={200}
                   />
 
-                  <SearchableDropdown
-                    placeholder="Action"
-                    options={actionDropdownOptions}
+                  <TicketFilterPill
+                    label="Action"
+                    icon={<Activity size={13} />}
                     value={filterAction || undefined}
-                    onChange={(v) => setFilterAction(v || null)}
-                    style={{ height: 32, minWidth: 140, width: 140, borderRadius: 0 }}
-                    width={220}
+                    options={actionDropdownOptions.map((a) => ({
+                      value: a.value,
+                      label: a.label,
+                    }))}
+                    onChange={(v) => setFilterAction(v ? String(v) : null)}
                   />
 
-                  <SearchableDropdown
-                    placeholder="Created by"
-                    options={creatorDropdownOptions}
+                  <TicketFilterPill
+                    label="Created by"
+                    icon={<User size={13} />}
                     value={filterCreatedBy || undefined}
-                    onChange={(v) => setFilterCreatedBy(v || null)}
-                    style={{ height: 32, minWidth: 130, width: 130, borderRadius: 0 }}
-                    width={220}
+                    options={creatorDropdownOptions.map((c) => ({
+                      value: c.value,
+                      label: c.label,
+                    }))}
+                    onChange={(v) => setFilterCreatedBy(v ? String(v) : null)}
                   />
 
-                  <SearchableDropdown
-                    placeholder="Sort"
-                    options={sortDropdownOptions}
+                  <TicketFilterPill
+                    label="Mail status"
+                    icon={<Mail size={13} />}
+                    value={filterMailStatus || undefined}
+                    options={[
+                      { value: "sent", label: "Sent", dotColor: "#10b981" },
+                      { value: "not_sent", label: "Not Sent", dotColor: "#94a3b8" },
+                    ]}
+                    onChange={(v) => setFilterMailStatus((v as any) || null)}
+                  />
+
+                  <TicketFilterPill
+                    label="Sort"
+                    icon={<ArrowUpDown size={13} />}
                     value={sortKey}
+                    options={sortDropdownOptions.map((s) => ({
+                      value: s.value,
+                      label: s.label,
+                    }))}
                     onChange={(v) => {
                       if (v) setSortKey(v as any);
                     }}
-                    style={{ height: 32, minWidth: 150, width: 150, borderRadius: 0 }}
-                    width={200}
-                    allowClear={false}
                   />
-
-
-                </div>
+                </FilterBar>
               )}
 
               {/* Collapsible Filter Row */}

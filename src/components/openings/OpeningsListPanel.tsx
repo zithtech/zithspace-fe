@@ -21,9 +21,13 @@ import {
   CheckCircle2,
   XCircle,
   Archive,
+  Layers,
+  AlertCircle,
+  FileText,
 } from 'lucide-react';
 
 import { SearchableDropdown } from '@/components/common/SearchableDropdown';
+import { FilterBar, FilterToggleButton, TicketFilterPill, initialsFor } from '@/components/common/FilterBar';
 import { usePermission } from '@/hooks/usePermission';
 import OpeningV2Service, {
   type OpeningListItem,
@@ -81,6 +85,7 @@ export default function OpeningsListPanel({
   const [recruiters, setRecruiters] = useState<string[]>([]);
   const [experience, setExperience] = useState<string[]>([]);
   const [jobTitles, setJobTitles] = useState<string[]>([]);
+  const [isFilterRowOpen, setIsFilterRowOpen] = useState(false);
 
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<string | null>(null);
@@ -358,6 +363,11 @@ export default function OpeningsListPanel({
         onSearch={setSearch}
         searchPlaceholder="Search code, title or location…"
       >
+        <FilterToggleButton
+          isOpen={isFilterRowOpen}
+          onToggle={() => setIsFilterRowOpen(!isFilterRowOpen)}
+          activeCount={activeFilters}
+        />
         <Tooltip title="Refresh">
           <Button icon={<RotateCw size={14} />} onClick={load} loading={loading} />
         </Tooltip>
@@ -378,6 +388,11 @@ export default function OpeningsListPanel({
       <StatCards
         title={archived ? 'Archive Overview' : 'Openings Overview'}
         statusText="ACTIVE"
+        progressPct={(() => {
+          const totalOpenings = Object.values(summary).reduce((a, b) => a + Number(b || 0), 0) || total;
+          const activeOpenings = (summary.approved || 0) + (summary.internal_posting || 0) + (summary.external_posting || 0) + (summary.in_progress || 0) + (summary.filled || 0);
+          return totalOpenings > 0 ? Math.round(((archived ? (summary.filled || 0) : activeOpenings) / totalOpenings) * 100) : 0;
+        })()}
         cells={tiles.map((tile) => ({
           label: tile.label,
           value: tile.value,
@@ -387,141 +402,135 @@ export default function OpeningsListPanel({
         }))}
       />
 
-      <div className="omp-filters" style={{ padding: '0 20px', marginTop: 14, marginBottom: 12 }}>
-        <SearchableDropdown
-          mode="multiple"
-          value={status}
-          onChange={(v: any) => {
-            setStatus(v ?? []);
+      {isFilterRowOpen && (
+        <FilterBar
+          activeCount={activeFilters}
+          onReset={() => {
+            setStatus([]);
+            setPriority([]);
+            setEmploymentType([]);
+            setDepartmentId(null);
+            setRecruiters([]);
+            setExperience([]);
+            setJobTitles([]);
             setPage(1);
           }}
-          options={STATUS_ORDER.map((s) => ({
-            value: s,
-            label: STATUS_META[s].label,
-            description: STATUS_META[s].hint,
-          }))}
-          placeholder="Status"
-          itemNoun="statuses"
-          hideAvatar
-          width={260}
-          style={{ minWidth: 150 }}
-        />
-        <SearchableDropdown
-          mode="multiple"
-          value={priority}
-          onChange={(v: any) => {
-            setPriority(v ?? []);
-            setPage(1);
-          }}
-          options={[
-            { value: 'critical', label: 'Critical' },
-            { value: 'high', label: 'High' },
-            { value: 'medium', label: 'Medium' },
-            { value: 'low', label: 'Low' },
-          ]}
-          placeholder="Priority"
-          itemNoun="levels"
-          hideAvatar
-          width={200}
-          style={{ minWidth: 130 }}
-        />
-        <SearchableDropdown
-          mode="multiple"
-          value={employmentType}
-          onChange={(v: any) => {
-            setEmploymentType(v ?? []);
-            setPage(1);
-          }}
-          options={Object.entries(EMPLOYMENT_TYPE_LABELS).map(([value, label]) => ({
-            value,
-            label,
-          }))}
-          placeholder="Employment type"
-          itemNoun="types"
-          hideAvatar
-          width={220}
-          style={{ minWidth: 160 }}
-        />
-        <SearchableDropdown
-          value={departmentId}
-          onChange={(v: any) => {
-            setDepartmentId(v ?? null);
-            setPage(1);
-          }}
-          options={reference.departments}
-          placeholder="Department"
-          itemNoun="departments"
-          loading={reference.loading}
-          width={240}
-          style={{ minWidth: 160 }}
-        />
-        <SearchableDropdown
-          mode="multiple"
-          value={recruiters}
-          onChange={(v: any) => {
-            setRecruiters(v ?? []);
-            setPage(1);
-          }}
-          options={reference.people}
-          placeholder="Recruiters"
-          itemNoun="recruiters"
-          width={240}
-          style={{ minWidth: 160 }}
-        />
-        <SearchableDropdown
-          mode="multiple"
-          value={experience}
-          onChange={(v: any) => {
-            setExperience(v ?? []);
-            setPage(1);
-          }}
-          options={[
-            { label: '0 - 2 Years', value: '0-2' },
-            { label: '3 - 5 Years', value: '3-5' },
-            { label: '5+ Years', value: '5+' },
-          ]}
-          placeholder="Experience"
-          itemNoun="ranges"
-          hideAvatar
-          width={200}
-          style={{ minWidth: 150 }}
-        />
-        <SearchableDropdown
-          mode="multiple"
-          value={jobTitles}
-          onChange={(v: any) => {
-            setJobTitles(v ?? []);
-            setPage(1);
-          }}
-          options={Array.from(new Set([...rows.map(r => r.jobTitle), ...jobTitles])).filter(Boolean).map(t => ({ label: t, value: t }))}
-          placeholder="Position"
-          itemNoun="positions"
-          hideAvatar
-          width={240}
-          style={{ minWidth: 160 }}
-        />
-        {activeFilters > 0 && (
-          <Button
-            type="link"
-            size="small"
-            onClick={() => {
-              setStatus([]);
-              setPriority([]);
-              setEmploymentType([]);
-              setDepartmentId(null);
-              setRecruiters([]);
-              setExperience([]);
-              setJobTitles([]);
+          onClose={() => setIsFilterRowOpen(false)}
+          actions={
+            <span className="omp-filter-count" style={{ marginLeft: 'auto', fontSize: 12, color: 'var(--text-slate-500)' }}>
+              {total} opening{total === 1 ? '' : 's'}
+            </span>
+          }
+        >
+          <TicketFilterPill
+            label="Status"
+            icon={<CheckCircle2 size={14} />}
+            values={status}
+            multiple
+            options={STATUS_ORDER.map((s) => ({
+              value: s,
+              label: STATUS_META[s].label,
+              dotColor: STATUS_META[s].tone === 'blue' ? '#3b82f6' : STATUS_META[s].tone === 'green' ? '#10b981' : STATUS_META[s].tone === 'red' ? '#ef4444' : '#64748b',
+            }))}
+            onChange={(v) => {
+              setStatus(Array.isArray(v) ? (v as OpeningStatus[]) : v ? [v as OpeningStatus] : []);
               setPage(1);
             }}
-          >
-            Clear filters
-          </Button>
-        )}
-        <span className="omp-filter-count">
-          {total} opening{total === 1 ? '' : 's'}
-        </span>
-      </div>
+          />
+
+          <TicketFilterPill
+            label="Priority"
+            icon={<AlertCircle size={14} />}
+            values={priority}
+            multiple
+            options={[
+              { value: 'critical', label: 'Critical', dotColor: '#ef4444' },
+              { value: 'high', label: 'High', dotColor: '#3b82f6' },
+              { value: 'medium', label: 'Medium', dotColor: '#64748b' },
+              { value: 'low', label: 'Low', dotColor: '#94a3b8' },
+            ]}
+            onChange={(v) => {
+              setPriority(Array.isArray(v) ? (v as OpeningPriority[]) : v ? [v as OpeningPriority] : []);
+              setPage(1);
+            }}
+          />
+
+          <TicketFilterPill
+            label="Employment Type"
+            icon={<Briefcase size={14} />}
+            values={employmentType}
+            multiple
+            options={Object.entries(EMPLOYMENT_TYPE_LABELS).map(([value, label]) => ({
+              value,
+              label,
+            }))}
+            onChange={(v) => {
+              setEmploymentType(Array.isArray(v) ? (v as EmploymentType[]) : v ? [v as EmploymentType] : []);
+              setPage(1);
+            }}
+          />
+
+          <TicketFilterPill
+            label="Department"
+            icon={<Layers size={14} />}
+            value={departmentId || undefined}
+            options={reference.departments.map((d) => ({
+              value: String(d.value),
+              label: d.label,
+            }))}
+            onChange={(v) => {
+              setDepartmentId(Array.isArray(v) ? v[0] : (v || null));
+              setPage(1);
+            }}
+          />
+
+          <TicketFilterPill
+            label="Recruiters"
+            icon={<Users size={14} />}
+            values={recruiters}
+            multiple
+            showAvatar
+            options={reference.people.map((p) => ({
+              value: String(p.value),
+              label: p.label,
+            }))}
+            onChange={(v) => {
+              setRecruiters(Array.isArray(v) ? v : v ? [v] : []);
+              setPage(1);
+            }}
+          />
+
+          <TicketFilterPill
+            label="Experience"
+            icon={<Clock size={14} />}
+            values={experience}
+            multiple
+            options={[
+              { label: '0 - 2 Years', value: '0-2' },
+              { label: '3 - 5 Years', value: '3-5' },
+              { label: '5+ Years', value: '5+' },
+            ]}
+            onChange={(v) => {
+              setExperience(Array.isArray(v) ? v : v ? [v] : []);
+              setPage(1);
+            }}
+          />
+
+          <TicketFilterPill
+            label="Position"
+            icon={<FileText size={14} />}
+            values={jobTitles}
+            multiple
+            options={Array.from(new Set([...rows.map((r) => r.jobTitle), ...jobTitles]))
+              .filter(Boolean)
+              .map((t) => ({ label: t, value: t }))}
+            onChange={(v) => {
+              setJobTitles(Array.isArray(v) ? v : v ? [v] : []);
+              setPage(1);
+            }}
+          />
+        </FilterBar>
+      )}
 
       <div className="opn-table-wrap">
         <ZukvoLoadingOverlay loading={loading} message="">

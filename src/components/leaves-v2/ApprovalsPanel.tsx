@@ -24,6 +24,7 @@ import ConfirmDialog from '@/components/common/ConfirmDialog';
 import LeaveV2Service, { LeaveRequest } from '@/services/leaveV2Service';
 import { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
 
+import { FilterBar, FilterToggleButton, TicketFilterPill } from '@/components/common/FilterBar';
 import { PALETTE, TINT, StatCards } from '@/components/leaves-v2/ui';
 const PAGE_SIZE_OPTIONS = [10, 15, 20, 25, 50, 100];
 
@@ -43,7 +44,6 @@ type DateRange = [Dayjs | null, Dayjs | null] | null;
 
 export default function ApprovalsPanel() {
   const { canApproveLeave } = usePermission();
-  console.log("Forcing HMR reload for ApprovalsPanel");
 
   const [rows, setRows] = useState<LeaveRequest[]>([]); // all rows for stats/users
   const [paginatedRows, setPaginatedRows] = useState<LeaveRequest[]>([]); // paginated rows for table
@@ -53,6 +53,7 @@ export default function ApprovalsPanel() {
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
   const [userFilter, setUserFilter] = useState<string | undefined>(undefined);
   const [dateRange, setDateRange] = useState<DateRange>(null);
+  const [isFilterRowOpen, setIsFilterRowOpen] = useState(false);
   const [tablePage, setTablePage] = useState(1);
   const [tablePageSize, setTablePageSize] = useState(15);
   const [busyId, setBusyId] = useState<string | null>(null);
@@ -335,13 +336,22 @@ export default function ApprovalsPanel() {
             <SearchOutlined className="lvap-search-icon" />
             <input className="lvap-search" placeholder="Search employee or type…" value={search} onChange={(e) => setSearch(e.target.value)} />
           </div>
+          <FilterToggleButton
+            isOpen={isFilterRowOpen}
+            onToggle={() => setIsFilterRowOpen((prev) => !prev)}
+            activeCount={(statusFilter !== 'all' ? 1 : 0) + (userFilter ? 1 : 0) + (dateRange ? 1 : 0)}
+          />
           <Tooltip title="Refresh"><button type="button" className="lvap-ghost-btn" onClick={load}><ReloadOutlined spin={loading} /></button></Tooltip>
         </div>
       </div>
 
-            <StatCards
+      <StatCards
         title="Leave Overview"
         statusText="LIVE"
+        progressPct={(() => {
+          const totalReqs = stats.pending + stats.approved + stats.rejected + stats.withdrawals;
+          return totalReqs > 0 ? Math.round(((stats.approved + stats.rejected) / totalReqs) * 100) : 0;
+        })()}
         cells={statCells.map(s => ({
           label: s.title,
           value: <>{s.value} <span style={{ fontSize: 11, fontWeight: 500, color: 'var(--text-slate-400)' }}>{s.period}</span></>,
@@ -351,48 +361,35 @@ export default function ApprovalsPanel() {
         }))}
       />
 
-      <div className="lvap-filters">
-        <span className="lvap-filter-label"><FilterOutlined /> Filter</span>
-        <SearchableDropdown
-          className="lvap-filter-dd"
-          placeholder="Status"
-          searchPlaceholder="Search statuses"
-          itemNoun="statuses"
-          value={statusFilter === 'all' ? undefined : statusFilter}
-          onChange={(v) => setStatusFilter((v as StatusFilter) ?? 'all')}
-          options={[
-            { value: 'pending', label: 'Pending' },
-            { value: 'approved', label: 'Approved' },
-            { value: 'rejected', label: 'Rejected' },
-            { value: 'cancelled', label: 'Cancelled' },
-            { value: 'withdrawn', label: 'Withdrawn' },
-            { value: 'withdrawal_requests', label: 'Withdrawal requests' },
-          ]}
-          style={{ width: 160 }}
-          width={230}
-        />
-        <SearchableDropdown
-          className="lvap-filter-dd"
-          placeholder="User"
-          searchPlaceholder="Search users"
-          itemNoun="users"
-          value={userFilter}
-          onChange={(v) => setUserFilter((v as string) ?? undefined)}
-          options={userOptions}
-          showSelectedAvatar
-          style={{ width: 190 }}
-          width={240}
-        />
-        <RangePicker
-          className="lvap-filter-range"
-          value={dateRange as any}
-          onChange={(v) => setDateRange(v as DateRange)}
-          format="MMM D, YYYY"
-          allowEmpty={[true, true]}
-        />
-        <span className="lvap-filter-count">{totalCount} of {rows.length}</span>
-        {hasFilters && <button type="button" className="lvap-clear" onClick={clearFilters}><CloseCircleOutlined /> Clear</button>}
-      </div>
+      {isFilterRowOpen && (
+        <FilterBar
+          activeCount={(statusFilter !== 'all' ? 1 : 0) + (userFilter ? 1 : 0) + (dateRange ? 1 : 0)}
+          onReset={clearFilters}
+          onClose={() => setIsFilterRowOpen(false)}
+        >
+          <TicketFilterPill
+            label="Status"
+            icon={<CheckCircleOutlined />}
+            value={statusFilter === 'all' ? undefined : statusFilter}
+            options={[
+              { value: 'pending', label: 'Pending', dotColor: '#3b82f6' },
+              { value: 'approved', label: 'Approved', dotColor: '#10b981' },
+              { value: 'rejected', label: 'Rejected', dotColor: '#ef4444' },
+              { value: 'cancelled', label: 'Cancelled', dotColor: '#64748b' },
+              { value: 'withdrawn', label: 'Withdrawn', dotColor: '#f59e0b' },
+              { value: 'withdrawal_requests', label: 'Withdrawal Requests', dotColor: '#8b5cf6' },
+            ]}
+            onChange={(v) => setStatusFilter((v as StatusFilter) || 'all')}
+          />
+          <TicketFilterPill
+            label="User"
+            icon={<FilterOutlined />}
+            value={userFilter}
+            options={userOptions.map((u) => ({ value: u.value, label: u.label }))}
+            onChange={(v) => setUserFilter(v ? String(v) : undefined)}
+          />
+        </FilterBar>
+      )}
 
       <div className="lv-table-wrap">
         <ZukvoLoadingOverlay loading={loading} message="">

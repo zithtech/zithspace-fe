@@ -1437,6 +1437,7 @@ export default function RolesPage() {
             <StatCards
               title="Roles & Permissions Overview"
               statusText="ACTIVE"
+              progressPct={roleStats.total > 0 ? Math.round((roleStats.custom / roleStats.total) * 100) : 0}
               cells={[
                 {
                   label: "Total Roles",

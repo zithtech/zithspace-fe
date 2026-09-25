@@ -20,6 +20,7 @@ import {
   SearchOutlined,
   SendOutlined,
   UnorderedListOutlined,
+  ProjectOutlined,
 } from "@ant-design/icons";
 import { Menu, RotateCw } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -27,10 +28,11 @@ import { useRouter } from "next/navigation";
 import ConfirmDialog from "@/components/common/ConfirmDialog";
 import { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
 import { SearchableDropdown } from "@/components/common/SearchableDropdown";
+import StatCards from "@/components/common/StatCards";
+import { FilterBar, FilterToggleButton, TicketFilterPill } from "@/components/common/FilterBar";
 import { usePermission } from "@/hooks/usePermission";
 import { api as axios, apiClient } from "@/lib/axios";
 import { ProjectService } from "@/services/projectService";
-import { StatTile } from "../qa-submissions/shared";
 
 function initialsOf(name: string) {
   if (!name) return "TS";
@@ -105,6 +107,7 @@ export default function ScopeApprovals({ onOpenSidebar }: { onOpenSidebar: () =>
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string | undefined>();
   const [projectFilter, setProjectFilter] = useState<string | undefined>();
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
 
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
@@ -124,6 +127,7 @@ export default function ScopeApprovals({ onOpenSidebar }: { onOpenSidebar: () =>
         params: {
           page,
           pageSize,
+          limit: pageSize,
           search: debouncedSearch || undefined,
           status: statusFilter || undefined,
           ...(projectFilter ? { product: projectFilter } : {}),
@@ -134,8 +138,16 @@ export default function ScopeApprovals({ onOpenSidebar }: { onOpenSidebar: () =>
         },
       });
       const body = res.data;
-      setRows(body?.data || []);
-      setTotal(body?.pagination?.total || 0);
+      const dataList = Array.isArray(body?.data) ? body.data : Array.isArray(body) ? body : [];
+      const totalCount =
+        body?.pagination?.total ??
+        body?.pagination?.totalCount ??
+        body?.total ??
+        body?.totalCount ??
+        dataList.length;
+
+      setRows(dataList);
+      setTotal(totalCount);
     } catch (err) {
       console.error(err);
     } finally {
@@ -428,14 +440,28 @@ export default function ScopeApprovals({ onOpenSidebar }: { onOpenSidebar: () =>
     <>
       <style dangerouslySetInnerHTML={{ __html: SCOPE_APPROVAL_STYLES }} />
 
-      <div className="dh-main-topbar sc-topbar">
+      <div className="dh-main-topbar sc-topbar" style={{ padding: "8px 16px", minHeight: 52 }}>
         <div className="sc-topbar__title" style={{ display: "flex", alignItems: "center" }}>
           <Button className="dh-mobile-menu-btn" type="text" icon={<Menu size={18} />} onClick={onOpenSidebar} />
           <span className="sc-topbar__h1">Test Scopes</span>
           <span className="sc-topbar__div" />
           <span className="sc-topbar__sub">Scopes routed to you for review — approve, or reject them back to QA</span>
         </div>
-        <div className="dh-main-controls">
+        <div className="dh-main-controls" style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <Input
+            style={{ width: 220, height: 32 }}
+            placeholder="Search scopes…"
+            prefix={<SearchOutlined style={{ color: "var(--text-slate-400)", fontSize: 12 }} />}
+            className="saas-input"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            allowClear
+          />
+          <FilterToggleButton
+            isOpen={isFilterOpen}
+            onToggle={() => setIsFilterOpen((prev) => !prev)}
+            activeCount={activeFilterCount}
+          />
           <Button
             type="default"
             icon={<RotateCw size={14} className={loading ? "animate-spin" : ""} />}
@@ -451,49 +477,77 @@ export default function ScopeApprovals({ onOpenSidebar }: { onOpenSidebar: () =>
         </div>
       </div>
 
-      <div className="dh-main-scroll">
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-3">
-          <StatTile label="Approved" value={stats.approved ?? 0} icon={CheckCircleOutlined} color="#10b981" bgColor="rgba(16,185,129,0.1)" sub="signed off by you" />
-          <StatTile label="Rejected" value={stats.rejected ?? 0} icon={CloseCircleOutlined} color="#ef4444" bgColor="rgba(239,68,68,0.1)" sub="sent back for rework" />
-          <StatTile label="Pending" value={stats.pendingApprovals ?? 0} icon={SendOutlined} color="#3B82F6" bgColor="rgba(59,130,246,0.1)" sub="waiting on you" />
-        </div>
+      <div className="dh-main-scroll" style={{ padding: 0 }}>
+        {/* StatCards */}
+        <StatCards
+          title="Scope Approvals Overview"
+          statusText="REVIEW"
+          statusColor="#3b82f6"
+          style={{ margin: 0, borderRadius: 0 }}
+          progressPct={
+            (() => {
+              const scopeTotal =
+                (stats.totalScopes !== undefined && stats.totalScopes > 0)
+                  ? stats.totalScopes
+                  : ((stats.approved ?? 0) + (stats.rejected ?? 0) + (stats.pendingApprovals ?? 0));
+              return scopeTotal > 0
+                ? Math.min(100, Math.round(((stats.approved ?? 0) / scopeTotal) * 100))
+                : 0;
+            })()
+          }
+          cards={[
+            { label: "Approved", value: stats.approved ?? 0, icon: <CheckCircleOutlined />, color: "#10b981" },
+            { label: "Rejected", value: stats.rejected ?? 0, icon: <CloseCircleOutlined />, color: "#ef4444" },
+            { label: "Pending Approvals", value: stats.pendingApprovals ?? 0, icon: <SendOutlined />, color: "#3B82F6" },
+          ]}
+        />
 
-        <div className="sc-filters">
-          <Input
-            className="sc-filters__search"
-            placeholder="Search scopes…"
-            prefix={<SearchOutlined style={{ color: "var(--text-slate-400)" }} />}
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            allowClear
-          />
-          <SearchableDropdown
-            options={userProjects}
-            value={projectFilter}
-            onChange={(v) => setProjectFilter(v)}
-            placeholder="Any project"
-            hideAvatar
-            itemNoun="projects"
-            className="sc-filters__field"
-          />
-          <SearchableDropdown
-            options={statusOptions}
-            value={statusFilter}
-            onChange={(v) => setStatusFilter(v)}
-            placeholder="All statuses"
-            itemNoun="statuses"
-            className="sc-filters__field"
-          />
-          {activeFilterCount > 0 && (
-            <button type="button" className="sc-clear" onClick={clearFilters}>
-              Clear ({activeFilterCount})
-            </button>
-          )}
-        </div>
+        {/* Unified FilterBar */}
+        {isFilterOpen && (
+          <FilterBar
+            activeCount={activeFilterCount}
+            onReset={clearFilters}
+            onClose={() => setIsFilterOpen(false)}
+            actions={
+              <span style={{ fontSize: 12, color: "var(--text-slate-500)", whiteSpace: "nowrap" }}>
+                <b>{rows.length}</b> of <b>{total}</b> scopes
+              </span>
+            }
+          >
+            <TicketFilterPill
+              icon={<ProjectOutlined style={{ fontSize: 11 }} />}
+              label="Project"
+              value={projectFilter || ""}
+              options={userProjects}
+              onChange={(v) => setProjectFilter(v ? String(v) : undefined)}
+              itemNoun="projects"
+              multiple={false}
+            />
+            <TicketFilterPill
+              icon={<CheckCircleOutlined style={{ fontSize: 11 }} />}
+              label="Status"
+              value={statusFilter || ""}
+              options={statusOptions}
+              onChange={(v) => setStatusFilter(v ? String(v) : undefined)}
+              itemNoun="statuses"
+              multiple={false}
+            />
+          </FilterBar>
+        )}
 
         <ZukvoLoadingOverlay loading={loading} message="Loading approvals…" minHeight={loading ? 320 : undefined}>
           {viewMode === "list" ? (
-            <div className="sc-tablewrap" data-tour="scope-approvals-table">
+            <div
+              className="sc-tablewrap"
+              data-tour="scope-approvals-table"
+              style={{
+                borderLeft: "none",
+                borderRight: "none",
+                borderTop: "none",
+                borderRadius: 0,
+                margin: 0,
+              }}
+            >
               <Table
                 className="ts-table sc-table"
                 dataSource={rows}
@@ -561,7 +615,7 @@ export default function ScopeApprovals({ onOpenSidebar }: { onOpenSidebar: () =>
               className="pp-pagesize"
               value={pageSize}
               onChange={(v) => { setPageSize(v); setPage(1); }}
-              options={[10, 20, 25, 50, 100].map((n) => ({ value: n, label: `${n} / page` }))}
+              options={[10, 15, 20, 25, 50, 100].map((n) => ({ value: n, label: `${n} / page` }))}
               popupMatchSelectWidth={120}
             />
           </div>

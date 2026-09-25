@@ -51,6 +51,7 @@ import { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
 const { TextArea } = Input;
 const { RangePicker } = DatePicker;
 
+import { FilterBar, FilterToggleButton, TicketFilterPill } from '@/components/common/FilterBar';
 import { PALETTE, TINT, StatCards } from '@/components/leaves-v2/ui';
 const PAGE_SIZE_OPTIONS = [10, 15, 20, 25, 50, 100];
 
@@ -94,7 +95,6 @@ function computeUnits(from: Dayjs | null, to: Dayjs | null, portion: DayPortion,
 
 export default function ApplyLeavePanel({ hideSidebarToggle }: { hideSidebarToggle?: boolean } = {}) {
   const { canReadLeave, canCreateLeave, canUpdateLeave, canReadMyHubApplyLeave } = usePermission();
-  console.log("Forcing HMR reload for ApplyLeavePanel");
   const { message } = App.useApp(); // contextual toasts (static `message` ignores the <App> holder)
 
   const [balances, setBalances] = useState<LeaveBalanceItem[]>([]);
@@ -106,6 +106,7 @@ export default function ApplyLeavePanel({ hideSidebarToggle }: { hideSidebarTogg
 
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
+  const [isFilterRowOpen, setIsFilterRowOpen] = useState(false);
 
   const [tablePage, setTablePage] = useState(1);
   const [tablePageSize, setTablePageSize] = useState(15);
@@ -411,15 +412,24 @@ export default function ApplyLeavePanel({ hideSidebarToggle }: { hideSidebarTogg
             <SearchOutlined className="lva-search-icon" />
             <input className="lva-search" placeholder="Search leave type…" value={search} onChange={(e) => setSearch(e.target.value)} />
           </div>
+          <FilterToggleButton
+            isOpen={isFilterRowOpen}
+            onToggle={() => setIsFilterRowOpen((prev) => !prev)}
+            activeCount={statusFilter !== 'all' ? 1 : 0}
+          />
           <Tooltip title="Refresh"><button type="button" className="lva-ghost-btn" onClick={load}><ReloadOutlined spin={loading} /></button></Tooltip>
           {(canCreateLeave || canReadMyHubApplyLeave) && <Button type="primary" icon={<PlusOutlined />} onClick={openApply} className="lva-add-btn">Apply Leave</Button>}
         </div>
       </div>
 
       {/* STAT CARDS */}
-            <StatCards
+      <StatCards
         title="Leave Overview"
         statusText="LIVE"
+        progressPct={(() => {
+          const totalReqs = requests.length;
+          return totalReqs > 0 ? Math.round((stats.approved / totalReqs) * 100) : 0;
+        })()}
         cells={statCells.map(s => ({
           label: s.title,
           value: <>{s.value} <span style={{ fontSize: 11, fontWeight: 500, color: 'var(--text-slate-400)' }}>{s.period}</span></>,
@@ -442,30 +452,27 @@ export default function ApplyLeavePanel({ hideSidebarToggle }: { hideSidebarTogg
         }
       />
 
-
-      {/* FILTERS */}
-      <div className="lva-filters">
-        <span className="lva-filter-label"><FilterOutlined /> Filter</span>
-        <SearchableDropdown
-          className="lva-filter-dd"
-          placeholder="Status"
-          searchPlaceholder="Search statuses"
-          itemNoun="statuses"
-          value={statusFilter === 'all' ? undefined : statusFilter}
-          onChange={(v) => setStatusFilter((v as StatusFilter) ?? 'all')}
-          options={[
-            { value: 'pending', label: 'Pending' },
-            { value: 'approved', label: 'Approved' },
-            { value: 'rejected', label: 'Rejected' },
-            { value: 'cancelled', label: 'Cancelled' },
-            { value: 'withdrawn', label: 'Withdrawn' },
-          ]}
-          style={{ width: 160 }}
-          width={210}
-        />
-        <span className="lva-filter-count">{totalCount} of {requests.length}</span>
-        {hasFilters && <button type="button" className="lva-clear" onClick={() => { setSearch(''); setStatusFilter('all'); }}><CloseCircleOutlined /> Clear</button>}
-      </div>
+      {isFilterRowOpen && (
+        <FilterBar
+          activeCount={statusFilter !== 'all' ? 1 : 0}
+          onReset={() => { setSearch(''); setStatusFilter('all'); }}
+          onClose={() => setIsFilterRowOpen(false)}
+        >
+          <TicketFilterPill
+            label="Status"
+            icon={<CheckCircleOutlined />}
+            value={statusFilter === 'all' ? undefined : statusFilter}
+            options={[
+              { value: 'pending', label: 'Pending', dotColor: '#3b82f6' },
+              { value: 'approved', label: 'Approved', dotColor: '#10b981' },
+              { value: 'rejected', label: 'Rejected', dotColor: '#ef4444' },
+              { value: 'cancelled', label: 'Cancelled', dotColor: '#64748b' },
+              { value: 'withdrawn', label: 'Withdrawn', dotColor: '#f59e0b' },
+            ]}
+            onChange={(v) => setStatusFilter((v as StatusFilter) || 'all')}
+          />
+        </FilterBar>
+      )}
 
       {/* TABLE */}
       <div className="lv-table-wrap">

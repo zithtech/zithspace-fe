@@ -43,11 +43,8 @@ import {
   useInvoice,
 } from "@/hooks/useInvoices";
 import { useInvoiceTemplates } from "@/hooks/useInvoiceTemplates";
-import { useMemo } from "react";
-
-
+import { useState, useEffect, useMemo, useRef } from "react";
 const { Title, Text } = Typography;
-import { useState, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import dayjs from "dayjs";
 import isSameOrBefore from "dayjs/plugin/isSameOrBefore";
@@ -116,6 +113,7 @@ export default function InvoiceNewinvoicePage() {
     "DRAFT" | "PENDING" | null
   >(null);
   const [discountValue, setDiscountValue] = useState<number>(0);
+  const [customTaxValue, setCustomTaxValue] = useState<number | undefined>(undefined);
   const { data: templatesResponse, isLoading: loadingTemplates } = useInvoiceTemplates();
   const templates = templatesResponse?.data || [];
   // We use explicit state for templateId to ensure reliable prop updates to children
@@ -281,12 +279,21 @@ export default function InvoiceNewinvoicePage() {
 
       console.log('Mapped items:', mappedItems);
 
+      const initialCustomTax = invoiceDetail.metadata?.customTax !== undefined
+        ? Number(invoiceDetail.metadata.customTax)
+        : (invoiceDetail.taxTotal !== undefined ? Number(invoiceDetail.taxTotal) : undefined);
+
+      if (initialCustomTax !== undefined) {
+        setCustomTaxValue(initialCustomTax);
+      }
+
       const fv = {
         invoiceNumber: invoiceDetail.invoiceNumber || "",
         customer_id: invoiceDetail.customerId || "",
         customer_snapshot: invoiceDetail.customerSnapshot || null,
         settingsProfileId: invoiceDetail.settingsProfileId || "",
         tax_inclusive: invoiceDetail.taxInclusive || false,
+        tax: initialCustomTax,
         discount: invoiceDetail.discountTotal || invoiceDetail.discount || 0,
         invoice_date: invoiceDetail.invoiceDate ? dayjs(invoiceDetail.invoiceDate) : null,
         due_date: invoiceDetail.dueDate ? dayjs(invoiceDetail.dueDate) : null,
@@ -322,9 +329,11 @@ export default function InvoiceNewinvoicePage() {
           currency: "USD",
           tax_inclusive: false,
           discount: 0,
+          tax: undefined,
         });
         setIsTaxInclusive(false);
         setDiscountValue(0);
+        setCustomTaxValue(undefined);
       }
       setIsFormReady(true);
     }
@@ -374,6 +383,8 @@ export default function InvoiceNewinvoicePage() {
     }
   }, [formDiscount]);
 
+  const formTax = Form.useWatch("tax", form);
+
   const sanitizeCustomerPayload = (
     values: any
   ): UpdateCustomerData => ({
@@ -400,7 +411,7 @@ export default function InvoiceNewinvoicePage() {
   const watchedDueDate = Form.useWatch("due_date", form);
   const watchedCustomerId = Form.useWatch("customer_id", form);
 
-  const { subtotal, totalTax, totalBeforeDiscount, finalTotal, discountAmount } = useMemo(() => {
+  const { subtotal, totalTax, totalBeforeDiscount, finalTotal, discountAmount, computedLineTax } = useMemo(() => {
     const getVal = (obj: any, keys: string[]) => {
       if (!obj) return 0;
       for (const k of keys) {
@@ -434,12 +445,12 @@ export default function InvoiceNewinvoicePage() {
         if (isTaxInclusive && t > 0) {
           lineTotal = discountedBase;
           const taxRate = t / 100;
-          lineSubtotal = discountedBase / (1 + taxRate);
-          lineTax = lineTotal - lineSubtotal;
+          lineSubtotal = Number((discountedBase / (1 + taxRate)).toFixed(2));
+          lineTax = Number((lineTotal - lineSubtotal).toFixed(2));
         } else {
-          lineSubtotal = discountedBase;
-          lineTax = discountedBase * (t / 100);
-          lineTotal = lineSubtotal + lineTax;
+          lineSubtotal = Number(discountedBase.toFixed(2));
+          lineTax = Number((discountedBase * (t / 100)).toFixed(2));
+          lineTotal = Number((lineSubtotal + lineTax).toFixed(2));
         }
 
         if (!acc.lineTotals) acc.lineTotals = [];
@@ -454,17 +465,85 @@ export default function InvoiceNewinvoicePage() {
       { subtotal: 0, totalTax: 0, totalBeforeDiscount: 0, lineTotals: [] as number[] }
     );
 
-    const discountValueNow = discountValue;
-    const finalTotalValue = Math.max(0, result.totalBeforeDiscount - discountValueNow);
+    const computedTax = Number(result.totalTax.toFixed(2));
+    const effectiveTax = customTaxValue !== undefined ? Number(customTaxValue.toFixed(2)) : computedTax;
+    const discountValueNow = Number(discountValue.toFixed(2));
+
+    let finalTotalValue = 0;
+    if (isTaxInclusive) {
+      const taxDiff = customTaxValue !== undefined ? (customTaxValue - computedTax) : 0;
+      finalTotalValue = Math.max(0, result.totalBeforeDiscount + taxDiff - discountValueNow);
+    } else {
+      finalTotalValue = Math.max(0, result.subtotal + effectiveTax - discountValueNow);
+    }
 
     return {
-      subtotal: result.subtotal,
-      totalTax: result.totalTax,
-      totalBeforeDiscount: result.totalBeforeDiscount,
-      finalTotal: finalTotalValue,
+      subtotal: Number(result.subtotal.toFixed(2)),
+      totalTax: effectiveTax,
+      computedLineTax: computedTax,
+      totalBeforeDiscount: Number((result.subtotal + effectiveTax).toFixed(2)),
+      finalTotal: Number(finalTotalValue.toFixed(2)),
       discountAmount: discountValueNow
     };
-  }, [items, isTaxInclusive, discountValue]);
+  }, [items, isTaxInclusive, discountValue, customTaxValue]);
+
+  const grossBase = useMemo(() => {
+    return items.reduce((sum: number, item: any) => sum + (Number(item?.quantity || item?.qty || 0) * Number(item?.rate || item?.price || 0)), 0);
+  }, [items]);
+
+  const effectiveTaxPercent = useMemo(() => {
+    if (items.length > 0) {
+      const avgTaxRate = items.reduce((sum: number, i: any) => sum + Number(i?.taxRate || i?.tax || 0), 0) / items.length;
+      if (avgTaxRate > 0) return avgTaxRate.toFixed(1);
+    }
+    if (grossBase > 0 && totalTax > 0) {
+      return ((totalTax / grossBase) * 100).toFixed(1);
+    }
+    return undefined;
+  }, [items, grossBase, totalTax]);
+
+  const isSyncingFromSummaryRef = useRef(false);
+  const prevLineTaxRef = useRef<number>(0);
+
+  // Sync Summary Tax when Line Items change
+  useEffect(() => {
+    if (isSyncingFromSummaryRef.current) {
+      isSyncingFromSummaryRef.current = false;
+      return;
+    }
+    const roundedTax = Number(computedLineTax.toFixed(2));
+    if (roundedTax !== prevLineTaxRef.current) {
+      prevLineTaxRef.current = roundedTax;
+      setCustomTaxValue(roundedTax > 0 ? roundedTax : undefined);
+      form.setFieldValue("tax", roundedTax > 0 ? roundedTax : undefined);
+    }
+  }, [computedLineTax, form]);
+
+  const handleSummaryTaxChange = (val: number | null | undefined) => {
+    const num = val !== null && val !== undefined && !isNaN(Number(val)) ? Number(Number(val).toFixed(2)) : undefined;
+    setCustomTaxValue(num);
+    form.setFieldValue("tax", num);
+
+    // Sync tax to line items in the table based on gross base
+    const currentItems = form.getFieldValue("lineItems") || [];
+    const baseToUse = grossBase > 0 ? grossBase : subtotal;
+    if (currentItems.length > 0 && baseToUse > 0 && num !== undefined) {
+      isSyncingFromSummaryRef.current = true;
+      const effectiveRate = Number(((num / baseToUse) * 100).toFixed(2));
+      const updatedItems = currentItems.map((item: any) => ({
+        ...item,
+        taxRate: effectiveRate,
+      }));
+      form.setFieldsValue({ lineItems: updatedItems });
+    } else if (num === undefined || num === 0) {
+      isSyncingFromSummaryRef.current = true;
+      const updatedItems = currentItems.map((item: any) => ({
+        ...item,
+        taxRate: 0,
+      }));
+      form.setFieldsValue({ lineItems: updatedItems });
+    }
+  };
 
   const applyToInvoiceOnly = (updatedCustomer: CustomerDraft) => {
     form.setFieldsValue({
@@ -559,6 +638,10 @@ export default function InvoiceNewinvoicePage() {
       invoiceType: (values.invoice_type?.toUpperCase() || "STANDARD"),
       currency: values.currency || "USD",
       discount: finalDiscount,
+      discountTotal: finalDiscount,
+      subtotal: subtotal,
+      taxTotal: totalTax,
+      grandTotal: finalTotal,
       notes: values.notes || "",
       terms: values.terms || "",
       status: finalStatus,
@@ -572,7 +655,8 @@ export default function InvoiceNewinvoicePage() {
         columnOrder: values.columnOrder || [],
         columnLabels: values.columnLabels || {},
         columnTypes: values.columnTypes || {},
-        columnOptions: values.columnOptions || {}
+        columnOptions: values.columnOptions || {},
+        customTax: customTaxValue !== undefined ? customTaxValue : undefined,
       },
       items: (values.lineItems || []).map((item: any, index: number) => {
         // Collect all extra fields properly
@@ -1510,15 +1594,33 @@ export default function InvoiceNewinvoicePage() {
                           {subtotal.toFixed(2)}
                         </span>
                       </div>
-                      <div className="flex items-center justify-between text-[13px]">
-                        <span style={{ color: "var(--text-secondary)" }}>Tax</span>
-                        <span
-                          className="font-medium tabular-nums"
-                          style={{ color: "var(--text-primary)" }}
-                        >
-                          {currencySymbol}
-                          {totalTax.toFixed(2)}
-                        </span>
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-1.5">
+                          <span
+                            className="text-[13px] flex-shrink-0"
+                            style={{ color: "var(--text-secondary)" }}
+                          >
+                            Tax
+                          </span>
+                          {effectiveTaxPercent && Number(effectiveTaxPercent) > 0 && (
+                            <span className="text-[11px] font-medium" style={{ color: "var(--text-secondary)" }}>
+                              ({effectiveTaxPercent}%)
+                            </span>
+                          )}
+                        </div>
+                        <Form.Item name="tax" style={{ marginBottom: 0 }}>
+                          <InputNumber
+                            min={0}
+                            precision={2}
+                            step={0.01}
+                            prefix={currencySymbol}
+                            style={{ width: '100%', maxWidth: 160, borderRadius: 8 }}
+                            controls={false}
+                            placeholder={(computedLineTax || 0).toFixed(2)}
+                            value={customTaxValue !== undefined ? customTaxValue : (computedLineTax > 0 ? computedLineTax : undefined)}
+                            onChange={handleSummaryTaxChange}
+                          />
+                        </Form.Item>
                       </div>
                       <div className="flex items-center justify-between gap-2">
                         <span
@@ -1530,11 +1632,13 @@ export default function InvoiceNewinvoicePage() {
                         <Form.Item name="discount" style={{ marginBottom: 0 }}>
                           <InputNumber
                             min={0}
+                            precision={2}
+                            step={0.01}
                             prefix={currencySymbol}
                             style={{ width: '100%', maxWidth: 160, borderRadius: 8 }}
                             controls={false}
                             onChange={(val) =>
-                              setDiscountValue(Number(val) || 0)
+                              setDiscountValue(Number(Number(val || 0).toFixed(2)))
                             }
                           />
                         </Form.Item>

@@ -56,6 +56,7 @@ import type { ColumnsType } from "antd/es/table";
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
 import { usePermission } from "@/hooks/usePermission";
+import { FilterBar, FilterToggleButton, TicketFilterPill } from "@/components/common/FilterBar";
 import {
   Menu,
   Trash2,
@@ -102,6 +103,14 @@ export default function AccountTrashPage() {
   const [view, setView] = useState<"list" | "grid">("list");
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
+  const [isFilterRowOpen, setIsFilterRowOpen] = useState(false);
+
+  const activeFilterCount = useMemo(() => {
+    let count = 0;
+    if (categoryFilter) count++;
+    if (dateRange) count++;
+    return count;
+  }, [categoryFilter, dateRange]);
 
   // View Details Drawer & Preview Modal
   const [viewDrawerVisible, setViewDrawerVisible] = useState(false);
@@ -590,11 +599,32 @@ export default function AccountTrashPage() {
         const isCredit = record.type === "credit";
         const color = isCredit ? "#10b981" : "#64748b";
         const bg = isCredit ? "rgba(16,185,129,0.10)" : "rgba(100,116,139,0.10)";
+        const formattedCategory = (category || "uncategorized").replace(/_/g, " ").toUpperCase();
         return (
-          <span className="pp-tag" style={{ background: bg, color }}>
-            <span className="pp-tag-dot" />
-            {(category || "uncategorized").replace("_", " ").toUpperCase()}
-          </span>
+          <Tooltip title={formattedCategory} placement="topLeft">
+            <span
+              className="pp-tag"
+              style={{
+                background: bg,
+                color,
+                maxWidth: "160px",
+                display: "inline-flex",
+                alignItems: "center",
+              }}
+            >
+              <span className="pp-tag-dot" style={{ flexShrink: 0 }} />
+              <span
+                style={{
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  whiteSpace: "nowrap",
+                  display: "inline-block",
+                }}
+              >
+                {formattedCategory}
+              </span>
+            </span>
+          </Tooltip>
         );
       },
     },
@@ -762,43 +792,6 @@ export default function AccountTrashPage() {
               })}
             </div>
 
-            <div className="pp-side-section-label">Filters</div>
-            <div className="pp-side-filters">
-              <SearchableDropdown
-                className="pp-side-sd"
-                placeholder="Category"
-                searchPlaceholder="Search categories"
-                itemNoun="categories"
-                value={categoryFilter ?? undefined}
-                onChange={(v) => setCategoryFilter(v ?? undefined)}
-                options={expenseCategories.map((c: any) => ({ value: c.name, label: c.name }))}
-                width={212}
-                disabled={expenseCategories.length === 0}
-              />
-              <RangePicker
-                className="pp-side-range"
-                value={dateRange}
-                onChange={(dates) => setDateRange(dates as [dayjs.Dayjs, dayjs.Dayjs] | null)}
-                placeholder={["Start date", "End date"]}
-                separator={<span style={{ color: "var(--text-slate-400)" }}>›</span>}
-                suffixIcon={null}
-                format="MMM D"
-              />
-              {(categoryFilter || dateRange || searchText) && (
-                <button
-                  type="button"
-                  className="pp-clear-filters"
-                  onClick={() => {
-                    setCategoryFilter(undefined);
-                    setDateRange(null);
-                    setSearchText("");
-                  }}
-                >
-                  <CloseCircleOutlined /> Clear filters
-                </button>
-              )}
-            </div>
-
             {selectedRowKeys.length > 0 && (
               <>
                 <div className="pp-side-section-label">Selected Actions ({selectedRowKeys.length})</div>
@@ -920,6 +913,11 @@ export default function AccountTrashPage() {
             )}
 
             <div className="pp-topbar-actions">
+              <FilterToggleButton
+                isOpen={isFilterRowOpen}
+                onToggle={() => setIsFilterRowOpen((v) => !v)}
+                activeCount={activeFilterCount}
+              />
               <div className="pp-segmented">
                 <button
                   type="button"
@@ -952,10 +950,29 @@ export default function AccountTrashPage() {
           <div className="pp-sprint-head-v2">
             <div className="pp-sprint-row1">
               <div className="pp-sprint-title-block">
-                <div className="pp-sprint-dot" style={{ background: '#ef4444' }} />
+                <span
+                  className="pp-sprint-dot"
+                  style={{
+                    background: '#ef4444',
+                    boxShadow: '0 0 0 3px rgba(239, 68, 68, 0.2)',
+                  }}
+                />
                 <h2 className="pp-sprint-title">Accounts — Deleted Items</h2>
                 <div className="pp-sprint-tags">
-                  <span className="pp-sprint-tag pp-sprint-tag-delayed" style={{ borderColor: 'rgba(239, 68, 68, 0.32)' }}>TRASH</span>
+                  <span className="pp-sprint-tag pp-sprint-tag-delayed">TRASH</span>
+                  <span className="pp-sprint-tag pp-sprint-tag-neutral">
+                    {stats.totalCount} ITEMS
+                  </span>
+                  {stats.creditsCount > 0 && (
+                    <span className="pp-sprint-tag pp-sprint-tag-active">
+                      {stats.creditsCount} CREDITS
+                    </span>
+                  )}
+                  {stats.debitsCount > 0 && (
+                    <span className="pp-sprint-tag pp-sprint-tag-delayed">
+                      {stats.debitsCount} DEBITS
+                    </span>
+                  )}
                 </div>
               </div>
             </div>
@@ -975,12 +992,51 @@ export default function AccountTrashPage() {
               <div className="pp-sprint-progress-bar">
                 <div
                   className="pp-sprint-progress-fill"
-                  style={{ width: `100%`, background: 'linear-gradient(90deg, #ef4444, #fca5a5)' }}
+                  style={{
+                    width: `${stats.totalCount === 0 ? 0 : 100}%`,
+                    background: 'linear-gradient(90deg, #ef4444, #dc2626)',
+                  }}
                 />
               </div>
-              <span className="pp-sprint-progress-pct">100%</span>
+              <span className="pp-sprint-progress-pct">
+                {stats.totalCount === 0 ? 0 : 100}%
+              </span>
             </div>
           </div>
+
+          {/* ── Inline filter row (when opened) ── */}
+          <FilterBar
+            isOpen={isFilterRowOpen}
+            activeCount={activeFilterCount}
+            onClose={() => setIsFilterRowOpen(false)}
+            onReset={() => {
+              setCategoryFilter(undefined);
+              setDateRange(null);
+              setSearchText("");
+            }}
+          >
+            {/* Category Pill */}
+            {expenseCategories.length > 0 && (
+              <TicketFilterPill
+                label="Category"
+                value={categoryFilter || ""}
+                options={expenseCategories.map((c: any) => ({ value: c.name, label: c.name }))}
+                onChange={(val: any) => setCategoryFilter(val || undefined)}
+                itemNoun="categories"
+                multiple={false}
+              />
+            )}
+
+            {/* Date Range Picker */}
+            <DatePicker.RangePicker
+              value={dateRange}
+              onChange={(dates) => setDateRange(dates as [dayjs.Dayjs, dayjs.Dayjs] | null)}
+              placeholder={["Start date", "End date"]}
+              style={{ height: 28, borderRadius: 6, fontSize: 12 }}
+              format="MMM D, YYYY"
+              allowClear
+            />
+          </FilterBar>
 
           {/* Table / Grid Content */}
           <div className="pp-body">
@@ -1806,24 +1862,140 @@ export default function AccountTrashPage() {
         }
         .pp-ghost-btn:hover { color: #3b82f6; border-color: #bfdbfe; }
 
-        .pp-divider { height: 1px; background: var(--border-slate-200); margin: 0 0 10px 0; flex-shrink: 0; }
+        .pp-divider { display: none; }
 
         /* Sprint Header (Stats) */
-        .pp-sprint-head-v2 { display: flex; flex-direction: column; gap: 2px; padding: 8px 20px 10px; background: var(--bg-pure-white); border-bottom: 1px solid var(--border-slate-200); margin-bottom: 0px; flex-shrink: 0; }
-        .pp-sprint-row1 { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; margin-bottom: 2px; }
-        .pp-sprint-title-block { display: flex; align-items: center; gap: 6px; min-width: 0; flex: 1 1 auto; }
-        .pp-sprint-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
-        .pp-sprint-title { font-size: 13px !important; font-weight: 800 !important; color: var(--text-slate-900) !important; letter-spacing: -0.01em; margin: 0; }
-        .pp-sprint-tags { display: inline-flex; align-items: center; gap: 4px; flex-shrink: 0; }
-        .pp-sprint-tag { display: inline-flex; align-items: center; height: 16px; padding: 0 4px; font-size: 9px; font-weight: 800; letter-spacing: 0.04em; border-radius: 4px; border: 1px solid transparent; text-transform: uppercase; line-height: 1; }
-        .pp-sprint-tag-delayed { background: transparent; color: #ef4444; border-color: rgba(239, 68, 68, 0.32); }
-        .pp-sprint-row2 { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; padding-left: 14px; margin-bottom: 4px; }
-        .pp-sprint-meta { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; font-weight: 600; color: var(--text-slate-500); letter-spacing: -0.005em; }
-        .pp-sprint-meta b { color: var(--text-slate-900); font-weight: 800; }
-        .pp-sprint-row3 { display: flex; align-items: center; gap: 10px; padding-left: 14px; }
-        .pp-sprint-progress-bar { flex: 1 1 auto; position: relative; height: 5px; background: var(--bg-slate-100); border-radius: 999px; overflow: hidden; min-width: 60px; }
-        .pp-sprint-progress-fill { position: absolute; inset: 0; border-radius: 999px; transition: width 0.4s ease; }
-        .pp-sprint-progress-pct { flex-shrink: 0; font-size: 11px; font-weight: 800; color: var(--text-slate-900); font-variant-numeric: tabular-nums; min-width: 32px; }
+        .pp-sprint-head-v2 {
+          display: flex;
+          flex-direction: column;
+          gap: 6px;
+          padding: 10px 24px;
+          background: var(--bg-slate-50, #f8fafc);
+          border-bottom: 1px solid var(--border-slate-200, #e2e8f0);
+          margin-bottom: 0px;
+          flex-shrink: 0;
+        }
+        .pp-sprint-row1 {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 12px;
+          flex-wrap: wrap;
+        }
+        .pp-sprint-title-block {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          min-width: 0;
+          flex: 1 1 auto;
+        }
+        .pp-sprint-dot {
+          width: 7px;
+          height: 7px;
+          border-radius: 50%;
+          flex-shrink: 0;
+        }
+        .pp-sprint-title {
+          font-size: 13.5px !important;
+          font-weight: 800 !important;
+          color: var(--text-slate-900, #0f172a) !important;
+          letter-spacing: -0.01em;
+          margin: 0;
+        }
+        [data-theme='dark'] .pp-sprint-title { color: #f1f5f9 !important; }
+        .pp-sprint-tags {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          flex-shrink: 0;
+        }
+        .pp-sprint-tag {
+          display: inline-flex;
+          align-items: center;
+          height: 18px;
+          padding: 0 6px;
+          font-size: 9px;
+          font-weight: 800;
+          letter-spacing: 0.04em;
+          border-radius: 4px;
+          border: 1px solid transparent;
+          text-transform: uppercase;
+          line-height: 1;
+        }
+        .pp-sprint-tag-neutral {
+          background: transparent;
+          color: var(--text-slate-500);
+          border-color: var(--border-slate-200);
+        }
+        .pp-sprint-tag-active {
+          background: transparent;
+          color: #10b981;
+          border-color: rgba(16, 185, 129, 0.32);
+        }
+        .pp-sprint-tag-delayed {
+          background: transparent;
+          color: #ef4444;
+          border-color: rgba(239, 68, 68, 0.32);
+        }
+        [data-theme='dark'] .pp-sprint-tag-neutral {
+          border-color: rgba(255, 255, 255, 0.12);
+        }
+        [data-theme='dark'] .pp-sprint-tag-delayed {
+          color: #fca5a5;
+        }
+        .pp-sprint-row2 {
+          display: flex;
+          align-items: center;
+          gap: 18px;
+          flex-wrap: wrap;
+          padding-left: 15px;
+        }
+        .pp-sprint-meta {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          font-size: 11.5px;
+          font-weight: 600;
+          color: var(--text-slate-500);
+          letter-spacing: -0.005em;
+        }
+        .pp-sprint-meta b {
+          color: var(--text-slate-900);
+          font-weight: 800;
+        }
+        [data-theme='dark'] .pp-sprint-meta { color: #94a3b8 !important; }
+        [data-theme='dark'] .pp-sprint-meta b { color: #f1f5f9 !important; }
+        .pp-sprint-row3 {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          padding-left: 15px;
+        }
+        .pp-sprint-progress-bar {
+          flex: 1 1 auto;
+          position: relative;
+          height: 6px;
+          background: var(--bg-slate-100, #f1f5f9);
+          border-radius: 999px;
+          overflow: hidden;
+          min-width: 60px;
+        }
+        [data-theme='dark'] .pp-sprint-progress-bar { background: #1f2937 !important; }
+        .pp-sprint-progress-fill {
+          position: absolute;
+          inset: 0;
+          border-radius: 999px;
+          transition: width 0.4s ease;
+        }
+        .pp-sprint-progress-pct {
+          flex-shrink: 0;
+          font-size: 11px;
+          font-weight: 800;
+          color: var(--text-slate-900, #0f172a);
+          font-variant-numeric: tabular-nums;
+          min-width: 32px;
+        }
+        [data-theme='dark'] .pp-sprint-progress-pct { color: #f1f5f9 !important; }
 
         /* Table */
         .pp-table-wrap { background: var(--bg-pure-white); border: none; border-bottom: 1px solid var(--border-slate-200); border-radius: 0; overflow: visible; }

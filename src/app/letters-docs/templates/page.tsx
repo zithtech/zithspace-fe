@@ -534,6 +534,11 @@ export default function TemplateManagementPage() {
       <StatCards
         title="Template Overview"
         statusText="ACTIVE"
+        progressPct={(() => {
+          const totalCount = stats.total ?? total ?? 0;
+          const active = stats.activeCount ?? 0;
+          return totalCount > 0 ? Math.round((active / totalCount) * 100) : 0;
+        })()}
         cells={[
           { label: 'Total Templates', value: stats.total ?? total ?? 0, icon: <FileText size={15} />, color: PALETTE.blue, tint: TINT.blue },
           { label: 'Active Templates', value: stats.activeCount ?? 0, icon: <CheckCircle2 size={15} />, color: PALETTE.green, tint: TINT.green },
@@ -705,7 +710,7 @@ export default function TemplateManagementPage() {
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            zIndex: 100,
+            zIndex: 9999,
             padding: '20px',
           }}
         >

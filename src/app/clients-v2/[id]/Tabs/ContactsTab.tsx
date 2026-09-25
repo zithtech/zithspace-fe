@@ -896,11 +896,33 @@ export default function ContactsTab({ clientId, contacts = [], onRefresh }: Prop
                 <Form.Item
                   name="officialEmail"
                   label="Official email"
-                  rules={[{ required: true, type: "email", message: "Valid email required" }]}
+                  rules={[
+                    { required: true, message: "Official email is required" },
+                    {
+                      validator: (_, value) => {
+                        if (!value || typeof value !== "string" || !value.trim()) {
+                          return Promise.reject(new Error("Official email is required"));
+                        }
+                        if (/\s/.test(value)) {
+                          return Promise.reject(new Error("Email cannot contain spaces"));
+                        }
+                        const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+                        if (!emailRegex.test(value.trim())) {
+                          return Promise.reject(new Error("Please enter a valid email address"));
+                        }
+                        return Promise.resolve();
+                      },
+                    },
+                  ]}
                 >
                   <Input
                     placeholder="john.smith@company.com"
                     prefix={<Mail size={14} style={{ color: "var(--text-slate-400)" }} />}
+                    onKeyDown={(e) => {
+                      if (e.key === " ") {
+                        e.preventDefault();
+                      }
+                    }}
                   />
                 </Form.Item>
                 <Form.Item
@@ -1116,11 +1138,33 @@ export default function ContactsTab({ clientId, contacts = [], onRefresh }: Prop
                 <Form.Item
                   name="officialEmail"
                   label="Official email"
-                  rules={[{ required: true, type: "email", message: "Valid email required" }]}
+                  rules={[
+                    { required: true, message: "Official email is required" },
+                    {
+                      validator: (_, value) => {
+                        if (!value || typeof value !== "string" || !value.trim()) {
+                          return Promise.reject(new Error("Official email is required"));
+                        }
+                        if (/\s/.test(value)) {
+                          return Promise.reject(new Error("Email cannot contain spaces"));
+                        }
+                        const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+                        if (!emailRegex.test(value.trim())) {
+                          return Promise.reject(new Error("Please enter a valid email address"));
+                        }
+                        return Promise.resolve();
+                      },
+                    },
+                  ]}
                 >
                   <Input
                     placeholder="john.smith@company.com"
                     prefix={<Mail size={14} style={{ color: "var(--text-slate-400)" }} />}
+                    onKeyDown={(e) => {
+                      if (e.key === " ") {
+                        e.preventDefault();
+                      }
+                    }}
                   />
                 </Form.Item>
                 <Form.Item

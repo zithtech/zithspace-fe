@@ -882,7 +882,10 @@ function ProjectSelectContent() {
 
         @media (max-width: 768px) {
           .zs-projects-shell {
-            padding: 16px;
+            padding: 0 0 32px 0;
+          }
+          .zs-hero {
+            padding: 14px 14px 0 14px;
           }
           .zs-search.ant-input-affix-wrapper {
             width: 100%;

@@ -186,7 +186,7 @@ export default function BidiqIntelligencePage() {
     if (loading) {
       return (
         <ProtectedRoute>
-          <MainLayout>
+          <MainLayout noPadding>
             <div className="biq-page">
               <div className="biq-topbar">
                 <Skeleton.Input active size="small" style={{ width: 320 }} />
@@ -204,7 +204,7 @@ export default function BidiqIntelligencePage() {
     }
     return (
       <ProtectedRoute>
-        <MainLayout>
+        <MainLayout noPadding>
           <div className="biq-page biq-empty">
             <NoData description="Lead intelligence not found" />
             {bidiqStyles}
@@ -395,7 +395,7 @@ export default function BidiqIntelligencePage() {
 
   return (
     <ProtectedRoute>
-      <MainLayout>
+      <MainLayout noPadding>
         <div className="biq-page">
           {/* ============== Top bar ============== */}
           <div className="biq-topbar">
@@ -1419,7 +1419,8 @@ const bidiqStyles = (
       .biq-page {
         background: var(--bg-primary);
         min-height: calc(100vh - 64px);
-        margin: 0 -24px;
+        margin: 0;
+        width: 100%;
         font-family: 'Plus Jakarta Sans', 'Inter', -apple-system, sans-serif;
       }
       .biq-empty {

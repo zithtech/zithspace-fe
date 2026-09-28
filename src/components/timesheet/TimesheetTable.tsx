@@ -1412,7 +1412,7 @@ export default function TimesheetsTab({ goToSubmitTimesheet, teamMode, approvalM
           backdrop-filter: blur(2px); z-index: 999;
         }
         @media (max-width: 1024px) {
-          .ts-main { padding: 8px 16px 0 16px; }
+          .ts-main { padding: 0; }
           .ts-mobile-trigger { display: inline-flex; }
           .ts-sidebar {
             position: fixed; left: -280px; top: 54px; bottom: 0; height: calc(100vh - 54px);

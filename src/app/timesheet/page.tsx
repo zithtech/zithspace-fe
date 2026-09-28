@@ -37,7 +37,8 @@ export default function MyTimesheetsPage() {
   if (authLoading) {
     return (
       <div style={{ 
-        margin: "0 -24px", 
+        margin: 0,
+        width: "100%",
         padding: "24px", 
         background: "var(--bg-pure-white)", 
         minHeight: "calc(100vh - 64px)",

@@ -1219,7 +1219,7 @@ export default function InvoiceTrashPage() {
 
         .pp-shell {
           display: flex;
-          margin: 0 -24px;
+          margin: 0 -8px;
           height: calc(100vh - 54px);
           max-height: calc(100vh - 54px);
           overflow: hidden;
@@ -1334,7 +1334,7 @@ export default function InvoiceTrashPage() {
           min-width: 0;
           display: flex;
           flex-direction: column;
-          overflow: hidden;
+          overflow-x: auto; width: 100%;
         }
 
         /* Empty state */
@@ -1382,20 +1382,14 @@ export default function InvoiceTrashPage() {
           flex-direction: column;
           margin: 0;
           padding: 0;
-          -ms-overflow-style: none;
-          scrollbar-width: none;
+          /* ms-overflow enabled */
+          /* scrollbar-width enabled */
         }
-        .pp-table-wrap::-webkit-scrollbar,
-        .pp-table-wrap .ant-table-body::-webkit-scrollbar,
-        .pp-table-wrap .ant-table-content::-webkit-scrollbar {
-          width: 0;
-          height: 0;
-          display: none;
-        }
+        /* scrollbars enabled */
         .pp-table-wrap .ant-table-body,
         .pp-table-wrap .ant-table-content {
-          -ms-overflow-style: none;
-          scrollbar-width: none;
+          /* ms-overflow enabled */
+          /* scrollbar-width enabled */
         }
         [data-theme='dark'] .pp-table-wrap { background: #0b0f12; }
         .pp-table .ant-table-cell-scrollbar,

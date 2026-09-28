@@ -161,8 +161,10 @@ export default function PipelineLayout({ children }: { children: React.ReactNode
           .pl-main { flex: 1; min-width: 0; padding: 0; display: flex; flex-direction: column; }
           .pl-content { flex: 1; min-height: 0; padding: 0; display: flex; flex-direction: column; }
           
-          .pl-content > * > [class*="-header"],
-          .pl-content > * > [class*="-footer"] {
+          .pl-content > [class*="-header"],
+          .pl-content > [class*="-footer"],
+          .pl-content > .pl-topbar,
+          .pl-content > .opn-sprint-header-v2 {
             margin-left: 0 !important;
             margin-right: 0 !important;
             padding-left: 20px !important;
@@ -302,9 +304,14 @@ export default function PipelineLayout({ children }: { children: React.ReactNode
             .pl-mobile-header { display: flex; }
             .pl-main { padding: 4px 0 0; }
             .pl-content { padding: 4px 16px 0; }
-            .pl-content > * > [class*="-header"],
-            .pl-content > * > [class*="-footer"] {
+            .pl-content > [class*="-header"],
+            .pl-content > [class*="-footer"],
+            .pl-content > .pl-topbar,
+            .pl-content > .opn-sprint-header-v2 {
               margin-left: -16px !important; margin-right: -16px !important; padding-left: 16px !important; padding-right: 16px !important;
+            }
+            .pl-content > .pl-body .pip-table-wrap {
+              margin-left: -16px !important; margin-right: -16px !important;
             }
           }
         `}</style>

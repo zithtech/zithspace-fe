@@ -21528,8 +21528,8 @@ select:-webkit-autofill:focus {
 
 .rp-shell {
   display: flex;
-  margin: 0 -24px;
-  padding-left: 20px;
+  margin: 0;
+  padding-left: 0;
   background: var(--bg-pure-white);
   min-height: calc(100vh - 64px);
 }
@@ -21951,6 +21951,33 @@ select:-webkit-autofill:focus {
   .rp-mobile-toggle {
     display: flex;
   }
+
+  .rp-shell {
+    margin: 0 !important;
+    padding-left: 0 !important;
+  }
+
+  .rp-main {
+    padding: 0 0 40px !important;
+  }
+
+  .rp-main-topbar {
+    margin: 0 0 12px !important;
+    padding: 16px 16px 10px !important;
+  }
+
+  .rp-stretch {
+    margin: 0 !important;
+    width: 100% !important;
+  }
+
+  .rp-grid {
+    padding: 0 16px !important;
+  }
+}
+
+.rp-stretch {
+  margin: 0 -24px;
 }
 
 .rp-primary-btn.ant-btn {

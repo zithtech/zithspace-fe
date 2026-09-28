@@ -235,7 +235,7 @@ export default function DashboardPanel() {
         </FilterBar>
       )}
 
-      <div style={{ padding: '16px 20px 20px 20px' }}>
+      <div className="omp-dashboard-content">
 
       {loading && !data ? (
         <Skeleton active paragraph={{ rows: 8 }} />
@@ -443,6 +443,10 @@ export default function DashboardPanel() {
         }
         .omp-recruiter-name { font-size: 12.5px; font-weight: 700; color: var(--text-slate-900); }
         .omp-recruiter-meta { font-size: 11px; color: var(--text-slate-500); margin-top: 1px; }
+        .omp-dashboard-content { padding: 16px 20px 20px 20px; }
+        @media (max-width: 1024px) {
+          .omp-dashboard-content { padding: 16px 0 20px 0; }
+        }
       `}</style>
     </div>
   );

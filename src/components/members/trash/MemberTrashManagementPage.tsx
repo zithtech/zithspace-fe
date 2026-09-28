@@ -712,7 +712,7 @@ export default function MemberTrashManagementPage() {
         </div>
 
         {/* Divider line after header */}
-        <div className="pp-divider" style={{ margin: "0 -24px" }} />
+        <div className="pp-divider" style={{ margin: 0 }} />
 
         {/* Shared StatCards Header Banner */}
         <div style={{ margin: "0 -24px 0 -24px" }}>
@@ -828,7 +828,7 @@ export default function MemberTrashManagementPage() {
         {/* Main Body */}
         <div className="pp-body">
           {viewMode === 'table' ? (
-            <div className="pp-table-wrap" style={{ margin: "0 -24px", borderLeft: "none", borderRight: "none" }}>
+            <div className="pp-table-wrap" style={{ margin: 0, borderLeft: "none", borderRight: "none" }}>
               <Table
                 className="pp-table"
                 rowSelection={
@@ -1048,7 +1048,7 @@ export default function MemberTrashManagementPage() {
       <style jsx global>{`
         .pp-shell {
           display: flex;
-          margin: 0 -24px;
+          margin: 0;
           min-height: calc(100vh - 64px);
           background: var(--bg-pure-white);
         }
@@ -1124,8 +1124,8 @@ export default function MemberTrashManagementPage() {
           overflow-x: hidden;
           margin: 0;
           padding: 0;
-          scrollbar-width: none;
-          -ms-overflow-style: none;
+          /* scrollbar-width enabled */
+          /* ms-overflow enabled */
         }
         .pp-side-scroll::-webkit-scrollbar {
           display: none;

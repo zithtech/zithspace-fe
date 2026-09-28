@@ -812,7 +812,7 @@ function BuilderV2Content() {
 export default function BuilderV2Page() {
   return (
     <ProtectedRoute>
-      <MainLayout>
+      <MainLayout noPadding>
         <Suspense fallback={<div style={{ padding: 40 }}>Loading builder…</div>}>
           <BuilderV2Content />
         </Suspense>

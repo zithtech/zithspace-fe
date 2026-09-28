@@ -1304,7 +1304,7 @@ export default function RolesPage() {
   }
 
   return (
-    <MainLayout>
+    <MainLayout noPadding>
       <div className="rp-shell">
         {/* ============================ SIDEBAR ============================ */}
         {isMobileOpen && (
@@ -1443,10 +1443,10 @@ export default function RolesPage() {
           </div>
 
           {/* Divider line after header */}
-          <div className="pp-divider" style={{ margin: "0 -24px" }} />
+          <div className="pp-divider rp-stretch" />
 
           {/* Shared StatCards Header Banner */}
-          <div style={{ margin: "0 -24px 0 -24px" }}>
+          <div className="rp-stretch">
             <StatCards
               title="Roles & Permissions Overview"
               statusText="ACTIVE"
@@ -1487,7 +1487,7 @@ export default function RolesPage() {
           {/* Roles panel */}
           <ZukvoLoadingOverlay loading={loading} message="">
             {view === "list" ? (
-              <div className="rp-panel" style={{ margin: "0 -24px", borderLeft: "none", borderRight: "none" }}>
+              <div className="rp-panel rp-stretch" style={{ borderLeft: "none", borderRight: "none" }}>
                 {/* Table */}
                 <Table
                   className="premium-table rp-table"

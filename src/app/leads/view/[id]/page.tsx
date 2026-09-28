@@ -319,7 +319,7 @@ export default function LeadProfilePage() {
   if (loading && !lead) {
     return (
       <ProtectedRoute>
-        <MainLayout>
+        <MainLayout noPadding>
           <div className="lv-page">
             <div className="lv-topbar">
               <div className="lv-topbar-left">
@@ -350,7 +350,7 @@ export default function LeadProfilePage() {
   if (error || (!loading && !lead)) {
     return (
       <ProtectedRoute>
-        <MainLayout>
+        <MainLayout noPadding>
           <div className="lv-page lv-empty-page">
             <NoData description={
                                     <span style={{ color: "var(--text-slate-500)" }}>
@@ -419,7 +419,7 @@ export default function LeadProfilePage() {
 
   return (
     <ProtectedRoute>
-      <MainLayout>
+      <MainLayout noPadding>
         <div className="lv-page">
           {/* ----------------------- Top bar ----------------------- */}
           <div className="lv-topbar">
@@ -1721,7 +1721,8 @@ const leadViewStyles = (
       .lv-page {
         background: var(--bg-primary);
         min-height: calc(100vh - 64px);
-        margin: 0 -24px;
+        margin: 0;
+        width: 100%;
         font-family: 'Plus Jakarta Sans', 'Inter', -apple-system, sans-serif;
       }
 

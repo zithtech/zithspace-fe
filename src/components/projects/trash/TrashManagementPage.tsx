@@ -811,7 +811,7 @@ export default function TrashManagementPage() {
         .tr-page {
           background: var(--bg-pure-white);
           min-height: 100vh;
-          margin: 0 -8px;
+          margin: 0;
         }
 
         /* ── Hero ────────────────────────────────────────────────── */
@@ -823,7 +823,7 @@ export default function TrashManagementPage() {
             linear-gradient(180deg, rgba(239, 68, 68, 0.04) 0%, rgba(239, 68, 68, 0) 60%),
             var(--bg-pure-white);
           border-bottom: 1px solid var(--border-slate-200);
-          overflow: hidden;
+          overflow-x: auto; width: 100%;
         }
         [data-theme='dark'] .tr-hero {
           background:
@@ -965,7 +965,7 @@ export default function TrashManagementPage() {
           align-items: center;
           gap: 0;
           padding: 10px 32px;
-          margin: 0 -32px;
+          margin: 0;
           border-top: 1px solid var(--border-slate-200);
         }
         [data-theme='dark'] .tr-stat-strip {
@@ -1522,7 +1522,7 @@ export default function TrashManagementPage() {
           font-weight: 600 !important;
           color: var(--text-slate-700) !important;
           white-space: nowrap;
-          overflow: hidden;
+          overflow-x: auto; width: 100%;
           text-overflow: ellipsis;
         }
         [data-theme='dark'] .tr-actor-name {

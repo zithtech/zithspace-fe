@@ -58,7 +58,7 @@ export default function OnboardingLayout({ children }: { children: React.ReactNo
 
   return (
     <ProtectedRoute>
-      <MainLayout>
+      <MainLayout noPadding>
         <OnbStyles />
         <div className="ob-shell">
           {/* Backdrop for mobile drawer */}
@@ -111,7 +111,7 @@ export default function OnboardingLayout({ children }: { children: React.ReactNo
         <style jsx global>{`
           .ob-shell {
             display: flex;
-            margin: 0 -8px;
+            margin: 0;
             min-height: calc(100vh - 60px);
             background: var(--bg-pure-white);
           }
@@ -231,6 +231,22 @@ export default function OnboardingLayout({ children }: { children: React.ReactNo
             }
             .ob-mobile-menu-btn:hover {
               background: var(--bg-slate-100);
+            }
+            
+            /* Stretch full-width components on mobile to negate the 14px padding */
+            .ob-content > div > [class*="-header"],
+            .ob-content > div > [class*="-footer"],
+            .ob-content > div > [class*="-topbar"],
+            .ob-content > div > .onb-sprint-header-v2,
+            .ob-content > div > [class*="-table-wrap"],
+            .ob-content > div > .bd2-pagination {
+              margin-left: -14px !important; margin-right: -14px !important;
+            }
+            .ob-content > div > [class*="-header"],
+            .ob-content > div > [class*="-footer"],
+            .ob-content > div > [class*="-topbar"],
+            .ob-content > div > .bd2-pagination {
+              padding-left: 14px !important; padding-right: 14px !important;
             }
           }
         `}</style>

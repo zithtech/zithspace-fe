@@ -521,7 +521,8 @@ function QaSubmissionsContent() {
           .dh-sidebar.is-mobile-open { left: 0; }
 
           /* Stats tiles grid → 2-col on mobile */
-          .dh-main-scroll { padding: 12px 14px !important; }
+          .dh-main-scroll { padding: 0 0 40px !important; overflow-x: hidden; }
+          .sc-filters-mobile-wrap { padding: 12px 14px !important; }
           .grid.grid-cols-2.lg\:grid-cols-4,
           .grid.grid-cols-2.lg\:grid-cols-5 { grid-template-columns: repeat(2, 1fr) !important; gap: 8px !important; }
 
@@ -760,16 +761,17 @@ function QaSubmissionsContent() {
 
             {/* Unified FilterBar */}
             {isFilterRowOpen && (
-              <FilterBar
-                activeCount={activeFilterCount}
-                onReset={clearFilters}
-                onClose={() => setIsFilterRowOpen(false)}
-                actions={
-                  <span style={{ fontSize: 12, color: "var(--text-slate-500)", whiteSpace: "nowrap" }}>
-                    <b>{rows.length}</b> of <b>{total}</b> submissions
-                  </span>
-                }
-              >
+              <div className="sc-filters-mobile-wrap" style={{ padding: "12px 14px" }}>
+                <FilterBar
+                  activeCount={activeFilterCount}
+                  onReset={clearFilters}
+                  onClose={() => setIsFilterRowOpen(false)}
+                  actions={
+                    <span style={{ fontSize: 12, color: "var(--text-slate-500)", whiteSpace: "nowrap" }}>
+                      <b>{rows.length}</b> of <b>{total}</b> submissions
+                    </span>
+                  }
+                >
                 <TicketFilterPill
                   icon={<ProjectOutlined style={{ fontSize: 11 }} />}
                   label="Project"
@@ -826,6 +828,7 @@ function QaSubmissionsContent() {
                   allowEmpty={[true, true]}
                 />
               </FilterBar>
+              </div>
             )}
 
             {/* Only the results blur — blurring the filters above would disable

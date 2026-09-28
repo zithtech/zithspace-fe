@@ -4652,7 +4652,7 @@ export const hivebugStyles = `
     overflow: hidden;
   }
   .hb-main { flex: 1 1 auto; }
-  .hb-content { overflow: hidden; padding: 8px 10px 12px; }
+  .hb-content { overflow: hidden; padding: 0; }
   .hb-header {
     padding: 10px 12px;
     gap: 10px;
@@ -4685,7 +4685,9 @@ export const hivebugStyles = `
   .hb-bulkbar { flex-direction: column; align-items: stretch; gap: 8px; }
   .hb-bulkbar-actions { flex-wrap: wrap; }
   /* Allow horizontal scroll - make table responsive */
-  .hb-table-wrapper { overflow-x: auto; }
+  .hb-table-wrapper { 
+    overflow-x: auto;
+  }
   .hb-table { width: 100%; min-width: 900px; }
   .hb-table thead th { padding: 5px 8px; font-size: 10px; }
   .hb-table tbody td { padding: 6px 10px; font-size: 11.5px; }

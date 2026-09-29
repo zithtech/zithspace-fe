@@ -189,6 +189,15 @@ export default function InvoiceSettingPage() {
   const settingsList = savedSettingsData?.data || [];
   const totalSettings = savedSettingsData?.pagination?.total ?? 0;
 
+  // Fetch overall settings profiles for accurate counts (unfiltered by isActive status)
+  const { data: allSettingsData } = useSettingsProfiles({
+    page: 1,
+    limit: 1000,
+    search: searchText || undefined,
+    isActive: "all",
+  });
+  const allSettingsList = allSettingsData?.data || [];
+
   // Reset page when filters change
   useEffect(() => {
     setCurrentPage(1);
@@ -202,9 +211,11 @@ export default function InvoiceSettingPage() {
     return settingsList;
   }, [settingsList]);
 
-  const activeSettingsCount = settingsList.filter((s) => s.isActive).length;
-  const inactiveCount = settingsList.length - activeSettingsCount;
-  const progressPct = settingsList.length > 0 ? Math.round((activeSettingsCount / settingsList.length) * 100) : 0;
+  const effectiveSettingsList = allSettingsList.length > 0 ? allSettingsList : settingsList;
+  const totalSettingsCount = allSettingsData?.pagination?.total ?? effectiveSettingsList.length;
+  const activeSettingsCount = useMemo(() => effectiveSettingsList.filter((s) => s.isActive).length, [effectiveSettingsList]);
+  const inactiveCount = useMemo(() => effectiveSettingsList.filter((s) => !s.isActive).length, [effectiveSettingsList]);
+  const progressPct = totalSettingsCount > 0 ? Math.round((activeSettingsCount / totalSettingsCount) * 100) : 0;
   const activeViewTitle = useMemo(() => {
     switch (statusFilter) {
       case "active": return "Active Profiles";
@@ -214,7 +225,7 @@ export default function InvoiceSettingPage() {
   }, [statusFilter]);
 
   const filterPills: { key: "all" | "active" | "inactive"; label: string; count: number }[] = [
-    { key: "all", label: "All", count: settingsList.length },
+    { key: "all", label: "All", count: totalSettingsCount },
     { key: "active", label: "Active", count: activeSettingsCount },
     { key: "inactive", label: "Inactive", count: inactiveCount },
   ];
@@ -526,7 +537,7 @@ export default function InvoiceSettingPage() {
               <button type="button" className={`pp-view-item ${statusFilter === "all" ? "is-active" : ""}`} onClick={() => setStatusFilter("all")}>
                 <span className="pp-view-icon" style={{ color: statusFilter === "all" ? "#3b82f6" : "var(--text-slate-400)" }}><ShieldCheck size={14} /></span>
                 <span className="pp-view-label">All Profiles</span>
-                <span className="pp-view-count">{settingsList.length}</span>
+                <span className="pp-view-count">{totalSettingsCount}</span>
               </button>
               <button type="button" className={`pp-view-item ${statusFilter === "active" ? "is-active" : ""}`} onClick={() => setStatusFilter("active")}>
                 <span className="pp-view-icon" style={{ color: statusFilter === "active" ? "#10b981" : "var(--text-slate-400)" }}><CheckCircle2 size={14} /></span>
@@ -618,7 +629,7 @@ export default function InvoiceSettingPage() {
                       </Typography.Text>
                       <span className="tl-sprint-tags">
                         <span className="tl-sprint-tag tl-sprint-tag-neutral">
-                          {settingsList.length} TOTAL
+                          {totalSettingsCount} TOTAL
                         </span>
                         {activeSettingsCount > 0 && (
                           <span className="tl-sprint-tag tl-sprint-tag-active">
@@ -637,7 +648,7 @@ export default function InvoiceSettingPage() {
                   {/* Row 2: count metrics */}
                   <div className="tl-sprint-row2">
                     <span className="tl-sprint-meta">
-                      <b>{activeSettingsCount}</b>/{settingsList.length} profiles active
+                      <b>{activeSettingsCount}</b>/{totalSettingsCount} profiles active
                     </span>
                     <span className="tl-sprint-meta">
                       <b>{inactiveCount}</b> inactive

@@ -1,5 +1,6 @@
 "use client";
 import NoData from "@/components/common/NoData";
+import ConfirmDialog from "@/components/common/ConfirmDialog";
 import React, { useState, useMemo, useEffect, useRef } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import {
@@ -658,8 +659,20 @@ export default function BucketManagementPage() {
                     {
                       key: "delete",
                       danger: true,
-                      label: menuLabel("Delete bucket", "Remove this bucket", <DeleteOutlined />, "#ef4444", "rgba(239,68,68,0.12)"),
-                      onClick: () => handleDelete(record.id),
+                      label: (
+                        <ConfirmDialog
+                          tone="danger"
+                          title="Delete bucket?"
+                          description="This permanently removes the bucket."
+                          onConfirm={() => handleDelete(record.id)}
+                          confirmText="Delete"
+                          cancelText="Cancel"
+                        >
+                          <div onClick={(e) => e.stopPropagation()}>
+                            {menuLabel("Delete bucket", "Remove this bucket", <DeleteOutlined />, "#ef4444", "rgba(239,68,68,0.12)")}
+                          </div>
+                        </ConfirmDialog>
+                      )
                     },
                   ]
                   : []),
@@ -1246,7 +1259,8 @@ export default function BucketManagementPage() {
                               }
                               disabled={ticketCount === 0}
                             />
-                            <Popconfirm
+                            <ConfirmDialog
+                              tone="warning"
                               title="Move to backlog"
                               description="Move all tickets back to backlog?"
                               onConfirm={() => {
@@ -1260,7 +1274,7 @@ export default function BucketManagementPage() {
                                     message.error(err.message || "Movement failed"),
                                 });
                               }}
-                              okText="Move"
+                              confirmText="Move"
                               cancelText="Cancel"
                             >
                               <Button
@@ -1276,7 +1290,7 @@ export default function BucketManagementPage() {
                               >
                                 Move to Backlog
                               </Button>
-                            </Popconfirm>
+                            </ConfirmDialog>
                             <Tooltip title={ticketCount === 0 ? "No tickets to view" : "View details"}>
                               <Button
                                 type="text"
@@ -1299,13 +1313,13 @@ export default function BucketManagementPage() {
                               </Tooltip>
                             )}
                             {canDeleteTicketBucket && (
-                              <Popconfirm
+                              <ConfirmDialog
+                                tone="danger"
                                 title="Delete bucket"
                                 description="This permanently removes the bucket."
                                 onConfirm={() => handleDelete(bucket.id)}
-                                okText="Delete"
+                                confirmText="Delete"
                                 cancelText="Cancel"
-                                okButtonProps={{ danger: true }}
                               >
                                 <Tooltip title="Delete">
                                   <Button
@@ -1319,7 +1333,7 @@ export default function BucketManagementPage() {
                                     className="bh2-list-action-btn"
                                   />
                                 </Tooltip>
-                              </Popconfirm>
+                              </ConfirmDialog>
                             )}
                           </div>
                         </footer>

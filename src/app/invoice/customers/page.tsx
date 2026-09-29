@@ -134,17 +134,26 @@ export default function InvoiceproCustomerPage() {
   const customers = customersData?.data || [];
   const totalCustomers = customersData?.pagination?.total ?? 0;
 
+  // Fetch overall customers list for total counts (unfiltered by isActive status)
+  const { data: allCustomersData } = useCustomers({
+    page: 1,
+    limit: 1000,
+    search: search || undefined,
+  });
+  const allCustomers = allCustomersData?.data || [];
+
   // Reset page when filters change
   useEffect(() => {
     setCurrentPage(1);
   }, [search, statusFilter]);
 
   const counts = useMemo(() => {
-    const all = customers.length;
-    const active = customers.filter((c) => c.isActive).length;
-    const inactive = all - active;
+    const allList = allCustomers.length > 0 ? allCustomers : customers;
+    const all = allCustomersData?.pagination?.total ?? allList.length;
+    const active = allList.filter((c) => c.isActive).length;
+    const inactive = allList.filter((c) => !c.isActive).length;
     return { all, active, inactive };
-  }, [customers]);
+  }, [allCustomers, allCustomersData, customers]);
 
   const progressPct = useMemo(() => {
     if (counts.all === 0) return 0;

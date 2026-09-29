@@ -267,6 +267,7 @@ export default function CustomerDrawer({
               <Form.Item
                 name="companyName"
                 label="Company / Client name"
+                normalize={(value) => (value || '').replace(/[^A-Za-z0-9\s\-.'&]/g, '')}
                 rules={[
                   { required: true, message: "Company name is required" },
                   {
@@ -276,12 +277,13 @@ export default function CustomerDrawer({
                 ]}
                 style={{ marginBottom: 0 }}
               >
-                <Input placeholder="Acme Corp" style={inputBase} autoComplete="off" />
+                <Input maxLength={100} placeholder="Acme Corp" style={inputBase} autoComplete="off" />
               </Form.Item>
 
               <Form.Item
                 name="email"
                 label="Email address"
+                normalize={(value) => (value || '').replace(/\s/g, '')}
                 rules={[{ type: "email", message: "Invalid email" }]}
                 style={{ marginBottom: 0 }}
               >
@@ -296,6 +298,7 @@ export default function CustomerDrawer({
                     />
                   }
                   placeholder="client@example.com"
+                  maxLength={255}
                   style={inputBase}
                   autoComplete="off"
                 />
@@ -354,6 +357,7 @@ export default function CustomerDrawer({
               >
                 <Input
                   placeholder="123 Business Avenue, Suite 400"
+                  maxLength={255}
                   style={inputBase}
                   autoComplete="off"
                 />
@@ -362,6 +366,7 @@ export default function CustomerDrawer({
               <Form.Item
                 name="city"
                 label="City / district"
+                normalize={(value) => (value || '').replace(/[^A-Za-z\s\-'.]/g, '')}
                 rules={[
                   {
                     pattern: /^[A-Za-z\s\-'.]+$/,
@@ -370,11 +375,12 @@ export default function CustomerDrawer({
                 ]}
                 style={{ marginBottom: 0 }}
               >
-                <Input placeholder="New York" style={inputBase} autoComplete="off" />
+                <Input maxLength={100} placeholder="New York" style={inputBase} autoComplete="off" />
               </Form.Item>
               <Form.Item
                 name="country"
                 label="Country"
+                normalize={(value) => (value || '').replace(/[^A-Za-z\s\-'.]/g, '')}
                 rules={[
                   {
                     pattern: /^[A-Za-z\s\-'.]+$/,
@@ -394,6 +400,7 @@ export default function CustomerDrawer({
                     />
                   }
                   placeholder="USA"
+                  maxLength={100}
                   style={inputBase}
                   autoComplete="off"
                 />

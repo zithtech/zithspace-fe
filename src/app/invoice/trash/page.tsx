@@ -207,46 +207,27 @@ export default function InvoiceTrashPage() {
   const [invoiceToDelete, setInvoiceToDelete] = useState<any>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
-  const handleRestore = (record: any) => {
-    modal.confirm({
-      title: "Restore invoice",
-      icon: <RotateCcw size={18} className="text-emerald-500 mr-2" />,
-      content: `Restore invoice ${record.invoiceNumber}?`,
-      okText: "Restore",
-      okType: "primary",
-      cancelText: "Cancel",
-      onOk: async () => {
-        try {
-          await restoreMutation.mutateAsync(record.id);
-          messageApi.success("Invoice restored");
-          refetch();
-        } catch (error: any) {
-          messageApi.error(error.message || "Failed to restore invoice");
-        }
-      },
-    });
+  const handleRestore = async (record: any) => {
+    try {
+      await restoreMutation.mutateAsync(record.id);
+      messageApi.success("Invoice restored");
+      refetch();
+    } catch (error: any) {
+      messageApi.error(error.message || "Failed to restore invoice");
+    }
   };
 
-  const handleBulkRestore = () => {
+  const handleBulkRestore = async () => {
     if (selectedRowKeys.length === 0) return;
-    modal.confirm({
-      title: "Restore selected invoices",
-      icon: <RotateCcw size={18} className="text-emerald-500 mr-2" />,
-      content: `Restore ${selectedRowKeys.length} invoices?`,
-      okText: "Restore all",
-      okType: "primary",
-      onOk: async () => {
-        try {
-          await bulkRestoreMutation.mutateAsync(selectedRowKeys as string[]);
-          messageApi.success(`${selectedRowKeys.length} invoices restored`);
-          setSelectedRowKeys([]);
-          setSelectedInvoices([]);
-          refetch();
-        } catch (error: any) {
-          messageApi.error(error.message || "Failed to restore invoices");
-        }
-      },
-    });
+    try {
+      await bulkRestoreMutation.mutateAsync(selectedRowKeys as string[]);
+      messageApi.success(`${selectedRowKeys.length} invoices restored`);
+      setSelectedRowKeys([]);
+      setSelectedInvoices([]);
+      refetch();
+    } catch (error: any) {
+      messageApi.error(error.message || "Failed to restore invoices");
+    }
   };
 
   const openDeleteModal = (record: any) => {
@@ -531,19 +512,27 @@ export default function InvoiceTrashPage() {
         >
           {canRestoreInvoiceTrash && (
             <Tooltip title="Restore invoice">
-              <button
-                type="button"
-                onClick={() => handleRestore(record)}
-                className="inline-flex items-center gap-1.5 h-7 px-2.5 rounded-md text-[11px] font-semibold transition-colors"
-                style={{
-                  background: "var(--bg-secondary)",
-                  color: "#10b981",
-                  border: "1px solid var(--border-color)",
-                }}
+              <ConfirmDialog
+                tone="success"
+                title="Restore invoice"
+                description={`Restore invoice ${record.invoiceNumber}?`}
+                confirmText="Restore"
+                onConfirm={() => handleRestore(record)}
+                placement="left"
               >
-                <RotateCcw size={11} strokeWidth={2.25} />
-                Restore
-              </button>
+                <button
+                  type="button"
+                  className="inline-flex items-center gap-1.5 h-7 px-2.5 rounded-md text-[11px] font-semibold transition-colors"
+                  style={{
+                    background: "var(--bg-secondary)",
+                    color: "#10b981",
+                    border: "1px solid var(--border-color)",
+                  }}
+                >
+                  <RotateCcw size={11} strokeWidth={2.25} />
+                  Restore
+                </button>
+              </ConfirmDialog>
             </Tooltip>
           )}
           {canDeleteInvoiceTrash && (
@@ -799,20 +788,28 @@ export default function InvoiceTrashPage() {
                   </span>
                 </div>
                 {canRestoreInvoiceTrash && (
-                  <Button
-                    size="small"
-                    icon={<RotateCcw size={11} />}
-                    onClick={handleBulkRestore}
-                    loading={bulkRestoreMutation.isPending}
-                    style={{
-                      borderRadius: 5,
-                      height: 24,
-                      fontSize: 11,
-                      fontWeight: 600,
-                    }}
+                  <ConfirmDialog
+                    tone="success"
+                    title="Restore selected invoices"
+                    description={`Restore ${selectedRowKeys.length} invoices?`}
+                    confirmText="Restore all"
+                    onConfirm={handleBulkRestore}
+                    placement="bottom"
                   >
-                    Restore
-                  </Button>
+                    <Button
+                      size="small"
+                      icon={<RotateCcw size={11} />}
+                      loading={bulkRestoreMutation.isPending}
+                      style={{
+                        borderRadius: 5,
+                        height: 24,
+                        fontSize: 11,
+                        fontWeight: 600,
+                      }}
+                    >
+                      Restore
+                    </Button>
+                  </ConfirmDialog>
                 )}
                 {canDeleteInvoiceTrash && (
                   <Button

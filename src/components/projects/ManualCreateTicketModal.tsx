@@ -234,7 +234,7 @@ export const ManualCreateTicketModal: React.FC<ManualCreateTicketModalProps> = (
             <SectionCard step="STEP 1" icon={<ProjectOutlined style={{ color: '#475569', fontSize: 13 }} />} title="Core Context" subtitle="General ticket information">
 
               <Form.Item name="title" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: "#64748b" }}>Subject</Text>} rules={[{ required: true }]}>
-                <Input placeholder="Enter brief summary of the task..." size="middle" style={{ borderRadius: 0, border: '1px solid var(--border-color)', background: 'var(--bg-primary)', color: 'var(--text-primary)' }} />
+                <Input placeholder="Enter brief summary of the task..." size="middle" style={{ borderRadius: 0, border: '1px solid var(--border-color)', background: 'var(--bg-primary)', color: 'var(--text-primary)' }} maxLength={100} showCount />
               </Form.Item>
 
                   <Form.Item name="platform" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: "#64748b" }}>Platform</Text>} rules={[{ required: true }]}>

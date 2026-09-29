@@ -10,6 +10,7 @@ import {
   Button,
   message,
   Tooltip,
+  Pagination,
 } from "antd";
 import {
   Search,
@@ -23,6 +24,8 @@ import {
 import { ClientV2, ClientV2Service } from "@/services/clientV2Service";
 import { Customer } from "@/services/customersService";
 import type { ColumnsType } from "antd/es/table";
+import { StatCards } from "@/components/common/StatCards";
+import { useDebounce } from "@/hooks/useDebounce";
 
 interface ClientImportModalProps {
   open: boolean;
@@ -41,22 +44,23 @@ export default function ClientImportModal({
   const [loading, setLoading] = useState(false);
   const [searchText, setSearchText] = useState("");
   const [selectedClients, setSelectedClients] = useState<string[]>([]);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(15);
+  const [totalRecords, setTotalRecords] = useState(0);
   const [messageApi, contextHolder] = message.useMessage();
 
-  useEffect(() => {
-    if (open) {
-      fetchClients();
-    } else {
-      setSearchText("");
-      setSelectedClients([]);
-    }
-  }, [open]);
+  const debouncedSearch = useDebounce(searchText, 500);
 
   const fetchClients = async () => {
     try {
       setLoading(true);
-      const response = await ClientV2Service.getClients({ limit: 100 });
+      const response = await ClientV2Service.getClients({
+        page: currentPage,
+        limit: pageSize,
+        search: debouncedSearch,
+      });
       setClients(response.data || []);
+      setTotalRecords(response.pagination?.total || response.data?.length || 0);
     } catch (error: any) {
       console.error("Error fetching clients:", error);
       messageApi.error(error.message || "Failed to fetch clients");
@@ -64,6 +68,17 @@ export default function ClientImportModal({
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (open) {
+      fetchClients();
+    } else {
+      setSearchText("");
+      setSelectedClients([]);
+      setCurrentPage(1);
+      setPageSize(15);
+    }
+  }, [open, currentPage, pageSize, debouncedSearch]);
 
   const isClientAlreadyCustomer = (client: ClientV2) =>
     existingCustomers.some(
@@ -75,18 +90,7 @@ export default function ClientImportModal({
     [clients, existingCustomers]
   );
 
-  const filteredClients = useMemo(() => {
-    const q = searchText.toLowerCase();
-    return availableClients.filter(
-      (client) =>
-        client.companyName.toLowerCase().includes(q) ||
-        client.clientCode.toLowerCase().includes(q) ||
-        client.billingContactEmail?.toLowerCase().includes(q) ||
-        client.gstVatTaxId?.toLowerCase().includes(q) ||
-        client.pan?.toLowerCase().includes(q) ||
-        client.vatNumber?.toLowerCase().includes(q)
-    );
-  }, [availableClients, searchText]);
+  // filteredClients is removed as search is now server-side
 
   const handleSelectClient = (clientId: string, checked: boolean) => {
     setSelectedClients((prev) =>
@@ -95,11 +99,11 @@ export default function ClientImportModal({
   };
 
   const handleSelectAll = (checked: boolean) => {
-    setSelectedClients(checked ? filteredClients.map((c) => c.id) : []);
+    setSelectedClients(checked ? availableClients.map((c) => c.id) : []);
   };
 
   const handleImport = () => {
-    const clientsToImport = filteredClients.filter((client) =>
+    const clientsToImport = availableClients.filter((client) =>
       selectedClients.includes(client.id)
     );
 
@@ -115,61 +119,13 @@ export default function ClientImportModal({
   };
 
   const allOnPageSelected =
-    filteredClients.length > 0 &&
-    filteredClients.every((c) => selectedClients.includes(c.id));
+    availableClients.length > 0 &&
+    availableClients.every((c) => selectedClients.includes(c.id));
   const someOnPageSelected =
-    filteredClients.some((c) => selectedClients.includes(c.id)) &&
+    availableClients.some((c) => selectedClients.includes(c.id)) &&
     !allOnPageSelected;
 
-  // Stat tile — premium minimal accent strip
-  const StatTile = ({
-    label,
-    value,
-    icon: Icon,
-    accent,
-  }: {
-    label: string;
-    value: string | number;
-    icon: any;
-    accent: string;
-  }) => (
-    <div
-      className="rounded-xl px-4 py-3 flex items-center gap-3 relative overflow-hidden"
-      style={{
-        background: "var(--bg-secondary)",
-        border: "1px solid var(--border-color)",
-      }}
-    >
-      <span
-        className="absolute left-0 top-0 bottom-0 w-[3px]"
-        style={{ background: accent }}
-      />
-      <div
-        className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0"
-        style={{
-          background: `${accent}14`,
-          color: accent,
-          border: `1px solid ${accent}33`,
-        }}
-      >
-        <Icon size={15} strokeWidth={2.25} />
-      </div>
-      <div className="min-w-0">
-        <div
-          className="text-[10.5px] font-semibold uppercase tracking-[0.08em]"
-          style={{ color: "var(--text-secondary)" }}
-        >
-          {label}
-        </div>
-        <div
-          className="text-[18px] font-bold leading-tight tabular-nums"
-          style={{ color: "var(--text-primary)" }}
-        >
-          {value}
-        </div>
-      </div>
-    </div>
-  );
+  // StatTile removed in favor of common StatCards component
 
   const columns: ColumnsType<ClientV2> = [
     {
@@ -207,9 +163,10 @@ export default function ClientImportModal({
           <div
             className="flex h-9 w-9 items-center justify-center rounded-lg text-sm font-bold flex-shrink-0"
             style={{
-              background: "var(--bg-blue-50)",
-              color: "var(--text-blue-700)",
-              border: "1px solid var(--border-blue-200)",
+              background: "linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)",
+              color: "#1d4ed8",
+              border: "1px solid #bfdbfe",
+              boxShadow: "inset 0 1px 2px rgba(255, 255, 255, 0.5)",
             }}
           >
             {record.companyName.charAt(0).toUpperCase()}
@@ -238,11 +195,12 @@ export default function ClientImportModal({
       width: 130,
       render: (text) => (
         <span
-          className="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-semibold tabular-nums"
+          className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-semibold tabular-nums"
           style={{
-            background: "var(--bg-slate-50)",
-            color: "var(--text-secondary)",
-            border: "1px solid var(--border-color)",
+            background: "linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%)",
+            color: "#475569",
+            border: "1px solid #e2e8f0",
+            boxShadow: "0 1px 1px rgba(0,0,0,0.02)",
             fontFamily:
               "ui-monospace, SFMono-Regular, Menlo, monospace",
           }}
@@ -260,14 +218,15 @@ export default function ClientImportModal({
           <span
             className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-[11px] font-semibold"
             style={{
-              background: "#ecfdf5",
+              background: "linear-gradient(180deg, #ecfdf5 0%, #f0fdf4 100%)",
               color: "#047857",
               border: "1px solid #a7f3d0",
+              boxShadow: "0 1px 2px rgba(16, 185, 129, 0.05)",
             }}
           >
             <span
               className="w-1.5 h-1.5 rounded-full"
-              style={{ background: "#10b981" }}
+              style={{ background: "#10b981", boxShadow: "0 0 4px rgba(16, 185, 129, 0.4)" }}
             />
             Active
           </span>
@@ -275,9 +234,10 @@ export default function ClientImportModal({
           <span
             className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-[11px] font-semibold"
             style={{
-              background: "var(--bg-slate-50)",
-              color: "var(--text-secondary)",
-              border: "1px solid var(--border-color)",
+              background: "linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%)",
+              color: "#64748b",
+              border: "1px solid #e2e8f0",
+              boxShadow: "0 1px 2px rgba(0, 0, 0, 0.02)",
             }}
           >
             <span
@@ -354,30 +314,37 @@ export default function ClientImportModal({
           </button>
         </div>
 
-        {/* BODY */}
-        <div className="px-6 py-5">
-          {/* STATS */}
-          <div className="grid grid-cols-3 gap-3 mb-5">
-            <StatTile
-              label="Total clients"
-              value={loading ? "—" : clients.length}
-              icon={Users}
-              accent="#2563eb"
-            />
-            <StatTile
-              label="Available to import"
-              value={loading ? "—" : availableClients.length}
-              icon={Check}
-              accent="#10b981"
-            />
-            <StatTile
-              label="Already customers"
-              value={loading ? "—" : clients.length - availableClients.length}
-              icon={Ban}
-              accent="#f43f5e"
-            />
-          </div>
+        {/* STATS - Edge to edge */}
+        <StatCards
+          title="Import Summary"
+          statusText="READY"
+          statusColor="#3b82f6"
+          dotColor="#3b82f6"
+          className="border-b border-[var(--border-color)]"
+          cells={[
+            {
+              label: "Total matching",
+              value: loading ? "—" : totalRecords,
+              icon: <Users size={14} />,
+            },
+            {
+              label: "Available on page",
+              value: loading ? "—" : availableClients.length,
+              icon: <Check size={14} />,
+              color: "#10b981",
+            },
+            {
+              label: "Already customers",
+              value: loading ? "—" : clients.length - availableClients.length,
+              icon: <Ban size={14} />,
+              color: "#f43f5e",
+              hint: "(on page)",
+            },
+          ]}
+        />
 
+        {/* BODY */}
+        <div className="px-6 py-4">
           {/* TOOLS */}
           <div className="flex items-center justify-between gap-3 mb-3">
             <Input
@@ -391,9 +358,10 @@ export default function ClientImportModal({
               value={searchText}
               onChange={(e) => setSearchText(e.target.value)}
               allowClear
+              className="premium-search-input"
               style={{
                 width: 360,
-                height: 36,
+                height: 38,
                 borderRadius: 8,
                 background: "var(--bg-secondary)",
                 borderColor: "var(--border-color)",
@@ -446,39 +414,38 @@ export default function ClientImportModal({
             </div>
           ) : availableClients.length === 0 ? (
             <div
-              className="flex flex-col items-center justify-center py-16 rounded-xl"
+              className="flex flex-col items-center justify-center py-16 rounded-xl transition-all duration-300"
               style={{
-                background: "var(--bg-secondary)",
-                border: "1.5px dashed var(--border-color)",
+                background: "linear-gradient(180deg, var(--bg-secondary) 0%, var(--bg-slate-50) 100%)",
+                border: "1px dashed var(--border-color)",
               }}
             >
               <div
-                className="w-12 h-12 rounded-xl flex items-center justify-center mb-3"
+                className="w-14 h-14 rounded-2xl flex items-center justify-center mb-4 shadow-sm"
                 style={{
                   background: "var(--bg-blue-50)",
-                  color: "var(--text-blue-700)",
-                  border: "1px solid var(--border-blue-200)",
+                  color: "var(--text-blue-600)",
+                  border: "1px solid var(--border-blue-100)",
                 }}
               >
-                <Building2 size={20} strokeWidth={2} />
+                <Building2 size={24} strokeWidth={1.5} />
               </div>
               <div
-                className="text-[14px] font-semibold"
+                className="text-[15px] font-bold"
                 style={{ color: "var(--text-primary)" }}
               >
-                Nothing to import
+                No clients found
               </div>
               <div
-                className="text-[12px] mt-1"
+                className="text-[13px] mt-1.5 max-w-sm text-center leading-relaxed"
                 style={{ color: "var(--text-secondary)" }}
               >
-                All admin clients already exist as customers, or none are
-                available.
+                All admin clients already exist as customers, or none match your search criteria.
               </div>
             </div>
           ) : (
             <div
-              className="rounded-xl overflow-hidden"
+              className="overflow-hidden shadow-sm"
               style={{
                 background: "var(--bg-secondary)",
                 border: "1px solid var(--border-color)",
@@ -486,16 +453,11 @@ export default function ClientImportModal({
             >
               <Table
                 columns={columns}
-                dataSource={filteredClients}
+                dataSource={availableClients}
                 rowKey="id"
-                pagination={{ pageSizeOptions: [10, 20, 25, 50, 100], pageSize: 8,
-                  showSizeChanger: false,
-                  style: { padding: "12px 20px" },
-                  showTotal: (total, range) =>
-                    `${range[0]}–${range[1]} of ${total}`,
-                }}
+                pagination={false}
                 size="middle"
-                scroll={{ x: 720 }}
+                scroll={{ y: 'calc(100vh - 480px)', x: 720 }}
                 className="client-import-table"
                 onRow={(record) => ({
                   onClick: () =>
@@ -517,62 +479,76 @@ export default function ClientImportModal({
 
         {/* FOOTER */}
         <div
-          className="px-6 py-3 flex items-center justify-between gap-3 border-t"
+          className="px-6 py-4 flex items-center justify-between gap-3 border-t sticky bottom-0 z-10"
           style={{
             background: "var(--bg-secondary)",
             borderColor: "var(--border-color)",
+            boxShadow: "0 -4px 20px -2px rgba(0, 0, 0, 0.03)",
           }}
         >
-          <Tooltip
-            title={
-              selectedClients.length === 0
-                ? "Tap a row or check the box to select clients"
-                : ""
-            }
-          >
-            <span
-              className="text-[12px]"
-              style={{ color: "var(--text-secondary)" }}
+          <Pagination
+            className="client-import-pagination"
+            current={currentPage}
+            pageSize={pageSize}
+            total={totalRecords}
+            onChange={(page, size) => {
+              setCurrentPage(page);
+              setPageSize(size);
+            }}
+            showSizeChanger
+            pageSizeOptions={[10, 15, 20, 25, 50, 100]}
+            size="small"
+            showTotal={(total, range) => `${range[0]}–${range[1]} of ${total}`}
+          />
+          <div className="flex items-center gap-4">
+            <Tooltip
+              title={
+                selectedClients.length === 0
+                  ? "Tap a row or check the box to select clients"
+                  : ""
+              }
             >
-              {selectedClients.length > 0 ? (
-                <>
-                  Ready to import{" "}
-                  <span
-                    className="font-semibold"
-                    style={{ color: "var(--text-primary)" }}
-                  >
-                    {selectedClients.length}
-                  </span>{" "}
-                  client{selectedClients.length !== 1 ? "s" : ""}
-                </>
-              ) : (
-                "Select one or more clients to continue"
-              )}
-            </span>
-          </Tooltip>
-          <div className="flex items-center gap-2">
-            <Button onClick={onClose} style={{ borderRadius: 8, height: 36 }}>
+              <span
+                className="text-[12px] transition-colors"
+                style={{ color: selectedClients.length > 0 ? "var(--text-primary)" : "var(--text-secondary)" }}
+              >
+                {selectedClients.length > 0 ? (
+                  <>
+                    Ready to import{" "}
+                    <span
+                      className="font-bold text-blue-600"
+                    >
+                      {selectedClients.length}
+                    </span>{" "}
+                    client{selectedClients.length !== 1 ? "s" : ""}
+                  </>
+                ) : (
+                  "Select clients"
+                )}
+              </span>
+            </Tooltip>
+            <div className="h-5 w-px bg-[var(--border-color)]"></div>
+            <Button onClick={onClose} style={{ borderRadius: 8, height: 38, fontWeight: 500 }}>
               Cancel
             </Button>
             <Button
               type="primary"
-              icon={<Import size={14} />}
+              icon={<Import size={15} />}
               onClick={handleImport}
               disabled={selectedClients.length === 0}
+              className="import-btn-premium"
               style={{
                 borderRadius: 8,
-                height: 36,
+                height: 38,
                 fontWeight: 600,
-                background:
-                  selectedClients.length > 0 ? "#2563eb" : undefined,
+                padding: "0 20px",
+                background: selectedClients.length > 0 ? "#2563eb" : undefined,
               }}
             >
               Import{" "}
               {selectedClients.length > 0
-                ? `${selectedClients.length} client${
-                    selectedClients.length !== 1 ? "s" : ""
-                  }`
-                : "clients"}
+                ? `${selectedClients.length}`
+                : "Clients"}
             </Button>
           </div>
         </div>
@@ -581,21 +557,34 @@ export default function ClientImportModal({
       <style
         dangerouslySetInnerHTML={{
           __html: `
+        .client-import-table.ant-table-wrapper,
+        .client-import-table.ant-table-wrapper .ant-table,
+        .client-import-table.ant-table-wrapper .ant-table-container,
+        .client-import-table.ant-table-wrapper .ant-table-header,
+        .client-import-table.ant-table-wrapper .ant-table-thead > tr > th,
+        .client-import-table.ant-table-wrapper .ant-table-thead > tr > th:first-child,
+        .client-import-table.ant-table-wrapper .ant-table-thead > tr > th:last-child {
+          border-radius: 0 !important;
+        }
         .client-import-table .ant-table-thead > tr > th {
           background-color: var(--bg-slate-50) !important;
           color: var(--text-secondary) !important;
           font-weight: 600 !important;
           font-size: 11px !important;
-          padding: 10px 16px !important;
+          padding: 12px 16px !important;
           letter-spacing: 0.06em !important;
           border-bottom: 1px solid var(--border-color) !important;
+          border-radius: 0 !important;
         }
         .client-import-table .ant-table-tbody > tr > td {
-          padding: 12px 16px !important;
+          padding: 8px 16px !important;
           border-bottom: 1px solid var(--border-color) !important;
         }
+        .client-import-table .ant-table-tbody > tr:nth-child(even) > td {
+          background-color: #f8fafc !important;
+        }
         .client-import-table .ant-table-row:hover > td {
-          background-color: var(--bg-slate-50) !important;
+          background-color: inherit !important;
         }
         .client-import-table .ant-table-tbody > tr:last-child > td {
           border-bottom: none !important;
@@ -603,8 +592,51 @@ export default function ClientImportModal({
         .client-import-table .client-row-selected > td {
           background-color: var(--bg-blue-50) !important;
         }
+        .client-import-table .client-row-selected > td:first-child {
+          position: relative;
+        }
+        .client-import-table .client-row-selected > td:first-child::before {
+          content: "";
+          position: absolute;
+          left: 0;
+          top: 0;
+          bottom: 0;
+          width: 3px;
+          background-color: #3b82f6;
+        }
         .client-import-table .client-row-selected:hover > td {
-          background-color: var(--bg-blue-50) !important;
+          background-color: #eff6ff !important;
+        }
+        
+        /* Premium Search Input */
+        .premium-search-input {
+          transition: all 0.2s ease !important;
+        }
+        .premium-search-input:hover {
+          border-color: #93c5fd !important;
+        }
+        .premium-search-input.ant-input-affix-wrapper-focused {
+          border-color: #3b82f6 !important;
+          box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15) !important;
+        }
+        
+        /* Premium Import Button */
+        .import-btn-premium:not(:disabled) {
+          background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%) !important;
+          border: none !important;
+          box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2) !important;
+          transition: all 0.2s ease !important;
+        }
+        .import-btn-premium:not(:disabled):hover {
+          transform: translateY(-1px);
+          box-shadow: 0 6px 16px rgba(37, 99, 235, 0.3) !important;
+        }
+        
+        /* Square Pagination */
+        .client-import-pagination .ant-pagination-item,
+        .client-import-pagination .ant-pagination-prev .ant-pagination-item-link,
+        .client-import-pagination .ant-pagination-next .ant-pagination-item-link {
+          border-radius: 6px !important;
         }
       `,
         }}

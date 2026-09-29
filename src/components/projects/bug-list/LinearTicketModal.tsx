@@ -138,7 +138,7 @@ export const LinearTicketModal: React.FC<LinearTicketModalProps> = ({
                       label="Title"
                       rules={[{ required: true, message: "Please enter a title" }]}
                     >
-                      <Input placeholder="e.g. Checkout fails on expired card" />
+                      <Input placeholder="e.g. Checkout fails on expired card" maxLength={100} showCount />
                     </Form.Item>
 
                     <Form.Item

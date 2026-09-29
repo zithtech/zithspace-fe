@@ -14,14 +14,11 @@ import {
   Badge,
   DatePicker,
   Pagination,
-  Progress,
-  Select,
   Dropdown,
 } from "antd";
 import ConfirmDialog from "@/components/common/ConfirmDialog";
 import {
   DeleteOutlined,
-  UndoOutlined,
   SearchOutlined,
   ReloadOutlined,
   AppstoreOutlined,
@@ -30,19 +27,13 @@ import {
   UserOutlined,
   CloseOutlined,
   TagOutlined,
-  ClockCircleOutlined,
   CaretRightOutlined,
   CheckCircleOutlined,
+  InboxOutlined,
 } from "@ant-design/icons";
-import { Trash2, AlertTriangle, Clock, Ticket, CheckCircle2 } from "lucide-react";
-import {
-  useTrashTickets,
-  useRestoreFromTrash,
-  usePermanentlyDelete,
-  useBulkRestoreFromTrash,
-  useBulkPermanentlyDelete,
-  useEmptyTrash,
-} from "@/hooks/useTrash";
+import { Archive, AlertTriangle, Clock, Ticket, CheckCircle2 } from "lucide-react";
+import { useTickets, useBulkUnarchiveTickets } from "@/hooks/useTickets";
+import { useMoveToTrash } from "@/hooks/useTrash";
 import { useUserProjects, useTicketConfig, useMembers } from "@/hooks/useGlobalData";
 import { usePermission } from "@/hooks/usePermission";
 import { useTicketDrawer } from "@/context/TicketDrawerContext";
@@ -56,23 +47,8 @@ import { FilterBar, FilterToggleButton, TicketFilterPill } from "@/components/co
 dayjs.extend(relativeTime);
 
 const { Text } = Typography;
-const RETENTION_DAYS = 7;
 
-const calculateDaysRemaining = (deletedAt: string) => {
-  const deleteDate = dayjs(deletedAt);
-  const purgeDate = deleteDate.add(RETENTION_DAYS, "days");
-  const daysRemaining = purgeDate.diff(dayjs(), "days");
-  return Math.max(0, daysRemaining);
-};
-
-const calculatePurgeProgress = (deletedAt: string) => {
-  const deleteDate = dayjs(deletedAt);
-  const elapsedHours = dayjs().diff(deleteDate, "hour");
-  const totalHours = RETENTION_DAYS * 24;
-  return Math.min(100, Math.max(0, (elapsedHours / totalHours) * 100));
-};
-
-export default function TrashManagementPage() {
+export default function ArchivedManagementPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [viewMode, setViewMode] = useState<"card" | "table">("table");
@@ -85,15 +61,15 @@ export default function TrashManagementPage() {
   // Filter states
   const [projectFilter, setProjectFilter] = useState<string | undefined>(undefined);
   const [statusFilter, setStatusFilter] = useState<string | undefined>(undefined);
-  const [deletedByFilter, setDeletedByFilter] = useState<string | undefined>(undefined);
+  const [assigneeFilter, setAssigneeFilter] = useState<string | undefined>(undefined);
   const [dateRange, setDateRange] = useState<[Dayjs | null, Dayjs | null] | null>(null);
 
   const { message } = App.useApp();
   const queryClient = useQueryClient();
   const { open: openTicketDrawer } = useTicketDrawer();
-  const { canRestoreTicketTrash, canDeleteTicketTrash } = usePermission();
+  const { canRestoreTicketArchive, canDeleteTicket } = usePermission();
 
-  // Reference datasets for filter dropdowns
+  // Reference datasets
   const { data: userProjectsData } = useUserProjects();
   const userProjects: any[] = userProjectsData || [];
 
@@ -103,54 +79,94 @@ export default function TrashManagementPage() {
   const { data: membersData } = useMembers();
   const membersList = membersData || [];
 
-  // Fetch all trashed tickets for stats summary
-  const { data: allTrashRes } = useTrashTickets({ limit: 1000 });
-  // Fetch paginated tickets according to current filters & page
-  const { data: paginatedTrashRes, isLoading, refetch } = useTrashTickets({
+  // Fetch all archived tickets for stats summary
+  const { data: allArchivedRes } = useTickets({ archivedOnly: true, limit: 1000 });
+  // Fetch paginated tickets according to current filters
+  const { data: paginatedArchivedRes, isLoading, refetch } = useTickets({
+    archivedOnly: true,
     page: pagination.current,
     limit: pagination.pageSize,
     projectId: projectFilter,
     search: searchQuery || undefined,
     status: statusFilter,
-    deletedBy: deletedByFilter,
+    assigneeId: assigneeFilter,
     startDate: dateRange?.[0] ? dateRange[0].startOf("day").toISOString() : undefined,
     endDate: dateRange?.[1] ? dateRange[1].endOf("day").toISOString() : undefined,
   });
 
-  const restoreTicket = useRestoreFromTrash();
-  const permanentDelete = usePermanentlyDelete();
-  const bulkRestore = useBulkRestoreFromTrash();
-  const bulkDelete = useBulkPermanentlyDelete();
-  const emptyTrash = useEmptyTrash();
+  const bulkUnarchive = useBulkUnarchiveTickets();
+  const moveToTrash = useMoveToTrash();
 
-  const allTrashTickets: any[] = allTrashRes?.tickets || [];
-  const paginatedTrashTickets: any[] = paginatedTrashRes?.tickets || [];
-  const totalTrashItems = paginatedTrashRes?.pagination?.total || 0;
+  const allArchivedTickets: any[] = (allArchivedRes as any)?.data || (allArchivedRes as any)?.tickets || [];
+  const paginatedArchivedTickets: any[] = (paginatedArchivedRes as any)?.data || (paginatedArchivedRes as any)?.tickets || [];
+  const totalArchivedItems = paginatedArchivedRes?.pagination?.total || 0;
 
   // Stats calculation
   const stats = useMemo(() => {
-    const total = totalTrashItems;
-    const tickets = allTrashTickets.length > 0 ? allTrashTickets : paginatedTrashTickets;
-    const purgingSoon = tickets.filter((t) => {
-      const days = calculateDaysRemaining(t.deletedAt || t.createdAt);
-      return days <= 2;
-    }).length;
-    const recoverable = Math.max(0, total - purgingSoon);
-    return { total, purgingSoon, recoverable };
-  }, [totalTrashItems, allTrashTickets, paginatedTrashTickets]);
+    const total = totalArchivedItems;
+    const tickets = allArchivedTickets.length > 0 ? allArchivedTickets : paginatedArchivedTickets;
+    const recentArchived = tickets.filter(
+      (t) => dayjs().diff(dayjs(t.archivedAt || t.updatedAt || t.createdAt), "day") <= 7
+    ).length;
+    const completedCount = tickets.filter(
+      (t) => t.status === "completed" || t.status === "done"
+    ).length;
+    return { total, recentArchived, completedCount };
+  }, [totalArchivedItems, allArchivedTickets, paginatedArchivedTickets]);
 
-  const projectDropdownOptions: any[] = useMemo(
-    () =>
-      (userProjects || [])
-        .filter((p: any) => p && (p.id || p.value))
-        .map((p: any) => ({
-          value: p.id || p.value,
-          label: p.name || p.label || "Unnamed Project",
-          description: p.code ? `#${p.code}` : undefined,
-        })),
-    [userProjects]
-  );
+  const activeFilterCount =
+    (projectFilter ? 1 : 0) +
+    (statusFilter ? 1 : 0) +
+    (assigneeFilter ? 1 : 0) +
+    (dateRange ? 1 : 0);
 
+  const handleResetFilters = () => {
+    setProjectFilter(undefined);
+    setStatusFilter(undefined);
+    setAssigneeFilter(undefined);
+    setDateRange(null);
+    setSearchQuery("");
+  };
+
+  const statCells = useMemo(() => {
+    return [
+      {
+        key: "total",
+        label: "Total Archived Tickets",
+        value: stats.total,
+        icon: <Archive size={15} />,
+        color: "#8b5cf6",
+        tint: "rgba(139,92,246,0.10)",
+      },
+      {
+        key: "recentArchived",
+        label: "Recently Archived",
+        value: stats.recentArchived,
+        suffix: stats.recentArchived > 0 ? " (≤ 7d)" : "",
+        icon: <Clock size={15} />,
+        color: "#3b82f6",
+        tint: "rgba(59,130,246,0.10)",
+      },
+      {
+        key: "completed",
+        label: "Completed & Archived",
+        value: stats.completedCount,
+        icon: <CheckCircle2 size={15} />,
+        color: "#10b981",
+        tint: "rgba(16,185,129,0.10)",
+      },
+      {
+        key: "status",
+        label: "Archive Status",
+        value: "Protected",
+        icon: <Ticket size={15} />,
+        color: "#f59e0b",
+        tint: "rgba(245,158,11,0.10)",
+      },
+    ];
+  }, [stats]);
+
+  // Selected project for header trigger display
   const selectedProj = useMemo(
     () => (userProjects || []).find((p: any) => (p.id || p.value) === projectFilter),
     [userProjects, projectFilter]
@@ -160,6 +176,7 @@ export default function TrashManagementPage() {
     : "ALL";
   const displayName = selectedProj ? (selectedProj.name || selectedProj.label || "Project") : "All Projects";
 
+  // Dropdown menu items matching TicketList
   const projectMenuItems = useMemo(() => {
     const allOption = {
       key: "all",
@@ -246,58 +263,6 @@ export default function TrashManagementPage() {
     return [allOption, ...projectItems];
   }, [userProjects, projectFilter]);
 
-  const activeFilterCount =
-    (projectFilter ? 1 : 0) +
-    (statusFilter ? 1 : 0) +
-    (deletedByFilter ? 1 : 0) +
-    (dateRange ? 1 : 0);
-
-  const handleResetFilters = () => {
-    setProjectFilter(undefined);
-    setStatusFilter(undefined);
-    setDeletedByFilter(undefined);
-    setDateRange(null);
-    setSearchQuery("");
-  };
-
-  const statCells = useMemo(() => {
-    return [
-      {
-        key: "total",
-        label: "Total Trashed Tickets",
-        value: stats.total,
-        icon: <Ticket size={15} />,
-        color: "#3b82f6",
-        tint: "rgba(59,130,246,0.10)",
-      },
-      {
-        key: "purgingSoon",
-        label: "Purging Soon",
-        value: stats.purgingSoon,
-        suffix: stats.purgingSoon > 0 ? " (≤ 2d)" : "",
-        icon: <AlertTriangle size={15} />,
-        color: "#ef4444",
-        tint: "rgba(239,68,68,0.10)",
-      },
-      {
-        key: "recoverable",
-        label: "Recoverable",
-        value: stats.recoverable,
-        icon: <CheckCircle2 size={15} />,
-        color: "#10b981",
-        tint: "rgba(16,185,129,0.10)",
-      },
-      {
-        key: "retention",
-        label: "Retention Period",
-        value: "7 Days",
-        icon: <Clock size={15} />,
-        color: "#f59e0b",
-        tint: "rgba(245,158,11,0.10)",
-      },
-    ];
-  }, [stats]);
-
   // Table Columns
   const columns = [
     {
@@ -308,22 +273,21 @@ export default function TrashManagementPage() {
         <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
             <span
-              className="trs2-ticket-id"
               style={{
                 fontFamily: "var(--font-mono, monospace)",
                 fontSize: "11px",
                 fontWeight: 700,
-                color: "#1d4ed8",
-                background: "rgba(59,130,246,0.08)",
-                border: "1px solid rgba(59,130,246,0.18)",
+                color: "#6d28d9",
+                background: "rgba(139,92,246,0.08)",
+                border: "1px solid rgba(139,92,246,0.18)",
                 padding: "1px 6px",
                 borderRadius: "4px",
               }}
             >
               {record.ticketNumber}
             </span>
-            <Tag color={record.status === "completed" ? "green" : "blue"} style={{ margin: 0, fontSize: 10, fontWeight: 700 }}>
-              {(record.status || "open").replace("_", " ").toUpperCase()}
+            <Tag color={record.status === "completed" ? "green" : "purple"} style={{ margin: 0, fontSize: 10, fontWeight: 700 }}>
+              {(record.status || "archived").replace("_", " ").toUpperCase()}
             </Tag>
           </div>
           <span
@@ -348,7 +312,7 @@ export default function TrashManagementPage() {
       width: 200,
       render: (record: any) => (
         <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-          <Tag color="geekblue" style={{ margin: 0, fontSize: 11, fontWeight: 600 }}>
+          <Tag color="purple" style={{ margin: 0, fontSize: 11, fontWeight: 600 }}>
             {record.project?.code || record.project?.name?.slice(0, 3)?.toUpperCase() || "PRJ"}
           </Tag>
           <Text style={{ fontSize: "12px", fontWeight: 600, color: "var(--text-slate-700)" }}>
@@ -358,57 +322,33 @@ export default function TrashManagementPage() {
       ),
     },
     {
-      title: "Deleted By",
-      key: "deletedBy",
+      title: "Assignee",
+      key: "assignee",
       width: 200,
       render: (record: any) => {
-        const actor = record.deletedBy;
-        const actorName = actor?.name || "System";
+        const user = record.assignee || record.reporter;
+        const userName = user?.name || "Unassigned";
         return (
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <Avatar src={actor?.avatarUrl} size="small" style={{ background: "#475569", color: "#fff", fontSize: 10, fontWeight: 800 }}>
-              {actorName.charAt(0).toUpperCase()}
+            <Avatar src={user?.avatarUrl} size="small" style={{ background: "#6366f1", color: "#fff", fontSize: 10, fontWeight: 800 }}>
+              {userName.charAt(0).toUpperCase()}
             </Avatar>
-            <div style={{ display: "flex", flexDirection: "column" }}>
-              <Text style={{ fontSize: "12px", fontWeight: 600, color: "var(--text-slate-800)" }}>{actorName}</Text>
-              <Text style={{ fontSize: "10.5px", color: "var(--text-slate-400)" }}>
-                {dayjs(record.deletedAt || record.createdAt).fromNow()}
-              </Text>
-            </div>
+            <Text style={{ fontSize: "12px", fontWeight: 600, color: "var(--text-slate-800)" }}>{userName}</Text>
           </div>
         );
       },
     },
     {
-      title: "Auto-Purge Retention",
-      key: "purge",
-      width: 220,
-      render: (record: any) => {
-        const daysRemaining = calculateDaysRemaining(record.deletedAt || record.createdAt);
-        const progress = calculatePurgeProgress(record.deletedAt || record.createdAt);
-        const isUrgent = daysRemaining <= 2;
-        return (
-          <Tooltip title={`Permanently purged in approx. ${daysRemaining} ${daysRemaining === 1 ? "day" : "days"}`}>
-            <div style={{ display: "flex", flexDirection: "column", gap: 4, width: "100%", maxWidth: 180 }}>
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                <span style={{ fontSize: 11, fontWeight: 700, color: isUrgent ? "#ef4444" : "#10b981", display: "flex", alignItems: "center", gap: 4 }}>
-                  <ClockCircleOutlined />
-                  {daysRemaining === 0 ? "Purging today" : `${daysRemaining}d remaining`}
-                </span>
-                <span style={{ fontSize: 10, color: "var(--text-slate-400)", fontWeight: 600 }}>{Math.round(progress)}%</span>
-              </div>
-              <Progress
-                percent={progress}
-                showInfo={false}
-                size="small"
-                strokeColor={isUrgent ? "#ef4444" : "#10b981"}
-                trailColor={isDark ? "#1f2937" : "#e2e8f0"}
-                style={{ margin: 0 }}
-              />
-            </div>
-          </Tooltip>
-        );
-      },
+      title: "Archived At",
+      key: "archivedAt",
+      width: 180,
+      render: (record: any) => (
+        <Tooltip title={dayjs(record.archivedAt || record.updatedAt || record.createdAt).format("YYYY-MM-DD HH:mm:ss")}>
+          <Text style={{ fontSize: "12px", color: "var(--text-slate-500)" }}>
+            {dayjs(record.archivedAt || record.updatedAt || record.createdAt).fromNow()}
+          </Text>
+        </Tooltip>
+      ),
     },
     {
       title: "Actions",
@@ -418,50 +358,50 @@ export default function TrashManagementPage() {
       fixed: "right" as const,
       render: (record: any) => (
         <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
-          {canRestoreTicketTrash && (
-            <Tooltip title="Restore Ticket">
+          {canRestoreTicketArchive && (
+            <Tooltip title="Unarchive Ticket">
               <Button
                 type="text"
-                icon={<UndoOutlined style={{ color: "#10b981" }} />}
+                icon={<InboxOutlined style={{ color: "#3b82f6" }} />}
                 onClick={() =>
-                  restoreTicket.mutate([record.id], {
+                  bulkUnarchive.mutate([record.id], {
                     onSuccess: () => {
-                      message.success("Ticket restored successfully");
+                      message.success("Ticket unarchived successfully");
                       refetch();
                     },
                   })
                 }
-                loading={restoreTicket.isPending}
+                loading={bulkUnarchive.isPending}
               />
             </Tooltip>
           )}
-          {canDeleteTicketTrash && (
+          {canDeleteTicket && (
             <ConfirmDialog
               tone="danger"
-              title="Permanently delete ticket?"
-              description={`Permanently delete ticket ${record.ticketNumber}? This action cannot be undone.`}
+              title="Move ticket to trash?"
+              description={`Move ticket ${record.ticketNumber} to trash repository?`}
               onConfirm={() =>
                 new Promise<void>((resolve, reject) => {
-                  permanentDelete.mutate([record.id], {
+                  moveToTrash.mutate([record.id], {
                     onSuccess: () => {
-                      message.success("Ticket permanently deleted");
+                      message.success("Ticket moved to trash");
                       refetch();
                       resolve();
                     },
-                    onError: (err) => reject(err),
+                    onError: (err: any) => reject(err),
                   });
                 })
               }
-              confirmText="Yes, Delete"
+              confirmText="Move to Trash"
               cancelText="Cancel"
               placement="left"
               icon={<AlertTriangle size={16} />}
             >
-              <Tooltip title="Permanent Delete">
+              <Tooltip title="Move to Trash">
                 <Button
                   type="text"
                   icon={<DeleteOutlined style={{ color: "#ff4d4f" }} />}
-                  loading={permanentDelete.isPending}
+                  loading={moveToTrash.isPending}
                 />
               </Tooltip>
             </ConfirmDialog>
@@ -482,29 +422,29 @@ export default function TrashManagementPage() {
               width: 32,
               height: 32,
               borderRadius: 8,
-              background: isDark ? "rgba(239, 68, 68, 0.15)" : "#fff1f0",
-              color: "#ff4d4f",
+              background: isDark ? "rgba(139, 92, 246, 0.15)" : "#f3e8ff",
+              color: "#8b5cf6",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              border: isDark ? "1px solid rgba(239, 68, 68, 0.3)" : "1px solid #ffccc7",
+              border: isDark ? "1px solid rgba(139, 92, 246, 0.3)" : "1px solid #d8b4fe",
             }}
           >
-            <Trash2 size={16} />
+            <Archive size={16} />
           </div>
           <div style={{ display: "flex", flexDirection: "column", lineHeight: 1.15 }}>
             <span style={{ fontSize: 13.5, fontWeight: 700, color: "var(--text-slate-900)", letterSpacing: "-0.01em" }}>
-              Tickets Trash
+              Archived Repository
             </span>
             <span style={{ fontSize: 11, color: "var(--text-slate-400)", fontWeight: 500 }}>
-              Recover or purge tickets
+              Archived tickets overview
             </span>
           </div>
         </div>
 
         <div style={{ width: 1, height: 22, background: "var(--border-slate-200)", flexShrink: 0 }} />
 
-        {/* Project Switcher Dropdown (identical to TicketList) */}
+        {/* Project Switcher Dropdown (identical to TicketList) BEFORE Search */}
         <Dropdown
           menu={{ items: projectMenuItems }}
           overlayClassName="project-switch-pop"
@@ -557,7 +497,7 @@ export default function TrashManagementPage() {
           <SearchOutlined className="pp-search-icon" />
           <input
             className="pp-search"
-            placeholder="Search ticket #, title..."
+            placeholder="Search archived tickets..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
@@ -568,12 +508,12 @@ export default function TrashManagementPage() {
           <span className="inline-flex items-center gap-1.5" style={{ fontSize: 12, color: "var(--text-slate-500)" }}>
             <span
               className="pm2-pulse-dot"
-              style={{ background: "#ff4d4f", boxShadow: "none", animation: "none", width: 6, height: 6, borderRadius: "50%" }}
+              style={{ background: "#8b5cf6", boxShadow: "none", animation: "none", width: 6, height: 6, borderRadius: "50%" }}
             />
             <span className="font-semibold" style={{ color: "var(--text-slate-700)", fontWeight: 700 }}>
-              {totalTrashItems}
+              {totalArchivedItems}
             </span>{" "}
-            {totalTrashItems === 1 ? "ticket in trash" : "tickets in trash"}
+            {totalArchivedItems === 1 ? "ticket archived" : "tickets archived"}
           </span>
         </div>
 
@@ -614,71 +554,13 @@ export default function TrashManagementPage() {
                 setIsRefreshing(true);
                 await refetch();
                 setIsRefreshing(false);
-                message.success("Trash view refreshed");
+                message.success("Archived tickets refreshed");
               }}
               disabled={isLoading || isRefreshing}
             >
               <ReloadOutlined spin={isRefreshing} />
             </button>
           </Tooltip>
-
-          {canDeleteTicketTrash && (
-            <ConfirmDialog
-              tone="danger"
-              title="Empty trash repository?"
-              description="This will permanently delete all tickets currently in the trash. This action cannot be undone."
-              onConfirm={() =>
-                new Promise<void>((resolve, reject) => {
-                  emptyTrash.mutate(
-                    { projectId: projectFilter, force: true },
-                    {
-                      onSuccess: () => {
-                        message.success("Trash emptied successfully");
-                        refetch();
-                        resolve();
-                      },
-                      onError: (err) => reject(err),
-                    }
-                  );
-                })
-              }
-              confirmText="Yes, empty all"
-              cancelText="Cancel"
-              placement="bottomRight"
-              icon={<AlertTriangle size={16} />}
-              disabled={totalTrashItems === 0 || isLoading}
-            >
-              <Button
-                danger
-                type="primary"
-                icon={<DeleteOutlined />}
-                loading={emptyTrash.isPending}
-                disabled={totalTrashItems === 0 || isLoading}
-                style={{
-                  borderRadius: 6,
-                  fontWeight: 600,
-                  height: 36,
-                  backgroundColor:
-                    totalTrashItems === 0 || isLoading
-                      ? isDark
-                        ? "#1f1f1f"
-                        : "#f5f5f5"
-                      : isDark
-                      ? "transparent"
-                      : "#fff2f0",
-                  color: totalTrashItems === 0 || isLoading ? "#8c8c8c" : "#ff4d4f",
-                  borderColor:
-                    totalTrashItems === 0 || isLoading
-                      ? "#d9d9d9"
-                      : isDark
-                      ? "#ff4d4f"
-                      : "transparent",
-                }}
-              >
-                Empty Trash
-              </Button>
-            </ConfirmDialog>
-          )}
         </div>
       </div>
 
@@ -687,16 +569,16 @@ export default function TrashManagementPage() {
       {/* ── Stat Cards ── */}
       <div style={{ flexShrink: 0 }}>
         <StatCards
-          title="Tickets Trash Overview"
-          statusText="TRASHED"
-          statusColor="#ef4444"
-          statusBorder="rgba(239, 68, 68, 0.32)"
-          progressPct={totalTrashItems > 0 ? Math.round((stats.purgingSoon / totalTrashItems) * 100) : 0}
+          title="Archived Repository Overview"
+          statusText="ARCHIVED"
+          statusColor="#8b5cf6"
+          statusBorder="rgba(139, 92, 246, 0.32)"
+          progressPct={totalArchivedItems > 0 ? Math.round((stats.recentArchived / totalArchivedItems) * 100) : 0}
           cards={statCells}
         />
       </div>
 
-      {/* ── Collapsible FilterBar (with Project select retained) ── */}
+      {/* ── Collapsible FilterBar ── */}
       {isFilterOpen && (
         <div style={{ flexShrink: 0 }}>
           <FilterBar
@@ -705,18 +587,18 @@ export default function TrashManagementPage() {
             onClose={() => setIsFilterOpen(false)}
             actions={
               <span style={{ fontSize: 12, color: "var(--text-slate-500)", whiteSpace: "nowrap" }}>
-                <b>{paginatedTrashTickets.length}</b> of <b>{totalTrashItems}</b> tickets
+                <b>{paginatedArchivedTickets.length}</b> of <b>{totalArchivedItems}</b> tickets
               </span>
             }
           >
-            {/* Project Select Filter Pill */}
+            {/* Project Filter Pill */}
             <TicketFilterPill
               label="Project"
               icon={<ProjectOutlined />}
               value={projectFilter || ""}
               options={userProjects.map((p: any) => ({
-                value: p.id as string,
-                label: p.name as string,
+                value: p.id || p.value,
+                label: p.name || p.label,
               }))}
               onChange={(val) => {
                 setProjectFilter(val ? String(val) : undefined);
@@ -745,18 +627,18 @@ export default function TrashManagementPage() {
               multiple={false}
             />
 
-            {/* Deleted By Filter Pill */}
+            {/* Assignee Filter Pill */}
             <TicketFilterPill
-              label="Deleted By"
+              label="Assignee"
               icon={<UserOutlined />}
-              value={deletedByFilter || ""}
+              value={assigneeFilter || ""}
               options={membersList.map((m: any) => ({
                 value: m.id,
                 label: m.name || m.email,
                 avatarUrl: m.avatarUrl || undefined,
               }))}
               onChange={(val) => {
-                setDeletedByFilter(val ? String(val) : undefined);
+                setAssigneeFilter(val ? String(val) : undefined);
                 setPagination((prev) => ({ ...prev, current: 1 }));
               }}
               itemNoun="members"
@@ -821,7 +703,7 @@ export default function TrashManagementPage() {
                   minWidth: 20,
                   height: 20,
                   borderRadius: 10,
-                  background: "#3b82f6",
+                  background: "#8b5cf6",
                   color: "#fff",
                   fontSize: 11,
                   fontWeight: 800,
@@ -835,54 +717,54 @@ export default function TrashManagementPage() {
               </Text>
             </div>
             <div className="saas-bulk-buttons" style={{ display: "flex", alignItems: "center", gap: 6 }}>
-              {canRestoreTicketTrash && (
+              {canRestoreTicketArchive && (
                 <Button
                   type="text"
                   size="small"
-                  icon={<UndoOutlined style={{ color: "#10b981" }} />}
+                  icon={<InboxOutlined style={{ color: "#3b82f6" }} />}
                   onClick={() => {
-                    bulkRestore.mutate(selectedRowKeys as string[], {
+                    bulkUnarchive.mutate(selectedRowKeys as string[], {
                       onSuccess: () => {
-                        message.success("Tickets restored successfully");
+                        message.success("Tickets unarchived successfully");
                         setSelectedRowKeys([]);
                         refetch();
                       },
                     });
                   }}
-                  loading={bulkRestore.isPending}
+                  loading={bulkUnarchive.isPending}
                   style={{
                     borderRadius: 6,
                     fontWeight: 600,
                     fontSize: 12,
-                    color: "#059669",
-                    background: "rgba(16,185,129,0.1)",
-                    border: "1px solid rgba(16,185,129,0.25)",
+                    color: "#2563eb",
+                    background: "rgba(59,130,246,0.1)",
+                    border: "1px solid rgba(59,130,246,0.25)",
                     height: 28,
                     padding: "0 10px",
                   }}
                 >
-                  Restore
+                  Unarchive
                 </Button>
               )}
-              {canDeleteTicketTrash && (
+              {canDeleteTicket && (
                 <ConfirmDialog
                   tone="danger"
-                  title={`Purge ${selectedRowKeys.length} ticket${selectedRowKeys.length === 1 ? "" : "s"}?`}
-                  description="This will permanently delete the selected tickets. This action cannot be undone."
+                  title={`Move ${selectedRowKeys.length} ticket${selectedRowKeys.length === 1 ? "" : "s"} to trash?`}
+                  description="This will move selected tickets to the trash repository."
                   onConfirm={() =>
                     new Promise<void>((resolve, reject) => {
-                      bulkDelete.mutate(selectedRowKeys as string[], {
+                      moveToTrash.mutate(selectedRowKeys as string[], {
                         onSuccess: () => {
-                          message.success("Tickets permanently deleted");
+                          message.success("Tickets moved to trash");
                           setSelectedRowKeys([]);
                           refetch();
                           resolve();
                         },
-                        onError: (err) => reject(err),
+                        onError: (err: any) => reject(err),
                       });
                     })
                   }
-                  confirmText="Purge Selected"
+                  confirmText="Move to Trash"
                   cancelText="Cancel"
                   placement="bottomRight"
                   icon={<AlertTriangle size={16} />}
@@ -891,7 +773,7 @@ export default function TrashManagementPage() {
                     type="text"
                     size="small"
                     icon={<DeleteOutlined style={{ color: "#ef4444" }} />}
-                    loading={bulkDelete.isPending}
+                    loading={moveToTrash.isPending}
                     style={{
                       borderRadius: 6,
                       fontWeight: 600,
@@ -903,7 +785,7 @@ export default function TrashManagementPage() {
                       padding: "0 10px",
                     }}
                   >
-                    Purge
+                    Move to Trash
                   </Button>
                 </ConfirmDialog>
               )}
@@ -959,7 +841,7 @@ export default function TrashManagementPage() {
                       onChange: (keys) => setSelectedRowKeys(keys),
                     }
               }
-              dataSource={isLoading || isRefreshing ? Array(5).fill({}) : paginatedTrashTickets}
+              dataSource={isLoading || isRefreshing ? Array(5).fill({}) : paginatedArchivedTickets}
               columns={columns.map((col) => ({
                 ...col,
                 render: (text: any, record: any, index: number) => {
@@ -974,7 +856,7 @@ export default function TrashManagementPage() {
               pagination={false}
               scroll={{ x: "max-content" }}
               locale={{
-                emptyText: <NoData description={<Text type="secondary">No tickets found in trash</Text>} />,
+                emptyText: <NoData description={<Text type="secondary">No archived tickets found</Text>} />,
               }}
             />
           </div>
@@ -987,23 +869,20 @@ export default function TrashManagementPage() {
                   <Skeleton active paragraph={{ rows: 2 }} />
                 </div>
               ))
-            ) : paginatedTrashTickets.length === 0 ? (
+            ) : paginatedArchivedTickets.length === 0 ? (
               <div style={{ gridColumn: "1 / -1", padding: "40px 0" }}>
-                <NoData description={<Text type="secondary">No tickets found in trash</Text>} />
+                <NoData description={<Text type="secondary">No archived tickets found</Text>} />
               </div>
             ) : (
-              paginatedTrashTickets.map((ticket: any) => {
-                const daysRemaining = calculateDaysRemaining(ticket.deletedAt || ticket.createdAt);
-                const progress = calculatePurgeProgress(ticket.deletedAt || ticket.createdAt);
-                const isUrgent = daysRemaining <= 2;
-                const actor = ticket.deletedBy;
-                const actorName = actor?.name || "System";
+              paginatedArchivedTickets.map((ticket: any) => {
+                const user = ticket.assignee || ticket.reporter;
+                const userName = user?.name || "Unassigned";
 
                 return (
                   <article
                     key={ticket.id}
                     className="pm2-list-card"
-                    style={{ ["--row-accent" as any]: isUrgent ? "#ef4444" : "#3b82f6", borderRadius: 0 }}
+                    style={{ ["--row-accent" as any]: "#8b5cf6", borderRadius: 0 }}
                   >
                     <header className="pm2-list-head" style={{ padding: "10px 14px" }}>
                       <div className="pm2-list-row" style={{ flex: 1, display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
@@ -1012,8 +891,8 @@ export default function TrashManagementPage() {
                             fontFamily: "var(--font-mono, monospace)",
                             fontSize: 11,
                             fontWeight: 700,
-                            color: "#1d4ed8",
-                            background: "rgba(59,130,246,0.08)",
+                            color: "#6d28d9",
+                            background: "rgba(139,92,246,0.08)",
                             padding: "2px 6px",
                             borderRadius: 4,
                             flexShrink: 0,
@@ -1045,84 +924,68 @@ export default function TrashManagementPage() {
                     <div className="pm2-list-foot" style={{ padding: "10px 14px" }}>
                       <div className="pm2-list-foot-row" style={{ marginBottom: 8 }}>
                         <div style={{ display: "flex", alignItems: "center", gap: 6, flex: 1 }}>
-                          <Avatar src={actor?.avatarUrl} size={18} style={{ fontSize: 9, background: "#475569", color: "#fff" }}>
-                            {actorName.charAt(0).toUpperCase()}
+                          <Avatar src={user?.avatarUrl} size={18} style={{ fontSize: 9, background: "#6366f1", color: "#fff" }}>
+                            {userName.charAt(0).toUpperCase()}
                           </Avatar>
                           <span style={{ fontSize: 11.5, fontWeight: 500, color: "var(--text-slate-600)" }}>
-                            Deleted by {actorName} ({dayjs(ticket.deletedAt || ticket.createdAt).fromNow()})
+                            {userName} · {dayjs(ticket.archivedAt || ticket.updatedAt || ticket.createdAt).fromNow()}
                           </span>
                         </div>
                       </div>
 
-                      <div className="pm2-list-foot-row" style={{ gap: 8, alignItems: "center" }}>
-                        <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 3 }}>
-                          <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10.5 }}>
-                            <span style={{ color: isUrgent ? "#ef4444" : "#10b981", fontWeight: 700 }}>
-                              {daysRemaining === 0 ? "Purging today" : `${daysRemaining}d remaining`}
-                            </span>
-                            <span style={{ color: "var(--text-slate-400)", fontWeight: 600 }}>{Math.round(progress)}%</span>
-                          </div>
-                          <Progress
-                            percent={progress}
-                            showInfo={false}
-                            size="small"
-                            strokeColor={isUrgent ? "#ef4444" : "#10b981"}
-                            trailColor={isDark ? "#1f2937" : "#e2e8f0"}
-                          />
-                        </div>
-
-                        <div style={{ display: "flex", gap: 4 }}>
-                          {canRestoreTicketTrash && (
+                      <div className="pm2-list-foot-row" style={{ gap: 8, alignItems: "center", justifyContent: "flex-end" }}>
+                        <div style={{ display: "flex", gap: 6 }}>
+                          {canRestoreTicketArchive && (
                             <ConfirmDialog
                               tone="success"
-                              title="Restore ticket?"
-                              description="This will restore the ticket back to active status."
+                              title="Unarchive ticket?"
+                              description="This will restore the ticket to active status."
                               onConfirm={() =>
                                 new Promise<void>((resolve, reject) => {
-                                  restoreTicket.mutate([ticket.id], {
+                                  bulkUnarchive.mutate([ticket.id], {
                                     onSuccess: () => {
-                                      message.success("Ticket restored successfully");
+                                      message.success("Ticket unarchived successfully");
                                       refetch();
                                       resolve();
                                     },
-                                    onError: (err) => reject(err),
+                                    onError: (err: any) => reject(err),
                                   });
                                 })
                               }
-                              confirmText="Yes, restore"
+                              confirmText="Yes, Unarchive"
                               cancelText="Cancel"
                               placement="topRight"
-                              icon={<UndoOutlined />}
+                              icon={<InboxOutlined />}
                             >
                               <button
                                 type="button"
                                 className="pc-view-btn"
-                                style={{ color: "#10b981", display: "flex", alignItems: "center", gap: 4 }}
+                                style={{ color: "#3b82f6", display: "flex", alignItems: "center", gap: 4 }}
                               >
-                                <UndoOutlined />
-                                Restore
+                                <InboxOutlined />
+                                Unarchive
                               </button>
                             </ConfirmDialog>
                           )}
 
-                          {canDeleteTicketTrash && (
+                          {canDeleteTicket && (
                             <ConfirmDialog
                               tone="danger"
-                              title="Permanently delete ticket?"
-                              description="This action cannot be undone."
+                              title="Move ticket to trash?"
+                              description="This will move the ticket to trash."
                               onConfirm={() =>
                                 new Promise<void>((resolve, reject) => {
-                                  permanentDelete.mutate([ticket.id], {
+                                  moveToTrash.mutate([ticket.id], {
                                     onSuccess: () => {
-                                      message.success("Ticket permanently deleted");
+                                      message.success("Ticket moved to trash");
                                       refetch();
                                       resolve();
                                     },
-                                    onError: (err) => reject(err),
+                                    onError: (err: any) => reject(err),
                                   });
                                 })
                               }
-                              confirmText="Yes, Delete"
+                              confirmText="Yes, Move to Trash"
                               cancelText="Cancel"
                               placement="topRight"
                               icon={<AlertTriangle size={16} />}
@@ -1133,7 +996,7 @@ export default function TrashManagementPage() {
                                 style={{ color: "#ff4d4f", display: "flex", alignItems: "center", gap: 4 }}
                               >
                                 <DeleteOutlined />
-                                Purge
+                                Trash
                               </button>
                             </ConfirmDialog>
                           )}
@@ -1149,21 +1012,21 @@ export default function TrashManagementPage() {
       </div>
 
       {/* ── Pagination Footer ── */}
-      {totalTrashItems > 0 && (
+      {totalArchivedItems > 0 && (
         <div className="pm2-pagination" style={{ marginTop: "auto", flexShrink: 0 }}>
           <Typography.Text style={{ fontSize: 13, color: "var(--text-slate-500)" }}>
             Showing{" "}
             <span style={{ color: "var(--text-slate-700)", fontWeight: 700 }}>
               {(pagination.current - 1) * pagination.pageSize + 1}–
-              {Math.min(pagination.current * pagination.pageSize, totalTrashItems)}
+              {Math.min(pagination.current * pagination.pageSize, totalArchivedItems)}
             </span>{" "}
-            of <span style={{ color: "var(--text-slate-700)", fontWeight: 700 }}>{totalTrashItems}</span> ticket
-            {totalTrashItems !== 1 ? "s" : ""}
+            of <span style={{ color: "var(--text-slate-700)", fontWeight: 700 }}>{totalArchivedItems}</span> ticket
+            {totalArchivedItems !== 1 ? "s" : ""}
           </Typography.Text>
           <Pagination
             current={pagination.current}
             pageSize={pagination.pageSize}
-            total={totalTrashItems}
+            total={totalArchivedItems}
             onChange={(page, pageSize) => setPagination({ current: page, pageSize })}
             showSizeChanger
             pageSizeOptions={[10, 15, 20, 25, 50, 100]}

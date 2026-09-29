@@ -766,7 +766,7 @@ export default function ReleasePlanComponent() {
             name="name"
             rules={[{ required: true, message: "Sprint Name is required" }]}
           >
-            <Input placeholder="e.g. Sprint 1, Release 2.0" size="large" />
+            <Input placeholder="e.g. Sprint 1, Release 2.0" size="large" maxLength={40} showCount />
           </Form.Item>
 
           <Form.Item label={<Text strong>Sprint Goal</Text>} name="goal">
@@ -774,6 +774,8 @@ export default function ReleasePlanComponent() {
               rows={3} 
               placeholder="What is the main objective of this sprint?" 
               style={{ resize: 'none' }}
+              maxLength={280}
+              showCount
             />
           </Form.Item>
 

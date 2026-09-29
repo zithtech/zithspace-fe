@@ -173,6 +173,10 @@ const InvoiceSetting: FC<InvoiceSettingProps> = ({ initialValues, onSave }) => {
               ref={inputRef}
               disabled={!editable}
               placeholder="e.g. INV-{YYYY}-{###}"
+              maxLength={50}
+              onInput={(e: any) => {
+                e.target.value = e.target.value.replace(/[^A-Za-z0-9{}\-_]/g, "").toUpperCase();
+              }}
               style={{
                 height: 40,
                 borderRadius: 8,

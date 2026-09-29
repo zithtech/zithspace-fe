@@ -4,6 +4,7 @@ import React, { useEffect, useState, Suspense } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { TicketDetailDrawer } from "@/components/projects/drawer/TicketDetailDrawer";
 import MainLayout from "@/components/layout/MainLayout";
+import { ProjectService } from "@/services/projectService";
 
 import {
   dashboardService,
@@ -136,6 +137,26 @@ function DashboardContent() {
   const [todayAttendance, setTodayAttendance] = useState<any>(null);
   const [payslips, setPayslips] = useState<PayPayslip[]>([]);
   const [selectedPayslipId, setSelectedPayslipId] = useState<string | null>(null);
+
+  const [userProjects, setUserProjects] = useState<any[]>([]);
+
+  useEffect(() => {
+    if (user) {
+      ProjectService.getProjects({ limit: 100, userId: user.id })
+        .then((res) => {
+          const filtered = (res.data || []).filter(
+            (p: any) =>
+              p.projectManagerId === user.id ||
+              (p.members && p.members.some((m: any) => m.user?.id === user.id))
+          );
+          setUserProjects(filtered);
+          if (filtered.length > 0 && !selectedProjectId) {
+            setSelectedProjectId(filtered[0].id || (filtered[0] as any)._id);
+          }
+        })
+        .catch((err) => console.error("Failed to fetch user projects", err));
+    }
+  }, [user]);
 
   const [selectedTicketId, setSelectedTicketId] = useState<string | null>(null);
 
@@ -445,7 +466,7 @@ function DashboardContent() {
         try {
           const response = await TicketService.getMyTickets({
             page: 1,
-            limit: 20,
+            limit: 1000,
           });
           setTickets(response.data);
           setRecentTickets(response.data.slice(0, 5));
@@ -596,19 +617,27 @@ function DashboardContent() {
           ? "Ready when you are. Clock in to start your day."
           : "Here's a quick look at what's on your plate.";
 
-  const totalTickets = tickets.length;
-  const completedTickets = tickets.filter((t) =>
+  // Filter tickets by selected project if one is selected
+  const displayedTickets = selectedProjectId
+    ? tickets.filter((t) => {
+      const pId = t.projectId || (typeof t.project === 'string' ? t.project : (t.project?.id || t.project?._id));
+      return pId === selectedProjectId;
+    })
+    : tickets;
+
+  const totalTickets = displayedTickets.length;
+  const completedTickets = displayedTickets.filter((t) =>
     ["completed", "live", "done"].includes(t.status?.toLowerCase()),
   ).length;
-  const inProgressTickets = tickets.filter(
+  const inProgressTickets = displayedTickets.filter(
     (t) =>
       t.status?.toLowerCase() === "in_progress" ||
       t.status?.toLowerCase() === "doing",
   ).length;
-  const notStartedTickets = tickets.filter(
+  const notStartedTickets = displayedTickets.filter(
     (t) => t.status?.toLowerCase() === "not_started",
   ).length;
-  const inTestingTickets = tickets.filter(
+  const inTestingTickets = displayedTickets.filter(
     (t) =>
       ["in_testing", "testing", "live_testing", "live testing"].includes(t.status?.toLowerCase()),
   ).length;
@@ -668,6 +697,7 @@ function DashboardContent() {
     accent,
     subtle,
     chart,
+    onClick,
   }: {
     eyebrow: string;
     value: React.ReactNode;
@@ -677,50 +707,59 @@ function DashboardContent() {
     accent: string;
     subtle?: string;
     chart?: React.ReactNode;
+    onClick?: () => void;
   }) => {
     const trendColors: Record<string, { bg: string; fg: string }> = {
-      positive: { bg: "rgba(16,185,129,0.1)", fg: "#047857" },
+      positive: { bg: token.colorSuccessBg, fg: token.colorSuccessTextHover || token.colorSuccess },
       neutral: { bg: token.colorFillAlter, fg: token.colorTextSecondary },
-      warning: { bg: "rgba(16,185,129,0.12)", fg: "#047857" },
+      warning: { bg: token.colorWarningBg, fg: token.colorWarningTextHover || token.colorWarning },
     };
     const tc = trendColors[trendTone];
     return (
       <div
-        className="dash-stat-card"
-        style={{ ["--dash-accent" as any]: accent }}
+        className="hover-scale"
+        style={{ background: token.colorBgContainer, borderRadius: 10, border: `1px solid ${token.colorBorderSecondary}`, padding: "8px 12px", cursor: onClick ? "pointer" : "default", display: "flex", flexDirection: "column", gap: 6, height: "100%" }}
+        onClick={onClick}
       >
-        <div className="dash-stat-head">
-          <div
-            className="dash-stat-icon"
-            style={{
-              background: `${accent}1F`,
-              color: accent,
-              boxShadow: `inset 0 0 0 1px ${accent}26`,
-            }}
-          >
-            {icon}
+        {/* Top row: icon + eyebrow + arrow */}
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            <div
+              style={{
+                width: 20, height: 20, borderRadius: 4,
+                background: `${accent}14`,
+                border: `1px solid ${accent}33`,
+                display: "flex", alignItems: "center", justifyContent: "center",
+                color: accent, fontSize: 10,
+              }}
+            >
+              {icon}
+            </div>
+            <span style={{ fontSize: 9, fontWeight: 700, color: token.colorTextSecondary, textTransform: "uppercase", letterSpacing: "0.5px" }}>
+              {eyebrow}
+            </span>
           </div>
-          <Text className="dash-stat-label">{eyebrow}</Text>
-          <div className="dash-stat-value-wrap">
-            <span className="dash-stat-value">{value}</span>
+          <ArrowRightOutlined style={{ color: token.colorTextTertiary, fontSize: 9 }} />
+        </div>
+
+        {/* Value and subtle */}
+        <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+          <div style={{ display: "flex", alignItems: "baseline", gap: 6 }}>
+            <span style={{ fontSize: 15, fontWeight: 800, color: token.colorText, lineHeight: 1 }}>{value}</span>
+          </div>
+          {/* Subtle row */}
+          <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
             {trend && (
-              <span
-                className="dash-stat-trend"
-                style={{ background: tc.bg, color: tc.fg }}
-              >
+              <span style={{ fontSize: 9, fontWeight: 700, color: tc.fg, background: tc.bg, padding: "1px 4px", borderRadius: 4, display: "inline-flex", alignItems: "center", gap: 2 }}>
                 {trend}
               </span>
             )}
+            {subtle && <span style={{ fontSize: 9, color: token.colorTextTertiary, fontWeight: 500 }}>{subtle}</span>}
           </div>
         </div>
-        {subtle && <Text className="dash-stat-subtle">{subtle}</Text>}
-        {chart && <div className="dash-stat-chart">{chart}</div>}
-        <span
-          className="dash-stat-accent"
-          style={{
-            background: accent,
-          }}
-        />
+
+        {/* Mini chart below */}
+        {chart && <div style={{ marginTop: 0 }}>{chart}</div>}
       </div>
     );
   };
@@ -874,6 +913,11 @@ function DashboardContent() {
 
   return (
     <MainLayout>
+      <style>{`
+        .ant-card-head {
+          border-bottom: none !important;
+        }
+      `}</style>
       <div
         style={{
           margin: "0 -24px",
@@ -1098,107 +1142,38 @@ function DashboardContent() {
                   const metricsSpan = visibleMetrics === 1 ? 24 : visibleMetrics === 2 ? 12 : visibleMetrics === 3 ? 8 : 6;
 
                   return (
-                    <Row gutter={[12, 12]} style={{ marginBottom: 12 }}>
-                      {/* BOD / EOD */}
-                      {isMetricDailyUpdatesVisible && (
+                    <Row gutter={[12, 12]} align="stretch" style={{ marginBottom: 12 }}>
+                      {/* 1. My Tickets */}
+                      {isMetricMyTicketsVisible && (
                         <Col xs={24} sm={12} lg={metricsSpan}>
                           {(() => {
-                            const submittedCount =
-                              (todayUpdates.bod ? 1 : 0) + (todayUpdates.eod ? 1 : 0);
+                            const closed = myTicketsStats.closed;
+                            const totalT = myTicketsStats.total;
+                            const open = Math.max(0, totalT - closed);
                             const accent = "#3B82F6";
                             return (
                               <KpiCard
-                                eyebrow="Daily Updates"
-                                value={`${submittedCount} / 2`}
-                                icon={<ThunderboltFilled />}
-                                accent={accent}
-                                chart={
-                                  <div
-                                    style={{
-                                      display: "grid",
-                                      gridTemplateColumns: "1fr 1fr",
-                                      gap: 8,
-                                    }}
-                                  >
-                                    {[
-                                      { label: "BOD", state: todayUpdates.bod },
-                                      { label: "EOD", state: todayUpdates.eod },
-                                    ].map((item) => (
-                                      <div
-                                        key={item.label}
-                                        style={{
-                                          padding: "6px 10px",
-                                          borderRadius: 10,
-                                          background: token.colorFillAlter,
-                                          border: `1px solid ${token.colorBorderSecondary}`,
-                                        }}
-                                      >
-                                        <Text
-                                          style={{
-                                            fontSize: 10,
-                                            fontWeight: 600,
-                                            color: token.colorTextSecondary,
-                                            letterSpacing: "0.5px",
-                                          }}
-                                        >
-                                          {item.label}
-                                        </Text>
-                                        <div
-                                          style={{
-                                            display: "flex",
-                                            alignItems: "center",
-                                            gap: 6,
-                                            marginTop: 4,
-                                          }}
-                                        >
-                                          {item.state ? (
-                                            <CheckCircleFilled
-                                              style={{
-                                                fontSize: 11,
-                                                color: "#10B981",
-                                              }}
-                                            />
-                                          ) : (
-                                            <span
-                                              style={{
-                                                width: 8,
-                                                height: 8,
-                                                borderRadius: "50%",
-                                                background: "#10B981",
-                                                display: "inline-block",
-                                              }}
-                                            />
-                                          )}
-                                          <Text
-                                            style={{
-                                              fontSize: 12,
-                                              fontWeight: 600,
-                                              color: item.state
-                                                ? "#10B981"
-                                                : "#10B981",
-                                            }}
-                                          >
-                                            {item.state ? "Submitted" : "Pending"}
-                                          </Text>
-                                        </div>
-                                      </div>
-                                    ))}
-                                  </div>
-                                }
+                                eyebrow="My Tickets"
+                                value={`${closed} / ${totalT}`}
+                                icon={<CheckSquareOutlined />}
+                                accent="#3B82F6"
+                                subtle="Open / Closed"
+                                chart={<Progress percent={totalT > 0 ? Math.round((closed / totalT) * 100) : 0} showInfo={false} size="small" strokeColor="#3B82F6" trailColor="#EFF6FF" />}
+                                onClick={() => router.push("/tickets/select")}
                               />
                             );
                           })()}
                         </Col>
                       )}
 
-                      {/* Avg Working Hours */}
+                      {/* 2. Avg Working Hours */}
                       {isMetricAvgHoursVisible && (
                         <Col xs={24} sm={12} lg={metricsSpan}>
                           {(() => {
-                            const [hh = 0, mm = 0, ss = 0] = String(averageWorkHours || "0:0:0")
+                            const [hh = 0, mm = 0] = String(averageWorkHours || "0:0:0")
                               .split(":")
                               .map((n) => Number(n) || 0);
-                            const hoursDecimal = hh + mm / 60 + ss / 3600;
+                            const hoursDecimal = hh + mm / 60;
                             const pct = Math.min(100, Math.round((hoursDecimal / 8) * 100));
                             const accent = "#3B82F6";
                             return (
@@ -1206,226 +1181,75 @@ function DashboardContent() {
                                 eyebrow="Avg Hours"
                                 value={averageWorkHours}
                                 icon={<ClockCircleOutlined />}
-                                accent={accent}
-                                subtle={`Last 5 days · ${pct}% of 8h target`}
-                                chart={
-                                  <div
-                                    style={{
-                                      display: "flex",
-                                      alignItems: "center",
-                                      gap: 10,
-                                    }}
-                                  >
-                                    <div
-                                      style={{
-                                        flex: 1,
-                                        height: 6,
-                                        background: `${accent}1F`,
-                                        borderRadius: 999,
-                                        overflow: "hidden",
-                                      }}
-                                    >
-                                      <span
-                                        style={{
-                                          display: "block",
-                                          height: "100%",
-                                          width: `${pct}%`,
-                                          background: accent,
-                                          borderRadius: 999,
-                                          transition: "width .4s ease",
-                                        }}
-                                      />
-                                    </div>
-                                    <span
-                                      style={{
-                                        fontSize: 11,
-                                        fontWeight: 700,
-                                        color: token.colorTextSecondary,
-                                        fontVariantNumeric: "tabular-nums",
-                                        whiteSpace: "nowrap",
-                                      }}
-                                    >
-                                      {pct}%
-                                    </span>
-                                  </div>
-                                }
+                                accent="#10B981"
+                                trend={`▼ ${pct}%`}
+                                trendTone="warning"
+                                subtle="vs 5d"
+                                onClick={() => router.push("/my-hub/attendance")}
                               />
                             );
                           })()}
                         </Col>
                       )}
 
-                      {/* My Tickets */}
-                      {isMetricMyTicketsVisible && (
+                      {/* 3. Daily Attendance (BOD / EOD original spot) */}
+                      {isMetricDailyUpdatesVisible && (
                         <Col xs={24} sm={12} lg={metricsSpan}>
                           {(() => {
-                            const closed = myTicketsStats.closed;
-                            const totalT = myTicketsStats.total;
-                            const open = Math.max(0, totalT - closed);
-                            const pctDone = totalT > 0 ? Math.round((closed / totalT) * 100) : 0;
-                            const accent = "#3B82F6";
+                            const clockInTime = todayAttendance?.clockInTime;
+                            const attendanceStatus = isWorking
+                              ? "Active"
+                              : isPaused
+                                ? "On Break"
+                                : isComplete
+                                  ? "Completed"
+                                  : notStarted
+                                    ? "Not Started"
+                                    : "Present";
+                            const statusColor = isWorking || (!notStarted && !isComplete)
+                              ? "#10B981"
+                              : isComplete
+                                ? "#3B82F6"
+                                : "#94A3B8";
+                            const subtleText = clockInTime
+                              ? `In at ${dayjs(clockInTime).format("h:mm A")}`
+                              : notStarted
+                                ? "Not clocked in yet"
+                                : "Today's attendance";
                             return (
                               <KpiCard
-                                eyebrow="My Tickets"
-                                value={`${closed} / ${totalT}`}
-                                icon={<TrophyOutlined />}
-                                accent={accent}
-                                subtle={
-                                  totalT > 0
-                                    ? `${pctDone}% completion · ${open} open`
-                                    : "No tickets assigned"
+                                eyebrow="Daily Attendance"
+                                value={
+                                  <span style={{ display: "inline-flex", alignItems: "center", gap: 6, color: "#1E293B" }}>
+                                    <span style={{ width: 8, height: 8, borderRadius: "50%", background: statusColor, display: "inline-block" }} />
+                                    {attendanceStatus}
+                                  </span>
                                 }
-                                chart={
-                                  totalT > 0 ? (
-                                    <div
-                                      style={{
-                                        display: "flex",
-                                        flexDirection: "column",
-                                        gap: 6,
-                                      }}
-                                    >
-                                      <div
-                                        style={{
-                                          height: 6,
-                                          borderRadius: 999,
-                                          display: "flex",
-                                          overflow: "hidden",
-                                          border: `1px solid ${token.colorBorderSecondary}`,
-                                          background: token.colorFillAlter,
-                                        }}
-                                      >
-                                        <Tooltip title={`Closed: ${closed}`}>
-                                          <span
-                                            style={{
-                                              width: `${(closed / totalT) * 100}%`,
-                                              background: accent,
-                                              display: "block",
-                                              height: "100%",
-                                              transition: "width .4s ease",
-                                            }}
-                                          />
-                                        </Tooltip>
-                                        <Tooltip title={`Open: ${open}`}>
-                                          <span
-                                            style={{
-                                              width: `${(open / totalT) * 100}%`,
-                                              background: "#93C5FD",
-                                              display: "block",
-                                              height: "100%",
-                                              transition: "width .4s ease",
-                                            }}
-                                          />
-                                        </Tooltip>
-                                      </div>
-                                      <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-                                        <span
-                                          style={{
-                                            display: "inline-flex",
-                                            alignItems: "center",
-                                            gap: 5,
-                                            fontSize: 11,
-                                            color: token.colorTextSecondary,
-                                            fontWeight: 500,
-                                          }}
-                                        >
-                                          <span
-                                            style={{
-                                              width: 7,
-                                              height: 7,
-                                              borderRadius: 2,
-                                              background: accent,
-                                            }}
-                                          />
-                                          {closed} closed
-                                        </span>
-                                        <span
-                                          style={{
-                                            display: "inline-flex",
-                                            alignItems: "center",
-                                            gap: 5,
-                                            fontSize: 11,
-                                            color: token.colorTextSecondary,
-                                            fontWeight: 500,
-                                          }}
-                                        >
-                                          <span
-                                            style={{
-                                              width: 7,
-                                              height: 7,
-                                              borderRadius: 2,
-                                              background: "#93C5FD",
-                                            }}
-                                          />
-                                          {open} open
-                                        </span>
-                                      </div>
-                                    </div>
-                                  ) : null
-                                }
+                                icon={<SyncOutlined />}
+                                accent="#8B5CF6"
+                                subtle={subtleText}
+                                onClick={() => router.push("/my-hub/attendance")}
                               />
                             );
                           })()}
                         </Col>
                       )}
 
-                      {/* Today's Attendance */}
+                      {/* 4. Team Today (Today's Attendance) */}
                       {isMetricTeamTodayVisible && (
                         <Col xs={24} sm={12} lg={metricsSpan}>
                           {(() => {
                             const present = dashboardData.stats.attendance.present;
                             const total = dashboardData.stats.totalMembers;
-                            const rate = dashboardData.stats.attendance.attendanceRate;
-                            const absent = dashboardData.stats.attendance.absent;
-                            const late = dashboardData.stats.attendance.late;
-                            const accent = "#10B981";
+                            const absent = Math.max(0, total - present);
                             return (
                               <KpiCard
                                 eyebrow="Team Today"
                                 value={`${present} / ${total}`}
                                 icon={<TeamOutlined />}
-                                accent={accent}
-                                subtle={`${rate}% present · ${absent} absent · ${late} late`}
-                                chart={
-                                  <div
-                                    style={{
-                                      display: "flex",
-                                      alignItems: "center",
-                                      gap: 10,
-                                    }}
-                                  >
-                                    <div
-                                      style={{
-                                        flex: 1,
-                                        height: 6,
-                                        background: `${accent}1F`,
-                                        borderRadius: 999,
-                                        overflow: "hidden",
-                                      }}
-                                    >
-                                      <span
-                                        style={{
-                                          display: "block",
-                                          height: "100%",
-                                          width: `${rate}%`,
-                                          background: accent,
-                                          borderRadius: 999,
-                                          transition: "width .4s ease",
-                                        }}
-                                      />
-                                    </div>
-                                    <span
-                                      style={{
-                                        fontSize: 11,
-                                        fontWeight: 700,
-                                        color: token.colorTextSecondary,
-                                        fontVariantNumeric: "tabular-nums",
-                                        whiteSpace: "nowrap",
-                                      }}
-                                    >
-                                      {rate}%
-                                    </span>
-                                  </div>
-                                }
+                                accent="#8B5CF6"
+                                subtle="Working / On Leave"
+                                onClick={() => router.push("/attendance")}
                               />
                             );
                           })()}
@@ -1445,1434 +1269,491 @@ function DashboardContent() {
                     isMyTicketsVisible && "tickets",
                     isRecentTicketsVisible && "recentTickets"
                   ].filter(Boolean) as string[];
-
-                  const N = visibleKeys.length;
-                  const spanMap: Record<string, number> = {};
-
-                  if (N >= 6) {
-                    for (let i = 0; i < N; i++) spanMap[visibleKeys[i]] = 8;
-                  } else if (N === 5) {
-                    spanMap[visibleKeys[0]] = 8; spanMap[visibleKeys[1]] = 8; spanMap[visibleKeys[2]] = 8;
-                    spanMap[visibleKeys[3]] = 12; spanMap[visibleKeys[4]] = 12;
-                  } else if (N === 4) {
-                    spanMap[visibleKeys[0]] = 12; spanMap[visibleKeys[1]] = 12;
-                    spanMap[visibleKeys[2]] = 12; spanMap[visibleKeys[3]] = 12;
-                  } else if (N === 3) {
-                    spanMap[visibleKeys[0]] = 8; spanMap[visibleKeys[1]] = 8; spanMap[visibleKeys[2]] = 8;
-                  } else if (N === 2) {
-                    spanMap[visibleKeys[0]] = 12; spanMap[visibleKeys[1]] = 12;
-                  } else if (N === 1) {
-                    spanMap[visibleKeys[0]] = 24;
-                  }
+                  void visibleKeys;
 
                   return (
-                    <Row gutter={[12, 12]}>
-                      {/* Time Tracker */}
-                      {isDailyAttendanceVisible && (
-                        <Col xs={24} md={spanMap["attendance"] === 8 ? 12 : spanMap["attendance"]} lg={spanMap["attendance"]} xl={spanMap["attendance"]}>
-                          <Card
-                            style={{
-                              ...cardBase,
-                              background: isWorking
-                                ? token.colorPrimaryBg
-                                : isPaused
-                                  ? "#FFFBEB"
-                                  : token.colorBgContainer,
-                              overflow: "hidden",
-                              position: "relative",
-                              height: 300,
-                              display: "flex",
-                              flexDirection: "column",
-                            }}
-                            styles={{ body: { padding: 14, flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" } }}
-                          >
+                    <>
+                      {/* ─── Middle Row: Left=Meetings (16), Right=Quick Actions+Attendance (8) ─── */}
+                      <Row gutter={[12, 12]} style={{ marginBottom: 12 }}>
 
-                            <div
-                              style={{
-                                display: "flex",
-                                justifyContent: "space-between",
-                                alignItems: "flex-start",
-                                marginBottom: 14,
-                                position: "relative",
-                                zIndex: 1,
-                              }}
+                        {/* LEFT COL: Today's Meetings */}
+                        <Col xs={24} lg={10}>
+                          {isCalendarVisible ? (
+                            <Card
+                              style={{ ...cardBase, minHeight: 250, display: "flex", flexDirection: "column", position: "relative", overflow: "hidden" }}
+                              styles={{ body: { padding: 0, flex: 1, display: "flex", flexDirection: "column", overflow: "hidden", position: "relative", zIndex: 1 } }}
+                              title={
+                                <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
+                                  <div style={{ width: 28, height: 28, borderRadius: 8, background: `#3B82F614`, border: `1px solid #3B82F633`, display: "inline-flex", alignItems: "center", justifyContent: "center", color: "#3B82F6", fontSize: 13, flexShrink: 0 }}>
+                                    <VideoCameraOutlined />
+                                  </div>
+                                  <div style={{ display: "flex", flexDirection: "column", gap: 2, minWidth: 0 }}>
+                                    <span style={{ fontSize: 14, fontWeight: 600, color: token.colorText, letterSpacing: "-0.1px", lineHeight: 1.2 }}>Today's Meetings</span>
+                                    <span style={{ fontSize: 11, color: token.colorTextSecondary, fontWeight: 400 }}>Your scheduled meetings for today.</span>
+                                  </div>
+                                </div>
+                              }
+                              extra={
+                                connectedProvider ? (
+                                  <Space size={4}>
+                                    <Button type="text" size="small" icon={<SyncOutlined style={{ fontSize: 11 }} />} onClick={() => syncCalendar(connectedProvider)} loading={calendarSyncing} style={{ fontSize: 11 }}>Sync</Button>
+                                    <Button type="link" size="small" onClick={() => router.push("/calendar")} style={{ fontSize: 11, fontWeight: 600 }}>View All →</Button>
+                                  </Space>
+                                ) : (
+                                  <Button type="link" size="small" onClick={() => router.push("/integrations")} style={{ fontSize: 11 }}>Connect →</Button>
+                                )
+                              }
                             >
-                              {sectionTitle(
-                                <ClockCircleOutlined />,
-                                "Daily Attendance",
-                                token.colorPrimary,
-                              )}
-                              {todayAttendance && (
-                                <Tag
-                                  style={{
-                                    borderRadius: 999,
-                                    border: "none",
-                                    padding: "2px 10px",
-                                    fontWeight: 600,
-                                    fontSize: 11,
-                                    background: isWorking
-                                      ? "#ECFDF5"
-                                      : isPaused
-                                        ? "#FFFBEB"
-                                        : isComplete
-                                          ? "#EFF6FF"
-                                          : token.colorFillAlter,
-                                    color: isWorking
-                                      ? "#047857"
-                                      : isPaused
-                                        ? "#B45309"
-                                        : isComplete
-                                          ? "#1D4ED8"
-                                          : token.colorTextSecondary,
-                                  }}
-                                >
-                                  {(isWorking || isPaused) && (
-                                    <span
-                                      className="live-pulse"
-                                      style={{
-                                        display: "inline-block",
-                                        width: 6,
-                                        height: 6,
-                                        borderRadius: "50%",
-                                        background: isPaused ? "#F59E0B" : "#10B981",
-                                        marginRight: 6,
-                                      }}
-                                    />
-                                  )}
-                                  {isWorking
-                                    ? "Active Now"
-                                    : isPaused
-                                      ? `On Break${todayAttendance.breakType ? ` · ${breakLabel(todayAttendance.breakType)}` : ""}`
-                                      : isComplete
-                                        ? "Shift Completed"
-                                        : "Not Clocked In"}
-                                </Tag>
-                              )}
-                            </div>
-
-                            {todayAttendance ? (
-                              (() => {
-                                const TARGET_HOURS = 8;
-                                const parts = (workDuration || "00:00:00").split(":");
-                                const elapsedSec =
-                                  (parseInt(parts[0] || "0", 10) || 0) * 3600 +
-                                  (parseInt(parts[1] || "0", 10) || 0) * 60 +
-                                  (parseInt(parts[2] || "0", 10) || 0);
-                                const targetSec = TARGET_HOURS * 3600;
-                                const progressPct = Math.min(
-                                  100,
-                                  Math.round((elapsedSec / targetSec) * 100),
-                                );
-                                const remainingSec = Math.max(0, targetSec - elapsedSec);
-                                const remH = Math.floor(remainingSec / 3600)
-                                  .toString()
-                                  .padStart(2, "0");
-                                const remM = Math.floor((remainingSec % 3600) / 60)
-                                  .toString()
-                                  .padStart(2, "0");
-                                const isActive = isWorking;
-                                const ringColor = isWorking
-                                  ? token.colorPrimary
-                                  : isPaused
-                                    ? "#F59E0B"
-                                    : notStarted
-                                      ? token.colorTextTertiary
-                                      : "#10B981";
-                                return (
-                                  <div
-                                    style={{
-                                      display: "flex",
-                                      flexDirection: "column",
-                                      gap: 10,
-                                      position: "relative",
-                                      zIndex: 1,
-                                      flex: 1,
-                                      justifyContent: "space-between",
-                                    }}
-                                  >
-                                    {/* Hero ring with timer */}
-                                    <div
-                                      style={{
-                                        position: "relative",
-                                        display: "flex",
-                                        flexDirection: "column",
-                                        alignItems: "center",
-                                      }}
-                                    >
-                                      <div style={{ position: "relative" }}>
-                                        <Progress
-                                          type="circle"
-                                          percent={progressPct}
-                                          size={108}
-                                          strokeWidth={6}
-                                          strokeLinecap="round"
-                                          strokeColor={
-                                            isActive
-                                              ? {
-                                                "0%": token.colorPrimary,
-                                                "100%": "#3B82F6",
-                                              }
-                                              : ringColor
-                                          }
-                                          trailColor={token.colorFillAlter}
-                                          format={() => (
-                                            <div>
-                                              <div
-                                                style={{
-                                                  fontSize: 16,
-                                                  fontWeight: 700,
-                                                  lineHeight: 1,
-                                                  color: isActive
-                                                    ? token.colorPrimary
-                                                    : token.colorText,
-                                                  letterSpacing: "-0.4px",
-                                                  fontVariantNumeric: "tabular-nums",
-                                                }}
-                                              >
-                                                {workDuration || "00:00:00"}
-                                              </div>
-                                              <div
-                                                style={{
-                                                  fontSize: 8,
-                                                  color: token.colorTextTertiary,
-                                                  fontWeight: 700,
-                                                  letterSpacing: "0.4px",
-                                                  marginTop: 3,
-                                                  fontVariantNumeric: "tabular-nums",
-                                                }}
-                                              >
-                                                {progressPct}% / {TARGET_HOURS}h
-                                              </div>
+                              <div style={{ flex: 1, overflowY: "auto", padding: 0, position: "relative", zIndex: 1 }} className="no-scrollbar">
+                                {calendarLoading ? (
+                                  <div style={{ padding: 16 }}><Skeleton active paragraph={{ rows: 3 }} /></div>
+                                ) : !connectedProvider ? (
+                                  <div style={{ padding: "40px 24px", textAlign: "center" }}>
+                                    <div style={{ width: 52, height: 52, borderRadius: 14, background: token.colorFillAlter, margin: "0 auto 12px", display: "inline-flex", alignItems: "center", justifyContent: "center", color: token.colorTextTertiary }}>
+                                      <VideoCameraOutlined style={{ fontSize: 22 }} />
+                                    </div>
+                                    <Text type="secondary" style={{ fontSize: 12, display: "block", marginBottom: 12 }}>Connect your calendar to see today's meetings</Text>
+                                    <Button type="primary" size="small" onClick={() => router.push("/integrations")} style={{ borderRadius: 8 }}>Connect Calendar</Button>
+                                  </div>
+                                ) : todaysMeetings.length > 0 ? (
+                                  (() => {
+                                    const now = dayjs();
+                                    const sorted = [...todaysMeetings].sort((a: any, b: any) => dayjs(a.startTime).valueOf() - dayjs(b.startTime).valueOf());
+                                    const isLiveMtg = (m: any) => dayjs(m.startTime).isBefore(now) && dayjs(m.endTime).isAfter(now);
+                                    const liveMeeting = sorted.find(isLiveMtg);
+                                    const upcoming = sorted.filter((m: any) => dayjs(m.startTime).isAfter(now));
+                                    const heroMeeting = liveMeeting || upcoming[0];
+                                    const restMeetings = sorted.filter((m: any) => m !== heroMeeting);
+                                    const formatRelative = (m: any) => {
+                                      const s = dayjs(m.startTime);
+                                      const e = dayjs(m.endTime);
+                                      if (s.isBefore(now) && e.isAfter(now)) return `${e.diff(now, "minute")}m left`;
+                                      if (s.isAfter(now)) { const diff = s.diff(now, "minute"); if (diff < 60) return `in ${diff}m`; const h = Math.floor(diff / 60); const mm = diff % 60; return mm ? `in ${h}h ${mm}m` : `in ${h}h`; }
+                                      return "Finished";
+                                    };
+                                    return (
+                                      <div style={{ display: "flex", flexDirection: "column" }}>
+                                        {heroMeeting && (
+                                          <div style={{ padding: "14px 20px", borderBottom: `1px solid ${token.colorBorderSecondary}`, background: liveMeeting ? token.colorPrimaryBg : "transparent" }}>
+                                            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
+                                              {liveMeeting && <div style={{ width: 6, height: 6, borderRadius: "50%", background: "#3B82F6", animation: "pulse 2s infinite" }} />}
+                                              <Text type="secondary" style={{ fontSize: 11, fontWeight: 600, letterSpacing: "0.4px" }}>
+                                                {liveMeeting ? "● LIVE NOW" : `UP NEXT · ${formatRelative(heroMeeting)}`}
+                                              </Text>
                                             </div>
-                                          )}
-                                        />
-                                        {isActive && (
-                                          <span
-                                            className="live-pulse"
-                                            style={{
-                                              position: "absolute",
-                                              top: 8,
-                                              right: 8,
-                                              width: 7,
-                                              height: 7,
-                                              borderRadius: "50%",
-                                              background: "#10B981",
-                                              boxShadow: "none",
-                                            }}
-                                          />
+                                            <Text strong style={{ fontSize: 14, display: "block", color: token.colorText, marginBottom: 2 }}>{heroMeeting.title}</Text>
+                                            <Text type="secondary" style={{ fontSize: 12 }}>{dayjs(heroMeeting.startTime).format("h:mm A")} – {dayjs(heroMeeting.endTime).format("h:mm A")}</Text>
+                                          </div>
                                         )}
+                                        {restMeetings.map((m: any) => (
+                                          <div key={m.id} style={{ padding: "12px 20px", display: "flex", alignItems: "center", gap: 14, borderBottom: `1px solid ${token.colorBorderSecondary}` }}>
+                                            <div style={{ width: 3, height: 36, borderRadius: 999, background: "#3B82F6", flexShrink: 0 }} />
+                                            <div style={{ minWidth: 0, flex: 1 }}>
+                                              <Text style={{ fontSize: 13, display: "block", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", fontWeight: 500 }}>{m.title}</Text>
+                                              <Text type="secondary" style={{ fontSize: 11 }}>{dayjs(m.startTime).format("h:mm A")} – {dayjs(m.endTime).format("h:mm A")}</Text>
+                                            </div>
+                                            <Text type="secondary" style={{ fontSize: 11, fontWeight: 600, whiteSpace: "nowrap" }}>{formatRelative(m)}</Text>
+                                          </div>
+                                        ))}
                                       </div>
-                                      <Text
-                                        style={{
-                                          fontSize: 9,
-                                          fontWeight: 700,
-                                          color: token.colorTextSecondary,
-                                          letterSpacing: "0.5px",
-                                          textTransform: "uppercase",
-                                          marginTop: 6,
-                                          fontVariantNumeric: "tabular-nums",
-                                        }}
-                                      >
-                                        {isWorking
-                                          ? `${remH}h ${remM}m to target`
-                                          : isPaused
-                                            ? `On break${todayAttendance.breakType ? ` · ${breakLabel(todayAttendance.breakType)}` : ""}`
-                                            : notStarted
-                                              ? "Session not started"
-                                              : "Daily target reached"}
-                                      </Text>
-                                    </div>
-
-                                    {/* In / Out session pills */}
-                                    <div
-                                      style={{
-                                        display: "grid",
-                                        gridTemplateColumns: "1fr 1fr",
-                                        gap: 8,
-                                      }}
-                                    >
-                                      {[
-                                        {
-                                          icon: <LoginOutlined />,
-                                          label: "Clock In",
-                                          color: "#10B981",
-                                          time: todayAttendance.clockInTime,
-                                        },
-                                        {
-                                          icon: <LogoutOutlined />,
-                                          label: "Clock Out",
-                                          color: "#EF4444",
-                                          time: todayAttendance.clockOutTime,
-                                        },
-                                      ].map((s) => (
-                                        <div
-                                          key={s.label}
-                                          style={{
-                                            display: "flex",
-                                            alignItems: "center",
-                                            gap: 8,
-                                            padding: "8px 10px",
-                                            borderRadius: 10,
-                                            background: token.colorFillAlter,
-                                            border: `1px solid ${token.colorBorderSecondary}`,
-                                          }}
-                                        >
-                                          <div
-                                            style={{
-                                              width: 26,
-                                              height: 26,
-                                              borderRadius: 8,
-                                              background: `${s.color}14`,
-                                              border: `1px solid ${s.color}33`,
-                                              color: s.color,
-                                              display: "inline-flex",
-                                              alignItems: "center",
-                                              justifyContent: "center",
-                                              fontSize: 12,
-                                              flexShrink: 0,
-                                            }}
-                                          >
-                                            {s.icon}
-                                          </div>
-                                          <div style={{ minWidth: 0 }}>
-                                            <Text
-                                              style={{
-                                                fontSize: 9,
-                                                fontWeight: 700,
-                                                letterSpacing: "0.5px",
-                                                color: token.colorTextSecondary,
-                                                textTransform: "uppercase",
-                                                display: "block",
-                                                lineHeight: 1,
-                                              }}
-                                            >
-                                              {s.label}
-                                            </Text>
-                                            <Text
-                                              strong
-                                              style={{
-                                                fontSize: 12,
-                                                color: token.colorText,
-                                                fontVariantNumeric: "tabular-nums",
-                                                letterSpacing: "-0.2px",
-                                                display: "block",
-                                                marginTop: 2,
-                                              }}
-                                            >
-                                              {s.time
-                                                ? dayjs(s.time).format("hh:mm A")
-                                                : "--:-- --"}
-                                            </Text>
-                                          </div>
-                                        </div>
-                                      ))}
-                                    </div>
-
-                                    {/* Action */}
-                                    <div>
-                                      {notStarted ? (
-                                        <Button
-                                          type="primary"
-                                          block
-                                          icon={<PlayCircleOutlined />}
-                                          onClick={handleClockIn}
-                                          loading={isClocking}
-                                          style={{
-                                            borderRadius: 10,
-                                            height: 40,
-                                            fontWeight: 600,
-                                            fontSize: 13,
-                                            boxShadow: "none",
-                                            background: token.colorPrimary,
-                                            border: "none",
-                                          }}
-                                        >
-                                          Start Workday
-                                        </Button>
-                                      ) : isComplete ? (
-                                        <div
-                                          style={{
-                                            padding: "10px 14px",
-                                            borderRadius: 10,
-                                            background: "#ECFDF5",
-                                            border: "1px solid #A7F3D0",
-                                            display: "flex",
-                                            alignItems: "center",
-                                            justifyContent: "center",
-                                            gap: 8,
-                                            color: "#047857",
-                                            fontWeight: 600,
-                                            fontSize: 12,
-                                          }}
-                                        >
-                                          <CheckCircleFilled />
-                                          <span>Shift Complete · Great work!</span>
-                                        </div>
-                                      ) : (
-                                        <div
-                                          style={{
-                                            display: "grid",
-                                            gridTemplateColumns: "1fr 1fr",
-                                            gap: 8,
-                                          }}
-                                        >
-                                          {isWorking ? (
-                                            <Button
-                                              block
-                                              icon={<PauseCircleOutlined />}
-                                              onClick={() => setBreakModalOpen(true)}
-                                              loading={isClocking}
-                                              style={{
-                                                borderRadius: 10,
-                                                height: 40,
-                                                fontWeight: 600,
-                                                fontSize: 13,
-                                                color: "#B45309",
-                                                borderColor: "#FCD34D",
-                                                background: "#FFFBEB",
-                                              }}
-                                            >
-                                              Pause
-                                            </Button>
-                                          ) : (
-                                            <Button
-                                              type="primary"
-                                              block
-                                              icon={<CaretRightOutlined />}
-                                              onClick={handleResume}
-                                              loading={isClocking}
-                                              style={{
-                                                borderRadius: 10,
-                                                height: 40,
-                                                fontWeight: 600,
-                                                fontSize: 13,
-                                                background: token.colorPrimary,
-                                                border: "none",
-                                              }}
-                                            >
-                                              Resume
-                                            </Button>
-                                          )}
-                                          <ConfirmDialog
-                                            tone="warning"
-                                            icon={<CheckSquareOutlined />}
-                                            title="Complete your day?"
-                                            description={`You've worked ${workDuration}. You won't be able to clock in again today.`}
-                                            confirmText="Yes, complete day"
-                                            placement="topRight"
-                                            onConfirm={handleComplete}
-                                          >
-                                            <Button
-                                              block
-                                              icon={<CheckSquareOutlined />}
-                                              loading={isClocking}
-                                              style={{
-                                                borderRadius: 10,
-                                                height: 40,
-                                                fontWeight: 600,
-                                                fontSize: 13,
-                                                color: "#047857",
-                                                borderColor: "#6EE7B7",
-                                                background: "#ECFDF5",
-                                              }}
-                                            >
-                                              Day Complete
-                                            </Button>
-                                          </ConfirmDialog>
-                                        </div>
-                                      )}
-                                    </div>
+                                    );
+                                  })()
+                                ) : (
+                                  <div style={{ padding: "40px 24px", textAlign: "center" }}>
+                                    <Text type="secondary" style={{ fontSize: 12 }}>No meetings scheduled for today.</Text>
                                   </div>
-                                );
-                              })()
-                            ) : (
-                              <Skeleton active paragraph={{ rows: 3 }} />
-                            )}
-                          </Card>
-                        </Col>
-                      )}
-
-                      {/* Calendar Integration - Takes up 2 columns */}
-                      {isCalendarVisible && (
-                        <Col xs={24} md={spanMap["calendar"] === 8 ? 12 : spanMap["calendar"]} lg={spanMap["calendar"]} xl={spanMap["calendar"]}>
-                          <Card
-                            style={{ ...cardBase, height: 300, display: "flex", flexDirection: "column", position: "relative", overflow: "hidden" }}
-                            styles={{ body: { padding: 0, flex: 1, display: "flex", flexDirection: "column", overflow: "hidden", position: "relative", zIndex: 1 } }}
-                            title={
-                              <div
-                                style={{
-                                  display: "flex",
-                                  alignItems: "center",
-                                  gap: 10,
-                                  minWidth: 0,
-                                }}
-                              >
-                                <div
-                                  style={{
-                                    width: 28,
-                                    height: 28,
-                                    borderRadius: 8,
-                                    background: `#3B82F614`,
-                                    border: `1px solid #3B82F633`,
-                                    display: "inline-flex",
-                                    alignItems: "center",
-                                    justifyContent: "center",
-                                    color: "#3B82F6",
-                                    fontSize: 13,
-                                    flexShrink: 0,
-                                  }}
-                                >
-                                  <VideoCameraOutlined />
-                                </div>
-                                <div style={{ display: "flex", flexDirection: "column", gap: 4, minWidth: 0 }}>
-                                  <span
-                                    style={{
-                                      fontSize: 14,
-                                      fontWeight: 600,
-                                      color: token.colorText,
-                                      letterSpacing: "-0.1px",
-                                      lineHeight: 1.2,
-                                      whiteSpace: "nowrap",
-                                      overflow: "hidden",
-                                      textOverflow: "ellipsis",
-                                    }}
-                                  >
-                                    Today's Meetings
-                                  </span>
-                                  {todaysMeetings.length > 0 && (
-                                    <span
-                                      style={{
-                                        fontSize: 10,
-                                        fontWeight: 700,
-                                        letterSpacing: "0.4px",
-                                        color: "#3B82F6",
-                                        background: `#3B82F614`,
-                                        border: `1px solid #3B82F633`,
-                                        padding: "2px 7px",
-                                        borderRadius: 999,
-                                        fontVariantNumeric: "tabular-nums",
-                                        width: "fit-content",
-                                        lineHeight: 1.2,
-                                      }}
-                                    >
-                                      {todaysMeetings.length} TODAY
-                                    </span>
-                                  )}
-                                </div>
+                                )}
                               </div>
-                            }
-                            extra={
-                              connectedProvider ? (
-                                <Space size={4}>
-                                  <Button
-                                    type="text"
-                                    size="small"
-                                    icon={
-                                      <ClockCircleOutlined
-                                        style={{ fontSize: 11 }}
-                                      />
-                                    }
-                                    onClick={() =>
-                                      syncCalendar(connectedProvider)
-                                    }
-                                    loading={calendarSyncing}
-                                    style={{ fontSize: 11 }}
-                                  >
-                                    Sync
-                                  </Button>
-                                  <Button
-                                    type="text"
-                                    size="small"
-                                    onClick={() => router.push("/calendar")}
-                                    style={{ fontSize: 11 }}
-                                  >
-                                    View
-                                  </Button>
-                                </Space>
-                              ) : (
-                                <Button
-                                  type="link"
-                                  size="small"
-                                  onClick={() => router.push("/integrations")}
-                                  style={{ fontSize: 11 }}
-                                >
-                                  Connect
-                                </Button>
-                              )
-                            }
-                          >
-                            <div
-                              style={{
-                                flex: 1,
-                                overflowY: "auto",
-                                padding: 0,
-                                position: "relative",
-                                zIndex: 1,
-                              }}
-                              className="no-scrollbar"
-                            >
-                              {calendarLoading ? (
-                                <div style={{ padding: 16 }}>
-                                  <Skeleton active paragraph={{ rows: 3 }} />
-                                </div>
-                              ) : !connectedProvider ? (
-                                <div
-                                  style={{
-                                    padding: 24,
-                                    textAlign: "center",
-                                  }}
-                                >
-                                  <div
-                                    style={{
-                                      width: 48,
-                                      height: 48,
-                                      borderRadius: 14,
-                                      background: token.colorFillAlter,
-                                      margin: "0 auto 12px",
-                                      display: "inline-flex",
-                                      alignItems: "center",
-                                      justifyContent: "center",
-                                      color: token.colorTextTertiary,
-                                    }}
-                                  >
-                                    <VideoCameraOutlined
-                                      style={{ fontSize: 22 }}
-                                    />
-                                  </div>
-                                  <Text
-                                    type="secondary"
-                                    style={{
-                                      fontSize: 12,
-                                      display: "block",
-                                      marginBottom: 12,
-                                    }}
-                                  >
-                                    Connect your calendar to see today's meetings
-                                  </Text>
-                                  <Button
-                                    type="primary"
-                                    size="small"
-                                    onClick={() =>
-                                      router.push("/integrations")
-                                    }
-                                    style={{ borderRadius: 8 }}
-                                  >
-                                    Connect Calendar
-                                  </Button>
-                                </div>
-                              ) : todaysMeetings.length > 0 ? (
-                                (() => {
-                                  const now = dayjs();
-                                  const sorted = [...todaysMeetings].sort(
-                                    (a: any, b: any) =>
-                                      dayjs(a.startTime).valueOf() -
-                                      dayjs(b.startTime).valueOf(),
-                                  );
-                                  const isLive = (m: any) =>
-                                    dayjs(m.startTime).isBefore(now) &&
-                                    dayjs(m.endTime).isAfter(now);
-                                  const isPast = (m: any) =>
-                                    dayjs(m.endTime).isBefore(now);
-                                  const liveMeeting = sorted.find(isLive);
-                                  const upcoming = sorted.filter((m: any) =>
-                                    dayjs(m.startTime).isAfter(now),
-                                  );
-                                  const ended = sorted.filter(isPast);
-                                  const heroMeeting = liveMeeting || upcoming[0];
-                                  const restMeetings = sorted.filter(
-                                    (m: any) => m !== heroMeeting,
-                                  );
-
-                                  const formatRelative = (m: any) => {
-                                    const s = dayjs(m.startTime);
-                                    const e = dayjs(m.endTime);
-                                    if (s.isBefore(now) && e.isAfter(now)) {
-                                      const minLeft = e.diff(now, "minute");
-                                      return `${minLeft}m left`;
-                                    }
-                                    if (s.isAfter(now)) {
-                                      const diff = s.diff(now, "minute");
-                                      if (diff < 60) return `in ${diff}m`;
-                                      const h = Math.floor(diff / 60);
-                                      const mm = diff % 60;
-                                      return mm
-                                        ? `in ${h}h ${mm}m`
-                                        : `in ${h}h`;
-                                    }
-                                    return "Finished";
-                                  };
-
-                                  return (
-                                    <div style={{ display: "flex", flexDirection: "column" }}>
-                                      {heroMeeting && (
-                                        <div style={{ padding: 16, borderBottom: `1px solid ${token.colorBorderSecondary}`, background: liveMeeting ? token.colorPrimaryBg : "transparent" }}>
-                                          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
-                                            {liveMeeting && <div style={{ width: 6, height: 6, borderRadius: "50%", background: "#3B82F6", animation: "pulse 2s infinite" }} />}
-                                            <Text type="secondary" style={{ fontSize: 11, fontWeight: 600 }}>
-                                              {liveMeeting ? "LIVE NOW" : `UP NEXT · ${formatRelative(heroMeeting)}`}
-                                            </Text>
-                                          </div>
-                                          <Text strong style={{ fontSize: 14, display: "block", color: token.colorText }}>{heroMeeting.title}</Text>
-                                          <Text type="secondary" style={{ fontSize: 12 }}>{dayjs(heroMeeting.startTime).format("h:mm A")} - {dayjs(heroMeeting.endTime).format("h:mm A")}</Text>
-                                        </div>
-                                      )}
-                                      {restMeetings.map((m: any) => (
-                                        <div key={m.id} style={{ padding: "12px 16px", display: "flex", alignItems: "center", justifyContent: "space-between", borderBottom: `1px solid ${token.colorBorderSecondary}` }}>
-                                          <div style={{ minWidth: 0 }}>
-                                            <Text style={{ fontSize: 13, display: "block", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{m.title}</Text>
-                                            <Text type="secondary" style={{ fontSize: 11 }}>{dayjs(m.startTime).format("h:mm A")}</Text>
-                                          </div>
-                                        </div>
-                                      ))}
-                                    </div>
-                                  );
-                                })()
-                              ) : (
-                                <div style={{ padding: 24, textAlign: "center" }}>
-                                  <Text type="secondary" style={{ fontSize: 12 }}>No meetings scheduled for today.</Text>
-                                </div>
-                              )}
-                            </div>
-                          </Card>
-                          <BreakPickerModal
-                            open={breakModalOpen}
-                            loading={isClocking}
-                            onCancel={() => setBreakModalOpen(false)}
-                            onConfirm={async (bt, r) => {
-                              await handlePause(bt, r);
-                              setBreakModalOpen(false);
-                            }}
-                          />
+                            </Card>
+                          ) : (
+                            <div style={{ minHeight: 250 }} />
+                          )}
                         </Col>
-                      )}
 
-                      {isQuickActionsVisible && (
-                        <Col xs={24} md={spanMap["quickActions"] === 8 ? 12 : spanMap["quickActions"]} lg={spanMap["quickActions"]} xl={spanMap["quickActions"]}>
-                          {(() => {
+                        {/* Daily Updates */}
+                        {isMetricDailyUpdatesVisible && (
+                          <Col xs={24} md={12} lg={7}>
+                            <Card
+                              style={{ ...cardBase, height: "100%" }}
+                              styles={{ body: { padding: 12, height: "100%", display: "flex", flexDirection: "column" } }}
+                              title={
+                                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                                    <div style={{ width: 30, height: 30, borderRadius: 8, background: "#F59E0B14", border: "1px solid #F59E0B33", display: "flex", alignItems: "center", justifyContent: "center", color: "#F59E0B", fontSize: 16 }}>
+                                      <ThunderboltFilled />
+                                    </div>
+                                    <span style={{ fontSize: 14, fontWeight: 700, color: token.colorText, letterSpacing: "-0.2px" }}>Daily Updates</span>
+                                  </div>
+                                  <Button type="link" size="small" onClick={() => router.push("/daily-updates/submit")} style={{ fontSize: 12, fontWeight: 600, letterSpacing: "-0.1px" }}>View All</Button>
+                                </div>
+                              }
+                            >
+                              <div style={{ display: "flex", gap: 8 }}>
+                                {[
+                                  { label: "BOD", state: todayUpdates.bod, date: "Today · " + dayjs().format("MMM DD") },
+                                  { label: "EOD", state: todayUpdates.eod, date: "Today · " + dayjs().format("MMM DD") },
+                                ].map((item) => (
+                                  <div
+                                    key={item.label}
+                                    style={{ flex: 1, minWidth: 0, padding: "12px", borderRadius: 10, background: item.state ? "#10B98114" : token.colorBgContainer, border: `1px solid ${item.state ? "#10B98133" : token.colorBorderSecondary}`, display: "flex", flexDirection: "column", gap: 6 }}
+                                  >
+                                    <Text style={{ fontSize: 11, fontWeight: 700, color: token.colorTextSecondary, letterSpacing: "1px" }}>{item.label}</Text>
+                                    <div style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 13, fontWeight: 700, color: item.state ? token.colorSuccess : token.colorWarning }}>
+                                      <span style={{ width: 8, height: 8, borderRadius: "50%", background: item.state ? "#10B981" : "#F59E0B", display: "inline-block" }} />
+                                      {item.state ? "Submitted" : "Pending"}
+                                    </div>
+                                    <Text style={{ fontSize: 11, color: token.colorTextTertiary }}>{item.date}</Text>
+                                  </div>
+                                ))}
+                              </div>
+                            </Card>
+                          </Col>
+                        )}
+
+                        {/* RIGHT COL: Quick Actions */}
+                        <Col xs={24} md={12} lg={7}>
+
+                          {/* Quick Actions */}
+                          {isQuickActionsVisible && (() => {
                             const accentQA = "#10B981";
                             const quickActions = [
-                              {
-                                icon: <PlusCircleOutlined />,
-                                title: "Create Ticket",
-                                desc: "Log a new task or issue",
-                                accent: "#3B82F6",
-                                onClick: () => setIsCreateTicketModalOpen(true),
-                                shortcut: "T",
-                              },
-                              {
-                                icon: <FolderOpenOutlined />,
-                                title: "Document Hub",
-                                desc: "Browse and manage docs",
-                                accent: "#10B981",
-                                onClick: () => router.push("/documenthub"),
-                                shortcut: "D",
-                              },
-                              {
-                                icon: <AppstoreOutlined />,
-                                title: "Project",
-                                desc: "Manage and track all projects",
-                                accent: "#3B82F6",
-                                onClick: () => router.push("/projects/manage"),
-                                shortcut: "P",
-                              },
+                              { icon: <PlusCircleOutlined />, title: "Create Ticket", desc: "Log a new task or issue", accent: "#3B82F6", onClick: () => setIsCreateTicketModalOpen(true) },
+                              { icon: <FormOutlined />, title: "Submit Updates", desc: "BOD / EOD", accent: "#8B5CF6", onClick: () => router.push("/daily-updates") },
+                              { icon: <FolderOpenOutlined />, title: "Document Hub", desc: "Access company files", accent: "#10B981", onClick: () => router.push("/documenthub") },
+                              { icon: <AppstoreOutlined />, title: "Projects", desc: "Manage your projects", accent: "#F59E0B", onClick: () => router.push("/projects/manage") },
                             ];
                             return (
                               <Card
-                                style={{
-                                  ...cardBase,
-                                  height: "100%",
-                                  position: "relative",
-                                  overflow: "hidden",
-                                }}
-                                styles={{
-                                  body: {
-                                    padding: 16,
-                                    position: "relative",
-                                    zIndex: 1,
-                                  },
-                                }}
+                                style={{ ...cardBase, position: "relative", overflow: "hidden", height: "100%" }}
+                                styles={{ body: { padding: 12, position: "relative", zIndex: 1 } }}
                                 title={
-                                  <div
-                                    style={{
-                                      display: "flex",
-                                      alignItems: "center",
-                                      gap: 10,
-                                      minWidth: 0,
-                                    }}
-                                  >
-                                    {sectionTitle(
-                                      <ThunderboltFilled />,
-                                      "Quick Actions",
-                                      accentQA,
-                                    )}
-                                    <span
-                                      style={{
-                                        fontSize: 10,
-                                        fontWeight: 700,
-                                        letterSpacing: "0.4px",
-                                        color: accentQA,
-                                        background: `${accentQA}14`,
-                                        border: `1px solid ${accentQA}33`,
-                                        padding: "2px 7px",
-                                        borderRadius: 999,
-                                      }}
-                                    >
-                                      SHORTCUTS
-                                    </span>
+                                  <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                                      <div style={{ width: 30, height: 30, borderRadius: 8, background: `${accentQA}14`, border: `1px solid ${accentQA}33`, display: "flex", alignItems: "center", justifyContent: "center", color: "#10B981", fontSize: 16 }}>
+                                        <ThunderboltFilled />
+                                      </div>
+                                      <span style={{ fontSize: 14, fontWeight: 700, color: token.colorText, letterSpacing: "-0.2px" }}>Quick Actions</span>
+                                    </div>
+                                    <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.4px", color: accentQA, background: `${accentQA}14`, border: `1px solid ${accentQA}33`, padding: "2px 7px", borderRadius: 999 }}>SHORTCUTS</span>
                                   </div>
                                 }
                               >
-
-                                <div
-                                  style={{
-                                    display: "flex",
-                                    flexDirection: "column",
-                                    gap: 8,
-                                  }}
-                                >
+                                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
                                   {quickActions.map((a) => (
                                     <div
                                       key={a.title}
                                       onClick={a.onClick}
-                                      className="dash-qa-row"
-                                      style={
-                                        {
-                                          cursor: "pointer",
-                                          display: "flex",
-                                          alignItems: "center",
-                                          gap: 12,
-                                          padding: "10px 12px 10px 14px",
-                                          borderRadius: 12,
-                                          border: `1px solid ${token.colorBorderSecondary}`,
-                                          background: token.colorBgContainer,
-                                          position: "relative",
-                                          overflow: "hidden",
-                                          ["--qa-accent" as any]: a.accent,
-                                        } as React.CSSProperties
-                                      }
+                                      className="dash-qa-row hover-scale"
+                                      style={{ cursor: "pointer", display: "flex", alignItems: "center", gap: 8, padding: "10px 10px", borderRadius: 10, border: `1px solid ${token.colorBorderSecondary}`, background: token.colorBgContainer, position: "relative", overflow: "hidden" }}
                                     >
-                                      <span
-                                        aria-hidden
-                                        style={{
-                                          position: "absolute",
-                                          left: 0,
-                                          top: 0,
-                                          bottom: 0,
-                                          width: 3,
-                                          background: a.accent,
-                                        }}
-                                      />
-                                      <div
-                                        style={{
-                                          width: 36,
-                                          height: 36,
-                                          borderRadius: 10,
-                                          background: `${a.accent}14`,
-                                          border: `1px solid ${a.accent}33`,
-                                          display: "inline-flex",
-                                          alignItems: "center",
-                                          justifyContent: "center",
-                                          color: a.accent,
-                                          fontSize: 16,
-                                          flexShrink: 0,
-                                        }}
-                                      >
-                                        {a.icon}
-                                      </div>
+                                      <div style={{ width: 30, height: 30, borderRadius: 8, background: `${a.accent}10`, display: "inline-flex", alignItems: "center", justifyContent: "center", color: a.accent, fontSize: 14, flexShrink: 0 }}>{a.icon}</div>
                                       <div style={{ flex: 1, minWidth: 0 }}>
-                                        <Text
-                                          strong
-                                          style={{
-                                            fontSize: 13,
-                                            color: token.colorText,
-                                            display: "block",
-                                            lineHeight: 1.3,
-                                            letterSpacing: "-0.1px",
-                                          }}
-                                        >
-                                          {a.title}
-                                        </Text>
-                                        <Text
-                                          type="secondary"
-                                          style={{
-                                            fontSize: 11,
-                                            lineHeight: 1.3,
-                                          }}
-                                        >
-                                          {a.desc}
-                                        </Text>
+                                        <Text strong style={{ fontSize: 12, color: token.colorText, display: "block", lineHeight: 1.2, letterSpacing: "-0.2px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{a.title}</Text>
+                                        <Text type="secondary" style={{ fontSize: 10, lineHeight: 1.2, color: token.colorTextSecondary, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{a.desc}</Text>
                                       </div>
-                                      <span
-                                        style={{
-                                          fontSize: 10,
-                                          fontWeight: 700,
-                                          color: token.colorTextTertiary,
-                                          background: token.colorFillAlter,
-                                          border: `1px solid ${token.colorBorderSecondary}`,
-                                          padding: "2px 6px",
-                                          borderRadius: 6,
-                                          fontVariantNumeric: "tabular-nums",
-                                          letterSpacing: "0.4px",
-                                          flexShrink: 0,
-                                        }}
-                                      >
-                                        ⌘ {a.shortcut}
-                                      </span>
-                                      <ArrowRightOutlined
-                                        style={{
-                                          fontSize: 11,
-                                          color: token.colorTextTertiary,
-                                          flexShrink: 0,
-                                        }}
-                                      />
+                                      <ArrowRightOutlined style={{ fontSize: 10, color: token.colorTextTertiary, flexShrink: 0 }} />
                                     </div>
                                   ))}
                                 </div>
                               </Card>
                             );
                           })()}
-                        </Col>
-                      )}
 
+                        </Col>
+                      </Row>
+
+                      <BreakPickerModal open={breakModalOpen} loading={isClocking} onCancel={() => setBreakModalOpen(false)} onConfirm={async (bt, r) => { await handlePause(bt, r); setBreakModalOpen(false); }} />
+
+
+
+                      {/* Salary Slip full-width row */}
                       {isCardSalarySlipVisible && (
-                        <Col xs={24} md={spanMap["salarySlip"] === 8 ? 12 : spanMap["salarySlip"]} lg={spanMap["salarySlip"]} xl={spanMap["salarySlip"]}>
-                          <Card
-                            style={{ ...cardBase, height: "100%", minHeight: 300, display: "flex", flexDirection: "column" }}
-                            styles={{
-                              body: { padding: 0, flex: 1, display: "flex", flexDirection: "column", minHeight: 0 },
-                            }}
-                          >
-                            {renderSalarySlip()}
-                          </Card>
-                        </Col>
+                        <Row gutter={[12, 12]} style={{ marginBottom: 12 }}>
+                          <Col xs={24}>
+                            <Card style={{ ...cardBase, minHeight: 200, display: "flex", flexDirection: "column" }} styles={{ body: { padding: 0, flex: 1, display: "flex", flexDirection: "column", minHeight: 0 } }}>
+                              {renderSalarySlip()}
+                            </Card>
+                          </Col>
+                        </Row>
                       )}
 
+                      {/* ─── Bottom Row: Daily Updates | My Work Progress | Recent Tickets ─── */}
+                      <Row gutter={[12, 12]} align="stretch">
 
-                      {/* My Tickets Stats */}
-                      {isMyTicketsVisible && (
-                        <Col xs={24} md={spanMap["tickets"] === 8 ? 12 : spanMap["tickets"]} lg={spanMap["tickets"]} xl={spanMap["tickets"]}>
-                          {(() => {
-                            const segments = [
-                              { key: "done", label: "Done", value: completedTickets, color: "#10B981", icon: <CheckCircleFilled style={{ fontSize: 11 }} /> },
-                              { key: "active", label: "Active", value: inProgressTickets, color: "#3B82F6", icon: <SyncOutlined spin style={{ fontSize: 11 }} /> },
-                              { key: "testing", label: "In Testing", value: inTestingTickets, color: "#10B981", icon: <ExperimentOutlined style={{ fontSize: 11 }} /> },
-                              { key: "not_started", label: "Not Started", value: notStartedTickets, color: "#94A3B8", icon: <ClockCircleOutlined style={{ fontSize: 11 }} /> },
-                            ];
-                            const pct = (n: number) => totalTickets > 0 ? Math.round((n / totalTickets) * 100) : 0;
-                            return (
-                              <Card
-                                style={{ ...cardBase, minHeight: 330, height: "100%", overflow: "hidden" }}
-                                styles={{ body: { padding: 0, height: "100%", display: "flex", flexDirection: "column" } }}
-                                title={sectionTitle(<TrophyOutlined />, "My Tickets", "#3B82F6")}
-                                extra={<Button type="link" size="small" onClick={() => router.push("/tickets/select")} style={{ fontSize: 11 }}>View all</Button>}
-                              >
-                                <div style={{ flex: 1, display: "flex", flexDirection: "column", padding: "8px 12px 10px" }}>
-                                  <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: 10, marginBottom: 4 }}>
-                                    <div>
-                                      <Text style={{ fontSize: 10, fontWeight: 700, color: token.colorTextSecondary, letterSpacing: "0.6px", textTransform: "uppercase", display: "block" }}>Completion</Text>
-                                      <div style={{ display: "flex", alignItems: "baseline", gap: 4, marginTop: 0 }}>
-                                        <span style={{ fontSize: 20, fontWeight: 700, lineHeight: 1, color: token.colorPrimary, letterSpacing: "-0.5px", fontVariantNumeric: "tabular-nums" }}>
-                                          {completionRate}%
-                                        </span>
-                                      </div>
+                        {/* MIDDLE COL: Daily Updates */}
+                        {isDailyAttendanceVisible && (
+                          <Col xs={24} md={12} lg={7}>
+                            <Card
+                              style={{ ...cardBase, background: isWorking ? token.colorPrimaryBg : isPaused ? "#FFFBEB" : token.colorBgContainer, overflow: "hidden", position: "relative", height: 250, display: "flex", flexDirection: "column" }}
+                              styles={{ body: { padding: 10, display: "flex", flexDirection: "column", flex: 1 } }}
+                              title={
+                                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                                    <div style={{ width: 30, height: 30, borderRadius: 8, background: "#EEF2FF", border: "1px solid #E0E7FF", display: "flex", alignItems: "center", justifyContent: "center", color: "#4F46E5", fontSize: 16 }}>
+                                      <ClockCircleOutlined />
                                     </div>
-                                    <div style={{ textAlign: "right", paddingBottom: 4 }}>
-                                      <div style={{ fontSize: 16, fontWeight: 700, color: token.colorText, lineHeight: 1, fontVariantNumeric: "tabular-nums" }}>
-                                        {completedTickets}
-                                        <span style={{ color: token.colorTextTertiary, fontWeight: 500 }}> / {totalTickets}</span>
-                                      </div>
-                                      <Text style={{ fontSize: 10, color: token.colorTextSecondary, fontWeight: 600, letterSpacing: "0.4px", textTransform: "uppercase" }}>Closed · Total</Text>
-                                    </div>
+                                    <span style={{ fontSize: 14, fontWeight: 700, color: token.colorText, letterSpacing: "-0.2px" }}>Daily Attendance</span>
                                   </div>
-                                  <div style={{ display: "flex", width: "100%", height: 5, borderRadius: 999, overflow: "hidden", background: token.colorFillAlter, border: `1px solid ${token.colorBorderSecondary}`, gap: 2, padding: 1, marginBottom: 6 }}>
-                                    {segments.filter((s) => s.value > 0).map((s) => (
-                                      <Tooltip key={s.key} title={`${s.label}: ${s.value} (${pct(s.value)}%)`}>
-                                        <div style={{ flex: s.value, background: s.color, borderRadius: 999, minWidth: 4 }} />
-                                      </Tooltip>
-                                    ))}
-                                  </div>
-                                  <div style={{ display: "flex", flexDirection: "column", gap: 6, marginTop: 8 }}>
-                                    {segments.map((s) => {
-                                      const segmentPct = pct(s.value);
-                                      return (
-                                        <div
-                                          key={s.key}
-                                          style={{
-                                            position: "relative",
-                                            display: "flex",
-                                            alignItems: "center",
-                                            justifyContent: "space-between",
-                                            padding: "6px 12px",
-                                            borderRadius: 10,
-                                            background: token.colorFillAlter,
-                                            border: `1px solid ${token.colorBorderSecondary}`,
-                                            overflow: "hidden",
-                                          }}
-                                        >
-                                          {/* Progress background */}
-                                          <div
-                                            aria-hidden
-                                            style={{
-                                              position: "absolute",
-                                              left: 0,
-                                              top: 0,
-                                              bottom: 0,
-                                              width: `${segmentPct}%`,
-                                              background: `${s.color}0D`,
-                                              transition: "width .6s cubic-bezier(0.4, 0, 0.2, 1)",
-                                            }}
-                                          />
-
-                                          <div style={{ display: "flex", alignItems: "center", gap: 10, position: "relative", zIndex: 1 }}>
-                                            <div
-                                              style={{
-                                                width: 26,
-                                                height: 26,
-                                                borderRadius: 8,
-                                                background: `${s.color}14`,
-                                                display: "flex",
-                                                alignItems: "center",
-                                                justifyContent: "center",
-                                                border: `1px solid ${s.color}26`,
-                                              }}
-                                            >
-                                              <div
-                                                style={{
-                                                  display: "flex",
-                                                  alignItems: "center",
-                                                  justifyContent: "center",
-                                                  color: s.color,
-                                                  filter: `drop-shadow(0 0 4px ${s.color}40)`,
-                                                }}
-                                              >
-                                                {s.icon}
-                                              </div>
-                                            </div>
-                                            <div style={{ display: "flex", flexDirection: "column" }}>
-                                              <Text style={{ fontSize: 12, fontWeight: 700, color: token.colorText, lineHeight: 1.1 }}>{s.label}</Text>
-                                              <Text style={{ fontSize: 8, fontWeight: 600, color: token.colorTextTertiary, textTransform: "uppercase", letterSpacing: "0.3px" }}>Tasks</Text>
-                                            </div>
-                                          </div>
-
-                                          <div style={{ display: "flex", alignItems: "baseline", gap: 6, position: "relative", zIndex: 1 }}>
-                                            <span style={{ fontSize: 16, fontWeight: 800, color: token.colorText, fontVariantNumeric: "tabular-nums", lineHeight: 1 }}>{s.value}</span>
-                                            <span style={{ fontSize: 10, color: token.colorTextTertiary, fontWeight: 700, fontVariantNumeric: "tabular-nums", minWidth: 32, textAlign: "right" }}>{segmentPct}%</span>
-                                          </div>
-                                        </div>
-                                      );
-                                    })}
-                                  </div>
+                                  <Button type="link" size="small" onClick={() => router.push("/my-hub/attendance")} style={{ fontSize: 12, fontWeight: 600, letterSpacing: "-0.1px" }}>View Details →</Button>
                                 </div>
-                              </Card>
-                            );
-                          })()}
-                        </Col>
-                      )}
-
-                      {/* Recent Tickets */}
-                      {isRecentTicketsVisible && (
-                        <Col xs={24} md={spanMap["recentTickets"] === 8 ? 12 : spanMap["recentTickets"]} lg={spanMap["recentTickets"]} xl={spanMap["recentTickets"]}>
-                          {(() => {
-                            const accent = "#3B82F6";
-                            const testingCount = recentTickets.filter((t: any) => {
-                              const s = t.status?.toLowerCase();
-                              return s === "in_testing" || s === "testing" || s === "live_testing" || s === "live testing";
-                            }).length;
-                            const activeCount = recentTickets.filter((t: any) => {
-                              const s = t.status?.toLowerCase();
-                              return s === "in_progress" || s === "doing";
-                            }).length;
-                            const notStartedCount = recentTickets.filter((t: any) => {
-                              const s = t.status?.toLowerCase();
-                              return s === "not_started";
-                            }).length;
-                            return (
-                              <Card
-                                style={{
-                                  ...cardBase,
-                                  height: 330,
-                                  display: "flex",
-                                  flexDirection: "column",
-                                  position: "relative",
-                                  overflow: "hidden",
-                                }}
-                                styles={{
-                                  body: {
-                                    padding: 16,
-                                    display: "flex",
-                                    flexDirection: "column",
-                                    position: "relative",
-                                    zIndex: 1,
-                                    flex: 1,
-                                    minHeight: 0,
-                                  },
-                                }}
-                                title={
-                                  <div
-                                    style={{
-                                      display: "flex",
-                                      alignItems: "center",
-                                      gap: 10,
-                                      flexWrap: "wrap",
-                                      minWidth: 0,
-                                    }}
-                                  >
-                                    {sectionTitle(
-                                      <FileTextOutlined />,
-                                      "Recent Tickets",
-                                      accent,
-                                    )}
-                                    {recentTickets.length > 0 && (
-                                      <span
-                                        style={{
-                                          fontSize: 10,
-                                          fontWeight: 700,
-                                          letterSpacing: "0.4px",
-                                          color: accent,
-                                          background: `${accent}14`,
-                                          border: `1px solid ${accent}33`,
-                                          padding: "2px 7px",
-                                          borderRadius: 999,
-                                          fontVariantNumeric: "tabular-nums",
-                                        }}
-                                      >
-                                        {recentTickets.length} TOTAL
-                                      </span>
-                                    )}
-                                  </div>
-                                }
-                                extra={
-                                  <Button
-                                    type="link"
-                                    size="small"
-                                    onClick={() => router.push("/tickets/select")}
-                                    style={{ fontSize: 11, fontWeight: 600 }}
-                                  >
-                                    View all{" "}
-                                    <ArrowRightOutlined style={{ fontSize: 10 }} />
-                                  </Button>
-                                }
-                              >
-
-                                {recentTickets.length === 0 ? (
-                                  <div
-                                    style={{
-                                      padding: 40,
-                                      textAlign: "center",
-                                      flex: 1,
-                                      display: "flex",
-                                      flexDirection: "column",
-                                      alignItems: "center",
-                                      justifyContent: "center",
-                                      gap: 10,
-                                    }}
-                                  >
-                                    <div
-                                      style={{
-                                        width: 52,
-                                        height: 52,
-                                        borderRadius: 16,
-                                        background: `${accent}14`,
-                                        border: `1px solid ${accent}33`,
-                                        display: "inline-flex",
-                                        alignItems: "center",
-                                        justifyContent: "center",
-                                        color: accent,
-                                        fontSize: 22,
-                                      }}
-                                    >
-                                      <FileTextOutlined />
-                                    </div>
-                                    <Text
-                                      strong
-                                      style={{
-                                        fontSize: 13,
-                                        color: token.colorText,
-                                      }}
-                                    >
-                                      No tickets yet
-                                    </Text>
-                                    <Text
-                                      type="secondary"
-                                      style={{ fontSize: 11 }}
-                                    >
-                                      Recent assignments will appear here
-                                    </Text>
-                                  </div>
-                                ) : (
-                                  <div
-                                    className="no-scrollbar"
-                                    style={{
-                                      display: "flex",
-                                      flexDirection: "column",
-                                      gap: 12,
-                                      flex: 1,
-                                      overflowY: "auto",
-                                      paddingRight: 4,
-                                      alignContent: "start",
-                                    }}
-                                  >
-                                    {recentTickets.map((item: any) => {
-                                      const status = item.status?.toLowerCase();
-                                      const statusMeta: Record<
-                                        string,
-                                        { label: string; color: string; bg: string }
-                                      > = {
-                                        completed: { label: "Completed", color: "#10B981", bg: "#ECFDF5" },
-                                        live: { label: "Live", color: "#10B981", bg: "#ECFDF5" },
-                                        done: { label: "Done", color: "#10B981", bg: "#ECFDF5" },
-                                        in_progress: { label: "In Progress", color: "#3B82F6", bg: "#EFF6FF" },
-                                        doing: { label: "In Progress", color: "#3B82F6", bg: "#EFF6FF" },
-                                        in_testing: { label: "In Testing", color: "#10B981", bg: "#ECFDF5" },
-                                        testing: { label: "In Testing", color: "#10B981", bg: "#ECFDF5" },
-                                        live_testing: { label: "In Testing", color: "#10B981", bg: "#ECFDF5" },
-                                        "live testing": { label: "In Testing", color: "#10B981", bg: "#ECFDF5" },
-                                        not_started: { label: "Not Started", color: "#94A3B8", bg: token.colorFillAlter },
-                                      };
-                                      const sm =
-                                        statusMeta[status] || {
-                                          label: (item.status || "—")
-                                            .replace(/_/g, " ")
-                                            .toUpperCase(),
-                                          color: token.colorTextSecondary,
-                                          bg: token.colorFillAlter,
-                                        };
-                                      const priorityColor = getPriorityColor(item.priority);
-                                      const priority = (item.priority || "")
-                                        .toString()
-                                        .toUpperCase();
-                                      const projectLabel =
-                                        typeof item.project === "string"
-                                          ? item.project
-                                          : item.project?.code || item.project?.name || "—";
-
-                                      const isLive =
-                                        status === "in_progress" ||
-                                        status === "doing";
-                                      return (
-                                        <div
-                                          key={item.id}
-                                          onClick={() =>
-                                            setSelectedTicketId(item.id)
-                                          }
-                                          className="dash-rt-card"
-                                          style={
-                                            {
-                                              position: "relative",
-                                              cursor: "pointer",
-                                              borderRadius: 14,
-                                              border: `1px solid ${token.colorBorderSecondary}`,
-                                              background: token.colorBgContainer,
-                                              padding: "14px 14px 12px 18px",
-                                              display: "flex",
-                                              flexDirection: "column",
-                                              gap: 10,
-                                              flexShrink: 0,
-                                              overflow: "hidden",
-                                              ["--rt-glow" as any]: `${sm.color}55`,
-                                              ["--rt-border" as any]: `${sm.color}55`,
-                                            } as React.CSSProperties
-                                          }
-                                        >
-
-                                          {/* Priority left bar */}
-                                          <div
-                                            aria-hidden
-                                            style={{
-                                              position: "absolute",
-                                              left: 0,
-                                              top: 0,
-                                              bottom: 0,
-                                              width: 4,
-                                              background: priorityColor,
-                                              boxShadow: "none",
-                                            }}
-                                          />
-
-                                          {/* Header row */}
-                                          <div
-                                            style={{
-                                              display: "flex",
-                                              alignItems: "center",
-                                              justifyContent: "space-between",
-                                              gap: 8,
-                                            }}
-                                          >
-                                            <Space size={6} align="center">
-                                              <span
-                                                style={{
-                                                  fontSize: 10,
-                                                  fontWeight: 700,
-                                                  letterSpacing: "0.4px",
-                                                  color: token.colorTextSecondary,
-                                                  background: token.colorFillAlter,
-                                                  border: `1px solid ${token.colorBorderSecondary}`,
-                                                  padding: "2px 6px",
-                                                  borderRadius: 6,
-                                                  fontVariantNumeric: "tabular-nums",
-                                                }}
-                                              >
-                                                {item.ticketNumber}
-                                              </span>
-                                              {projectLabel && projectLabel !== "—" && (
-                                                <span
-                                                  style={{
-                                                    fontSize: 10,
-                                                    fontWeight: 600,
-                                                    color: token.colorTextTertiary,
-                                                    maxWidth: 100,
-                                                    overflow: "hidden",
-                                                    textOverflow: "ellipsis",
-                                                    whiteSpace: "nowrap",
-                                                  }}
-                                                >
-                                                  · {projectLabel}
-                                                </span>
-                                              )}
-                                            </Space>
-                                            {priority && (
-                                              <Tooltip title={`Priority: ${priority}`}>
-                                                <span
-                                                  style={{
-                                                    display: "inline-flex",
-                                                    alignItems: "center",
-                                                    gap: 4,
-                                                    fontSize: 9,
-                                                    fontWeight: 700,
-                                                    letterSpacing: "0.4px",
-                                                    color: priorityColor,
-                                                    padding: "2px 6px",
-                                                    borderRadius: 999,
-                                                    background: `${priorityColor}14`,
-                                                    border: `1px solid ${priorityColor}33`,
-                                                  }}
-                                                >
-                                                  <span
-                                                    style={{
-                                                      width: 5,
-                                                      height: 5,
-                                                      borderRadius: "50%",
-                                                      background: priorityColor,
-                                                    }}
-                                                  />
-                                                  {priority}
-                                                </span>
-                                              </Tooltip>
-                                            )}
-                                          </div>
-
-                                          {/* Title */}
-                                          <Tooltip title={item.title}>
-                                            <div
-                                              style={{
-                                                fontSize: 13,
-                                                fontWeight: 600,
-                                                color: token.colorText,
-                                                lineHeight: 1.35,
-                                                letterSpacing: "-0.1px",
-                                                display: "-webkit-box",
-                                                WebkitLineClamp: 2,
-                                                WebkitBoxOrient: "vertical",
-                                                overflow: "hidden",
-                                                minHeight: 36,
-                                              }}
-                                            >
-                                              {item.title}
+                              }
+                            >
+                              {todayAttendance ? (() => {
+                                const TARGET_HOURS = 8;
+                                const parts = (workDuration || "00:00:00").split(":");
+                                const elapsedSec = (parseInt(parts[0] || "0", 10) || 0) * 3600 + (parseInt(parts[1] || "0", 10) || 0) * 60 + (parseInt(parts[2] || "0", 10) || 0);
+                                const targetSec = TARGET_HOURS * 3600;
+                                const progressPct = Math.min(100, Math.round((elapsedSec / targetSec) * 100));
+                                const isActive = isWorking;
+                                const ringColor = isWorking ? token.colorPrimary : isPaused ? "#F59E0B" : notStarted ? token.colorTextTertiary : "#10B981";
+                                const wh = parts[0] || "0";
+                                const wm = parts[1] || "0";
+                                const totalBreakMin = todayAttendance?.totalBreakMinutes ?? 0;
+                                const lateMin = todayAttendance?.lateMinutes ?? 0;
+                                const earlyLeaveMin = todayAttendance?.earlyLeaveMinutes ?? 0;
+                                return (
+                                  <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
+                                    {/* Main Content (Circle + Breakdown) */}
+                                    <div style={{ display: "flex", gap: 16, alignItems: "center", marginBottom: 12 }}>
+                                      {/* Circular progress */}
+                                      <div style={{ position: "relative", flexShrink: 0 }}>
+                                        <Progress
+                                          type="circle"
+                                          percent={progressPct}
+                                          size={94}
+                                          strokeWidth={8}
+                                          strokeLinecap="round"
+                                          strokeColor={isActive ? { "0%": token.colorPrimary, "100%": "#3B82F6" } : ringColor}
+                                          trailColor={token.colorFillAlter}
+                                          format={() => (
+                                            <div style={{ textAlign: "center" }}>
+                                              <div style={{ fontSize: 14, fontWeight: 800, lineHeight: 1, color: isActive ? token.colorPrimary : token.colorText, letterSpacing: "-0.3px", fontVariantNumeric: "tabular-nums" }}>{wh}h {wm}m</div>
+                                              <div style={{ fontSize: 9, color: token.colorTextTertiary, fontWeight: 600, marginTop: 4, letterSpacing: "-0.1px" }}>Total Hours</div>
                                             </div>
-                                          </Tooltip>
+                                          )}
+                                        />
+                                      </div>
 
-                                          {/* Footer row */}
-                                          <div
-                                            style={{
-                                              display: "flex",
-                                              alignItems: "center",
-                                              justifyContent: "space-between",
-                                              gap: 8,
-                                              paddingTop: 8,
-                                              borderTop: `1px dashed ${token.colorBorderSecondary}`,
-                                            }}
-                                          >
-                                            <span
-                                              style={{
-                                                display: "inline-flex",
-                                                alignItems: "center",
-                                                gap: 6,
-                                                fontSize: 10,
-                                                fontWeight: 700,
-                                                letterSpacing: "0.3px",
-                                                color: sm.color,
-                                                background: sm.bg,
-                                                padding: "3px 8px",
-                                                borderRadius: 999,
-                                                border: `1px solid ${sm.color}26`,
-                                              }}
-                                            >
-                                              <span
-                                                style={{
-                                                  width: 5,
-                                                  height: 5,
-                                                  borderRadius: "50%",
-                                                  background: sm.color,
-                                                  boxShadow: "none",
-                                                  animation: isLive
-                                                    ? "pulse-soft 2s infinite ease-in-out"
-                                                    : undefined,
-                                                }}
-                                              />
-                                              {sm.label.toUpperCase()}
-                                            </span>
-
-                                            <Space size={8} align="center">
-                                              <Text
-                                                style={{
-                                                  fontSize: 10,
-                                                  color: token.colorTextTertiary,
-                                                  fontWeight: 500,
-                                                }}
-                                              >
-                                                {formatTimeAgo(item.createdAt)}
-                                              </Text>
-                                              {item.assignee && (
-                                                <Tooltip
-                                                  title={`Assignee: ${item.assignee.name}`}
-                                                >
-                                                  <Avatar
-                                                    size={22}
-                                                    src={item.assignee.avatar}
-                                                    style={{
-                                                      backgroundColor: "#3B82F6",
-                                                      fontSize: 10,
-                                                      fontWeight: 700,
-                                                      border: `2px solid ${token.colorBgContainer}`,
-                                                      boxShadow: "none",
-                                                    }}
-                                                  >
-                                                    {item.assignee.name
-                                                      ?.charAt(0)
-                                                      .toUpperCase()}
-                                                  </Avatar>
-                                                </Tooltip>
-                                              )}
-                                            </Space>
+                                      {/* Breakdown rows */}
+                                      <div style={{ display: "flex", flexDirection: "column", gap: 6, flex: 1, minWidth: 0 }}>
+                                        {[
+                                          { label: "Working", color: "#3B82F6", value: `${wh}h ${wm}m` },
+                                          { label: "Break", color: "#10B981", value: totalBreakMin > 0 ? `${totalBreakMin}m` : "0m" },
+                                          { label: "Late", color: "#F59E0B", value: lateMin > 0 ? `${lateMin}m` : "0m" },
+                                          { label: "Early Leave", color: "#EF4444", value: earlyLeaveMin > 0 ? `${earlyLeaveMin}m` : "0m" },
+                                        ].map((row) => (
+                                          <div key={row.label} style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                                            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                                              <span style={{ width: 6, height: 6, borderRadius: "50%", background: row.color, display: "inline-block", flexShrink: 0 }} />
+                                              <Text style={{ fontSize: 12, color: token.colorTextSecondary, fontWeight: 500, letterSpacing: "-0.2px" }}>{row.label}</Text>
+                                            </div>
+                                            <Text strong style={{ fontSize: 13, fontVariantNumeric: "tabular-nums", color: token.colorText, letterSpacing: "-0.3px" }}>{row.value}</Text>
                                           </div>
-                                        </div>
-                                      );
-                                    })}
-                                  </div>
-                                )}
-                              </Card>
-                            );
-                          })()}
-                        </Col>
-                      )}
+                                        ))}
+                                      </div>
+                                    </div>
 
-                    </Row>
+                                    {/* Separator */}
+                                    <div style={{ height: 1, background: token.colorBorderSecondary, margin: "0 0 12px 0", flexShrink: 0 }} />
+
+                                    {/* Action buttons */}
+                                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginTop: 0 }}>
+                                      {notStarted ? (
+                                        <Button type="primary" icon={<PlayCircleOutlined />} onClick={handleClockIn} loading={isClocking} style={{ borderRadius: 8, height: 36, fontWeight: 600, fontSize: 13, boxShadow: "none", border: "none", gridColumn: "1 / -1", letterSpacing: "-0.1px" }}>Start Workday</Button>
+                                      ) : isComplete ? (
+                                        <div style={{ padding: "8px 12px", borderRadius: 8, background: "#ECFDF5", border: "1px solid #A7F3D0", display: "flex", alignItems: "center", justifyContent: "center", gap: 6, color: "#047857", fontWeight: 600, fontSize: 13, gridColumn: "1 / -1", letterSpacing: "-0.1px" }}><CheckCircleFilled /><span>Shift Complete!</span></div>
+                                      ) : (
+                                        <>
+                                          {isWorking
+                                            ? <Button block icon={<PauseCircleOutlined />} onClick={() => setBreakModalOpen(true)} loading={isClocking} style={{ borderRadius: 8, height: 36, fontWeight: 600, fontSize: 13, color: "#B45309", borderColor: "#FDE047", background: "#FEF9C3", boxShadow: "none", letterSpacing: "-0.1px" }}>Pause</Button>
+                                            : <Button type="primary" block icon={<CaretRightOutlined />} onClick={handleResume} loading={isClocking} style={{ borderRadius: 8, height: 36, fontWeight: 600, fontSize: 13, background: token.colorPrimary, border: "none", boxShadow: "none", letterSpacing: "-0.1px" }}>Resume</Button>
+                                          }
+                                          <div style={{ display: "contents" }}><ConfirmDialog tone="warning" icon={<CheckSquareOutlined />} title="Complete your day?" description={`You've worked ${workDuration}. You won't be able to clock in again today.`} confirmText="Yes, complete day" placement="topRight" onConfirm={handleComplete}>
+                                            <Button block icon={<CheckSquareOutlined />} loading={isClocking} style={{ borderRadius: 8, height: 36, fontWeight: 600, fontSize: 13, color: "#047857", borderColor: "#6EE7B7", background: "#ECFDF5", boxShadow: "none", letterSpacing: "-0.1px" }}>Day Complete</Button>
+                                          </ConfirmDialog></div>
+                                        </>
+                                      )}
+                                    </div>
+                                  </div>
+                                );
+                              })() : (
+                                <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 16 }}>
+                                  <Skeleton.Avatar active size={100} shape="circle" />
+                                  <Skeleton active paragraph={{ rows: 2 }} style={{ width: "100%" }} />
+                                  <Button type="primary" icon={<PlayCircleOutlined />} onClick={handleClockIn} loading={isClocking} style={{ borderRadius: 8, height: 40, fontWeight: 600, fontSize: 13, boxShadow: "none", border: "none", width: "100%", flexShrink: 0 }}>Clock In</Button>
+                                </div>
+                              )}
+                            </Card>
+                          </Col>
+                        )}
+
+                        {/* My Work Progress */}
+                        {isMyTicketsVisible && (
+                          <Col xs={24} md={12} lg={7}>
+                            {(() => {
+                              const segments = [
+                                { key: "done", label: "Completed", value: completedTickets, color: "#3B82F6", icon: <CheckCircleFilled style={{ fontSize: 10 }} /> },
+                                { key: "active", label: "In Progress", value: inProgressTickets, color: "#10B981", icon: <SyncOutlined spin style={{ fontSize: 10 }} /> },
+                                { key: "not_started", label: "Pending", value: notStartedTickets, color: token.colorTextTertiary, icon: <ClockCircleOutlined style={{ fontSize: 10 }} /> },
+                              ];
+                              return (
+                                <Card
+                                  style={{ ...cardBase, height: 250, overflow: "hidden", display: "flex", flexDirection: "column" }}
+                                  styles={{ body: { padding: 0, height: "100%", display: "flex", flexDirection: "column" } }}
+                                  title={sectionTitle(<FileTextOutlined />, "My Work Progress", "#3B82F6")}
+                                  extra={
+                                    <Select
+                                      size="small"
+                                      placeholder="Select Project"
+                                      allowClear={false}
+                                      variant="filled"
+                                      dropdownStyle={{ borderRadius: 8, padding: 4 }}
+                                      style={{
+                                        width: 140,
+                                        fontWeight: 600,
+                                      }}
+                                      value={selectedProjectId}
+                                      onChange={(val) => setSelectedProjectId(val)}
+                                      options={userProjects.map((p: any) => ({
+                                        label: (
+                                          <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12 }}>
+                                            <FolderOpenOutlined style={{ color: '#3B82F6' }} />
+                                            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.name}</span>
+                                          </div>
+                                        ),
+                                        value: p.id || p._id,
+                                      }))}
+                                    />
+                                  }
+                                >
+                                  <div style={{ flex: 1, display: "flex", flexDirection: "column", padding: "12px 16px" }}>
+                                    {/* Main section: Circle + Segments */}
+                                    <div style={{ display: "flex", alignItems: "center", gap: 20, marginBottom: 12 }}>
+                                      {/* Left: Progress Circle */}
+                                      <Progress
+                                        type="circle"
+                                        percent={completionRate}
+                                        size={76}
+                                        strokeWidth={10}
+                                        strokeLinecap="round"
+                                        strokeColor="#3B82F6"
+                                        trailColor={token.colorFillAlter}
+                                        format={() => (
+                                          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", lineHeight: 1, paddingTop: 2 }}>
+                                            <span style={{ fontSize: 16, fontWeight: 800, color: "#3B82F6", marginBottom: 2, letterSpacing: "-0.5px" }}>{completionRate}%</span>
+                                            <span style={{ fontSize: 9, fontWeight: 700, color: token.colorTextTertiary }}>Completed</span>
+                                          </div>
+                                        )}
+                                      />
+
+                                      {/* Right: Segments List */}
+                                      <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 10 }}>
+                                        {segments.map((s) => (
+                                          <div key={s.key} style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                                            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                                              <div style={{ width: 8, height: 8, borderRadius: "50%", background: s.color, flexShrink: 0 }} />
+                                              <Text style={{ fontSize: 11, fontWeight: 600, color: token.colorTextSecondary, letterSpacing: "-0.2px" }}>{s.label}</Text>
+                                            </div>
+                                            <Text strong style={{ fontSize: 13, color: token.colorText, fontVariantNumeric: "tabular-nums" }}>{s.value}</Text>
+                                          </div>
+                                        ))}
+                                      </div>
+                                    </div>
+
+                                    {/* Divider */}
+                                    <div style={{ height: 1, background: token.colorBorderSecondary, margin: "4px 0 12px" }} />
+
+                                    {/* Totals Footer */}
+                                    <div style={{ display: "flex", gap: 32 }}>
+                                      <div>
+                                        <Text style={{ fontSize: 9, color: token.colorTextTertiary, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.5px", display: "block", marginBottom: 2 }}>TOTAL TICKETS</Text>
+                                        <Text strong style={{ fontSize: 18, color: token.colorText, fontVariantNumeric: "tabular-nums", lineHeight: 1, letterSpacing: "-0.5px" }}>{totalTickets}</Text>
+                                      </div>
+                                      <div>
+                                        <Text style={{ fontSize: 9, color: token.colorTextTertiary, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.5px", display: "block", marginBottom: 2 }}>CLOSED TODAY</Text>
+                                        <Text strong style={{ fontSize: 18, color: "#10B981", fontVariantNumeric: "tabular-nums", lineHeight: 1, letterSpacing: "-0.5px" }}>{completedTickets}</Text>
+                                      </div>
+                                    </div>
+                                  </div>
+                                </Card>
+                              );
+                            })()}
+                          </Col>
+                        )}
+
+                        {/* Recent Tickets */}
+                        {isRecentTicketsVisible && (
+                          <Col xs={24} md={24} lg={10}>
+                            {(() => {
+                              const accent = "#3B82F6";
+                              return (
+                                <Card
+                                  style={{ ...cardBase, height: 250, display: "flex", flexDirection: "column", overflow: "hidden" }}
+                                  styles={{ body: { padding: 0, display: "flex", flexDirection: "column", flex: 1, minHeight: 0 } }}
+                                  title={sectionTitle(<FileTextOutlined />, "Recent Tickets", accent)}
+                                  extra={<Button type="link" size="small" onClick={() => router.push("/tickets/select")} style={{ fontSize: 11, fontWeight: 600 }}>View all <ArrowRightOutlined style={{ fontSize: 10 }} /></Button>}
+                                >
+                                  {recentTickets.length === 0 ? (
+                                    <div style={{ padding: 24, textAlign: "center", flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 10 }}>
+                                      <div style={{ width: 52, height: 52, borderRadius: 16, background: `${accent}14`, border: `1px solid ${accent}33`, display: "inline-flex", alignItems: "center", justifyContent: "center", color: accent, fontSize: 22 }}><FileTextOutlined /></div>
+                                      <Text strong style={{ fontSize: 13, color: token.colorText }}>No tickets yet</Text>
+                                      <Text type="secondary" style={{ fontSize: 11 }}>Recent assignments will appear here</Text>
+                                    </div>
+                                  ) : (
+                                    <div className="no-scrollbar" style={{ display: "flex", flexDirection: "column", flex: 1, overflowY: "auto" }}>
+                                      {recentTickets.map((item: any) => {
+                                        const status = item.status?.toLowerCase();
+                                        const statusMeta: Record<string, { label: string; color: string; bg: string }> = {
+                                          completed: { label: "Completed", color: "#10B981", bg: "#ECFDF5" },
+                                          live: { label: "Live", color: "#10B981", bg: "#ECFDF5" },
+                                          done: { label: "Done", color: "#10B981", bg: "#ECFDF5" },
+                                          in_progress: { label: "In Progress", color: "#3B82F6", bg: "#EFF6FF" },
+                                          doing: { label: "In Progress", color: "#3B82F6", bg: "#EFF6FF" },
+                                          in_testing: { label: "In Testing", color: "#8B5CF6", bg: "#F5F3FF" },
+                                          testing: { label: "In Testing", color: "#8B5CF6", bg: "#F5F3FF" },
+                                          not_started: { label: "Open", color: "#94A3B8", bg: token.colorFillAlter },
+                                        };
+                                        const sm = statusMeta[status] || { label: (item.status || "—").replace(/_/g, " "), color: token.colorTextSecondary, bg: token.colorFillAlter };
+                                        const projectLabel = typeof item.project === "string" ? item.project : item.project?.code || item.project?.name || "—";
+                                        return (
+                                          <div
+                                            key={item.id}
+                                            onClick={() => setSelectedTicketId(item.id)}
+                                            className="dash-rt-card"
+                                            style={{ cursor: "pointer", padding: "8px 12px", borderBottom: `1px solid ${token.colorBorderSecondary}`, display: "flex", alignItems: "center", gap: 12, ["--rt-glow" as any]: `${sm.color}55`, ["--rt-border" as any]: `${sm.color}55` } as React.CSSProperties}
+                                          >
+                                            {/* Status badge */}
+                                            <span style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 10, fontWeight: 700, color: sm.color, background: sm.bg, padding: "3px 8px", borderRadius: 999, border: `1px solid ${sm.color}26`, flexShrink: 0, whiteSpace: "nowrap" }}>
+                                              <span style={{ width: 5, height: 5, borderRadius: "50%", background: sm.color, display: "inline-block" }} />{sm.label}
+                                            </span>
+                                            {/* Ticket info */}
+                                            <div style={{ flex: 1, minWidth: 0 }}>
+                                              <Text style={{ fontSize: 12, fontWeight: 600, color: token.colorText, display: "block", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{item.title}</Text>
+                                              <Text type="secondary" style={{ fontSize: 10 }}>{item.ticketNumber}{projectLabel && projectLabel !== "—" ? ` · ${projectLabel}` : ""}</Text>
+                                            </div>
+                                            {/* Time ago */}
+                                            <Text style={{ fontSize: 10, color: token.colorTextTertiary, whiteSpace: "nowrap", flexShrink: 0 }}>{formatTimeAgo(item.createdAt)}</Text>
+                                          </div>
+                                        );
+                                      })}
+                                    </div>
+                                  )}
+                                </Card>
+                              );
+                            })()}
+                          </Col>
+                        )}
+
+                      </Row>
+                    </>
                   );
                 })()}
+
               </>
             ) : null}
           </>
         )}
+
 
         {/* ─── FREELANCER SEGMENT ─────────────────────────────── */}
         {activeSegment === "freelancer" && (
@@ -3688,11 +2569,13 @@ function DashboardContent() {
                                             <div
                                               style={{
                                                 position: "relative",
-                                                borderRadius: 12,
-                                                padding: 12,
-                                                background: token.colorFillAlter,
-                                                border: `1px solid ${token.colorBorderSecondary}`,
+                                                borderRadius: 16,
+                                                padding: 16,
+                                                background: live ? "linear-gradient(135deg, #10B981 0%, #059669 100%)" : "linear-gradient(135deg, #3B82F6 0%, #2563EB 100%)",
+                                                boxShadow: live ? "0 10px 25px -5px rgba(16, 185, 129, 0.4)" : "0 10px 25px -5px rgba(59, 130, 246, 0.4)",
+                                                border: "none",
                                                 overflow: "hidden",
+                                                color: "#fff",
                                               }}
                                             >
                                               <div
@@ -3708,10 +2591,10 @@ function DashboardContent() {
                                                     style={{
                                                       flex: 1,
                                                       minWidth: 0,
-                                                      fontSize: 14,
-                                                      fontWeight: 700,
-                                                      color: token.colorText,
-                                                      letterSpacing: "-0.2px",
+                                                      fontSize: 16,
+                                                      fontWeight: 800,
+                                                      color: "#fff",
+                                                      letterSpacing: "-0.3px",
                                                       whiteSpace: "nowrap",
                                                       overflow: "hidden",
                                                       textOverflow: "ellipsis",
@@ -3724,19 +2607,13 @@ function DashboardContent() {
                                                   style={{
                                                     display: "inline-flex",
                                                     alignItems: "center",
-                                                    gap: 5,
-                                                    padding: "2px 8px",
+                                                    gap: 6,
+                                                    padding: "4px 10px",
                                                     borderRadius: 999,
-                                                    background: live
-                                                      ? token.colorSuccessBg
-                                                      : "rgba(79,70,229,0.10)",
-                                                    border: live
-                                                      ? `1px solid ${token.colorSuccessBorder}`
-                                                      : "1px solid rgba(79,70,229,0.25)",
-                                                    color: live
-                                                      ? token.colorSuccessText
-                                                      : "#3B82F6",
-                                                    fontSize: 9,
+                                                    background: "rgba(255, 255, 255, 0.2)",
+                                                    border: "1px solid rgba(255, 255, 255, 0.3)",
+                                                    color: "#fff",
+                                                    fontSize: 10,
                                                     fontWeight: 700,
                                                     letterSpacing: "0.6px",
                                                     flexShrink: 0,
@@ -3747,52 +2624,44 @@ function DashboardContent() {
                                                       live ? "live-pulse" : ""
                                                     }
                                                     style={{
-                                                      width: 5,
-                                                      height: 5,
+                                                      width: 6,
+                                                      height: 6,
                                                       borderRadius: "50%",
-                                                      background: live
-                                                        ? "#10B981"
-                                                        : "#3B82F6",
+                                                      background: "#fff",
                                                     }}
                                                   />
                                                   {live ? "LIVE NOW" : "NEXT UP"}
                                                 </span>
+                                              </div>
+                                              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
                                                 <Text
                                                   style={{
-                                                    fontSize: 10,
-                                                    color: token.colorTextSecondary,
+                                                    fontSize: 12,
+                                                    color: "rgba(255, 255, 255, 0.9)",
+                                                    fontVariantNumeric: "tabular-nums",
                                                     fontWeight: 600,
-                                                    fontVariantNumeric:
-                                                      "tabular-nums",
-                                                    flexShrink: 0,
+                                                  }}
+                                                >
+                                                  {start.format("h:mm A")} — {end.format("h:mm A")}
+                                                </Text>
+                                                <span style={{ color: "rgba(255, 255, 255, 0.5)" }}>•</span>
+                                                <Text
+                                                  style={{
+                                                    fontSize: 12,
+                                                    color: "rgba(255, 255, 255, 0.9)",
+                                                    fontWeight: 600,
                                                   }}
                                                 >
                                                   {formatRelative(heroMeeting)}
                                                 </Text>
                                               </div>
 
-                                              <Text
-                                                style={{
-                                                  fontSize: 11,
-                                                  color: token.colorTextSecondary,
-                                                  fontVariantNumeric:
-                                                    "tabular-nums",
-                                                  fontWeight: 500,
-                                                  display: "block",
-                                                }}
-                                              >
-                                                {start.format("h:mm A")} —{" "}
-                                                {end.format("h:mm A")} ·{" "}
-                                                {totalMin}m
-                                              </Text>
-
                                               {live && (
                                                 <div
                                                   style={{
-                                                    marginTop: 8,
-                                                    height: 4,
-                                                    background: token.colorBgContainer,
-                                                    border: `1px solid ${token.colorBorderSecondary}`,
+                                                    marginTop: 12,
+                                                    height: 6,
+                                                    background: "rgba(255, 255, 255, 0.2)",
                                                     borderRadius: 999,
                                                     overflow: "hidden",
                                                   }}
@@ -3801,10 +2670,9 @@ function DashboardContent() {
                                                     style={{
                                                       height: "100%",
                                                       width: `${progressPct}%`,
-                                                      background: token.colorPrimary,
+                                                      background: "#fff",
                                                       borderRadius: 999,
-                                                      transition:
-                                                        "width 1s linear",
+                                                      transition: "width 1s linear",
                                                     }}
                                                   />
                                                 </div>
@@ -3818,9 +2686,8 @@ function DashboardContent() {
                                                 }
                                               >
                                                 <Button
-                                                  type="primary"
                                                   block
-                                                  size="small"
+                                                  size="middle"
                                                   icon={<VideoCameraOutlined />}
                                                   onClick={() =>
                                                     heroMeeting.meetingLink &&
@@ -3831,11 +2698,13 @@ function DashboardContent() {
                                                   }
                                                   disabled={!heroMeeting.meetingLink}
                                                   style={{
-                                                    marginTop: 10,
-                                                    borderRadius: 8,
-                                                    height: 30,
-                                                    fontSize: 12,
-                                                    fontWeight: 600,
+                                                    marginTop: 14,
+                                                    borderRadius: 10,
+                                                    background: "#fff",
+                                                    color: live ? "#059669" : "#2563EB",
+                                                    border: "none",
+                                                    fontWeight: 700,
+                                                    boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1)",
                                                   }}
                                                 >
                                                   {live ? "Join now" : "Join meeting"}
@@ -3869,33 +2738,32 @@ function DashboardContent() {
                                                   style={{
                                                     display: "flex",
                                                     alignItems: "center",
-                                                    gap: 10,
-                                                    padding: "6px 10px",
-                                                    borderRadius: 10,
-                                                    background:
-                                                      token.colorFillAlter,
-                                                    border: `1px solid ${token.colorBorderSecondary}`,
-                                                    opacity: past ? 0.55 : 1,
+                                                    gap: 12,
+                                                    padding: "10px 12px",
+                                                    borderRadius: 12,
+                                                    background: past ? "transparent" : "#f8fafc",
+                                                    border: past ? "1px dashed #e2e8f0" : "1px solid #e2e8f0",
+                                                    opacity: past ? 0.6 : 1,
+                                                    transition: "all 0.2s ease",
                                                   }}
                                                 >
                                                   <div
                                                     style={{
-                                                      minWidth: 42,
+                                                      minWidth: 48,
                                                       textAlign: "center",
-                                                      padding: "3px 0",
-                                                      borderRadius: 8,
-                                                      background:
-                                                        token.colorBgContainer,
-                                                      border: `1px solid ${token.colorBorderSecondary}`,
+                                                      padding: "6px 0",
+                                                      borderRadius: 10,
+                                                      background: past ? "#f1f5f9" : "#fff",
+                                                      border: past ? "none" : "1px solid #cbd5e1",
+                                                      boxShadow: past ? "none" : "0 2px 4px rgba(0,0,0,0.02)"
                                                     }}
                                                   >
                                                     <div
                                                       style={{
-                                                        fontSize: 11,
-                                                        fontWeight: 700,
-                                                        color: token.colorText,
-                                                        fontVariantNumeric:
-                                                          "tabular-nums",
+                                                        fontSize: 12,
+                                                        fontWeight: 800,
+                                                        color: past ? "#94a3b8" : "#0f172a",
+                                                        fontVariantNumeric: "tabular-nums",
                                                         lineHeight: 1,
                                                       }}
                                                     >
@@ -3903,12 +2771,11 @@ function DashboardContent() {
                                                     </div>
                                                     <div
                                                       style={{
-                                                        fontSize: 8,
+                                                        fontSize: 9,
                                                         fontWeight: 700,
-                                                        color:
-                                                          token.colorTextTertiary,
+                                                        color: past ? "#94a3b8" : "#64748b",
                                                         letterSpacing: "0.5px",
-                                                        marginTop: 1,
+                                                        marginTop: 2,
                                                       }}
                                                     >
                                                       {start.format("A")}
@@ -3924,14 +2791,12 @@ function DashboardContent() {
                                                     <Tooltip title={m.title}>
                                                       <div
                                                         style={{
-                                                          fontSize: 12,
+                                                          fontSize: 13,
                                                           fontWeight: 600,
-                                                          color:
-                                                            token.colorText,
+                                                          color: past ? "#64748b" : "#0f172a",
                                                           whiteSpace: "nowrap",
                                                           overflow: "hidden",
-                                                          textOverflow:
-                                                            "ellipsis",
+                                                          textOverflow: "ellipsis",
                                                           lineHeight: 1.3,
                                                         }}
                                                       >

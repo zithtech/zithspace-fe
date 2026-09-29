@@ -1781,6 +1781,12 @@
           padding: 10px 10px !important;
         }
 
+        .premium-table .ant-table-thead>tr>th:first-child,
+        .premium-table .ant-table-tbody>tr>td:first-child,
+        .premium-table .ant-table-selection-column {
+          padding-left: 20px !important;
+        }
+
         .premium-table .ant-table-thead>tr>th::before {
           display: none;
         }

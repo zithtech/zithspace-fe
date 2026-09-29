@@ -553,9 +553,30 @@ const SortableItem = ({
         ) : type === 'date' ? (
           <DatePicker size="small" className={inputClass} placeholder={label} style={{ width: '100%' }} format="YYYY-MM-DD" />
         ) : type === 'textarea' ? (
-          <Input.TextArea size="small" autoSize={{ minRows: 1, maxRows: 3 }} className="rounded-md border-gray-200 text-xs" placeholder={label} />
+          <Input.TextArea 
+            size="small" 
+            autoSize={{ minRows: 1, maxRows: 3 }} 
+            className="rounded-md border-gray-200 text-xs" 
+            placeholder={label} 
+            onKeyDown={(e) => {
+              const isNumeric = (e.key >= '0' && e.key <= '9') || 
+                                (e.code && e.code.startsWith('Numpad') && e.code.length === 7 && e.code[6] >= '0' && e.code[6] <= '9');
+              if (isNumeric) e.preventDefault();
+            }}
+          />
         ) : (
-          <Input size="small" placeholder={label} className={inputClass} />
+          <Input 
+            size="small" 
+            placeholder={label} 
+            className={inputClass} 
+            onKeyDown={(e) => {
+              if (type === 'text') {
+                const isNumeric = (e.key >= '0' && e.key <= '9') || 
+                                  (e.code && e.code.startsWith('Numpad') && e.code.length === 7 && e.code[6] >= '0' && e.code[6] <= '9');
+                if (isNumeric) e.preventDefault();
+              }
+            }}
+          />
         )}
       </Form.Item>
     );

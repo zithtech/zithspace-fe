@@ -190,9 +190,14 @@ export default function OpeningsLayout({ children }: { children: React.ReactNode
             .om-sidebar-close { display: flex; }
             .om-main { padding: 0; }
             .om-content { padding: 0 16px 0; }
-            .om-content > * > [class*="-header"] {
+            .om-content > * > [class*="-header"],
+            .om-content > * > .opn-sprint-header-v2 {
               margin-left: -16px !important; margin-right: -16px !important;
               padding-left: 16px !important; padding-right: 16px !important;
+            }
+            .om-content > * > .opn-table-wrap,
+            .om-content > * > .omp-dashboard-content {
+              margin-left: -16px !important; margin-right: -16px !important;
             }
           }
         `}</style>

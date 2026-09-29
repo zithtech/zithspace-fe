@@ -839,7 +839,7 @@ export default function ProposalsTrashPage() {
 
   return (
     <ProtectedRoute>
-      <MainLayout>
+      <MainLayout noPadding>
         {messageHolder}
         {modalContextHolder}
 
@@ -1203,7 +1203,8 @@ export default function ProposalsTrashPage() {
         <style jsx global>{`
           .pp-shell {
             display: flex;
-            margin: 0 -8px;
+            margin: 0;
+            width: 100%;
             min-height: calc(100vh - 64px);
             background: var(--bg-pure-white);
           }

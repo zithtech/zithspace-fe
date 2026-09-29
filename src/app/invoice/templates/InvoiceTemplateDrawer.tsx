@@ -342,11 +342,16 @@ export default function InvoiceTemplateDrawer({ visible, onClose, templateId }: 
                   <Form.Item
                     name="name"
                     label="Template name"
-                    rules={[{ required: true, message: 'Template name is required' }]}
+                    normalize={(value) => (value || '').replace(/[^A-Za-z0-9\s\-.'&()]/g, '')}
+                    rules={[
+                      { required: true, message: 'Template name is required' },
+                      { pattern: /^[A-Za-z0-9\s\-.'&()]+$/, message: "Invalid characters" }
+                    ]}
                     style={{ marginBottom: 0 }}
                   >
                     <Input
                       placeholder="e.g. Creative services — hourly"
+                      maxLength={100}
                       style={{
                         borderRadius: 8,
                         height: 38,
@@ -378,6 +383,7 @@ export default function InvoiceTemplateDrawer({ visible, onClose, templateId }: 
                   >
                     <Input.TextArea
                       rows={2}
+                      maxLength={255}
                       placeholder="Optional notes about when to use this template..."
                       style={{
                         borderRadius: 8,
@@ -511,12 +517,14 @@ export default function InvoiceTemplateDrawer({ visible, onClose, templateId }: 
                                       Label
                                     </span>
                                   }
+                                  normalize={(value) => (value || '').replace(/[^A-Za-z0-9\s\-_.'&()]/g, '')}
                                   rules={[{ required: true, message: 'Required' }]}
                                   style={{ marginBottom: 0 }}
                                 >
                                   <Input
                                     placeholder="e.g. Tax rate"
                                     size="small"
+                                    maxLength={50}
                                     style={{
                                       borderRadius: 6,
                                       height: 32,
@@ -536,6 +544,7 @@ export default function InvoiceTemplateDrawer({ visible, onClose, templateId }: 
                                       Key
                                     </span>
                                   }
+                                  normalize={(value) => (value || '').replace(/[^a-z0-9_]/g, '').toLowerCase()}
                                   rules={[{ required: true, message: 'Required' }]}
                                   style={{ marginBottom: 0 }}
                                 >
@@ -543,6 +552,7 @@ export default function InvoiceTemplateDrawer({ visible, onClose, templateId }: 
                                     placeholder="tax_rate"
                                     size="small"
                                     disabled={isSystem}
+                                    maxLength={30}
                                     style={{
                                       borderRadius: 6,
                                       height: 32,
@@ -568,15 +578,18 @@ export default function InvoiceTemplateDrawer({ visible, onClose, templateId }: 
                                   rules={[{ required: true, message: 'Required' }]}
                                   style={{ marginBottom: 0 }}
                                 >
-                                  <SearchableDropdown
+                                  <Select
                                     placeholder="Type"
-                                    searchPlaceholder="Search types..."
-                                    itemNoun="types"
-                                    options={FIELD_TYPES}
                                     disabled={isSystem}
                                     style={{ width: '100%', height: 32 }}
-                                    width="100%"
-                                  />
+                                    showSearch={false}
+                                  >
+                                    {FIELD_TYPES.map(type => (
+                                      <Option key={type.value} value={type.value}>
+                                        {type.label}
+                                      </Option>
+                                    ))}
+                                  </Select>
                                 </Form.Item>
 
                                 <Form.Item

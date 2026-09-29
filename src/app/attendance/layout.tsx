@@ -51,7 +51,7 @@ export default function AttendanceLayout({ children }: { children: React.ReactNo
 
   return (
     <ProtectedRoute>
-      <MainLayout>
+      <MainLayout noPadding>
         <AttStyles />
         <div className="att-shell">
           {/* ============================ MOBILE BACKDROP ============================ */}
@@ -119,7 +119,7 @@ export default function AttendanceLayout({ children }: { children: React.ReactNo
         <style jsx global>{`
           .att-shell {
             display: flex;
-            margin: 0 -8px;
+            margin: 0;
             height: calc(100vh - 54px);
             background: var(--bg-pure-white);
             overflow: hidden;
@@ -280,13 +280,21 @@ export default function AttendanceLayout({ children }: { children: React.ReactNo
             .att-content {
               padding: 4px 16px 0;
             }
-            .adb-header,
-            .cio-header,
-            .att-header {
-              margin-left: -16px !important;
-              margin-right: -16px !important;
-              padding-left: 16px !important;
-              padding-right: 16px !important;
+            
+            /* Stretch full-width components on mobile to negate the 16px padding */
+            .att-content > * > [class*="-header"]:not([class*="sprint"]),
+            .att-content > div > [class*="-footer"],
+            .att-content > div > [class*="-topbar"],
+            .att-content > div > .att-sprint-header-v2,
+            .att-content > div > [class*="-table-wrap"],
+            .att-content > div > .bd2-pagination {
+              margin-left: -16px !important; margin-right: -16px !important;
+            }
+            .att-content > * > [class*="-header"]:not([class*="sprint"]),
+            .att-content > div > [class*="-footer"],
+            .att-content > div > [class*="-topbar"],
+            .att-content > div > .bd2-pagination {
+              padding-left: 16px !important; padding-right: 16px !important;
             }
           }
         `}</style>

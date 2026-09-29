@@ -115,7 +115,7 @@ export default function TicketDetailsForm({
           name="title"
           rules={[{ required: true, message: "Please enter title" }]}
         >
-          <Input placeholder="Enter ticket title" />
+          <Input placeholder="Enter ticket title" maxLength={100} showCount />
         </Form.Item>
 
         <Row gutter={16}>

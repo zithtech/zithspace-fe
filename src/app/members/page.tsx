@@ -2838,7 +2838,7 @@ export default function MembersPage() {
 
         .pp-shell {
           display: flex;
-          margin: 0 -24px;
+          margin: 0 -8px;
           min-height: calc(100vh - 64px);
           background: var(--bg-pure-white);
         }
@@ -2900,8 +2900,8 @@ export default function MembersPage() {
           overflow-x: hidden;
           margin: 0;
           padding: 0;
-          scrollbar-width: none;
-          -ms-overflow-style: none;
+          /* scrollbar-width enabled */
+          /* ms-overflow enabled */
         }
         .pp-side-scroll::-webkit-scrollbar {
           display: none;
@@ -3042,7 +3042,7 @@ export default function MembersPage() {
 
         /* Table */
         .pp-table-wrap { background: var(--bg-pure-white); border: 1px solid var(--border-slate-200); border-radius: 0; overflow: hidden; }
-        .pp-table-wrap ::-webkit-scrollbar { display: none !important; }
+        /* scrollbars enabled */
         .pp-table-wrap, .pp-table-wrap * { -ms-overflow-style: none !important; scrollbar-width: none !important; }
         .pp-table, .pp-table.ant-table-wrapper, .pp-table .ant-table, .pp-table .ant-table-container, .pp-table .ant-table-content, .pp-table .ant-table-header, .pp-table .ant-table-body { background: transparent; font-size: 12px; border-radius: 0 !important; }
         .pp-table .ant-table-thead > tr > th,

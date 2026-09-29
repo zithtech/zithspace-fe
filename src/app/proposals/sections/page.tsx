@@ -645,7 +645,7 @@ function SectionsContent() {
 export default function SectionsPage() {
   return (
     <ProtectedRoute>
-      <MainLayout>
+      <MainLayout noPadding>
         <SectionsContent />
       </MainLayout>
     </ProtectedRoute>

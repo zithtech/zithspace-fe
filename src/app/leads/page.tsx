@@ -2500,7 +2500,7 @@ export default function LeadsPage() {
 
   return (
     <ProtectedRoute>
-      <MainLayout>
+      <MainLayout noPadding>
         <div className="lm-page">
           <div className="lm-ambient" />
 
@@ -4352,7 +4352,8 @@ export default function LeadsPage() {
               background: var(--bg-pure-white);
               height: calc(100vh - 64px);
               overflow: hidden;
-              margin: 0 -8px;
+              margin: 0;
+              width: 100%;
             }
 
             /* ---------------- Proposals Page CSS matching styles ---------------- */
@@ -6874,9 +6875,10 @@ export default function LeadsPage() {
                 width: 100% !important;
               }
               .lm-main {
-                padding: 10px 16px 16px 16px;
+                padding: 10px 0 16px 0;
               }
               .lm-topbar {
+                padding: 12px 16px 8px 16px;
                 flex-direction: column;
                 align-items: flex-start;
                 gap: 12px;

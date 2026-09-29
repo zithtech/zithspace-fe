@@ -570,7 +570,7 @@ export default function ProjectTrashManagementPage() {
     )}
 
       {/* ── Main Content Area with Original Table and Card Views ── */}
-      <div className="pm2-main-content" style={{ padding: 0, flex: 1, minHeight: 0, overflowY: "auto", display: "flex", flexDirection: "column" }}>
+      <div className="pm2-main-content" style={{ padding: 0, flex: 1, minHeight: 0, overflowY: "auto", overflowX: "auto", width: "100%", display: "flex", flexDirection: "column" }}>
         {selectedRowKeys.length > 0 && (
           <div className="saas-bulk-actions" style={{ margin: "12px 16px 8px 16px" }}>
             <div className="saas-bulk-content">
@@ -648,7 +648,9 @@ export default function ProjectTrashManagementPage() {
               borderRight: "none",
               borderTop: "none",
               borderRadius: 0,
-              overflow: "visible",
+              overflowX: "auto",
+              width: "100%",
+              boxSizing: "border-box",
             }}
           >
             <Table
@@ -991,8 +993,27 @@ export default function ProjectTrashManagementPage() {
           background: var(--bg-pure-white);
           border: 1px solid var(--border-slate-200);
           border-radius: 0;
-          overflow: visible;
+          overflow-x: auto !important;
           margin-top: 0px !important;
+          width: 100% !important;
+          box-sizing: border-box !important;
+        }
+
+        .pm2-pagination {
+          margin: 0 !important;
+          padding: 10px 24px !important;
+          width: 100% !important;
+          box-sizing: border-box !important;
+        }
+
+        .premium-table.ant-table-wrapper .ant-table-selection-column,
+        .premium-table .ant-table-selection-column {
+          padding-left: 16px !important;
+          padding-right: 12px !important;
+        }
+        .premium-table.ant-table-wrapper .ant-table-tbody > tr > td:first-child,
+        .premium-table.ant-table-wrapper .ant-table-thead > tr > th:first-child {
+          padding-left: 16px !important;
         }
 
         .premium-table .ant-table,

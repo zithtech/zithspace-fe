@@ -587,7 +587,7 @@ function TemplatesContent() {
 export default function TemplatesPage() {
   return (
     <ProtectedRoute>
-      <MainLayout>
+      <MainLayout noPadding>
         <TemplatesContent />
       </MainLayout>
     </ProtectedRoute>

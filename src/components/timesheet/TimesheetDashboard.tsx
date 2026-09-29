@@ -181,7 +181,8 @@ export default function DashboardTab() {
 
   return (
     <div style={{
-      margin: "0 -24px",
+      margin: 0,
+      width: "100%",
       background: "var(--bg-pure-white)",
       height: "calc(100vh - 64px)",
       display: "flex",
@@ -189,7 +190,7 @@ export default function DashboardTab() {
       overflow: "hidden"
     }}>
       <TimeTrackingHeader
-        style={{ padding: '10.5px 32px' }}
+        style={{ padding: '12px 24px', marginBottom: 0 }}
         icon={<LayoutDashboard size={20} color="#0ea5e9" />}
         title="Timesheet Dashboard"
         description="Weekly activity and timesheet status overview"
@@ -212,40 +213,44 @@ export default function DashboardTab() {
         }
       />
 
-      <div style={{ flex: 1, overflowY: "auto", padding: "16px 32px 32px 32px", scrollbarWidth: "none" }}>
-        <StatCards
-          title="Timesheets Overview"
-          statusText="ACTIVE"
-          progressPct={total > 0 ? Math.round((approved / total) * 100) : 0}
-          style={{ marginBottom: 16 }}
-          cards={[
-            {
-              label: "Total Timesheets",
-              value: total,
-              icon: <FileText size={16} />,
-              color: "#0ea5e9",
-            },
-            {
-              label: "Approved",
-              value: approved,
-              icon: <CheckCircle2 size={16} />,
-              color: "#10b981",
-            },
-            {
-              label: "Pending Approval",
-              value: pending,
-              icon: <Clock size={16} />,
-              color: "#f59e0b",
-            },
-            {
-              label: "Rejected",
-              value: rejected,
-              icon: <AlertCircle size={16} />,
-              color: "#ef4444",
-            },
-          ]}
-        />
+      {/* Divider after header with NO left/right padding */}
+      <div style={{ height: 1, background: "var(--border-slate-200, #e2e8f0)", width: "100%", flexShrink: 0 }} />
 
+      {/* StatCards with NO left/right padding wrapping it (full bleed) */}
+      <StatCards
+        title="Timesheets Overview"
+        statusText="ACTIVE"
+        progressPct={total > 0 ? Math.round((approved / total) * 100) : 0}
+        style={{ marginBottom: 0 }}
+        cards={[
+          {
+            label: "Total Timesheets",
+            value: total,
+            icon: <FileText size={16} />,
+            color: "#0ea5e9",
+          },
+          {
+            label: "Approved",
+            value: approved,
+            icon: <CheckCircle2 size={16} />,
+            color: "#10b981",
+          },
+          {
+            label: "Pending Approval",
+            value: pending,
+            icon: <Clock size={16} />,
+            color: "#f59e0b",
+          },
+          {
+            label: "Rejected",
+            value: rejected,
+            icon: <AlertCircle size={16} />,
+            color: "#ef4444",
+          },
+        ]}
+      />
+
+      <div style={{ flex: 1, overflowY: "auto", padding: "20px 24px 32px 24px", scrollbarWidth: "none" }}>
         <Row gutter={[16, 16]}>
           {/* LEFT: Status Breakdown */}
           <Col xs={24} lg={10}>

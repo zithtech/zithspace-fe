@@ -558,7 +558,8 @@ function ApprovalsContent() {
           .dh-sidebar.is-mobile-open { left: 0; }
 
           /* Stats tiles grid → 2-col on mobile */
-          .dh-main-scroll { padding: 12px 14px !important; }
+          .dh-main-scroll { padding: 0 0 40px !important; overflow-x: hidden; }
+          .sc-filters-mobile-wrap { padding: 12px 14px !important; }
           .grid.grid-cols-2.lg\:grid-cols-4,
           .grid.grid-cols-2.lg\:grid-cols-5 { grid-template-columns: repeat(2, 1fr) !important; gap: 8px !important; }
 
@@ -721,54 +722,56 @@ function ApprovalsContent() {
 
             {/* Unified FilterBar */}
             {isFilterOpen && (
-              <FilterBar
-                activeCount={activeFilterCount}
-                onReset={clearFilters}
-                onClose={() => setIsFilterOpen(false)}
-                actions={
-                  <span style={{ fontSize: 12, color: "var(--text-slate-500)", whiteSpace: "nowrap" }}>
-                    <b>{rows.length}</b> of <b>{total}</b> submissions
-                  </span>
-                }
-              >
-                <TicketFilterPill
-                  icon={<Layers size={12} />}
-                  label="Scope"
-                  value={scopeFilter || ""}
-                  options={scopeOptions}
-                  onChange={setScopeFilter}
-                  itemNoun="scopes"
-                  multiple={false}
-                />
-                <TicketFilterPill
-                  icon={<UserOutlined style={{ fontSize: 11 }} />}
-                  label="Owner"
-                  value={ownerFilter || ""}
-                  options={memberOptions}
-                  onChange={setOwnerFilter}
-                  itemNoun="people"
-                  multiple={false}
-                  showAvatar
-                />
-                <TicketFilterPill
-                  icon={<ThumbsUp size={12} />}
-                  label="Outcome"
-                  value={recommendationFilter || ""}
-                  options={RECOMMENDATIONS.map((r) => ({ value: r, label: r }))}
-                  onChange={setRecommendationFilter}
-                  itemNoun="recommendations"
-                  multiple={false}
-                />
-                <RangePicker
-                  size="small"
-                  style={{ height: 28, borderRadius: 6 }}
-                  placeholder={["Start", "End"]}
-                  value={dateRange as any}
-                  onChange={(dates) => setDateRange(dates as any)}
-                  format="MMM D, YYYY"
-                  allowEmpty={[true, true]}
-                />
-              </FilterBar>
+              <div className="sc-filters-mobile-wrap" style={{ padding: "12px 14px" }}>
+                <FilterBar
+                  activeCount={activeFilterCount}
+                  onReset={clearFilters}
+                  onClose={() => setIsFilterOpen(false)}
+                  actions={
+                    <span style={{ fontSize: 12, color: "var(--text-slate-500)", whiteSpace: "nowrap" }}>
+                      <b>{rows.length}</b> of <b>{total}</b> submissions
+                    </span>
+                  }
+                >
+                  <TicketFilterPill
+                    icon={<Layers size={12} />}
+                    label="Scope"
+                    value={scopeFilter || ""}
+                    options={scopeOptions}
+                    onChange={setScopeFilter}
+                    itemNoun="scopes"
+                    multiple={false}
+                  />
+                  <TicketFilterPill
+                    icon={<UserOutlined style={{ fontSize: 11 }} />}
+                    label="Owner"
+                    value={ownerFilter || ""}
+                    options={memberOptions}
+                    onChange={setOwnerFilter}
+                    itemNoun="people"
+                    multiple={false}
+                    showAvatar
+                  />
+                  <TicketFilterPill
+                    icon={<ThumbsUp size={12} />}
+                    label="Outcome"
+                    value={recommendationFilter || ""}
+                    options={RECOMMENDATIONS.map((r) => ({ value: r, label: r }))}
+                    onChange={setRecommendationFilter}
+                    itemNoun="recommendations"
+                    multiple={false}
+                  />
+                  <RangePicker
+                    size="small"
+                    style={{ height: 28, borderRadius: 6 }}
+                    placeholder={["Start", "End"]}
+                    value={dateRange as any}
+                    onChange={(dates) => setDateRange(dates as any)}
+                    format="MMM D, YYYY"
+                    allowEmpty={[true, true]}
+                  />
+                </FilterBar>
+              </div>
             )}
 
             <ZukvoLoadingOverlay

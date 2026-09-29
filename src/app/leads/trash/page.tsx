@@ -463,7 +463,7 @@ export default function LeadsTrashPage() {
 
   return (
     <ProtectedRoute>
-      <MainLayout>
+      <MainLayout noPadding>
         <div className="es-shell">
           {mobileSidebarOpen && <div className="es-mobile-overlay" onClick={() => setMobileSidebarOpen(false)} />}
 
@@ -850,7 +850,7 @@ export default function LeadsTrashPage() {
         </div>
 
         <style jsx global>{`
-          .es-shell { display: flex; margin: 0 -8px; min-height: calc(100vh - 64px); background: var(--bg-pure-white); }
+          .es-shell { display: flex; margin: 0; width: 100%; min-height: calc(100vh - 64px); background: var(--bg-pure-white); }
           .es-sidebar { width: 240px; flex-shrink: 0; border-right: 1px solid var(--border-slate-200); background: var(--bg-pure-white); display: flex; flex-direction: column; position: sticky; top: 0; height: calc(100vh - 64px); }
           .es-sidebar-top { padding: 14px 14px 12px 14px; }
           .es-side-head { display: flex; align-items: center; gap: 10px; padding-bottom: 14px; margin-bottom: 6px; border-bottom: 1px solid var(--border-slate-100); }

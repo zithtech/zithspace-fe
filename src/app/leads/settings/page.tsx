@@ -1482,7 +1482,7 @@ export default function LeadSettingsPage() {
 
     return (
         <ProtectedRoute>
-            <MainLayout>
+            <MainLayout noPadding>
                 <div className="pp-shell">
                     {mobileSidebarOpen && <div className="pp-mobile-overlay" onClick={() => setMobileSidebarOpen(false)} />}
                     {/* ============================ SIDEBAR ============================ */}
@@ -2591,7 +2591,8 @@ export default function LeadSettingsPage() {
                     __html: `
           .pp-shell {
             display: flex;
-            margin: 0 -8px;
+            margin: 0;
+            width: 100%;
             min-height: calc(100vh - 64px);
             background: var(--bg-pure-white);
             font-family: 'Inter', -apple-system, sans-serif;

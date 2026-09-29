@@ -2397,7 +2397,7 @@ export default function AccountsPage() {
       <style jsx global>{`
         .pp-shell {
           display: flex;
-          margin: 0 -24px;
+          margin: 0 -8px;
           height: calc(100vh - 54px);
           overflow: hidden;
           background: var(--bg-pure-white);
@@ -2530,7 +2530,7 @@ export default function AccountsPage() {
 
         /* ---------------- Main ---------------- */
         .pp-main { flex: 1; min-width: 0; padding: 8px 0 0 0; display: flex; flex-direction: column; overflow: hidden; }
-        .pp-body { flex: 1; min-height: 0; padding-bottom: 60px; overflow-y: auto; overflow-x: hidden; }
+        .pp-body { flex: 1; min-height: 0; padding-bottom: 60px; overflow-y: auto; overflow-x: auto; width: 100%; }
         .pp-topbar { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; flex-wrap: wrap; padding: 0 32px 0 20px; flex-shrink: 0; }
         .pp-search-wrap {
           position: relative; flex: 1; max-width: 520px; min-width: 240px; display: flex; align-items: center;
@@ -2703,10 +2703,9 @@ export default function AccountsPage() {
         [data-theme='dark'] .pp-sprint-progress-pct { color: #f1f5f9 !important; }
 
         /* Table */
-        .pp-table-wrap { background: var(--bg-pure-white); border: none; border-bottom: 1px solid var(--border-slate-200); border-radius: 0; overflow: visible; }
-        .pp-table-wrap ::-webkit-scrollbar { display: none !important; }
-        .pp-table-wrap, .pp-table-wrap * { -ms-overflow-style: none !important; scrollbar-width: none !important; }
-        .pp-table .ant-table, .pp-table .ant-table-container, .pp-table .ant-table-content { background: transparent; font-size: 12px; border-radius: 0 !important; overflow: visible !important; }
+        .pp-table-wrap { background: var(--bg-pure-white); border: none; border-bottom: 1px solid var(--border-slate-200); border-radius: 0; overflow-x: auto; width: 100%; }
+        /* Removed hidden scrollbars so users can scroll */
+        .pp-table .ant-table, .pp-table .ant-table-container, .pp-table .ant-table-content { background: transparent; font-size: 12px; border-radius: 0 !important; }
         .pp-table .ant-table-thead > tr > th {
           position: sticky; top: 0; z-index: 10;
           background: var(--bg-slate-50) !important; border-bottom: 1px solid var(--border-slate-200) !important;

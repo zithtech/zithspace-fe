@@ -114,6 +114,8 @@ export default function InvoiceNewinvoicePage() {
   >(null);
   const [discountValue, setDiscountValue] = useState<number>(0);
   const [customTaxValue, setCustomTaxValue] = useState<number | undefined>(undefined);
+  const [taxInputMode, setTaxInputMode] = useState<"percent" | "amount">("percent");
+  const [discountInputMode, setDiscountInputMode] = useState<"percent" | "amount">("amount");
   const { data: templatesResponse, isLoading: loadingTemplates } = useInvoiceTemplates();
   const templates = templatesResponse?.data || [];
   // We use explicit state for templateId to ensure reliable prop updates to children
@@ -1608,19 +1610,48 @@ export default function InvoiceNewinvoicePage() {
                             </span>
                           )}
                         </div>
-                        <Form.Item name="tax" style={{ marginBottom: 0 }}>
+                        <div style={{ width: '100%', maxWidth: 180 }}>
                           <InputNumber
                             min={0}
                             precision={2}
                             step={0.01}
-                            prefix={currencySymbol}
-                            style={{ width: '100%', maxWidth: 160, borderRadius: 8 }}
+                            prefix={taxInputMode === "percent" ? "%" : currencySymbol}
+                            style={{ width: '100%', borderRadius: 8 }}
                             controls={false}
-                            placeholder={(computedLineTax || 0).toFixed(2)}
-                            value={customTaxValue !== undefined ? customTaxValue : (computedLineTax > 0 ? computedLineTax : undefined)}
-                            onChange={handleSummaryTaxChange}
+                            placeholder={taxInputMode === "percent" ? (effectiveTaxPercent?.toString() || "0") : (computedLineTax || 0).toFixed(2)}
+                            value={
+                              taxInputMode === "percent"
+                                ? (customTaxValue !== undefined && subtotal > 0
+                                    ? Number(((customTaxValue / subtotal) * 100).toFixed(2))
+                                    : (computedLineTax > 0 && subtotal > 0 ? Number(((computedLineTax / subtotal) * 100).toFixed(2)) : undefined))
+                                : (customTaxValue !== undefined ? customTaxValue : (computedLineTax > 0 ? computedLineTax : undefined))
+                            }
+                            onChange={(val) => {
+                              const num = Number(val || 0);
+                              if (taxInputMode === "percent") {
+                                const amount = Number(((subtotal * num) / 100).toFixed(2));
+                                handleSummaryTaxChange(amount);
+                              } else {
+                                handleSummaryTaxChange(num);
+                              }
+                            }}
+                            addonAfter={
+                              <Select
+                                value={taxInputMode}
+                                onChange={setTaxInputMode}
+                                style={{ width: 60 }}
+                                variant="borderless"
+                                dropdownMatchSelectWidth={false}
+                              >
+                                <Select.Option value="percent">%</Select.Option>
+                                <Select.Option value="amount">{currencySymbol}</Select.Option>
+                              </Select>
+                            }
                           />
-                        </Form.Item>
+                          <Form.Item name="tax" hidden>
+                            <InputNumber />
+                          </Form.Item>
+                        </div>
                       </div>
                       <div className="flex items-center justify-between gap-2">
                         <span
@@ -1629,19 +1660,46 @@ export default function InvoiceNewinvoicePage() {
                         >
                           Discount
                         </span>
-                        <Form.Item name="discount" style={{ marginBottom: 0 }}>
+                        <div style={{ width: '100%', maxWidth: 180 }}>
                           <InputNumber
                             min={0}
                             precision={2}
                             step={0.01}
-                            prefix={currencySymbol}
-                            style={{ width: '100%', maxWidth: 160, borderRadius: 8 }}
+                            prefix={discountInputMode === "percent" ? "%" : currencySymbol}
+                            style={{ width: '100%', borderRadius: 8 }}
                             controls={false}
-                            onChange={(val) =>
-                              setDiscountValue(Number(Number(val || 0).toFixed(2)))
+                            placeholder="0.00"
+                            value={
+                              discountInputMode === "percent"
+                                ? (subtotal > 0 && discountValue > 0 ? Number(((discountValue / subtotal) * 100).toFixed(2)) : undefined)
+                                : (discountValue > 0 ? discountValue : undefined)
+                            }
+                            onChange={(val) => {
+                              const num = Number(val || 0);
+                              let amount = num;
+                              if (discountInputMode === "percent") {
+                                amount = Number(((subtotal * num) / 100).toFixed(2));
+                              }
+                              setDiscountValue(amount);
+                              form.setFieldValue("discount", amount);
+                            }}
+                            addonAfter={
+                              <Select
+                                value={discountInputMode}
+                                onChange={setDiscountInputMode}
+                                style={{ width: 60 }}
+                                variant="borderless"
+                                dropdownMatchSelectWidth={false}
+                              >
+                                <Select.Option value="percent">%</Select.Option>
+                                <Select.Option value="amount">{currencySymbol}</Select.Option>
+                              </Select>
                             }
                           />
-                        </Form.Item>
+                          <Form.Item name="discount" hidden>
+                            <InputNumber />
+                          </Form.Item>
+                        </div>
                       </div>
                       <div
                         className="h-px"

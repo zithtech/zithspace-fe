@@ -2318,7 +2318,7 @@ export default function SprintPlanComponent() {
                   rules={[{ required: true, message: "Sprint Name is required" }]}
 
                 >
-                  <Input placeholder="e.g. Q2 Core Infrastructure - Sprint 04" size="middle" />
+                  <Input placeholder="e.g. Q2 Core Infrastructure - Sprint 04" size="middle" maxLength={40} showCount />
                 </Form.Item>
 
                 <Form.Item label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: "#64748b" }}>Target Project</Text>} name="project" rules={[{ required: true }]}>
@@ -2331,7 +2331,7 @@ export default function SprintPlanComponent() {
                   />
                 </Form.Item>
                 <Form.Item label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: "#64748b" }}>Primary Objective</Text>} name="goal">
-                  <Input placeholder="High-level goal..." size="middle" />
+                  <Input placeholder="High-level goal..." size="middle" maxLength={100} showCount />
                 </Form.Item>
               </SectionCard>
 

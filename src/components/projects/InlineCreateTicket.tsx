@@ -413,6 +413,9 @@ export const InlineCreateTicket: React.FC<InlineCreateTicketProps> = ({
           onKeyDown={handleKeyDown}
           variant="borderless"
           style={{ flex: 1 }}
+          maxLength={100}
+          showCount
+
         />
 
         <div className="ict-chips">

@@ -430,7 +430,7 @@ export default function CreateTicket() {
                   label={<Text strong>Title</Text>}
                   rules={[{ required: true, message: "Please enter a title" }]}
                 >
-                  <Input placeholder="What needs to be done?" size="large" style={{ borderRadius: 8 }} />
+                  <Input placeholder="What needs to be done?" size="large" style={{ borderRadius: 8 }} maxLength={100} showCount />
                 </Form.Item>
 
                 <Row gutter={20}>

@@ -222,48 +222,54 @@ function DashboardContent({ dashboardSettings }: { dashboardSettings?: any }) {
     chart?: React.ReactNode;
   }) => {
     const trendColors: Record<string, { bg: string; fg: string }> = {
-      positive: { bg: "rgba(16,185,129,0.1)", fg: "#047857" },
+      positive: { bg: token.colorSuccessBg, fg: token.colorSuccessTextHover || token.colorSuccess },
       neutral: { bg: token.colorFillAlter, fg: token.colorTextSecondary },
-      warning: { bg: "rgba(245,158,11,0.12)", fg: "#92400E" },
+      warning: { bg: token.colorWarningBg, fg: token.colorWarningTextHover || token.colorWarning },
     };
     const tc = trendColors[trendTone];
     return (
       <div
-        className="dash-stat-card"
-        style={{ ["--dash-accent" as any]: accent }}
+        className="hover-scale"
+        style={{ background: token.colorBgContainer, borderRadius: 10, border: `1px solid ${token.colorBorderSecondary}`, padding: "8px 12px", display: "flex", flexDirection: "column", gap: 6, height: "100%" }}
       >
-        <div className="dash-stat-head">
-          <div
-            className="dash-stat-icon"
-            style={{
-              background: `${accent}1F`,
-              color: accent,
-              boxShadow: `inset 0 0 0 1px ${accent}26`,
-            }}
-          >
-            {icon}
+        {/* Top row: icon + eyebrow */}
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            <div
+              style={{
+                width: 20, height: 20, borderRadius: 4,
+                background: `${accent}14`,
+                border: `1px solid ${accent}33`,
+                display: "flex", alignItems: "center", justifyContent: "center",
+                color: accent, fontSize: 10,
+              }}
+            >
+              {icon}
+            </div>
+            <span style={{ fontSize: 9, fontWeight: 700, color: token.colorTextSecondary, textTransform: "uppercase", letterSpacing: "0.5px" }}>
+              {eyebrow}
+            </span>
           </div>
-          <Text className="dash-stat-label">{eyebrow}</Text>
-          <div className="dash-stat-value-wrap">
-            <span className="dash-stat-value">{value}</span>
+        </div>
+        
+        {/* Value and subtle */}
+        <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+          <div style={{ display: "flex", alignItems: "baseline", gap: 6 }}>
+            <span style={{ fontSize: 15, fontWeight: 800, color: token.colorText, lineHeight: 1 }}>{value}</span>
+          </div>
+          {/* Subtle row */}
+          <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
             {trend && (
-              <span
-                className="dash-stat-trend"
-                style={{ background: tc.bg, color: tc.fg }}
-              >
+              <span style={{ fontSize: 9, fontWeight: 700, color: tc.fg, background: tc.bg, padding: "1px 4px", borderRadius: 4, display: "inline-flex", alignItems: "center", gap: 2 }}>
                 {trend}
               </span>
             )}
+            {subtle && <span style={{ fontSize: 9, color: token.colorTextTertiary, fontWeight: 500 }}>{subtle}</span>}
           </div>
         </div>
-        {subtle && <Text className="dash-stat-subtle">{subtle}</Text>}
-        {chart && <div className="dash-stat-chart">{chart}</div>}
-        <span
-          className="dash-stat-accent"
-          style={{
-            background: `linear-gradient(90deg, ${accent} 0%, transparent 80%)`,
-          }}
-        />
+        
+        {/* Mini chart below */}
+        {chart && <div style={{ marginTop: 0 }}>{chart}</div>}
       </div>
     );
   };
@@ -1162,7 +1168,7 @@ function DashboardContent({ dashboardSettings }: { dashboardSettings?: any }) {
 
       {loading ? (
         <>
-          <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
+          <Row gutter={[12, 12]} align="stretch" style={{ marginBottom: 12 }}>
             {[1, 2, 3, 4].map((i) => (
               <Col xs={24} sm={12} lg={6} key={i}>
                 <Card
@@ -1194,7 +1200,7 @@ function DashboardContent({ dashboardSettings }: { dashboardSettings?: any }) {
           {(() => {
             const metricsSpan = stats.length === 1 ? 24 : stats.length === 2 ? 12 : stats.length === 3 ? 8 : 6;
             return (
-              <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
+              <Row gutter={[12, 12]} align="stretch" style={{ marginBottom: 12 }}>
                 {stats.map((s, i) => (
                   <Col xs={24} sm={12} lg={metricsSpan} key={i}>
                     <KpiCard
@@ -1231,8 +1237,8 @@ function DashboardContent({ dashboardSettings }: { dashboardSettings?: any }) {
               spanMap[visibleKeys[0]] = 8; spanMap[visibleKeys[1]] = 8; spanMap[visibleKeys[2]] = 8;
               spanMap[visibleKeys[3]] = 12; spanMap[visibleKeys[4]] = 12;
             } else if (N === 4) {
-              spanMap[visibleKeys[0]] = 12; spanMap[visibleKeys[1]] = 12;
-              spanMap[visibleKeys[2]] = 12; spanMap[visibleKeys[3]] = 12;
+              spanMap[visibleKeys[0]] = 8; spanMap[visibleKeys[1]] = 8;
+              spanMap[visibleKeys[2]] = 8; spanMap[visibleKeys[3]] = 24;
             } else if (N === 3) {
               spanMap[visibleKeys[0]] = 8; spanMap[visibleKeys[1]] = 8; spanMap[visibleKeys[2]] = 8;
             } else if (N === 2) {
@@ -1242,7 +1248,7 @@ function DashboardContent({ dashboardSettings }: { dashboardSettings?: any }) {
             }
 
             return (
-              <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
+              <Row gutter={[12, 12]} align="stretch" style={{ marginBottom: 12 }}>
                 {isCardProjectPulseVisible && (
                   <Col xs={24} md={spanMap["projectPulse"] === 8 ? 12 : spanMap["projectPulse"]} lg={spanMap["projectPulse"]} xl={spanMap["projectPulse"]}>
                     <Card

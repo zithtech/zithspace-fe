@@ -1,7 +1,7 @@
 "use client";
 
 import { SectionCard, drawerFormStyles } from "@/components/common/DrawerSection";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { Drawer, Form, Input, Select, DatePicker, Button, Row, Col, Typography, Space, Tag, InputNumber, notification, Divider, Avatar, Tooltip, Slider, ConfigProvider, Badge, App } from "antd";
 import {
   FileTextOutlined, UserOutlined, CalendarOutlined, ThunderboltOutlined,
@@ -62,6 +62,8 @@ export const ManualCreateTicketModal: React.FC<ManualCreateTicketModalProps> = (
   const selectedPlatform = Form.useWatch("platform", form);
   const selectedProject = Form.useWatch("project", form) || projectId;
   const tagsValue: string[] = Form.useWatch("tags", form) || [];
+  const selectedAssignee = Form.useWatch("assignee", form);
+  const selectedReporter = Form.useWatch("reportTo", form);
 
   const platformOptions: SearchableDropdownOption[] = platforms.map((p: any) => ({ value: p.value, label: p.label }));
   const projectOptions: SearchableDropdownOption[] = projects.map((p: any) => ({ value: p.value, label: p.label }));
@@ -80,16 +82,32 @@ export const ManualCreateTicketModal: React.FC<ManualCreateTicketModalProps> = (
     value: pt.toString(),
     label: `${pt} Pts`
   }));
-  const memberOptions: SearchableDropdownOption[] = companyMembers.map((m: any) => ({
+  const memberOptions: SearchableDropdownOption[] = useMemo(() => companyMembers.map((m: any) => ({
     value: m.value,
     label: m.label,
     avatarUrl: m.avatarUrl || undefined,
-  }));
-  const projectMemberOptions: SearchableDropdownOption[] = projectMembers.map((m: any) => ({
+  })), [companyMembers]);
+  const projectMemberOptions: SearchableDropdownOption[] = useMemo(() => projectMembers.map((m: any) => ({
     value: m.value,
     label: m.label,
     avatarUrl: m.avatarUrl || undefined,
-  }));
+  })), [projectMembers]);
+
+  const filteredReporterOptions = useMemo(() => {
+    if (!selectedAssignee) return memberOptions;
+    return memberOptions.filter((m) => String(m.value) !== String(selectedAssignee));
+  }, [memberOptions, selectedAssignee]);
+
+  const filteredAssigneeOptions = useMemo(() => {
+    if (!selectedReporter) return projectMemberOptions;
+    return projectMemberOptions.filter((m) => String(m.value) !== String(selectedReporter));
+  }, [projectMemberOptions, selectedReporter]);
+
+  useEffect(() => {
+    if (selectedAssignee && selectedReporter && String(selectedAssignee) === String(selectedReporter)) {
+      form.setFieldValue("reportTo", undefined);
+    }
+  }, [selectedAssignee, selectedReporter, form]);
 
   useEffect(() => {
     if (open) {
@@ -292,10 +310,10 @@ export const ManualCreateTicketModal: React.FC<ManualCreateTicketModalProps> = (
             <SectionCard step="STEP 4" icon={<TeamOutlined style={{ color: '#10b981', fontSize: 13 }} />} title="Ownership & Timeline" subtitle="Assignments and schedule">
 
                   <Form.Item name="assignee" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: "#64748b" }}>Assignee</Text>}>
-                    <SearchableDropdown options={projectMemberOptions} placeholder="Select assignee" allowClear />
+                    <SearchableDropdown options={filteredAssigneeOptions} placeholder="Select assignee" allowClear />
                   </Form.Item>
                   <Form.Item name="reportTo" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: "#64748b" }}>Reporter</Text>}>
-                    <SearchableDropdown options={memberOptions} placeholder="Select reporter" allowClear />
+                    <SearchableDropdown options={filteredReporterOptions} placeholder="Select reporter" allowClear />
                   </Form.Item>
                   <Form.Item name="startDate" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: "#64748b" }}>Start Date</Text>}>
                     <DatePicker size="middle" style={{ width: '100%', height: 36 }} placeholder="Select" />

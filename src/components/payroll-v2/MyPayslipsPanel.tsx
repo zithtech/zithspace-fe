@@ -43,6 +43,24 @@ export default function MyPayslipsPanel({ hideSidebarToggle }: { hideSidebarTogg
     load(page, limit);
   }, [page, limit, load]);
 
+  const handleDownloadPayslip = (r: PayPayslip) => {
+    if (!r?.fileUrl) {
+      message.error('Payslip file unavailable');
+      return;
+    }
+    const label = r.periodLabel || `${r.month}_${r.year}`;
+    const cleanLabel = label.replace(/[^a-zA-Z0-9_-]/g, '_');
+    const fileName = `Payslip_${cleanLabel}.pdf`;
+    const proxyUrl = `/api/download-proxy?url=${encodeURIComponent(r.fileUrl)}&filename=${encodeURIComponent(fileName)}`;
+    const a = document.createElement('a');
+    a.href = proxyUrl;
+    a.download = fileName;
+    a.style.display = 'none';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+  };
+
   const columns: ColumnsType<PayPayslip> = [
     {
       title: 'Period', dataIndex: 'periodLabel', key: 'period',
@@ -59,7 +77,17 @@ export default function MyPayslipsPanel({ hideSidebarToggle }: { hideSidebarTogg
     { title: 'Net Pay', dataIndex: 'net', key: 'net', render: (v) => <span style={{ fontWeight: 800, color: PALETTE.green }}>{money(v)}</span> },
     {
       title: '', key: 'dl', width: 120, align: 'right',
-      render: (_, r) => <Button size="small" type="primary" ghost icon={<DownloadOutlined />} href={r.fileUrl} target="_blank">Download</Button>,
+      render: (_, r) => (
+        <Button
+          size="small"
+          type="primary"
+          ghost
+          icon={<DownloadOutlined />}
+          onClick={() => handleDownloadPayslip(r)}
+        >
+          Download
+        </Button>
+      ),
     },
   ];
 
@@ -98,7 +126,14 @@ export default function MyPayslipsPanel({ hideSidebarToggle }: { hideSidebarTogg
                 <div className="mps-hero-net">{money(latest.net)}</div>
                 <div className="mps-hero-sub">Net pay · Gross {money(latest.gross)} · Deductions {money(latest.totalDeductions)}</div>
               </div>
-              <Button type="primary" icon={<DownloadOutlined />} href={latest.fileUrl} target="_blank" size="large">Download payslip</Button>
+              <Button
+                type="primary"
+                icon={<DownloadOutlined />}
+                onClick={() => handleDownloadPayslip(latest)}
+                size="large"
+              >
+                Download payslip
+              </Button>
             </div>
           )}
           <div className="pv-table-wrap">

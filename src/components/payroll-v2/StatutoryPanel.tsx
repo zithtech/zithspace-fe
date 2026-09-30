@@ -39,6 +39,35 @@ function esiToForm(c: EsiConfig): UpdateEsiInput {
   return { enabled: c.enabled, employeeRate: c.employeeRate, employerRate: c.employerRate, wageThreshold: c.wageThreshold, establishmentCode: c.establishmentCode ?? '' };
 }
 
+const handleNumericKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+  const allowedKeys = [
+    'Backspace', 'Delete', 'Tab', 'Escape', 'Enter',
+    'ArrowLeft', 'ArrowRight', 'Home', 'End',
+  ];
+  if (allowedKeys.includes(e.key) || e.ctrlKey || e.metaKey) {
+    return;
+  }
+  if (!/[\d.]/.test(e.key)) {
+    e.preventDefault();
+  }
+};
+const numericParser = (val?: string): any => (val ? val.replace(/[^\d.]/g, '') : '');
+
+const ALLOWED_CODE_KEY_REGEX = /^[a-zA-Z0-9\s\-_./]$/;
+const handleCodeKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+  const allowedKeys = [
+    'Backspace', 'Delete', 'Tab', 'Escape', 'Enter',
+    'ArrowLeft', 'ArrowRight', 'Home', 'End',
+  ];
+  if (allowedKeys.includes(e.key) || e.ctrlKey || e.metaKey) {
+    return;
+  }
+  if (e.key.length === 1 && !ALLOWED_CODE_KEY_REGEX.test(e.key)) {
+    e.preventDefault();
+  }
+};
+const sanitizeCodeInput = (val: string) => val.replace(/[^a-zA-Z0-9\s\-_./]/g, '');
+
 function SectionCard({ icon, tint, color, title, subtitle, children }: {
   icon: React.ReactNode; tint: string; color: string; title: string; subtitle: string; children: React.ReactNode;
 }) {
@@ -98,6 +127,17 @@ export default function StatutoryPanel() {
   const setEsiField = <K extends keyof UpdateEsiInput>(k: K, v: UpdateEsiInput[K]) => setEsi((p) => ({ ...p, [k]: v }));
 
   const save = async () => {
+    if (view === 'pf') {
+      if (pf.establishmentCode && !/^[a-zA-Z0-9\-_./\s]*$/.test(pf.establishmentCode)) {
+        message.error('Special characters are not allowed in PF Establishment code');
+        return;
+      }
+    } else {
+      if (esi.establishmentCode && !/^[a-zA-Z0-9\-_./\s]*$/.test(esi.establishmentCode)) {
+        message.error('Special characters are not allowed in ESI Establishment code');
+        return;
+      }
+    }
     setSaving(true);
     try {
       if (view === 'pf') {
@@ -169,20 +209,20 @@ export default function StatutoryPanel() {
             <Field label="Enable PF" hint="Deduct provident fund for eligible employees" inline>
               <Switch checked={pf.enabled} onChange={(v) => setPfField('enabled', v)} />
             </Field>
-            <Field label="Employee contribution (%)" hint="Deducted from the employee's wages"><InputNumber min={0} max={100} step={0.5} value={pf.employeeRate} onChange={(v) => setPfField('employeeRate', Number(v ?? 0))} style={{ width: '100%' }} /></Field>
-            <Field label="Employer contribution (%)" hint="Employer's matching share"><InputNumber min={0} max={100} step={0.5} value={pf.employerRate} onChange={(v) => setPfField('employerRate', Number(v ?? 0))} style={{ width: '100%' }} /></Field>
-            <Field label="Wage ceiling" hint="Statutory cap is ₹15,000"><InputNumber min={0} max={10000000} step={500} value={pf.wageCeiling} onChange={(v) => setPfField('wageCeiling', Number(v ?? 0))} style={{ width: '100%' }} formatter={(v) => `₹ ${v}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')} parser={(v) => Number((v || '').replace(/[^\d.]/g, '')) as any} /></Field>
-            <Field label="Establishment / LIN code" hint="Your EPFO establishment / LIN number"><Input value={pf.establishmentCode ?? ''} onChange={(e) => setPfField('establishmentCode', e.target.value)} placeholder="e.g. KA/BNG/0012345" prefix={<Building2 size={14} style={{ color: 'var(--text-slate-400)' }} />} /></Field>
+            <Field label="Employee contribution (%)" hint="Deducted from the employee's wages"><InputNumber min={0} max={100} step={0.5} value={pf.employeeRate} onChange={(v) => setPfField('employeeRate', Number(v ?? 0))} style={{ width: '100%' }} onKeyDown={handleNumericKeyDown} parser={numericParser} /></Field>
+            <Field label="Employer contribution (%)" hint="Employer's matching share"><InputNumber min={0} max={100} step={0.5} value={pf.employerRate} onChange={(v) => setPfField('employerRate', Number(v ?? 0))} style={{ width: '100%' }} onKeyDown={handleNumericKeyDown} parser={numericParser} /></Field>
+            <Field label="Wage ceiling" hint="Statutory cap is ₹15,000"><InputNumber min={0} max={10000000} step={500} value={pf.wageCeiling} onChange={(v) => setPfField('wageCeiling', Number(v ?? 0))} style={{ width: '100%' }} formatter={(v) => `₹ ${v}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')} parser={numericParser} onKeyDown={handleNumericKeyDown} /></Field>
+            <Field label="Establishment / LIN code" hint="Your EPFO establishment / LIN number"><Input value={pf.establishmentCode ?? ''} onKeyDown={handleCodeKeyDown} onChange={(e) => setPfField('establishmentCode', sanitizeCodeInput(e.target.value))} placeholder="e.g. KA/BNG/0012345" prefix={<Building2 size={14} style={{ color: 'var(--text-slate-400)' }} />} /></Field>
             <Field label="Restrict to wage ceiling" hint="Cap PF wages at the ceiling above" inline><Switch checked={pf.restrictToCeiling} onChange={(v) => setPfField('restrictToCeiling', v)} /></Field>
             <Field label="Include employer PF in CTC" hint="Employer share counts toward cost-to-company" inline><Switch checked={pf.includeEmployerInCtc} onChange={(v) => setPfField('includeEmployerInCtc', v)} /></Field>
           </SectionCard>
 
           <SectionCard icon={<Percent size={16} />} tint={TINT.violet} color={PALETTE.violet} title="EPS, EDLI & Admin Charges" subtitle="How the employer contribution is split and employer-borne charges">
             <Field label="Employee Pension Scheme (EPS)" hint="Part of employer share diverts to EPS" inline><Switch checked={pf.epsEnabled} onChange={(v) => setPfField('epsEnabled', v)} /></Field>
-            {pf.epsEnabled && <Field label="EPS rate (%)" hint="Of PF wages (statutory 8.33%)"><InputNumber min={0} max={100} step={0.01} value={pf.epsRate} onChange={(v) => setPfField('epsRate', Number(v ?? 0))} style={{ width: '100%' }} /></Field>}
+            {pf.epsEnabled && <Field label="EPS rate (%)" hint="Of PF wages (statutory 8.33%)"><InputNumber min={0} max={100} step={0.01} value={pf.epsRate} onChange={(v) => setPfField('epsRate', Number(v ?? 0))} style={{ width: '100%' }} onKeyDown={handleNumericKeyDown} parser={numericParser} /></Field>}
             <Field label="Enable EDLI" hint="Employees' Deposit Linked Insurance" inline><Switch checked={pf.edliEnabled} onChange={(v) => setPfField('edliEnabled', v)} /></Field>
-            <Field label="EDLI rate (%)" hint="Insurance, employer-borne"><InputNumber min={0} max={100} step={0.1} value={pf.edliRate} onChange={(v) => setPfField('edliRate', Number(v ?? 0))} style={{ width: '100%' }} disabled={!pf.edliEnabled} /></Field>
-            <Field label="EPF admin charges (%)" hint="Employer-borne, on PF wages"><InputNumber min={0} max={100} step={0.1} value={pf.adminChargesRate} onChange={(v) => setPfField('adminChargesRate', Number(v ?? 0))} style={{ width: '100%' }} /></Field>
+            <Field label="EDLI rate (%)" hint="Insurance, employer-borne"><InputNumber min={0} max={100} step={0.1} value={pf.edliRate} onChange={(v) => setPfField('edliRate', Number(v ?? 0))} style={{ width: '100%' }} disabled={!pf.edliEnabled} onKeyDown={handleNumericKeyDown} parser={numericParser} /></Field>
+            <Field label="EPF admin charges (%)" hint="Employer-borne, on PF wages"><InputNumber min={0} max={100} step={0.1} value={pf.adminChargesRate} onChange={(v) => setPfField('adminChargesRate', Number(v ?? 0))} style={{ width: '100%' }} onKeyDown={handleNumericKeyDown} parser={numericParser} /></Field>
           </SectionCard>
 
           <div className="pvst-preview">
@@ -201,10 +241,10 @@ export default function StatutoryPanel() {
             <Field label="Enable ESI" hint="Deduct ESI for eligible employees" inline>
               <Switch checked={esi.enabled} onChange={(v) => setEsiField('enabled', v)} />
             </Field>
-            <Field label="Employee contribution (%)" hint="Statutory 0.75%"><InputNumber min={0} max={100} step={0.05} value={esi.employeeRate} onChange={(v) => setEsiField('employeeRate', Number(v ?? 0))} style={{ width: '100%' }} /></Field>
-            <Field label="Employer contribution (%)" hint="Statutory 3.25%"><InputNumber min={0} max={100} step={0.05} value={esi.employerRate} onChange={(v) => setEsiField('employerRate', Number(v ?? 0))} style={{ width: '100%' }} /></Field>
-            <Field label="Wage threshold" hint="ESI applies if gross ≤ this"><InputNumber min={0} max={10000000} step={500} value={esi.wageThreshold} onChange={(v) => setEsiField('wageThreshold', Number(v ?? 0))} style={{ width: '100%' }} formatter={(v) => `₹ ${v}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')} parser={(v) => Number((v || '').replace(/[^\d.]/g, '')) as any} /></Field>
-            <Field label="Establishment code" hint="Your ESIC establishment number"><Input value={esi.establishmentCode ?? ''} onChange={(e) => setEsiField('establishmentCode', e.target.value)} placeholder="e.g. 12000000000000999" prefix={<Building2 size={14} style={{ color: 'var(--text-slate-400)' }} />} /></Field>
+            <Field label="Employee contribution (%)" hint="Statutory 0.75%"><InputNumber min={0} max={100} step={0.05} value={esi.employeeRate} onChange={(v) => setEsiField('employeeRate', Number(v ?? 0))} style={{ width: '100%' }} onKeyDown={handleNumericKeyDown} parser={numericParser} /></Field>
+            <Field label="Employer contribution (%)" hint="Statutory 3.25%"><InputNumber min={0} max={100} step={0.05} value={esi.employerRate} onChange={(v) => setEsiField('employerRate', Number(v ?? 0))} style={{ width: '100%' }} onKeyDown={handleNumericKeyDown} parser={numericParser} /></Field>
+            <Field label="Wage threshold" hint="ESI applies if gross ≤ this"><InputNumber min={0} max={10000000} step={500} value={esi.wageThreshold} onChange={(v) => setEsiField('wageThreshold', Number(v ?? 0))} style={{ width: '100%' }} formatter={(v) => `₹ ${v}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')} parser={numericParser} onKeyDown={handleNumericKeyDown} /></Field>
+            <Field label="Establishment code" hint="Your ESIC establishment number"><Input value={esi.establishmentCode ?? ''} onKeyDown={handleCodeKeyDown} onChange={(e) => setEsiField('establishmentCode', sanitizeCodeInput(e.target.value))} placeholder="e.g. 12000000000000999" prefix={<Building2 size={14} style={{ color: 'var(--text-slate-400)' }} />} /></Field>
           </SectionCard>
 
           <div className="pvst-preview">

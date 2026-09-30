@@ -189,6 +189,9 @@ export default function ManageAttendancePanel() {
   const [saving, setSaving] = useState(false);
   const [form] = Form.useForm();
   const statusValue = Form.useWatch('status', form);
+  const watchedMember = Form.useWatch('member', form);
+  const watchedDate = Form.useWatch('date', form);
+  const [existingRecordBanner, setExistingRecordBanner] = useState<string | null>(null);
 
   // reopen-day modal
   const [reopenTarget, setReopenTarget] = useState<ExtendedAttendance | null>(null);
@@ -239,6 +242,73 @@ export default function ManageAttendancePanel() {
   useEffect(() => {
     if (canReadAttendance || canManageAttendance) load();
   }, [canReadAttendance, canManageAttendance, load]);
+
+  // Auto-detect if an attendance record already exists for the selected member & date,
+  // and load its status, notes, and Work & Breaks intervals into the form.
+  useEffect(() => {
+    if (!drawerOpen || !watchedMember || !watchedDate) {
+      setExistingRecordBanner(null);
+      return;
+    }
+
+    const dateStr = dayjs(watchedDate).format('YYYY-MM-DD');
+
+    // If currently editing and member/date match, retain current banner/editing state
+    if (editing) {
+      const eMemberId = editing.member?.id || (editing as any).userId || (editing as any).user_id || (editing as any).member;
+      const eDateStr = editing.date
+        ? (typeof editing.date === 'string' ? editing.date.split('T')[0] : dayjs(editing.date).format('YYYY-MM-DD'))
+        : '';
+      if (eMemberId === watchedMember && eDateStr === dateStr) {
+        return;
+      }
+    }
+
+    let active = true;
+    const checkRecord = async () => {
+      try {
+        // Look in loaded table rows first
+        let existing = rows.find((r) => {
+          const mId = r.member?.id || (r as any).userId || (r as any).user_id || (r as any).member;
+          const rDateStr = r.date
+            ? (typeof r.date === 'string' ? r.date.split('T')[0] : dayjs(r.date).format('YYYY-MM-DD'))
+            : '';
+          return mId === watchedMember && rDateStr === dateStr;
+        });
+
+        // If not in visible table rows, query backend API
+        if (!existing) {
+          const res = await AttendanceService.getAttendance({
+            member: watchedMember,
+            startDate: dateStr,
+            endDate: dateStr,
+            limit: 1,
+          });
+          if (res.data && res.data.length > 0) {
+            existing = res.data[0] as ExtendedAttendance;
+          }
+        }
+
+        if (active && existing) {
+          const memberObj = members.find((m) => m.id === watchedMember);
+          const memberName = memberObj?.name || existing.member?.name || 'this member';
+          setExistingRecordBanner(`Existing attendance record found for ${memberName} on ${dayjs(watchedDate).format('MMM DD, YYYY')}. Loaded details for editing.`);
+          openEdit(existing);
+        } else if (active && !existing) {
+          setExistingRecordBanner(null);
+          if (editing) setEditing(null);
+        }
+      } catch {
+        /* non-fatal fallback */
+      }
+    };
+
+    const timer = setTimeout(checkRecord, 350);
+    return () => {
+      active = false;
+      clearTimeout(timer);
+    };
+  }, [drawerOpen, watchedMember, watchedDate, editing, rows, members]);
 
   // Live updates: any clock-in / pause / resume / complete across the tenant
   // updates the on-break overlay instantly and refreshes the table (debounced).
@@ -306,6 +376,7 @@ export default function ManageAttendancePanel() {
   // ── Drawer handlers ────────────────────────────────────────────────────────
   const openCreate = () => {
     setEditing(null);
+    setExistingRecordBanner(null);
     form.resetFields();
     form.setFieldsValue({
       date: dayjs(),
@@ -332,11 +403,11 @@ export default function ManageAttendancePanel() {
           reason: '',
         });
         const next = sessions[idx + 1];
-        if (s.breakType && next) {
+        if (s.breakType) {
           timeline.push({
             type: s.breakType,
             start: s.clockOut ? dayjs(s.clockOut) : null,
-            end: next.clockIn ? dayjs(next.clockIn) : null,
+            end: next?.clockIn ? dayjs(next.clockIn) : null,
             reason: s.breakReason || '',
           });
         }
@@ -352,8 +423,10 @@ export default function ManageAttendancePanel() {
       timeline.push({ type: 'work', start: null, end: null, reason: '' });
     }
 
+    const memberId = record.member?.id || (record as any).userId || (record as any).user_id || (record as any).member;
+
     form.setFieldsValue({
-      member: record.member?.id,
+      member: memberId,
       date: record.date ? (typeof record.date === 'string' ? dayjs(record.date.split('T')[0]) : dayjs(record.date)) : dayjs(),
       status: record.status,
       notes: record.notes,
@@ -594,19 +667,21 @@ export default function ManageAttendancePanel() {
       key: 'actions',
       width: 90,
       align: 'right',
-      render: (_, r) => (
-        <div style={{ display: 'flex', gap: 4, justifyContent: 'flex-end' }}>
-          {canUpdateAttendance && r.clockOut && (
-            <Tooltip title="Reopen day">
-              <Button
-                type="text"
-                size="small"
-                icon={<PlayCircleOutlined />}
-                style={{ color: PALETTE.green }}
-                onClick={() => openReopen(r)}
-              />
-            </Tooltip>
-          )}
+      render: (_, r) => {
+        const isToday = r.date ? dayjs(r.date).isSame(dayjs(), 'day') : false;
+        return (
+          <div style={{ display: 'flex', gap: 4, justifyContent: 'flex-end' }}>
+            {canUpdateAttendance && isToday && r.clockOut && (
+              <Tooltip title="Reopen day">
+                <Button
+                  type="text"
+                  size="small"
+                  icon={<PlayCircleOutlined />}
+                  style={{ color: PALETTE.green }}
+                  onClick={() => openReopen(r)}
+                />
+              </Tooltip>
+            )}
           {canUpdateAttendance && (
             <Tooltip title="Edit"><Button type="text" size="small" icon={<EditOutlined />} onClick={() => openEdit(r)} /></Tooltip>
           )}
@@ -623,8 +698,9 @@ export default function ManageAttendancePanel() {
               <Button type="text" size="small" danger icon={<DeleteOutlined />} />
             </ConfirmDialog>
           )}
-        </div>
-      ),
+          </div>
+        );
+      },
     },
   ];
 
@@ -936,6 +1012,27 @@ export default function ManageAttendancePanel() {
             requiredMark="optional"
             className="customer-drawer-form att-drawer-form"
           >
+            {existingRecordBanner && (
+              <div
+                style={{
+                  padding: '10px 14px',
+                  marginBottom: 14,
+                  borderRadius: 8,
+                  background: 'rgba(59,130,246,0.08)',
+                  border: '1px solid rgba(59,130,246,0.30)',
+                  color: '#1d4ed8',
+                  fontSize: 12.5,
+                  fontWeight: 600,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 8,
+                }}
+              >
+                <InfoCircleOutlined style={{ fontSize: 16, flexShrink: 0 }} />
+                <span>{existingRecordBanner}</span>
+              </div>
+            )}
+
             {/* STEP 1 — Record Details */}
             <SectionCard
               icon={<InfoCircleOutlined />}
@@ -954,7 +1051,6 @@ export default function ManageAttendancePanel() {
                   placeholder="Select member"
                   searchPlaceholder="Search members"
                   itemNoun="members"
-                  disabled={!!editing}
                   options={members.map((m) => ({ value: m.id, label: m.name || '—' }))}
                   style={{ width: '100%', height: 40 }}
                   width={240}

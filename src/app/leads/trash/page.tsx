@@ -271,15 +271,38 @@ export default function LeadsTrashPage() {
       canRestoreLeadTrash ? {
         key: 'restore',
         label: (
-          <div className="es-menu-item">
-            <span className="es-menu-ic" style={{ color: '#10b981', background: 'rgba(16,185,129,0.12)' }}>
-              <UndoOutlined />
-            </span>
-            <span className="es-menu-text">
-              <span className="es-menu-title">Restore</span>
-              <span className="es-menu-desc">Restore lead to pipeline</span>
-            </span>
-          </div>
+          <ConfirmDialog
+            tone="success"
+            icon={<UndoOutlined style={{ fontSize: 15, color: '#10b981' }} />}
+            title="Restore Lead"
+            description="Are you sure you want to restore this lead back to the active pipeline?"
+            confirmText="Restore"
+            cancelText="Cancel"
+            placement="left"
+            onConfirm={() => handleRestore(item.id)}
+          >
+            <div
+              style={{
+                margin: '-5px -12px',
+                padding: '5px 12px',
+                width: 'calc(100% + 24px)',
+                height: '100%'
+              }}
+              onClick={(e) => {
+                e.stopPropagation();
+              }}
+            >
+              <div className="es-menu-item">
+                <span className="es-menu-ic" style={{ color: '#10b981', background: 'rgba(16,185,129,0.12)' }}>
+                  <UndoOutlined />
+                </span>
+                <span className="es-menu-text">
+                  <span className="es-menu-title">Restore</span>
+                  <span className="es-menu-desc">Restore lead to pipeline</span>
+                </span>
+              </div>
+            </div>
+          </ConfirmDialog>
         )
       } : null,
       (canRestoreLeadTrash && canDeleteLeadTrash) ? { type: 'divider' as const } : null,
@@ -322,11 +345,8 @@ export default function LeadsTrashPage() {
         )
       } : null
     ].filter(Boolean) as any,
-    onClick: ({ key, domEvent }: any) => {
+    onClick: ({ domEvent }: any) => {
       domEvent.stopPropagation();
-      if (key === 'restore') {
-        handleRestore(item.id);
-      }
     }
   });
 
@@ -425,14 +445,26 @@ export default function LeadsTrashPage() {
       render: (record: Lead) => (
         <Space size={8}>
           {canRestoreLeadTrash && (
-            <Tooltip title="Restore Lead">
-              <Button
-                type="text"
-                className="es-icon-btn"
-                icon={<UndoOutlined style={{ color: "#52c41a" }} />}
-                onClick={() => handleRestore(record.id)}
-              />
-            </Tooltip>
+            <ConfirmDialog
+              tone="success"
+              icon={<UndoOutlined style={{ fontSize: 16, color: '#10b981' }} />}
+              title="Restore Lead"
+              description="Are you sure you want to restore this lead back to the active pipeline?"
+              confirmText="Restore"
+              cancelText="Cancel"
+              placement="topRight"
+              onConfirm={() => handleRestore(record.id)}
+            >
+              <div onClick={(e) => e.stopPropagation()}>
+                <Tooltip title="Restore Lead">
+                  <Button
+                    type="text"
+                    className="es-icon-btn"
+                    icon={<UndoOutlined style={{ color: "#52c41a" }} />}
+                  />
+                </Tooltip>
+              </div>
+            </ConfirmDialog>
           )}
           {canDeleteLeadTrash && (
             <ConfirmDialog
@@ -657,11 +689,15 @@ export default function LeadsTrashPage() {
                 </div>
                 <div className="saas-bulk-buttons">
                   {canRestoreLeadTrash && (
-                    <Button
-                      type="text"
-                      size="small"
-                      icon={<UndoOutlined />}
-                      onClick={async () => {
+                    <ConfirmDialog
+                      tone="success"
+                      icon={<UndoOutlined style={{ fontSize: 16, color: '#10b981' }} />}
+                      title="Restore Selected Leads"
+                      description={`Are you sure you want to restore the ${selectedRowKeys.length} selected lead(s) back to the active pipeline?`}
+                      confirmText="Restore Selected"
+                      cancelText="Cancel"
+                      placement="bottom"
+                      onConfirm={async () => {
                         try {
                           await bulkRestoreLeads(selectedRowKeys as string[]);
                           setSelectedRowKeys([]);
@@ -672,11 +708,17 @@ export default function LeadsTrashPage() {
                           message.error("Failed to restore leads");
                         }
                       }}
-                      loading={loading}
-                      className="saas-bulk-btn restore"
                     >
-                      Restore
-                    </Button>
+                      <Button
+                        type="text"
+                        size="small"
+                        icon={<UndoOutlined />}
+                        loading={loading}
+                        className="saas-bulk-btn restore"
+                      >
+                        Restore
+                      </Button>
+                    </ConfirmDialog>
                   )}
                   {canDeleteLeadTrash && (
                     <ConfirmDialog

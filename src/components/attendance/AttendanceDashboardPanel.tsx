@@ -140,8 +140,8 @@ export default function AttendanceDashboardPanel() {
   const [customRange, setCustomRange] = useState<[dayjs.Dayjs, dayjs.Dayjs] | null>(null);
 
   const range = useMemo(() => {
-    if (dateFilter === 'week') return [dayjs().startOf('week'), dayjs().endOf('day')] as const;
-    if (dateFilter === 'month') return [dayjs().startOf('month'), dayjs().endOf('day')] as const;
+    if (dateFilter === 'week') return [dayjs().startOf('week'), dayjs().endOf('week')] as const;
+    if (dateFilter === 'month') return [dayjs().startOf('month'), dayjs().endOf('month')] as const;
     if (dateFilter === 'custom' && customRange) return [customRange[0].startOf('day'), customRange[1].endOf('day')] as const;
     return [dayjs().startOf('day'), dayjs().endOf('day')] as const;
   }, [dateFilter, customRange]);
@@ -156,10 +156,13 @@ export default function AttendanceDashboardPanel() {
 
   const load = useCallback(async () => {
     setLoading(true);
+    setPresent([]);
     try {
+      const startStr = range[0].format('YYYY-MM-DD');
+      const endStr = range[1].format('YYYY-MM-DD');
       const [s, p] = await Promise.all([
-        AttendanceService.getDashboardSummary(range[0].toISOString(), range[1].toISOString()),
-        AttendanceService.getPresentMembers(range[0].toISOString(), range[1].toISOString()),
+        AttendanceService.getDashboardSummary(startStr, endStr),
+        AttendanceService.getPresentMembers(startStr, endStr),
       ]);
       setSummary(s as any);
       setPresent(p as any);
@@ -272,10 +275,10 @@ export default function AttendanceDashboardPanel() {
             ) : present.length === 0 ? (
               <div className="adb-empty"><CalendarOutlined style={{ fontSize: 22, opacity: 0.5 }} /><div>No one is marked present {filterLabel}.</div></div>
             ) : (
-              present.map((e) => {
+              present.map((e, index) => {
                 const meta = STATUS_META[e.status] || STATUS_META.present;
                 return (
-                  <div key={e.id} className="adb-emp-row">
+                  <div key={`${e.id || 'emp'}-${index}`} className="adb-emp-row">
                     <Avatar size={40} src={e.avatarUrl} style={{ background: meta.color, borderRadius: 11, fontWeight: 700, flexShrink: 0 }}>
                       {e.name?.charAt(0)?.toUpperCase()}
                     </Avatar>

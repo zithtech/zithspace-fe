@@ -2,177 +2,401 @@
 
 import React from 'react';
 import Image from 'next/image';
-import { Typography, ConfigProvider, theme as antdTheme } from 'antd';
+import { ConfigProvider, theme as antdTheme } from 'antd';
 import { useProduct } from '@/context/ProductContext';
 
-const { Title, Text } = Typography;
+// ---------------------------------------------------------------------------
+// The auth surface is a split canvas: an art panel that carries the brand's
+// forward lean, and a bare form column with no card and no input boxes. The
+// only chrome on the right-hand side is type and a single hairline per field.
+// ---------------------------------------------------------------------------
 
-// Minimal backdrop: charcoal canvas, a whisper of grid, and a few motion lines
-// carrying the forward lean of the Zukvo mark. Nothing else.
-const backgroundStyles = `
-@keyframes zk-streak {
-  0%   { transform: translateX(-260px); opacity: 0; }
-  20%  { opacity: 1; }
-  80%  { opacity: 1; }
-  100% { transform: translateX(300px); opacity: 0; }
+const shellStyles = `
+/* --- canvas ------------------------------------------------------------ */
+.zk-auth {
+  --zk-ink:        #E8EDF5;
+  --zk-ash:        #94A3B8;
+  --zk-ash-dim:    #6B7A93;
+  --zk-ash-faint:  #4A566B;
+  --zk-hairline:   rgba(148, 163, 184, 0.16);
+  position: relative;
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: flex;
+  background: #07090d;
+  color: var(--zk-ink);
+  overflow: hidden;
 }
+
+/* --- art panel --------------------------------------------------------- */
+.zk-auth__art {
+  position: relative;
+  flex: 1 1 0;
+  min-width: 0;
+  overflow: hidden;
+  border-right: 1px solid var(--zk-hairline);
+  background:
+    radial-gradient(ellipse 70% 60% at 30% 40%, rgba(37, 99, 235, 0.16) 0%, transparent 70%),
+    linear-gradient(145deg, #090b10 0%, #11151d 55%, #080a0f 100%);
+}
+.zk-auth__grid {
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(148, 163, 184, 0.045) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(148, 163, 184, 0.045) 1px, transparent 1px);
+  background-size: 88px 88px;
+  -webkit-mask-image: radial-gradient(ellipse 75% 70% at 35% 45%, #000 10%, transparent 80%);
+          mask-image: radial-gradient(ellipse 75% 70% at 35% 45%, #000 10%, transparent 80%);
+}
+/* The mark, blown up until only its silhouette survives. It runs off two
+   edges on purpose, so the wordmark baked into the artwork stays off-canvas. */
+.zk-auth__ghost {
+  position: absolute;
+  left: -20%;
+  bottom: -46%;
+  width: 78%;
+  min-width: 480px;
+  height: auto;
+  opacity: 0.03;
+  pointer-events: none;
+}
+.zk-auth__vignette {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse 100% 100% at 40% 50%, transparent 45%, rgba(3, 6, 12, 0.7) 100%);
+}
+.zk-auth__artfoot {
+  position: absolute;
+  left: 56px;
+  bottom: 44px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  font-size: 12px;
+  color: var(--zk-ash-faint);
+  letter-spacing: 0.02em;
+}
+.zk-auth__artfoot::before {
+  content: '';
+  width: 40px;
+  height: 1px;
+  background: var(--zk-hairline);
+}
+
+/* --- the track: lines the light runs along ----------------------------- */
+@keyframes zk-run {
+  0%   { transform: translateX(-30%); opacity: 0; }
+  12%  { opacity: 1; }
+  72%  { opacity: 1; }
+  100% { transform: translateX(340%); opacity: 0; }
+}
+@keyframes zk-breathe {
+  0%, 100% { opacity: 0.55; }
+  50%      { opacity: 1; }
+}
+.zk-track { position: absolute; height: 1px; border-radius: 1px; overflow: visible; }
+.zk-track__rail {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, rgba(148, 163, 184, 0.16) 30%, rgba(148, 163, 184, 0.16) 70%, transparent);
+}
+.zk-track__pulse {
+  position: absolute;
+  top: -0.5px;
+  left: 0;
+  width: 30%;
+  height: 2px;
+  border-radius: 2px;
+  background: linear-gradient(90deg, transparent, var(--zk-accent) 65%, #dbeafe);
+  box-shadow: 0 0 12px 1px var(--zk-accent-glow);
+  animation: zk-run linear infinite;
+}
+.zk-spark {
+  position: absolute;
+  width: 3px;
+  height: 3px;
+  border-radius: 999px;
+  background: var(--zk-accent);
+  box-shadow: 0 0 10px 2px var(--zk-accent-glow);
+  animation: zk-breathe 5s ease-in-out infinite;
+}
+
+/* --- form column ------------------------------------------------------- */
+.zk-auth__panel {
+  position: relative;
+  flex: 0 0 min(560px, 46vw);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 48px 56px;
+  background: #090b10;
+}
+.zk-auth__inner { width: 100%; max-width: 380px; margin: 0 auto; }
+.zk-auth__lockup { display: flex; align-items: center; gap: 12px; margin-bottom: 40px; }
+.zk-auth__heading {
+  margin: 0;
+  font-size: 34px;
+  line-height: 1.12;
+  font-weight: 600;
+  letter-spacing: -0.03em;
+  color: #F8FAFC;
+}
+.zk-auth__sub {
+  margin: 12px 0 0;
+  font-size: 13.5px;
+  line-height: 1.6;
+  color: var(--zk-ash);
+}
+.zk-auth__body { margin-top: 36px; }
+.zk-auth__panelfoot { display: none; margin-top: 40px; font-size: 12px; color: var(--zk-ash-faint); }
+
+@media (max-width: 960px) {
+  .zk-auth__art { display: none; }
+  /* No art panel to lean on, so the canvas carries the glow itself. */
+  .zk-auth__panel {
+    flex: 1 1 auto;
+    padding: 40px 24px;
+    background:
+      radial-gradient(ellipse 130% 40% at 50% 0%, rgba(37, 99, 235, 0.15) 0%, transparent 70%),
+      #090b10;
+  }
+  .zk-auth__panel::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(148, 163, 184, 0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(148, 163, 184, 0.04) 1px, transparent 1px);
+    background-size: 72px 72px;
+    -webkit-mask-image: radial-gradient(ellipse 90% 45% at 50% 8%, #000 0%, transparent 75%);
+            mask-image: radial-gradient(ellipse 90% 45% at 50% 8%, #000 0%, transparent 75%);
+    pointer-events: none;
+  }
+  .zk-auth__inner { position: relative; }
+  .zk-auth__panelfoot { display: block; text-align: center; }
+  .zk-auth__lockup { justify-content: center; }
+  .zk-auth__heading, .zk-auth__sub { text-align: center; }
+  .zk-auth__heading { font-size: 28px; }
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .zk-anim { animation: none !important; }
+  .zk-track__pulse, .zk-spark { animation: none; }
+  .zk-track__pulse { opacity: 0.5; transform: translateX(120%); }
 }
 `;
 
-const SPRINT_STREAKS = [
-  { x: 80, y: 190, w: 260, dur: '14s', delay: '0s' },
-  { x: 250, y: 430, w: 150, dur: '18s', delay: '5s' },
-  { x: 110, y: 660, w: 210, dur: '16s', delay: '2.5s' },
+// globals.css forces .ant-input backgrounds with !important, so the bare-field
+// treatment has to be reasserted at higher specificity under .zk-auth.
+const fieldStyles = `
+/* Fields are a hairline and nothing else — no box, no fill, no radius. */
+.zk-auth .ant-input,
+.zk-auth .ant-input-affix-wrapper,
+.zk-auth .ant-input-password {
+  background: transparent !important;
+  border: none !important;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.18) !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  padding: 9px 0 !important;
+  font-size: 15px;
+  color: var(--zk-ink) !important;
+  transition: border-color .25s ease;
+}
+.zk-auth .ant-input-affix-wrapper .ant-input {
+  border: none !important;
+  padding: 0 !important;
+}
+.zk-auth .ant-input:hover,
+.zk-auth .ant-input-affix-wrapper:hover {
+  border-bottom-color: rgba(148, 163, 184, 0.34) !important;
+}
+.zk-auth .ant-input::placeholder,
+.zk-auth .ant-input-affix-wrapper input::placeholder {
+  color: #445064 !important;
+}
+
+/* The focus sweep: a line of accent drawn left-to-right under the field. */
+.zk-auth .ant-form-item-control-input:has(input.ant-input) { position: relative; }
+.zk-auth .ant-form-item-control-input:has(input.ant-input)::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 1px;
+  background: var(--zk-accent);
+  transform: scaleX(0);
+  transform-origin: left center;
+  transition: transform .45s cubic-bezier(.2,.8,.2,1);
+  pointer-events: none;
+}
+.zk-auth .ant-form-item-control-input:has(input.ant-input):focus-within::after {
+  transform: scaleX(1);
+}
+
+/* Labels read as small caps set above the line. */
+.zk-auth .ant-form-item-label { padding-bottom: 2px !important; }
+.zk-auth .ant-form-item-label > label {
+  height: auto !important;
+  font-size: 10.5px !important;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--zk-ash-dim) !important;
+  transition: color .25s ease;
+}
+.zk-auth .ant-form-item:focus-within .ant-form-item-label > label { color: var(--zk-accent) !important; }
+.zk-auth .ant-form-item-explain-error { font-size: 12px; margin-top: 6px; }
+.zk-auth .ant-checkbox-wrapper { color: var(--zk-ash); font-size: 13px; }
+.zk-auth .ant-input-password-icon { color: #445064 !important; }
+.zk-auth .ant-input-password-icon:hover { color: var(--zk-ash) !important; }
+.zk-auth input:-webkit-autofill,
+.zk-auth input:-webkit-autofill:hover,
+.zk-auth input:-webkit-autofill:focus {
+  -webkit-box-shadow: 0 0 0 1000px #090b10 inset !important;
+  -webkit-text-fill-color: var(--zk-ink) !important;
+  caret-color: var(--zk-ink);
+}
+
+/* --- the primary action: a bar whose arrow leans forward on hover ------ */
+.zk-auth .zk-submit {
+  height: 54px !important;
+  border: none !important;
+  border-radius: 12px !important;
+  background: var(--zk-accent) !important;
+  color: #fff !important;
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  box-shadow: 0 10px 30px -12px var(--zk-accent-glow) !important;
+  transition: background .2s ease, box-shadow .2s ease, transform .2s ease;
+}
+.zk-auth .zk-submit:hover:not(:disabled) {
+  background: var(--zk-accent-hi) !important;
+  box-shadow: 0 16px 36px -12px var(--zk-accent-glow) !important;
+  transform: translateY(-1px);
+}
+.zk-auth .zk-submit .anticon { transition: transform .25s cubic-bezier(.2,.8,.2,1); }
+.zk-auth .zk-submit:hover:not(:disabled) .anticon { transform: translateX(3px); }
+
+/* Quiet counterpart to .zk-submit. */
+.zk-auth .zk-ghost {
+  height: 54px !important;
+  background: transparent !important;
+  border: 1px solid var(--zk-hairline) !important;
+  border-radius: 12px !important;
+  color: var(--zk-ash) !important;
+  box-shadow: none !important;
+  transition: border-color .2s ease, color .2s ease;
+}
+.zk-auth .zk-ghost:hover:not(:disabled) {
+  border-color: rgba(148, 163, 184, 0.34) !important;
+  color: var(--zk-ink) !important;
+}
+
+/* SSO reduced to two unlabelled discs. */
+.zk-auth .zk-social {
+  width: 46px !important;
+  height: 46px !important;
+  padding: 0 !important;
+  border-radius: 999px !important;
+  background: transparent !important;
+  border: 1px solid var(--zk-hairline) !important;
+  box-shadow: none !important;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: border-color .2s ease, transform .2s ease, background .2s ease;
+}
+.zk-auth .zk-social:hover:not(:disabled) {
+  background: rgba(148, 163, 184, 0.06) !important;
+  border-color: rgba(148, 163, 184, 0.32) !important;
+  transform: translateY(-2px);
+}
+
+.zk-auth .zk-link { color: var(--zk-accent-hi); text-decoration: none; transition: color .2s ease; }
+.zk-auth .zk-link:hover { color: #93C5FD !important; }
+
+.zk-auth .ant-alert {
+  background: rgba(59, 130, 246, 0.07) !important;
+  border: 1px solid var(--zk-hairline) !important;
+  border-radius: 10px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .zk-auth .zk-submit, .zk-auth .zk-social, .zk-auth .ant-form-item-control-input::after { transition: none; }
+  .zk-auth .zk-submit:hover, .zk-auth .zk-social:hover { transform: none; }
+}
+`;
+
+/** Rails the light runs along, positioned as percentages of the art panel. */
+const TRACKS = [
+  { top: '22%', left: '-10%', width: '62%', dur: '11s', delay: '0s' },
+  { top: '38%', left: '6%',  width: '46%', dur: '15s', delay: '3.4s' },
+  { top: '54%', left: '-4%', width: '78%', dur: '9s',  delay: '1.6s' },
+  { top: '68%', left: '18%', width: '40%', dur: '17s', delay: '6s' },
+  { top: '81%', left: '2%',  width: '55%', dur: '13s', delay: '2.2s' },
 ];
 
-function TechBackground() {
+const SPARKS = [
+  { top: '30%', left: '72%', delay: '0s' },
+  { top: '46%', left: '24%', delay: '1.8s' },
+  { top: '74%', left: '64%', delay: '3.1s' },
+];
+
+function ArtPanel({
+  mark,
+  invertMark,
+  legalName,
+}: {
+  mark: React.ComponentProps<typeof Image>['src'];
+  invertMark: boolean;
+  legalName: string;
+}) {
   return (
-    <div
-      aria-hidden
-      style={{ position: 'absolute', inset: 0, overflow: 'hidden', pointerEvents: 'none' }}
-    >
-      {/* Barely-there grid, dissolved toward the edges */}
-      <div
-        style={{
-          position: 'absolute',
-          inset: 0,
-          backgroundImage:
-            'linear-gradient(rgba(148, 163, 184, 0.04) 1px, transparent 1px),' +
-            'linear-gradient(90deg, rgba(148, 163, 184, 0.04) 1px, transparent 1px)',
-          backgroundSize: '72px 72px',
-          maskImage: 'radial-gradient(ellipse 80% 70% at 50% 50%, #000 20%, transparent 78%)',
-          WebkitMaskImage:
-            'radial-gradient(ellipse 80% 70% at 50% 50%, #000 20%, transparent 78%)',
-        }}
-      />
+    <div className="zk-auth__art" aria-hidden>
+      <div className="zk-auth__grid" />
 
-      {/* Motion lines on the mark's forward lean */}
-      <svg
-        viewBox="0 0 1440 900"
-        preserveAspectRatio="xMidYMid slice"
-        style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}
-      >
-        <defs>
-          <linearGradient id="zk-streak-grad" x1="0" y1="0" x2="1" y2="0">
-            <stop offset="0%" stopColor="#60a5fa" stopOpacity="0" />
-            <stop offset="100%" stopColor="#60a5fa" stopOpacity="0.5" />
-          </linearGradient>
-        </defs>
-
-        <g transform="rotate(-7 720 450)">
-          {SPRINT_STREAKS.map((streak) => (
-            <rect
-              key={`${streak.x}-${streak.y}`}
-              className="zk-anim"
-              x={streak.x}
-              y={streak.y}
-              width={streak.w}
-              height={1.5}
-              rx={0.75}
-              fill="url(#zk-streak-grad)"
-              style={{
-                animation: `zk-streak ${streak.dur} linear infinite`,
-                animationDelay: streak.delay,
-              }}
+      {/* The track, sheared to the mark's forward lean. */}
+      <div style={{ position: 'absolute', inset: 0, transform: 'rotate(-7deg)' }}>
+        {TRACKS.map((track) => (
+          <div
+            key={track.top}
+            className="zk-track"
+            style={{ top: track.top, left: track.left, width: track.width }}
+          >
+            <span className="zk-track__rail" />
+            <span
+              className="zk-track__pulse"
+              style={{ animationDuration: track.dur, animationDelay: track.delay }}
             />
-          ))}
-        </g>
-      </svg>
+          </div>
+        ))}
+        {SPARKS.map((spark) => (
+          <span
+            key={spark.top}
+            className="zk-spark"
+            style={{ top: spark.top, left: spark.left, animationDelay: spark.delay }}
+          />
+        ))}
+      </div>
 
-      {/* Single soft glow behind the card + edge vignette */}
-      <div
-        style={{
-          position: 'absolute',
-          inset: 0,
-          background:
-            'radial-gradient(ellipse 45% 50% at 50% 48%, rgba(37, 99, 235, 0.14) 0%, transparent 72%),' +
-            'radial-gradient(ellipse 100% 100% at 50% 50%, transparent 55%, rgba(3, 6, 12, 0.55) 100%)',
-        }}
+      {/* The mark, blown up and dropped almost to nothing. */}
+      <Image
+        className="zk-auth__ghost"
+        src={mark}
+        alt=""
+        style={invertMark ? { filter: 'invert(1)' } : undefined}
       />
+
+      <div className="zk-auth__vignette" />
+      <div className="zk-auth__artfoot">
+        © {new Date().getFullYear()} {legalName}
+      </div>
     </div>
   );
 }
-
-// globals.css forces .ant-card / .ant-input backgrounds with !important, so the
-// dark surface has to be reasserted at higher specificity under .zk-login.
-const formStyles = `
-.zk-login .ant-input,
-.zk-login .ant-input-affix-wrapper {
-  background-color: rgba(148, 163, 184, 0.07) !important;
-  border: 1px solid rgba(148, 163, 184, 0.14);
-  border-radius: 999px;
-  font-size: 14px;
-  padding-left: 20px;
-  padding-right: 20px;
-  color: #E8EDF5;
-}
-/* The inner input of an affix wrapper must stay bare, or it renders as a box-in-a-box */
-.zk-login .ant-input-affix-wrapper .ant-input {
-  background: transparent !important;
-  border: none !important;
-  border-radius: 0 !important;
-  box-shadow: none !important;
-  padding: 0 !important;
-  color: #E8EDF5;
-}
-.zk-login .ant-input-affix-wrapper .ant-input:focus,
-.zk-login .ant-input-affix-wrapper .ant-input:hover {
-  border: none !important;
-  box-shadow: none !important;
-}
-.zk-login .ant-input::placeholder,
-.zk-login .ant-input-affix-wrapper input::placeholder { color: #5A6982 !important; }
-.zk-login .ant-input-affix-wrapper:hover,
-.zk-login .ant-input:hover { border-color: rgba(148, 163, 184, 0.34); }
-.zk-login .ant-input-affix-wrapper:focus-within,
-.zk-login .ant-input:focus {
-  border-color: #3B82F6;
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.16);
-}
-.zk-login .ant-form-item-label > label { color: #94A3B8 !important; font-size: 13px; }
-.zk-login .ant-checkbox-wrapper { color: #94A3B8; }
-.zk-login .ant-btn-primary { box-shadow: 0 8px 22px rgba(37, 99, 235, .32) !important; }
-.zk-login input:-webkit-autofill,
-.zk-login input:-webkit-autofill:hover,
-.zk-login input:-webkit-autofill:focus {
-  -webkit-box-shadow: 0 0 0 1000px #171d27 inset !important;
-  -webkit-text-fill-color: #E8EDF5 !important;
-  caret-color: #E8EDF5;
-}
-.zk-submit { transition: transform .2s ease, box-shadow .2s ease; }
-.zk-login .zk-submit:hover:not(:disabled) {
-  transform: translateY(-1px);
-  box-shadow: 0 12px 28px rgba(37, 99, 235, .42) !important;
-}
-.zk-social { transition: background .2s ease, border-color .2s ease, transform .2s ease; }
-.zk-social:hover:not(:disabled) {
-  background: rgba(148, 163, 184, .12) !important;
-  border-color: rgba(148, 163, 184, .3) !important;
-  transform: translateY(-1px);
-}
-.zk-link:hover { color: #93C5FD !important; }
-.zk-login .ant-input-password-icon { color: #5A6982 !important; }
-.zk-login .ant-input-password-icon:hover { color: #94A3B8 !important; }
-/* Ghost button — the quiet counterpart to .zk-submit */
-.zk-login .zk-ghost {
-  background: rgba(148, 163, 184, 0.06) !important;
-  border-color: rgba(148, 163, 184, 0.16) !important;
-  color: #94A3B8 !important;
-  box-shadow: none !important;
-  transition: background .2s ease, border-color .2s ease, color .2s ease;
-}
-.zk-login .zk-ghost:hover:not(:disabled) {
-  background: rgba(148, 163, 184, 0.12) !important;
-  border-color: rgba(148, 163, 184, 0.3) !important;
-  color: #E8EDF5 !important;
-}
-@media (prefers-reduced-motion: reduce) {
-  .zk-submit, .zk-social { transition: none; }
-  .zk-submit:hover, .zk-social:hover { transform: none; }
-}
-`;
 
 // The auth pages own a fixed dark surface, independent of the user's app theme.
 export const authTheme = {
@@ -181,145 +405,124 @@ export const authTheme = {
     colorPrimary: '#3B82F6',
     colorText: '#E8EDF5',
     colorTextSecondary: '#94A3B8',
-    colorTextPlaceholder: '#5A6982',
+    colorTextPlaceholder: '#445064',
     colorBorder: 'rgba(148, 163, 184, 0.16)',
-    borderRadius: 10,
+    colorBgContainer: 'transparent',
+    borderRadius: 12,
     fontFamily:
       'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
   },
   components: {
     Input: {
-      colorBgContainer: 'rgba(148, 163, 184, 0.07)',
-      colorBorder: 'rgba(148, 163, 184, 0.14)',
-      hoverBorderColor: 'rgba(148, 163, 184, 0.32)',
-      activeBorderColor: '#3B82F6',
-      activeShadow: '0 0 0 3px rgba(59, 130, 246, 0.16)',
-      controlHeight: 48,
-      borderRadius: 999,
+      colorBgContainer: 'transparent',
+      colorBorder: 'rgba(148, 163, 184, 0.18)',
+      activeShadow: 'none',
+      controlHeight: 44,
+      borderRadius: 0,
+      paddingInline: 0,
     },
     Form: {
-      itemMarginBottom: 12,
+      itemMarginBottom: 22,
+      verticalLabelPadding: '0 0 2px',
     },
     Checkbox: {
-      colorBgContainer: 'rgba(148, 163, 184, 0.08)',
+      colorBgContainer: 'transparent',
       colorBorder: 'rgba(148, 163, 184, 0.28)',
+      borderRadius: 4,
     },
     Button: {
-      controlHeight: 48,
-      borderRadius: 999,
+      controlHeight: 54,
+      borderRadius: 12,
       fontWeight: 600,
+      primaryShadow: 'none',
     },
   },
 };
 
-// Shared primary-button styling so every auth CTA reads the same.
+/**
+ * Kept for the pages that still pass it to their CTA. The look now lives in
+ * `.zk-submit`, so this only needs to not fight it.
+ */
 export const authSubmitStyle: React.CSSProperties = {
   fontSize: 15,
-  background: 'linear-gradient(135deg, #2563EB 0%, #3B82F6 100%)',
   border: 'none',
-  boxShadow: '0 8px 22px rgba(37, 99, 235, 0.32)',
 };
 
 interface AuthShellProps {
-  /** Optional line under the wordmark, e.g. "Reset your password". */
-  subtitle?: string;
+  /** Large line at the top of the form column. Defaults to "Welcome back". */
+  heading?: React.ReactNode;
+  /** Quiet line under the heading, e.g. "Reset your password". */
+  subtitle?: React.ReactNode;
   children: React.ReactNode;
 }
 
 /**
- * The chrome shared by every auth screen: dark canvas, motion backdrop,
- * Zukvo lockup and footer. Matches the login page exactly.
+ * The chrome shared by every auth screen: art panel on the left, bare form
+ * column on the right, brand lockup and footer.
  */
-export default function AuthShell({ subtitle, children }: AuthShellProps) {
+export default function AuthShell({ heading = 'Welcome back', subtitle, children }: AuthShellProps) {
   const { brand, manifest, product } = useProduct();
+  // Zukvo's mark is drawn dark-on-light, so it has to be inverted for the
+  // charcoal canvas. Testiez ships artwork cut for dark surfaces already.
+  const invertMark = product === 'zukvo';
 
   return (
-    <ConfigProvider theme={authTheme}>
+    <ConfigProvider theme={{ ...authTheme, token: { ...authTheme.token, colorPrimary: brand.accent } }}>
       <div
-        className="zk-login"
-        style={{
-          position: 'relative',
-          minHeight: '100vh',
-          background:
-            'linear-gradient(145deg, #090b10 0%, #11151d 45%, #0a0d13 100%)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          padding: 20,
-          overflow: 'hidden',
-        }}
+        className="zk-auth zk-login"
+        style={
+          {
+            '--zk-accent': brand.accent,
+            '--zk-accent-hi': '#60A5FA',
+            '--zk-accent-glow': 'rgba(59, 130, 246, 0.55)',
+          } as React.CSSProperties
+        }
       >
-        <style>{backgroundStyles + formStyles}</style>
-        <TechBackground />
-        <div
-          style={{
-            position: 'relative',
-            zIndex: 1,
-            width: '100%',
-            maxWidth: 380,
-          }}
-        >
-          {/* Logo + wordmark lockup.
-              The canvas is charcoal, so the mark needs inverting — but only the
-              Zukvo one, which is drawn dark-on-light. Testiez ships artwork cut
-              for dark surfaces already, and inverting it would wreck it. Where a
-              product has real wordmark artwork it is used instead of type,
-              because a wordmark is a drawing, not a font. */}
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: 12,
-              marginBottom: subtitle ? 12 : 32,
-            }}
-          >
-            <Image
-              src={brand.mark}
-              alt=""
-              width={44}
-              height={44}
-              style={{
-                objectFit: 'contain',
-                filter: product === 'zukvo' ? 'invert(1)' : undefined,
-              }}
-            />
-            {brand.wordmarkLight ? (
+        <style>{shellStyles + fieldStyles}</style>
+
+        <ArtPanel mark={brand.mark} invertMark={invertMark} legalName={brand.legalName} />
+
+        <div className="zk-auth__panel">
+          <div className="zk-auth__inner">
+            {/* Where a product has real wordmark artwork it is used instead of
+                type, because a wordmark is a drawing, not a font. */}
+            <div className="zk-auth__lockup">
               <Image
-                src={brand.wordmarkLight}
-                alt={manifest.name}
-                height={32}
-                style={{ objectFit: 'contain', width: 'auto' }}
+                src={brand.mark}
+                alt=""
+                width={34}
+                height={34}
+                style={{ objectFit: 'contain', filter: invertMark ? 'invert(1)' : undefined }}
               />
-            ) : (
-              <Title
-                level={2}
-                style={{
-                  margin: 0,
-                  color: '#F8FAFC',
-                  fontWeight: 600,
-                  fontSize: 32,
-                  letterSpacing: '-0.02em',
-                  lineHeight: 1,
-                }}
-              >
-                {manifest.name}
-              </Title>
-            )}
-          </div>
-
-          {subtitle && (
-            <div style={{ textAlign: 'center', marginBottom: 28 }}>
-              <Text style={{ fontSize: 13, color: '#94A3B8' }}>{subtitle}</Text>
+              {brand.wordmarkLight ? (
+                <Image
+                  src={brand.wordmarkLight}
+                  alt={manifest.name}
+                  height={22}
+                  style={{ objectFit: 'contain', width: 'auto' }}
+                />
+              ) : (
+                <span
+                  style={{
+                    fontSize: 20,
+                    fontWeight: 600,
+                    letterSpacing: '-0.02em',
+                    color: '#F8FAFC',
+                  }}
+                >
+                  {manifest.name}
+                </span>
+              )}
             </div>
-          )}
 
-          {children}
+            {heading && <h1 className="zk-auth__heading">{heading}</h1>}
+            {subtitle && <p className="zk-auth__sub">{subtitle}</p>}
 
-          <div style={{ textAlign: 'center', marginTop: 32 }}>
-            <Text style={{ fontSize: 12, color: '#4A566B' }}>
+            <div className="zk-auth__body">{children}</div>
+
+            <div className="zk-auth__panelfoot">
               © {new Date().getFullYear()} {brand.legalName}. All rights reserved.
-            </Text>
+            </div>
           </div>
         </div>
       </div>

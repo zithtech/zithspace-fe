@@ -4,7 +4,7 @@ import ZukvoLoader from "@/components/common/ZukvoLoader";
 
 
 import { useActivitySource } from '@/hooks/useActivitySource';
-import React, { useState, useEffect, useMemo, Suspense } from "react";
+import React, { useState, useEffect, useMemo, useRef, Suspense } from "react";
 import MainLayout from "@/components/layout/MainLayout";
 import { Layout, Menu, Typography, Button, Space, Avatar, List, Divider, Empty, Input, Drawer, Badge, Modal, Form, message, Select, Popconfirm, Checkbox, Segmented, DatePicker, Upload, Popover, Tooltip, Tag, App, Spin } from "antd";
 import { useAuth } from "@/context/AuthContext";
@@ -39,6 +39,9 @@ import {
   CheckCircle2,
   ChevronDown,
   ChevronUp,
+  LayoutTemplate,
+  Tags,
+  PenLine,
 } from "lucide-react";
 import {
   FilePdfOutlined,
@@ -59,10 +62,14 @@ import {
 } from "@ant-design/icons";
 import { useMail, useMailThreads, useThreadMessages, useMailStatus, useMailContacts, useMailUnreadCount } from "@/hooks/useMail";
 import { MailService, MailMessage } from "@/services/mailService";
+import { useMailSignature, useMailTemplates, useTemplateCategories } from "@/hooks/useMailTemplates";
+import { MailTemplate, MailTemplateService, UNCATEGORIZED } from "@/services/mailTemplateService";
+import MailTemplates from "./components/MailTemplates";
+import MailSignature from "./components/MailSignature";
 
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
-import TiptapEditor from "@/components/common/TiptapEditor";
+import TiptapEditor, { TiptapEditorRef } from "@/components/common/TiptapEditor";
 import JSZip from "jszip";
 import { saveAs } from "file-saver";
 import SearchableDropdown from "@/components/common/SearchableDropdown";
@@ -195,6 +202,12 @@ function MailPageContent() {
   const [toFilter, setToFilter] = useState<string | null>(null);
   const [fromFilter, setFromFilter] = useState<string | null>(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  // The sidebar switches the whole main pane: conversations, or the template
+  // library. Folders and Templates are alternatives, not a filter on one list.
+  const [activeView, setActiveView] = useState<"mail" | "templates" | "signature">("mail");
+  // null = every template. UNCATEGORIZED = the ones nobody has filed.
+  const [templateCategory, setTemplateCategory] = useState<string | null>(null);
+  const [categoriesOpen, setCategoriesOpen] = useState(true);
 
   useEffect(() => {
     const handleResize = () => {
@@ -223,6 +236,22 @@ function MailPageContent() {
   const globalUnreadCount = folderCountsData?.unreadCount || 0;
   const threads = Array.isArray(threadsData) ? threadsData : [];
   const { data: contacts = [] } = useMailContacts();
+  const { data: mailTemplates = [] } = useMailTemplates();
+  const { data: templateCategories = [] } = useTemplateCategories();
+  const { data: mailSignature } = useMailSignature();
+
+  /**
+   * A shelf exists only while something is filed on it, so emptying the one
+   * you are standing on makes it vanish from the sidebar. Fall back to the
+   * whole library rather than leaving a filter nothing can match.
+   */
+  useEffect(() => {
+    if (!templateCategory || templateCategories.length === 0) return;
+    const stillThere = templateCategories.some(
+      (c) => (c.name ?? UNCATEGORIZED) === templateCategory
+    );
+    if (!stillThere) setTemplateCategory(null);
+  }, [templateCategories, templateCategory]);
 
   useEffect(() => {
     const timer = setTimeout(() => setDebouncedSearch(search), 500);
@@ -269,6 +298,16 @@ function MailPageContent() {
     type: string;
   } | null>(null);
 
+  const [templatePickerOpen, setTemplatePickerOpen] = useState(false);
+  const [signaturePopoverOpen, setSignaturePopoverOpen] = useState(false);
+  const composeBodyRef = useRef<TiptapEditorRef>(null);
+  /**
+   * The compose body editor takes its content as a prop evaluated at render
+   * time, so writing the field alone would not reach it. Bumping this is what
+   * re-renders the drawer after a programmatic change.
+   */
+  const [composeTick, setComposeTick] = useState(0);
+  const [isApplyingTemplate, setIsApplyingTemplate] = useState(false);
   const [isFixingGrammar, setIsFixingGrammar] = useState(false);
   const [isEnhancing, setIsEnhancing] = useState(false);
   const [isFixingReplyGrammar, setIsFixingReplyGrammar] = useState(false);
@@ -355,6 +394,101 @@ function MailPageContent() {
       message.error("Could not correct grammar");
     } finally {
       setIsFixingGrammar(false);
+    }
+  };
+
+  /**
+   * Put the sender's signature under the message.
+   *
+   * Applying a template REPLACES the whole body, so appending here cannot
+   * double up on a second apply — and the writer sees the signature in the
+   * editor before sending rather than discovering it in their sent folder.
+   */
+  const withSignature = (body: string, signature?: string) =>
+    signature ? `${body}<br/>${signature}` : body;
+
+  /**
+   * The signature as an empty message already signed off — an empty paragraph
+   * to type into, then the signature, so a new compose opens with the cursor
+   * above it rather than inside it.
+   */
+  const signatureBlock = () =>
+    mailSignature?.resolvedHtml ? `<p></p>${mailSignature.resolvedHtml}` : "";
+
+  /**
+   * Drop the signature in wherever the cursor is.
+   *
+   * Through the editor's own ref rather than the form: Tiptap then reports the
+   * new HTML back through onChange, so the form value and what is on screen
+   * cannot disagree.
+   */
+  const insertSignature = () => {
+    if (!mailSignature?.resolvedHtml) return;
+    composeBodyRef.current?.insertContentAtCursor(mailSignature.resolvedHtml);
+    setSignaturePopoverOpen(false);
+  };
+
+  /**
+   * Drop a template into the compose window, filled in for whoever it is
+   * addressed to.
+   *
+   * The first "To" address is what the placeholders resolve against — with no
+   * recipient yet there is nothing to resolve, so the copy goes in with its
+   * tokens standing and the writer is told to pick a recipient and re-apply.
+   * Tokens that stay unfilled are named rather than silently blanked.
+   */
+  const applyTemplate = async (template: MailTemplate) => {
+    const to = form.getFieldValue("to");
+    const email = Array.isArray(to) ? to[0] : to;
+
+    setIsApplyingTemplate(true);
+    try {
+      if (!email) {
+        form.setFieldsValue({
+          subject: template.subject,
+          body: withSignature(template.body, mailSignature?.resolvedHtml),
+        });
+        if (template.placeholders.length > 0) {
+          message.info("Add a recipient, then re-apply the template to fill its placeholders");
+        }
+        return;
+      }
+
+      const rendered = await MailTemplateService.render(template.id, { email });
+      form.setFieldsValue({
+        subject: rendered.subject,
+        body: withSignature(rendered.body, rendered.signature),
+      });
+
+      if (rendered.unresolved.length > 0) {
+        message.warning(
+          `Left unfilled: ${rendered.unresolved.map((u) => `{{${u}}}`).join(", ")}`
+        );
+      } else {
+        message.success(`“${template.name}” applied`);
+      }
+    } catch (err: any) {
+      console.error("Failed to apply template:", err);
+      message.error(err?.message || "Could not apply that template");
+    } finally {
+      // Also what re-renders the compose body editor with the new content.
+      setIsApplyingTemplate(false);
+      setTemplatePickerOpen(false);
+    }
+  };
+
+  /** Open Compose on a template chosen from the library. */
+  const composeFromTemplate = (template: MailTemplate) => {
+    form.resetFields();
+    setCurrentDraftId(null);
+    setCurrentDraftThreadId(null);
+    form.setFieldsValue({
+      subject: template.subject,
+      body: withSignature(template.body, mailSignature?.resolvedHtml),
+    });
+    setComposeVisible(true);
+    if (template.placeholders.length > 0) {
+      message.info("Add a recipient, then re-apply the template to fill its placeholders");
     }
   };
 
@@ -1319,6 +1453,53 @@ function MailPageContent() {
           font-size: 12px !important;
         }
 
+        .mail-category-head {
+          display: flex; align-items: center; gap: 6px;
+          width: 100%;
+          margin-top: 10px;
+          padding: 4px 10px 4px 12px;
+          border: none; background: transparent; cursor: pointer;
+          font-size: 10.5px; font-weight: 600; letter-spacing: 0.06em;
+          text-transform: uppercase; color: ${PALETTE.slate400};
+        }
+        .mail-category-head span { flex: 1; text-align: left; }
+        .mail-category-head:hover { color: ${PALETTE.slate500}; }
+        .mail-category-chevron { transition: transform 0.15s; }
+        .mail-category-chevron.is-collapsed { transform: rotate(-90deg); }
+        /* Indented under Templates, and without an icon well, so a shelf never
+           reads as a folder of its own. */
+        .mail-category-item { padding-left: 34px; }
+
+        .mail-signature-preview-label {
+          font-size: 10.5px; font-weight: 600; letter-spacing: 0.04em;
+          text-transform: uppercase; color: ${PALETTE.slate400};
+          margin-bottom: 6px;
+        }
+        .mail-signature-preview {
+          max-height: 200px; overflow-y: auto;
+          padding: 10px 12px; margin-bottom: 10px;
+          border: 1px solid ${PALETTE.slate200}; border-radius: 8px;
+          background: var(--bg-slate-50);
+          font-size: 12.5px; line-height: 1.6; color: ${PALETTE.slate700};
+        }
+        .mail-signature-preview img { max-width: 100%; }
+
+        .mail-template-option {
+          padding: 7px 8px;
+          border-radius: 7px;
+          cursor: pointer;
+          transition: background 0.15s;
+        }
+        .mail-template-option:hover { background: var(--bg-blue-50); }
+        .mail-template-option-name {
+          display: flex; align-items: center; gap: 8px;
+          font-size: 12.5px; font-weight: 600; color: ${PALETTE.slate900};
+        }
+        .mail-template-option-subject {
+          font-size: 11.5px; color: ${PALETTE.slate500};
+          overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+        }
+
         .mail-thread-list-wrap::-webkit-scrollbar { width: 8px; }
         .mail-thread-list-wrap::-webkit-scrollbar-thumb {
           background: ${PALETTE.slate200}; border-radius: 8px;
@@ -1361,7 +1542,13 @@ function MailPageContent() {
               onClick={() => {
                 setComposeVisible(true);
                 setCurrentDraftId(null);
-                setTimeout(() => form.resetFields(), 0);
+                // resetFields is deferred (it clears the previous message), so
+                // the signature goes in after it or it would be wiped.
+                setTimeout(() => {
+                  form.resetFields();
+                  form.setFieldsValue({ body: signatureBlock() });
+                  setComposeTick((t) => t + 1);
+                }, 0);
               }}
             >
               <PenSquare size={13} strokeWidth={2.2} />
@@ -1376,13 +1563,16 @@ function MailPageContent() {
           <div style={{ flex: 1, overflowY: "auto" }}>
             {FOLDERS.map((f) => {
               const Icon = f.icon;
-              const isActive = selectedFolder === f.key;
+              const isActive = activeView === "mail" && selectedFolder === f.key;
               const count = folderCounts[f.key] || 0;
               return (
                 <div
                   key={f.key}
                   className={`mail-folder-item ${isActive ? "active" : ""}`}
-                  onClick={() => setSelectedFolder(f.key)}
+                  onClick={() => {
+                    setSelectedFolder(f.key);
+                    setActiveView("mail");
+                  }}
                 >
                   <div className="mail-folder-icon">
                     <Icon size={14} strokeWidth={2} />
@@ -1401,11 +1591,113 @@ function MailPageContent() {
                 </div>
               );
             })}
+
+            <div
+              style={{
+                marginTop: 18,
+                padding: "0 10px 6px",
+                fontSize: 10.5,
+                fontWeight: 600,
+                color: PALETTE.slate400,
+                textTransform: "uppercase",
+                letterSpacing: "0.06em",
+              }}
+            >
+              Library
+            </div>
+
+            <div
+              data-tour="mail-templates-nav"
+              className={`mail-folder-item ${
+                activeView === "templates" && !templateCategory ? "active" : ""
+              }`}
+              onClick={() => {
+                setActiveView("templates");
+                setTemplateCategory(null);
+              }}
+            >
+              <div className="mail-folder-icon">
+                <LayoutTemplate size={14} strokeWidth={2} />
+              </div>
+              <span className="mail-folder-label">Templates</span>
+              <span className="mail-folder-count">{mailTemplates.length || ""}</span>
+            </div>
+
+            {/* Categories are shelves within the library, so they are nested
+                under Templates rather than listed as siblings of it. They
+                appear only once something is filed — an empty shelf is noise. */}
+            {templateCategories.length > 0 && (
+              <>
+                <button
+                  type="button"
+                  className="mail-category-head"
+                  onClick={() => setCategoriesOpen((v) => !v)}
+                  aria-expanded={categoriesOpen}
+                >
+                  <Tags size={12} strokeWidth={2} />
+                  <span>Categories</span>
+                  <ChevronDown
+                    size={13}
+                    className={`mail-category-chevron ${categoriesOpen ? "" : "is-collapsed"}`}
+                  />
+                </button>
+
+                {categoriesOpen &&
+                  templateCategories.map((c) => {
+                    const value = c.name ?? UNCATEGORIZED;
+                    const isActive = activeView === "templates" && templateCategory === value;
+                    return (
+                      <div
+                        key={value}
+                        className={`mail-folder-item mail-category-item ${isActive ? "active" : ""}`}
+                        onClick={() => {
+                          setActiveView("templates");
+                          setTemplateCategory(value);
+                        }}
+                        title={c.name ?? "Templates with no category"}
+                      >
+                        <span className="mail-folder-label">{c.name ?? "Uncategorised"}</span>
+                        <span className="mail-folder-count">{c.count}</span>
+                      </div>
+                    );
+                  })}
+              </>
+            )}
+
+            <div
+              className={`mail-folder-item ${activeView === "signature" ? "active" : ""}`}
+              onClick={() => setActiveView("signature")}
+            >
+              <div className="mail-folder-icon">
+                <PenLine size={14} strokeWidth={2} />
+              </div>
+              <span className="mail-folder-label">Signature</span>
+            </div>
           </div>
         </aside>
 
         {/* ============== MAIN ============== */}
         <main className="mail-main">
+          {activeView === "signature" ? (
+            <MailSignature
+              canEdit={canCreateMail}
+              isSidebarOpen={isSidebarOpen}
+              onToggleSidebar={() => setIsSidebarOpen((v) => !v)}
+            />
+          ) : activeView === "templates" ? (
+            <MailTemplates
+              canCreate={canCreateMail}
+              canUpdate={canUpdateMail}
+              canDelete={canDeleteMail}
+              isSidebarOpen={isSidebarOpen}
+              onToggleSidebar={() => setIsSidebarOpen((v) => !v)}
+              category={templateCategory}
+              onClearCategory={() => setTemplateCategory(null)}
+              signatureHtml={mailSignature?.resolvedHtml || ""}
+              onUseTemplate={composeFromTemplate}
+            />
+          ) : (
+          <>
           <div className="mail-topbar">
             <div style={{ display: 'flex', alignItems: 'center', gap: 12, flex: 1 }}>
               <Tooltip title={isSidebarOpen ? 'Hide sidebar' : 'Show sidebar'} placement="bottom">
@@ -1719,6 +2011,8 @@ function MailPageContent() {
               })
             )}
           </div>
+          </>
+          )}
         </main>
       </div>
 
@@ -2446,6 +2740,87 @@ function MailPageContent() {
           <div style={{ borderBottom: `1px solid ${PALETTE.slate100}` }} />
 
           <div className="ai-toolbar">
+            <Popover
+              open={templatePickerOpen}
+              onOpenChange={setTemplatePickerOpen}
+              trigger="click"
+              placement="bottomLeft"
+              content={
+                <div style={{ width: 320, maxHeight: 340, overflowY: "auto" }}>
+                  {mailTemplates.length === 0 ? (
+                    <div style={{ fontSize: 12, color: PALETTE.slate500, padding: "6px 4px" }}>
+                      No templates yet — create one under Templates in the sidebar.
+                    </div>
+                  ) : (
+                    mailTemplates.map((t: MailTemplate) => (
+                      <div
+                        key={t.id}
+                        className="mail-template-option"
+                        onClick={() => applyTemplate(t)}
+                      >
+                        <div className="mail-template-option-name">
+                          {t.name}
+                          {t.isDefault && (
+                            <span style={{ fontSize: 10, color: PALETTE.emerald, fontWeight: 600 }}>
+                              Default
+                            </span>
+                          )}
+                        </div>
+                        <div className="mail-template-option-subject">{t.subject}</div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              }
+            >
+              <button type="button" className="ai-pill" disabled={isApplyingTemplate}>
+                {isApplyingTemplate ? (
+                  <ZukvoLoader size="sm" />
+                ) : (
+                  <FileText size={13} className="ai-icon" />
+                )}
+                Use template
+              </button>
+            </Popover>
+
+            <Popover
+              open={signaturePopoverOpen}
+              onOpenChange={setSignaturePopoverOpen}
+              trigger="click"
+              placement="bottomLeft"
+              content={
+                <div style={{ width: 320 }}>
+                  {mailSignature?.resolvedHtml ? (
+                    <>
+                      <div className="mail-signature-preview-label">
+                        {mailSignature.isAutofilled
+                          ? "Built from your member details"
+                          : "Your saved signature"}
+                      </div>
+                      <div
+                        className="mail-signature-preview"
+                        dangerouslySetInnerHTML={{ __html: mailSignature.resolvedHtml }}
+                      />
+                      <Button size="small" type="primary" block onClick={insertSignature}>
+                        Insert at cursor
+                      </Button>
+                    </>
+                  ) : (
+                    <div style={{ fontSize: 12, color: PALETTE.slate500, padding: "6px 4px" }}>
+                      No signature yet — set one under Signature in the sidebar.
+                    </div>
+                  )}
+                </div>
+              }
+            >
+              <button type="button" className="ai-pill">
+                <PenLine size={13} className="ai-icon" />
+                Signature
+              </button>
+            </Popover>
+
+            <div style={{ width: 1, height: 16, background: PALETTE.slate200, margin: "0 4px" }} />
+
             <span className="ai-toolbar-label">AI Assist</span>
             <button
               type="button"
@@ -2488,6 +2863,10 @@ function MailPageContent() {
               style={{ margin: 0 }}
             >
               <TiptapEditor
+                ref={composeBodyRef}
+                // composeTick is read so a programmatic body change (a template
+                // or the signature) re-evaluates this prop; see setComposeTick.
+                key={`compose-body-${composeTick}`}
                 content={form.getFieldValue("body")}
                 onChange={(html) => form.setFieldsValue({ body: html })}
                 minHeight={320}

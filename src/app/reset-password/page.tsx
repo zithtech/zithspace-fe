@@ -4,7 +4,7 @@ import ZukvoLoader from "@/components/common/ZukvoLoader";
 
 import React, { useState, useEffect, Suspense } from 'react';
 import { Form, Input, Button, Typography, Alert, Progress } from 'antd';
-import { LockOutlined, CheckCircleOutlined, ArrowLeftOutlined } from '@ant-design/icons';
+import { CheckCircleOutlined, ArrowLeftOutlined, ArrowRightOutlined } from '@ant-design/icons';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { AuthService } from '@/services/authService';
@@ -122,7 +122,7 @@ function ResetPasswordForm() {
           Your password has been reset. You can now sign in with your new password.
         </Text>
         <Link href="/login">
-          <Button type="primary" block icon={<ArrowLeftOutlined />} className="zk-submit" style={authSubmitStyle}>
+          <Button block icon={<ArrowLeftOutlined />} className="zk-ghost" style={authSubmitStyle}>
             Go to sign in
           </Button>
         </Link>
@@ -170,6 +170,7 @@ function ResetPasswordForm() {
       >
         <Form.Item
           name="password"
+          label="New password"
           rules={[
             { required: true, message: 'Please enter a new password' },
             {
@@ -179,9 +180,9 @@ function ResetPasswordForm() {
           ]}
         >
           <Input.Password
-            prefix={<LockOutlined style={{ color: '#5A6982', marginRight: 8 }} />}
-            placeholder="New password"
+            placeholder="••••••••"
             autoComplete="new-password"
+            variant="borderless"
             onChange={(e) => setPassword(e.target.value)}
           />
         </Form.Item>
@@ -203,6 +204,7 @@ function ResetPasswordForm() {
 
         <Form.Item
           name="confirmPassword"
+          label="Confirm new password"
           dependencies={['password']}
           rules={[
             { required: true, message: 'Please confirm your new password' },
@@ -217,23 +219,24 @@ function ResetPasswordForm() {
           ]}
         >
           <Input.Password
-            prefix={<LockOutlined style={{ color: '#5A6982', marginRight: 8 }} />}
-            placeholder="Confirm new password"
+            placeholder="••••••••"
             autoComplete="new-password"
+            variant="borderless"
           />
         </Form.Item>
 
-        <Form.Item style={{ marginBottom: 0, marginTop: 20 }}>
+        <Form.Item style={{ marginBottom: 0, marginTop: 30 }}>
           <Button
             type="primary"
             htmlType="submit"
             loading={loading}
             block
-            icon={<LockOutlined />}
+            icon={!loading ? <ArrowRightOutlined /> : undefined}
+            iconPosition="end"
             className="zk-submit"
             style={authSubmitStyle}
           >
-            {loading ? 'Resetting...' : 'Reset password'}
+            {loading ? 'Resetting…' : 'Reset password'}
           </Button>
         </Form.Item>
       </Form>
@@ -264,7 +267,16 @@ function ResetPasswordSkeleton() {
 
 export default function ResetPasswordPage() {
   return (
-    <AuthShell subtitle="Create a new password for your account.">
+    <AuthShell
+      heading={
+        <>
+          Set a new
+          <br />
+          password.
+        </>
+      }
+      subtitle="Choose something you haven't used before."
+    >
       <Suspense fallback={<ResetPasswordSkeleton />}>
         <ResetPasswordForm />
       </Suspense>

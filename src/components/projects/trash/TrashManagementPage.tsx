@@ -419,21 +419,36 @@ export default function TrashManagementPage() {
       render: (record: any) => (
         <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
           {canRestoreTicketTrash && (
-            <Tooltip title="Restore Ticket">
-              <Button
-                type="text"
-                icon={<UndoOutlined style={{ color: "#10b981" }} />}
-                onClick={() =>
-                  restoreTicket.mutate([record.id], {
-                    onSuccess: () => {
-                      message.success("Ticket restored successfully");
-                      refetch();
-                    },
+            <div onClick={(e) => e.stopPropagation()}>
+              <ConfirmDialog
+                tone="primary"
+                title="Restore ticket?"
+                description="This will restore the ticket back to active status."
+                confirmText="Restore"
+                cancelText="Cancel"
+                placement="bottomRight"
+                onConfirm={() =>
+                  new Promise<void>((resolve) => {
+                    restoreTicket.mutate([record.id], {
+                      onSuccess: () => {
+                        message.success("Ticket restored successfully");
+                        refetch();
+                        resolve();
+                      },
+                      onError: () => resolve(),
+                    });
                   })
                 }
-                loading={restoreTicket.isPending}
-              />
-            </Tooltip>
+              >
+                <Tooltip title="Restore Ticket">
+                  <Button
+                    type="text"
+                    icon={<UndoOutlined style={{ color: "#10b981" }} />}
+                    loading={restoreTicket.isPending}
+                  />
+                </Tooltip>
+              </ConfirmDialog>
+            </div>
           )}
           {canDeleteTicketTrash && (
             <ConfirmDialog
@@ -836,33 +851,46 @@ export default function TrashManagementPage() {
             </div>
             <div className="saas-bulk-buttons" style={{ display: "flex", alignItems: "center", gap: 6 }}>
               {canRestoreTicketTrash && (
-                <Button
-                  type="text"
-                  size="small"
-                  icon={<UndoOutlined style={{ color: "#10b981" }} />}
-                  onClick={() => {
-                    bulkRestore.mutate(selectedRowKeys as string[], {
-                      onSuccess: () => {
-                        message.success("Tickets restored successfully");
-                        setSelectedRowKeys([]);
-                        refetch();
-                      },
-                    });
-                  }}
-                  loading={bulkRestore.isPending}
-                  style={{
-                    borderRadius: 6,
-                    fontWeight: 600,
-                    fontSize: 12,
-                    color: "#059669",
-                    background: "rgba(16,185,129,0.1)",
-                    border: "1px solid rgba(16,185,129,0.25)",
-                    height: 28,
-                    padding: "0 10px",
-                  }}
+                <ConfirmDialog
+                  tone="primary"
+                  title="Restore tickets?"
+                  description={`This will restore ${selectedRowKeys.length} ticket${selectedRowKeys.length > 1 ? 's' : ''} to active status.`}
+                  confirmText="Restore"
+                  cancelText="Cancel"
+                  placement="bottomRight"
+                  onConfirm={() =>
+                    new Promise<void>((resolve) => {
+                      bulkRestore.mutate(selectedRowKeys as string[], {
+                        onSuccess: () => {
+                          message.success("Tickets restored successfully");
+                          setSelectedRowKeys([]);
+                          refetch();
+                          resolve();
+                        },
+                        onError: () => resolve(),
+                      });
+                    })
+                  }
                 >
-                  Restore
-                </Button>
+                  <Button
+                    type="text"
+                    size="small"
+                    icon={<UndoOutlined style={{ color: "#10b981" }} />}
+                    loading={bulkRestore.isPending}
+                    style={{
+                      borderRadius: 6,
+                      fontWeight: 600,
+                      fontSize: 12,
+                      color: "#059669",
+                      background: "rgba(16,185,129,0.1)",
+                      border: "1px solid rgba(16,185,129,0.25)",
+                      height: 28,
+                      padding: "0 10px",
+                    }}
+                  >
+                    Restore
+                  </Button>
+                </ConfirmDialog>
               )}
               {canDeleteTicketTrash && (
                 <ConfirmDialog
@@ -1249,6 +1277,65 @@ export default function TrashManagementPage() {
         .pp-ghost-btn:hover {
           background: var(--bg-slate-100);
           border-color: var(--border-slate-300);
+        }
+        .premium-table.ant-table-wrapper .ant-table-selection-column,
+        .premium-table .ant-table-selection-column {
+          padding-left: 16px !important;
+          padding-right: 12px !important;
+        }
+        .premium-table.ant-table-wrapper .ant-table-tbody > tr > td:first-child,
+        .premium-table.ant-table-wrapper .ant-table-thead > tr > th:first-child {
+          padding-left: 16px !important;
+        }
+
+        .premium-table .ant-table,
+        .premium-table .ant-table-wrapper,
+        .premium-table .ant-table-container,
+        .premium-table .ant-table-content,
+        .premium-table .ant-table-header,
+        .premium-table .ant-table-body {
+          background: transparent !important;
+          border-radius: 0 !important;
+        }
+        .premium-table .ant-table-thead > tr > th,
+        .premium-table .ant-table-thead > tr > td {
+          background: var(--bg-slate-50) !important;
+          border-bottom: 1px solid var(--border-slate-200) !important;
+          font-size: 10px !important;
+          font-weight: 700 !important;
+          letter-spacing: 0.04em !important;
+          text-transform: uppercase !important;
+          color: var(--text-slate-400) !important;
+          padding: 6px 10px !important;
+          white-space: nowrap !important;
+          border-radius: 0 !important;
+          border-start-start-radius: 0 !important;
+          border-start-end-radius: 0 !important;
+          position: sticky !important;
+          top: 0 !important;
+          z-index: 10 !important;
+        }
+        .premium-table .ant-table-thead > tr > th::before {
+          display: none !important;
+        }
+        [data-theme='dark'] .premium-table .ant-table-thead > tr > th,
+        [data-theme='dark'] .premium-table .ant-table-thead > tr > td {
+          background: #161b22 !important;
+          border-bottom-color: #374151 !important;
+          color: #94a3b8 !important;
+        }
+        .premium-table .ant-table-tbody > tr > td {
+          border-bottom: 1px solid var(--border-slate-100) !important;
+          padding: 6.5px 10px !important;
+        }
+        [data-theme='dark'] .premium-table .ant-table-tbody > tr > td {
+          border-bottom-color: #1e293b !important;
+        }
+        .premium-table .ant-table-row:hover > td {
+          background: var(--bg-slate-50) !important;
+        }
+        [data-theme='dark'] .premium-table .ant-table-row:hover > td {
+          background: rgba(255, 255, 255, 0.02) !important;
         }
       `}</style>
     </div>

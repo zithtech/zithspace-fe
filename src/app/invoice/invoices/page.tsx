@@ -3250,9 +3250,9 @@ export default function InvoiceInvoicesPage() {
           .pp-sidebar {
             position: fixed;
             left: -280px;
-            top: 54px;
+            top: 0;
             bottom: 0;
-            height: calc(100vh - 54px);
+            height: 100vh;
             transition: left 0.3s ease;
             z-index: 1000;
             box-shadow: 4px 0 24px rgba(15, 23, 42, 0.1);

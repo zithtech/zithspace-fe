@@ -778,10 +778,10 @@ export const hivebugStyles = `
   background: var(--hb-bg);
   flex-shrink: 0;
 }
-.hb-breadcrumb { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; min-width: 0; }
-.hb-bc-strong { font-size: 18px; font-weight: 600; }
-.hb-bc-sep { color: var(--hb-text-muted); }
-.hb-bc-soft { color: var(--hb-text-soft); font-size: 14px; }
+.hb-breadcrumb { display: flex; align-items: center; gap: 10px; flex-wrap: nowrap; min-width: 0; flex: 1; overflow: hidden; }
+.hb-bc-strong { font-size: 18px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.hb-bc-sep { color: var(--hb-text-muted); flex-shrink: 0; }
+.hb-bc-soft { color: var(--hb-text-soft); font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 300px; }
 .hb-header-tools { display: flex; align-items: center; gap: 8px; min-width: 0; flex-wrap: wrap; }
 
 .hb-search {

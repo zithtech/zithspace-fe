@@ -331,9 +331,15 @@ export default function TrashView({
         <div className="hb-bulkbar" style={{ margin: "0 0 12px 0" }}>
           <span>{selectedIds.size} selected</span>
           <div className="hb-bulkbar-actions">
-            <button
-              className="hb-btn hb-btn-primary"
-              onClick={() => {
+            <ConfirmDialog
+              tone="primary"
+              icon={<RotateCcw size={16} />}
+              title="Restore Selected Items?"
+              description={`Are you sure you want to restore ${selectedIds.size} selected item${selectedIds.size > 1 ? 's' : ''} from trash?`}
+              confirmText="Restore"
+              cancelText="Cancel"
+              placement="bottomRight"
+              onConfirm={() => {
                 const ids = Array.from(selectedIds);
                 if (activeTab === "folders") bulkRestoreFolders.mutate({ folderIds: ids, from: "trash" });
                 else if (activeTab === "sheets") bulkRestoreSheets.mutate({ sheetIds: ids, from: "trash" });
@@ -341,9 +347,11 @@ export default function TrashView({
                 setSelectedIds(new Set());
               }}
             >
-              <RotateCcw size={13} />
-              Restore Selected
-            </button>
+              <button className="hb-btn hb-btn-primary">
+                <RotateCcw size={13} />
+                Restore Selected
+              </button>
+            </ConfirmDialog>
             <ConfirmDialog
               tone="danger"
               icon={<Trash2 size={16} />}
@@ -524,9 +532,22 @@ function TrashedFolderCard({ folder, isSelected, onSelect, onView, onRestore, on
         <div className="arc-foot-row" style={{ justifyContent: 'space-between', alignItems: 'center' }}>
           <div style={{ display: 'flex', gap: 6 }}>
             <button className="arc-action-btn arc-action-view" onClick={onView}><Eye size={12} /> View Content</button>
-            <button className="arc-action-btn arc-action-restore" onClick={(e) => { e.stopPropagation(); onRestore(); }}>
-              <RotateCcw size={12} /> Restore
-            </button>
+            <div onClick={(e) => e.stopPropagation()}>
+              <ConfirmDialog
+                tone="primary"
+                icon={<RotateCcw size={16} />}
+                title="Restore Folder?"
+                description={`Are you sure you want to restore folder "${folder.name}" and its contents from trash?`}
+                confirmText="Restore"
+                cancelText="Cancel"
+                placement="bottomRight"
+                onConfirm={onRestore}
+              >
+                <button className="arc-action-btn arc-action-restore">
+                  <RotateCcw size={12} /> Restore
+                </button>
+              </ConfirmDialog>
+            </div>
           </div>
           <div onClick={(e) => e.stopPropagation()}>
             <ConfirmDialog
@@ -601,15 +622,28 @@ function TrashedSheetCard({ sheet, isSelected, onSelect, isCurrent, onView, onRe
         <div className="arc-foot-row" style={{ justifyContent: 'space-between', alignItems: 'center' }}>
           <div style={{ display: 'flex', gap: 6 }}>
             <button className="arc-action-btn arc-action-view" onClick={onView}><Eye size={12} /> View</button>
-            <Tooltip title={restoreTooltip}>
-              <button 
-                className="arc-action-btn arc-action-restore" 
-                onClick={(e) => { e.stopPropagation(); onRestore(); }}
-                disabled={!!restoreTooltip}
-              >
-                <RotateCcw size={12} /> Restore
-              </button>
-            </Tooltip>
+            <div onClick={(e) => e.stopPropagation()}>
+              <Tooltip title={restoreTooltip}>
+                <ConfirmDialog
+                  tone="primary"
+                  icon={<RotateCcw size={16} />}
+                  title="Restore Sheet?"
+                  description={`Are you sure you want to restore sheet "${sheet.name}" and its bugs from trash?`}
+                  confirmText="Restore"
+                  cancelText="Cancel"
+                  placement="bottomRight"
+                  disabled={!!restoreTooltip}
+                  onConfirm={onRestore}
+                >
+                  <button 
+                    className="arc-action-btn arc-action-restore" 
+                    disabled={!!restoreTooltip}
+                  >
+                    <RotateCcw size={12} /> Restore
+                  </button>
+                </ConfirmDialog>
+              </Tooltip>
+            </div>
           </div>
           <div onClick={(e) => e.stopPropagation()}>
             <ConfirmDialog
@@ -673,15 +707,28 @@ function TrashedBugCard({ bug, isSelected, onSelect, onView, onRestore, onDelete
           </span>
         </div>
         <div className="arc-foot-row" style={{ justifyContent: 'space-between', alignItems: 'center' }}>
-          <Tooltip title={restoreTooltip}>
-            <button 
-              className="arc-action-btn arc-action-restore" 
-              onClick={onRestore} 
-              disabled={!!restoreTooltip}
-            >
-              <RotateCcw size={12} /> Restore Bug
-            </button>
-          </Tooltip>
+          <div onClick={(e) => e.stopPropagation()}>
+            <Tooltip title={restoreTooltip}>
+              <ConfirmDialog
+                tone="primary"
+                icon={<RotateCcw size={16} />}
+                title="Restore Bug?"
+                description={`Are you sure you want to restore bug "${bug.title || "this bug"}" from trash?`}
+                confirmText="Restore"
+                cancelText="Cancel"
+                placement="bottomRight"
+                disabled={!!restoreTooltip}
+                onConfirm={onRestore}
+              >
+                <button 
+                  className="arc-action-btn arc-action-restore" 
+                  disabled={!!restoreTooltip}
+                >
+                  <RotateCcw size={12} /> Restore Bug
+                </button>
+              </ConfirmDialog>
+            </Tooltip>
+          </div>
           <ConfirmDialog
             tone="danger"
             icon={<Trash2 size={16} />}

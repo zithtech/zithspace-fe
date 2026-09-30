@@ -32,6 +32,7 @@ import {
   Divider,
 } from "antd";
 import SearchableDropdown from "@/components/common/SearchableDropdown";
+import ConfirmDialog from "@/components/common/ConfirmDialog";
 
 const { RangePicker } = DatePicker;
 import { Briefcase, Search, Plus, Sparkles, Trash2, Ban, SlidersHorizontal, RotateCcw, RotateCw, FolderTree, Bug as BugIcon, Ticket as TicketIcon, Activity, Archive, ChevronLeft, Folder, Layers, CircleDot, AlertTriangle, Tag, Calendar, CalendarDays, ChevronDown, CornerUpRight, List, Menu, PanelLeftClose, PanelLeftOpen, ArrowRight } from "lucide-react";
@@ -893,31 +894,53 @@ export default function BugListPage() {
               </>
             )}
 
-            {scope === "archived" && !selectedSheetId && (
+            {scope === "archived" ? (
               <>
                 <span className="hb-bc-sep">›</span>
-                <span className="hb-bc-soft">Archived Sheets</span>
+                <span className="hb-bc-soft">Archive</span>
+                {selectedFolderId && (
+                  <>
+                    <span className="hb-bc-sep">›</span>
+                    <span className="hb-bc-soft">
+                      {allFolders.find((f) => f.id === selectedFolderId)?.name || "Loading..."}
+                    </span>
+                  </>
+                )}
+                {selectedSheetId && (
+                  <>
+                    <span className="hb-bc-sep">›</span>
+                    <span className="hb-bc-soft">
+                      {allSheets.find((s) => s.id === selectedSheetId)?.name || "Loading..."}
+                    </span>
+                  </>
+                )}
               </>
-            )}
-            {scope === "archived" && selectedSheetId && (
-              <>
-                <span className="hb-bc-sep">›</span>
-                <span className="hb-bc-soft">Archived Sheets</span>
-                <span className="hb-bc-sep">›</span>
-                <span className="hb-bc-soft">
-                  {archivedSheets?.find((s) => s.id === selectedSheetId)?.name || "Loading..."}
-                </span>
-              </>
-            )}
-            {scope === "trash" && !selectedSheetId && (
+            ) : scope === "trash" ? (
               <>
                 <span className="hb-bc-sep">›</span>
                 <span className="hb-bc-soft">Trash</span>
+                {selectedFolderId && (
+                  <>
+                    <span className="hb-bc-sep">›</span>
+                    <span className="hb-bc-soft">
+                      {allFolders.find((f) => f.id === selectedFolderId)?.name || "Loading..."}
+                    </span>
+                  </>
+                )}
+                {selectedSheetId && (
+                  <>
+                    <span className="hb-bc-sep">›</span>
+                    <span className="hb-bc-soft">
+                      {allSheets.find((s) => s.id === selectedSheetId)?.name || "Loading..."}
+                    </span>
+                  </>
+                )}
               </>
-            )}
-            {selectedFolderId || (selectedSheetId && scope !== "archived") ? (
+            ) : (
               <>
-                <span className="hb-bc-sep">›</span>
+                {(selectedFolderId || selectedSheetId) && (
+                  <span className="hb-bc-sep">›</span>
+                )}
                 {selectedFolderId && (
                   <>
                     <span className="hb-bc-soft">
@@ -932,7 +955,7 @@ export default function BugListPage() {
                   </span>
                 )}
               </>
-            ) : null}
+            )}
           </div>
 
           {((folders?.length || 0) > 0 || scope === "trash" || scope === "archived") && (
@@ -1288,13 +1311,21 @@ export default function BugListPage() {
             <div className="hb-bulkbar-actions">
               {scope === "trash" ? (
                 <>
-                  <button
-                    className="hb-btn hb-btn-primary"
-                    onClick={() => bulkRestore.mutate(Array.from(selectedIds))}
+                  <ConfirmDialog
+                    tone="primary"
+                    icon={<RotateCcw size={16} />}
+                    title="Restore Selected Bugs?"
+                    description={`Are you sure you want to restore ${selectedIds.size} selected bug${selectedIds.size > 1 ? 's' : ''} from trash?`}
+                    confirmText="Restore"
+                    cancelText="Cancel"
+                    placement="bottomRight"
+                    onConfirm={() => bulkRestore.mutate(Array.from(selectedIds))}
                   >
-                    <RotateCcw size={13} />
-                    Restore
-                  </button>
+                    <button className="hb-btn hb-btn-primary">
+                      <RotateCcw size={13} />
+                      Restore
+                    </button>
+                  </ConfirmDialog>
                   <Popconfirm
                     title="Permanently delete selected bugs? This cannot be undone."
                     okText="Delete Permanently"

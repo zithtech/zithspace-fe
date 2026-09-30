@@ -324,6 +324,7 @@ function BugRow({
   const ticketLinked = !!bug.ticketId || !!bug.linearIssueIdentifier || !!bug.jiraIssueKey;
 
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const [restoreConfirmOpen, setRestoreConfirmOpen] = useState(false);
 
   const menuLabel = (title: string, desc: string, icon: React.ReactNode, color: string, tint: string) => (
     <div className="pp-menu-item">
@@ -531,96 +532,111 @@ function BugRow({
       </td>
       <td className="hb-col-actions" onClick={(e) => e.stopPropagation()}>
         <ConfirmDialog
-          title="Mark Bug as Recurring"
-          description="Are you sure you want to mark this bug as recurring? A new ticket will be created and the previous ticket will be saved in history."
-          confirmText="Yes, mark as recurring"
+          title="Restore Bug?"
+          description={isTrashView ? "Are you sure you want to restore this bug from trash?" : "Are you sure you want to restore this bug from archive?"}
+          confirmText="Restore"
+          cancelText="Cancel"
           tone="primary"
-          open={confirmOpen}
-          onOpenChange={setConfirmOpen}
+          icon={<RotateCcw size={16} />}
+          open={restoreConfirmOpen}
+          onOpenChange={setRestoreConfirmOpen}
           onConfirm={async () => {
-            await markRecurringAsync(bug.id);
+            onRestore();
           }}
           placement="bottomRight"
         >
-          <Dropdown
-            overlayClassName="pp-action-pop"
-            trigger={["click"]}
-            menu={{
-              items: isTrashView
-                ? [
-                    { 
-                      key: "restore", 
-                      label: menuLabel("Restore", "Restore from trash", <RotateCcw size={15}/>, "#3b82f6", "rgba(59,130,246,0.12)"),
-                      disabled: isNestedInFolder || isNestedInSheet
-                    },
-                    ...(canReadActivityLog
-                      ? [
-                          { type: "divider" as const },
-                          { key: "activity", label: menuLabel("Activity History", "Who changed what, and when", <ScrollText size={15}/>, "#3b82f6", "rgba(59,130,246,0.12)") },
-                        ]
-                      : []),
-                    { type: "divider" as const },
-                    { key: "delete", label: menuLabel("Delete Permanently", "Permanently delete", <Trash2 size={15}/>, "#ef4444", "rgba(239,68,68,0.12)"), danger: true },
-                  ]
-                : isArchiveView
-                ? [
-                    { 
-                      key: "restore", 
-                      label: (
-                        <Tooltip title={isNestedInFolder ? "First restore folder" : isNestedInSheet ? "First restore sheet" : ""}>
-                          <div>{menuLabel("Restore", "Restore from archive", <RotateCcw size={15}/>, "#3b82f6", "rgba(59,130,246,0.12)")}</div>
-                        </Tooltip>
-                      ),
-                      disabled: isNestedInFolder || isNestedInSheet
-                    },
-                    ...(canReadActivityLog
-                      ? [
-                          { type: "divider" as const },
-                          { key: "activity", label: menuLabel("Activity History", "Who changed what, and when", <ScrollText size={15}/>, "#3b82f6", "rgba(59,130,246,0.12)") },
-                        ]
-                      : []),
-                    { type: "divider" as const },
-                    { key: "delete", label: menuLabel("Delete", "Delete this bug", <Trash2 size={15}/>, "#ef4444", "rgba(239,68,68,0.12)"), danger: true },
-                  ]
-                : [
-                    { key: "edit", label: menuLabel("Edit", "Edit bug details", <Edit size={15}/>, "#64748b", "rgba(100,116,139,0.12)"), disabled: !canUpdateBug },
-                    ...(bug.status === "converted" || bug.status === "reopened"
-                      ? [
-                          { key: "verify", label: menuLabel("Verify", "Mark as verified", <CheckCircle size={15}/>, "#10b981", "rgba(16,185,129,0.12)"), disabled: !canUpdateBug },
-                        ]
-                      : []),
-                    {
-                      key: "recurring",
-                      label: menuLabel("Recurring", "Convert to recurring bug", <Repeat size={15}/>, "#8b5cf6", "rgba(139,92,246,0.12)"),
-                      disabled: !ticketLinked || bug.isRecurring || isMarkingRecurring || !canUpdateBug,
-                    },
-                    { key: "archive", label: menuLabel("Archive", "Archive this bug", <Archive size={15}/>, "#64748b", "rgba(100,116,139,0.12)"), disabled: !canUpdateBug },
-                    ...(canReadActivityLog
-                      ? [
-                          { type: "divider" as const },
-                          { key: "activity", label: menuLabel("Activity History", "Who changed what, and when", <ScrollText size={15}/>, "#3b82f6", "rgba(59,130,246,0.12)") },
-                        ]
-                      : []),
-                    { type: "divider" as const },
-                    { key: "delete", label: menuLabel("Move to Trash", "Move this bug to trash", <Trash2 size={15}/>, "#ef4444", "rgba(239,68,68,0.12)"), danger: true, disabled: !canDeleteBug },
-                  ],
-              onClick: ({ key }) => {
-                if (key === "edit") onEdit();
-                if (key === "verify") onVerify();
-
-                if (key === "recurring") setConfirmOpen(true);
-                /* if (key === "ignore") onIgnore(); */
-                if (key === "delete") onDelete();
-                if (key === "restore") onRestore();
-                if (key === "archive") onArchive();
-                if (key === "activity") onOpenActivity();
-              },
+          <ConfirmDialog
+            title="Mark Bug as Recurring"
+            description="Are you sure you want to mark this bug as recurring? A new ticket will be created and the previous ticket will be saved in history."
+            confirmText="Yes, mark as recurring"
+            tone="primary"
+            open={confirmOpen}
+            onOpenChange={setConfirmOpen}
+            onConfirm={async () => {
+              await markRecurringAsync(bug.id);
             }}
+            placement="bottomRight"
           >
-            <button className="hb-icon-btn" data-tour="bug-row-actions">
-              <MoreHorizontal size={14} />
-            </button>
-          </Dropdown>
+            <Dropdown
+              overlayClassName="pp-action-pop"
+              trigger={["click"]}
+              menu={{
+                items: isTrashView
+                  ? [
+                      { 
+                        key: "restore", 
+                        label: menuLabel("Restore", "Restore from trash", <RotateCcw size={15}/>, "#3b82f6", "rgba(59,130,246,0.12)"),
+                        disabled: isNestedInFolder || isNestedInSheet
+                      },
+                      ...(canReadActivityLog
+                        ? [
+                            { type: "divider" as const },
+                            { key: "activity", label: menuLabel("Activity History", "Who changed what, and when", <ScrollText size={15}/>, "#3b82f6", "rgba(59,130,246,0.12)") },
+                          ]
+                        : []),
+                      { type: "divider" as const },
+                      { key: "delete", label: menuLabel("Delete Permanently", "Permanently delete", <Trash2 size={15}/>, "#ef4444", "rgba(239,68,68,0.12)"), danger: true },
+                    ]
+                  : isArchiveView
+                  ? [
+                      { 
+                        key: "restore", 
+                        label: (
+                          <Tooltip title={isNestedInFolder ? "First restore folder" : isNestedInSheet ? "First restore sheet" : ""}>
+                            <div>{menuLabel("Restore", "Restore from archive", <RotateCcw size={15}/>, "#3b82f6", "rgba(59,130,246,0.12)")}</div>
+                          </Tooltip>
+                        ),
+                        disabled: isNestedInFolder || isNestedInSheet
+                      },
+                      ...(canReadActivityLog
+                        ? [
+                            { type: "divider" as const },
+                            { key: "activity", label: menuLabel("Activity History", "Who changed what, and when", <ScrollText size={15}/>, "#3b82f6", "rgba(59,130,246,0.12)") },
+                          ]
+                        : []),
+                      { type: "divider" as const },
+                      { key: "delete", label: menuLabel("Delete", "Delete this bug", <Trash2 size={15}/>, "#ef4444", "rgba(239,68,68,0.12)"), danger: true },
+                    ]
+                  : [
+                      { key: "edit", label: menuLabel("Edit", "Edit bug details", <Edit size={15}/>, "#64748b", "rgba(100,116,139,0.12)"), disabled: !canUpdateBug },
+                      ...(bug.status === "converted" || bug.status === "reopened"
+                        ? [
+                            { key: "verify", label: menuLabel("Verify", "Mark as verified", <CheckCircle size={15}/>, "#10b981", "rgba(16,185,129,0.12)"), disabled: !canUpdateBug },
+                          ]
+                        : []),
+                      {
+                        key: "recurring",
+                        label: menuLabel("Recurring", "Convert to recurring bug", <Repeat size={15}/>, "#8b5cf6", "rgba(139,92,246,0.12)"),
+                        disabled: !ticketLinked || bug.isRecurring || isMarkingRecurring || !canUpdateBug,
+                      },
+                      { key: "archive", label: menuLabel("Archive", "Archive this bug", <Archive size={15}/>, "#64748b", "rgba(100,116,139,0.12)"), disabled: !canUpdateBug },
+                      ...(canReadActivityLog
+                        ? [
+                            { type: "divider" as const },
+                            { key: "activity", label: menuLabel("Activity History", "Who changed what, and when", <ScrollText size={15}/>, "#3b82f6", "rgba(59,130,246,0.12)") },
+                          ]
+                        : []),
+                      { type: "divider" as const },
+                      { key: "delete", label: menuLabel("Move to Trash", "Move this bug to trash", <Trash2 size={15}/>, "#ef4444", "rgba(239,68,68,0.12)"), danger: true, disabled: !canDeleteBug },
+                    ],
+                onClick: ({ key }) => {
+                  if (key === "edit") onEdit();
+                  if (key === "verify") onVerify();
+
+                  if (key === "recurring") setConfirmOpen(true);
+                  /* if (key === "ignore") onIgnore(); */
+                  if (key === "delete") onDelete();
+                  if (key === "restore") setRestoreConfirmOpen(true);
+                  if (key === "archive") onArchive();
+                  if (key === "activity") onOpenActivity();
+                },
+              }}
+            >
+              <button className="hb-icon-btn" data-tour="bug-row-actions">
+                <MoreHorizontal size={14} />
+              </button>
+            </Dropdown>
+          </ConfirmDialog>
         </ConfirmDialog>
       </td>
     </tr>

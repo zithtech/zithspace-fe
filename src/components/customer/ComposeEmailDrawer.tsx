@@ -681,6 +681,7 @@ export default function ComposeEmailDrawer({
                   }
                   placeholder="recipient@company.com"
                   style={inputBase}
+                  readOnly
                 />
               </Form.Item>
 

@@ -268,20 +268,35 @@ export default function ProjectTrashManagementPage() {
       fixed: "right" as const,
       render: (record: any) => (
         <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
-          <Tooltip title="Restore Project">
-            <Button
-              type="text"
-              icon={<UndoOutlined style={{ color: "#52c41a" }} />}
-              onClick={() =>
-                restoreProject.mutate(record.id, {
-                  onSuccess: () => {
-                    message.success("Project restored successfully");
-                  },
+          <div onClick={(e) => e.stopPropagation()}>
+            <ConfirmDialog
+              tone="primary"
+              title="Restore project?"
+              description="This will restore the project back to active status."
+              confirmText="Restore"
+              cancelText="Cancel"
+              placement="bottomRight"
+              onConfirm={() =>
+                new Promise<void>((resolve) => {
+                  restoreProject.mutate(record.id, {
+                    onSuccess: () => {
+                      message.success("Project restored successfully");
+                      resolve();
+                    },
+                    onError: () => resolve(),
+                  });
                 })
               }
-              loading={restoreProject.isPending}
-            />
-          </Tooltip>
+            >
+              <Tooltip title="Restore Project">
+                <Button
+                  type="text"
+                  icon={<UndoOutlined style={{ color: "#52c41a" }} />}
+                  loading={restoreProject.isPending}
+                />
+              </Tooltip>
+            </ConfirmDialog>
+          </div>
           <ConfirmDialog
             tone="danger"
             title="Permanently delete project?"
@@ -580,20 +595,35 @@ export default function ProjectTrashManagementPage() {
               </Text>
             </div>
             <div className="saas-bulk-buttons">
-              <Button
-                type="text"
-                size="small"
-                icon={<UndoOutlined />}
-                onClick={() => {
-                  bulkRestore.mutate(selectedRowKeys as string[], {
-                    onSuccess: () => setSelectedRowKeys([]),
-                  });
-                }}
-                loading={bulkRestore.isPending}
-                className="saas-bulk-btn restore"
+              <ConfirmDialog
+                tone="primary"
+                title="Restore projects?"
+                description={`This will restore ${selectedRowKeys.length} project${selectedRowKeys.length > 1 ? 's' : ''} to active status.`}
+                confirmText="Restore"
+                cancelText="Cancel"
+                placement="bottomRight"
+                onConfirm={() =>
+                  new Promise<void>((resolve) => {
+                    bulkRestore.mutate(selectedRowKeys as string[], {
+                      onSuccess: () => {
+                        setSelectedRowKeys([]);
+                        resolve();
+                      },
+                      onError: () => resolve(),
+                    });
+                  })
+                }
               >
-                Restore
-              </Button>
+                <Button
+                  type="text"
+                  size="small"
+                  icon={<UndoOutlined />}
+                  loading={bulkRestore.isPending}
+                  className="saas-bulk-btn restore"
+                >
+                  Restore
+                </Button>
+              </ConfirmDialog>
               <ConfirmDialog
                 tone="danger"
                 title={`Purge ${selectedRowKeys.length} projects?`}

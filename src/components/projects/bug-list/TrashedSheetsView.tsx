@@ -2,6 +2,7 @@
 
 import React from "react";
 import { Skeleton, Avatar, Popconfirm, Tooltip } from "antd";
+import ConfirmDialog from "@/components/common/ConfirmDialog";
 import {
   Trash2,
   RotateCcw,
@@ -279,12 +280,21 @@ function TrashedSheetCard({
             <Eye size={12} />
             View Bugs
           </button>
-          <Tooltip title="Restore sheet">
-            <button className="arc-action-btn arc-action-restore" onClick={onRestore}>
+          <ConfirmDialog
+            tone="primary"
+            icon={<RotateCcw size={16} />}
+            title="Restore Sheet?"
+            description={`Are you sure you want to restore sheet "${sheet.name}" from trash?`}
+            confirmText="Restore"
+            cancelText="Cancel"
+            placement="bottomRight"
+            onConfirm={onRestore}
+          >
+            <button className="arc-action-btn arc-action-restore">
               <RotateCcw size={12} />
               Restore
             </button>
-          </Tooltip>
+          </ConfirmDialog>
           <Popconfirm
             title="Delete Permanently"
             description="This action cannot be undone."

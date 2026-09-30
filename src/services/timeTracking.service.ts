@@ -50,6 +50,9 @@ export interface PerformanceSummary {
   totalHours: number;
   formattedTotal: string;
   avgSecondsPerMember: number;
+  statusCounts?: Record<string, number>;
+  statusMemberCounts?: Record<string, number>;
+  trackedMembers?: { id: string; name: string; email: string; avatarUrl?: string | null }[];
 }
 
 export interface PerformanceResponse {
@@ -57,6 +60,7 @@ export interface PerformanceResponse {
   summary: PerformanceSummary;
   legend: PerformanceLegend;
   rows: PerformanceRow[];
+  total: number;
 }
 
 export class TimeTrackingService {
@@ -67,6 +71,8 @@ export class TimeTrackingService {
     startDate?: string;
     endDate?: string;
     timezone?: string;
+    page?: number;
+    limit?: number;
   }): Promise<PerformanceResponse> {
     try {
       const params = new URLSearchParams();
@@ -75,6 +81,8 @@ export class TimeTrackingService {
       if (filters?.startDate) params.append('startDate', filters.startDate);
       if (filters?.endDate) params.append('endDate', filters.endDate);
       if (filters?.timezone) params.append('timezone', filters.timezone);
+      if (filters?.page) params.append('page', String(filters.page));
+      if (filters?.limit) params.append('limit', String(filters.limit));
 
       const query = params.toString() ? `?${params.toString()}` : '';
       const res = await api.get<PerformanceResponse>(`/api/time-tracking/performance${query}`);

@@ -3,6 +3,7 @@
 import NoData from "@/components/common/NoData";
 import StatCards from "@/components/common/StatCards";
 import React, { useState, useEffect, useMemo, useRef } from "react";
+import { FilterBar, FilterToggleButton } from "@/components/common/FilterBar";
 import { Table, Tag, Typography, Space, Row, Col, Select, Avatar, Tooltip, Button, DatePicker, Collapse, Popover } from "antd";
 import {
   ClockCircleOutlined,
@@ -30,6 +31,7 @@ import {
   TimeTrackingEntry,
   PerformanceRow,
   PerformanceLegend,
+  PerformanceSummary,
 } from "@/services/timeTracking.service";
 import { ProjectService } from "@/services/projectService";
 import { useMembers, useUserProjects } from "@/hooks/useGlobalData";
@@ -147,6 +149,9 @@ export const PerformanceTracker: React.FC<PerformanceTrackerProps> = ({ refreshK
   const [legend, setLegend] = useState<PerformanceLegend | null>(null);
   const [loading, setLoading] = useState(false);
   const [currentTime, setCurrentTime] = useState(getSyncedTime());
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [summary, setSummary] = useState<PerformanceSummary | null>(null);
+  const [totalRows, setTotalRows] = useState(0);
 
   const [filters, setFilters] = useState(() => ({
     userIds: [] as string[],
@@ -163,9 +168,9 @@ export const PerformanceTracker: React.FC<PerformanceTrackerProps> = ({ refreshK
   const { data: members = [] } = useMembers();
   const { data: projects = [] } = useUserProjects();
 
-  const PAGE_SIZE_OPTIONS = [10, 20, 25, 50, 100];
+  const PAGE_SIZE_OPTIONS = [10, 15, 20, 25, 50, 100];
   const [tablePage, setTablePage] = useState(1);
-  const [tablePageSize, setTablePageSize] = useState(20);
+  const [tablePageSize, setTablePageSize] = useState(15);
 
   const browserTz = useMemo(() => {
     try {
@@ -199,6 +204,8 @@ export const PerformanceTracker: React.FC<PerformanceTrackerProps> = ({ refreshK
     if (!effectiveRange) {
       setRows([]);
       setLegend(null);
+      setSummary(null);
+      setTotalRows(0);
       setLoading(false);
       return;
     }
@@ -213,9 +220,13 @@ export const PerformanceTracker: React.FC<PerformanceTrackerProps> = ({ refreshK
         startDate,
         endDate,
         timezone: browserTz,
+        page: tablePage,
+        limit: tablePageSize,
       });
       setRows(data?.rows || []);
       setLegend(data?.legend || null);
+      setSummary(data?.summary || null);
+      setTotalRows(data?.total || 0);
     } catch (error) {
       console.error("Error fetching performance data:", error);
     } finally {
@@ -228,7 +239,6 @@ export const PerformanceTracker: React.FC<PerformanceTrackerProps> = ({ refreshK
     // pre-selected for convenience but must not trigger any API call on open.
     if (!hasInteractedRef.current) return;
     fetchPerformance();
-    setTablePage(1);
     // Value-based deps so changing/deselecting members always re-fetches.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
@@ -237,6 +247,8 @@ export const PerformanceTracker: React.FC<PerformanceTrackerProps> = ({ refreshK
     filters.dateRange?.[0]?.valueOf(),
     filters.dateRange?.[1]?.valueOf(),
     refreshKey,
+    tablePage,
+    tablePageSize,
   ]);
 
   // Embedded mode: drive the internal filters from the report's controlled
@@ -293,10 +305,8 @@ export const PerformanceTracker: React.FC<PerformanceTrackerProps> = ({ refreshK
 
   // How many member-days landed in each status — drives the counts in the guide.
   const statusCounts = useMemo(() => {
-    const m: Record<string, number> = {};
-    for (const r of rows) m[r.status] = (m[r.status] || 0) + 1;
-    return m;
-  }, [rows]);
+    return summary?.statusCounts || {};
+  }, [summary]);
 
   // Full status scale (weekday tiers + weekend) with color, range and live count.
   const guideItems = useMemo(() => {
@@ -310,7 +320,7 @@ export const PerformanceTracker: React.FC<PerformanceTrackerProps> = ({ refreshK
 
   // Plain-language insight shown above the summary card.
   const insight = useMemo(() => {
-    const totalDays = rows.length;
+    const totalDays = summary?.dayCount || 0;
     if (!legend || totalDays === 0) return null;
 
     const subject = filters.userIds.length === 1 ? "This member" : "Employees";
@@ -342,7 +352,7 @@ export const PerformanceTracker: React.FC<PerformanceTrackerProps> = ({ refreshK
         {weekendDays && <> — including <b>{weekendDays}</b></>}.
       </>
     );
-  }, [legend, statusCounts, rows, filters.userIds]);
+  }, [legend, statusCounts, summary, filters.userIds]);
 
   // Label for the active selection — month range takes precedence, else the date range.
   const rangeLabel = useMemo(() => {
@@ -371,22 +381,12 @@ export const PerformanceTracker: React.FC<PerformanceTrackerProps> = ({ refreshK
 
   // Unique members present in the current results, enriched with position.
   const memberDetails = useMemo(() => {
-    const seen = new Map<
-      string,
-      { id: string; name: string; email: string; position: string; avatarUrl?: string | null }
-    >();
-    rows.forEach((r) => {
-      if (!r.userId || seen.has(r.userId)) return;
-      seen.set(r.userId, {
-        id: r.userId,
-        name: r.user?.name || "Unknown",
-        email: r.user?.workEmail || "",
-        position: positionByMember.get(r.userId) || "—",
-        avatarUrl: r.user?.avatarUrl,
-      });
-    });
-    return Array.from(seen.values()).sort((a, b) => a.name.localeCompare(b.name));
-  }, [rows, positionByMember]);
+    const arr = summary?.trackedMembers || [];
+    return arr.map((m: any) => ({
+      ...m,
+      position: positionByMember.get(m.id) || "—",
+    })).sort((a, b) => a.name.localeCompare(b.name));
+  }, [summary, positionByMember]);
 
   // Members chosen in the "All members" filter — shown as info cards under the filter bar.
   const selectedMembers = useMemo(() => {
@@ -669,10 +669,10 @@ export const PerformanceTracker: React.FC<PerformanceTrackerProps> = ({ refreshK
   };
 
   // Pagination
-  const total = rows.length;
+  const total = totalRows;
   // Average tracked hours per tracked day, across all members in range.
-  const totalTrackedSeconds = rows.reduce((sum, r) => sum + (r.totalSeconds || 0), 0);
-  const avgSecondsPerDay = total > 0 ? Math.round(totalTrackedSeconds / total) : 0;
+  const totalTrackedSeconds = summary?.totalSeconds || 0;
+  const avgSecondsPerDay = summary?.dayCount ? Math.round(totalTrackedSeconds / summary.dayCount) : 0;
   const avgPerDayLabel = formatTime(avgSecondsPerDay);
 
   // Surface the average to an embedding report (for the Time Tracking score).
@@ -692,13 +692,12 @@ export const PerformanceTracker: React.FC<PerformanceTrackerProps> = ({ refreshK
   const pageStart = total === 0 ? 0 : (tablePage - 1) * tablePageSize + 1;
   const pageEnd = Math.min(tablePage * tablePageSize, total);
   const pageCount = Math.max(1, Math.ceil(total / tablePageSize));
-  const pagedData = rows.slice((tablePage - 1) * tablePageSize, tablePage * tablePageSize);
+  // Rows are already paginated by the server.
+  const pagedData = rows;
 
   // Main summary table — one row per status type.
   const summaryData = guideItems.map((item) => {
-    const memberCount = new Set(
-      rows.filter((r) => r.status === item.label).map((r) => r.userId)
-    ).size;
+    const memberCount = summary?.statusMemberCounts?.[item.label] || 0;
     const pct = total > 0 ? (item.count / total) * 100 : 0;
     return { ...item, memberCount, pct };
   });
@@ -781,6 +780,24 @@ export const PerformanceTracker: React.FC<PerformanceTrackerProps> = ({ refreshK
   return (
     <div style={{ display: "flex", flexDirection: "column", flex: 1, height: "100%", minHeight: 0, overflow: "hidden" }}>
       <div style={{ flexShrink: 0 }}>
+        {/* ── Page header ── */}
+        {!embedded && (
+        <div className="perf-page-head" style={{ justifyContent: "space-between" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <div className="perf-page-head__icon">
+              <DashboardOutlined />
+            </div>
+            <div>
+              <div className="perf-page-head__title">Performance Tracker</div>
+              <div className="perf-page-head__subtitle">
+                Daily tracked hours and performance tiers across your team
+              </div>
+            </div>
+          </div>
+          <FilterToggleButton isOpen={isFilterOpen} onToggle={() => setIsFilterOpen(!isFilterOpen)} />
+        </div>
+        )}
+
         {!embedded && (
           <StatCards
             title="Performance Overview"
@@ -790,29 +807,22 @@ export const PerformanceTracker: React.FC<PerformanceTrackerProps> = ({ refreshK
             style={{ borderBottom: "1px solid var(--border-slate-200)", marginBottom: 0 }}
           />
         )}
-        {/* ── Page header ── */}
-        {!embedded && (
-        <div className="perf-page-head">
-          <div className="perf-page-head__icon">
-            <DashboardOutlined />
-          </div>
-          <div>
-            <div className="perf-page-head__title">Performance Tracker</div>
-            <div className="perf-page-head__subtitle">
-              Daily tracked hours and performance tiers across your team
-            </div>
-          </div>
-        </div>
-        )}
 
-        {/* ── Filters (top, box-shaped bar) ── */}
+        {/* ── Filters ── */}
         {!embedded && (
-        <div className="perf-filterbar">
-            <div className="mtt-team-filters">
-              <span className="perf-filterbar__label">
-                <FilterOutlined />
-                Filters
-              </span>
+          <FilterBar
+            isOpen={isFilterOpen}
+            onReset={handleClearFilters}
+            activeCount={hasActiveFilters ? 1 : 0}
+            actions={
+              <Button
+                icon={<ReloadOutlined />}
+                onClick={() => { markInteracted(); fetchPerformance(); }}
+                loading={loading}
+                title="Refresh data"
+              />
+            }
+          >
               <SearchableDropdown
                 value={filters.projectId}
                 onChange={(v) => { markInteracted(); setFilters((f) => ({ ...f, projectId: v as string | undefined })); }}
@@ -836,7 +846,6 @@ export const PerformanceTracker: React.FC<PerformanceTrackerProps> = ({ refreshK
                 style={{ borderRadius: 6 }}
                 options={memberOptions}
               />
-
               <RangePicker
                 picker="month"
                 className="mtt-team-filters__month perf-filter-ctl"
@@ -846,7 +855,6 @@ export const PerformanceTracker: React.FC<PerformanceTrackerProps> = ({ refreshK
                 value={monthRange}
                 onChange={handleMonthChange}
               />
-
               <RangePicker
                 className="mtt-team-filters__range perf-filter-ctl"
                 allowClear
@@ -857,18 +865,7 @@ export const PerformanceTracker: React.FC<PerformanceTrackerProps> = ({ refreshK
                   setFilters((f) => ({ ...f, dateRange: dates as any }));
                 }}
               />
-
-              {hasActiveFilters && (
-                <Button onClick={handleClearFilters} className="mtt-team-filters__clear" size="small">
-                  Clear filters
-                </Button>
-              )}
-
-              <Tooltip title="Reload data (keeps your filters)">
-                <Button onClick={() => { markInteracted(); fetchPerformance(); }} icon={<ReloadOutlined />} loading={loading} className="mtt-tracker-card__action mtt-team-card__refresh" size="small" />
-              </Tooltip>
-            </div>
-        </div>
+          </FilterBar>
         )}
       </div>
 
@@ -1129,8 +1126,18 @@ export const PerformanceTracker: React.FC<PerformanceTrackerProps> = ({ refreshK
         /* Page header */
         .perf-page-head {
           display: flex; align-items: center; gap: 12px;
-          padding: 0 2px 12px 2px;
+          padding: 24px 24px 12px 24px;
           border-bottom: 1px solid var(--border-slate-100);
+        }
+        .mtt-team-table .ant-table-container,
+        .mtt-team-table .ant-table,
+        .mtt-team-table .ant-table-thead > tr > th:first-child,
+        .mtt-team-table .ant-table-thead > tr > th:last-child {
+          border-radius: 0 !important;
+          border-start-start-radius: 0 !important;
+          border-start-end-radius: 0 !important;
+          border-end-start-radius: 0 !important;
+          border-end-end-radius: 0 !important;
         }
         .perf-page-head__icon {
           width: 38px; height: 38px; flex-shrink: 0;

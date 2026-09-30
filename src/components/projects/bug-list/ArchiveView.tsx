@@ -330,18 +330,26 @@ export default function ArchiveView({
           <span>{selectedIds.size} selected</span>
           <div className="hb-bulkbar-actions">
             {canRestoreBugArchive && (
-              <button
-                className="hb-btn hb-btn-primary"
-                onClick={() => {
+              <ConfirmDialog
+                tone="primary"
+                icon={<RotateCcw size={16} />}
+                title="Restore Selected Items?"
+                description={`Are you sure you want to restore ${selectedIds.size} selected item${selectedIds.size > 1 ? 's' : ''} from archive?`}
+                confirmText="Restore"
+                cancelText="Cancel"
+                placement="bottomRight"
+                onConfirm={() => {
                   if (activeTab === "folders") bulkRestoreFolders.mutate(Array.from(selectedIds));
                   else if (activeTab === "sheets") bulkRestoreSheets.mutate(Array.from(selectedIds));
                   else bulkRestore.mutate({ bugIds: Array.from(selectedIds), from: "archive" });
                   setSelectedIds(new Set());
                 }}
               >
-                <RotateCcw size={13} />
-                Restore Selected
-              </button>
+                <button className="hb-btn hb-btn-primary">
+                  <RotateCcw size={13} />
+                  Restore Selected
+                </button>
+              </ConfirmDialog>
             )}
             {(canDeleteBugArchive && activeTab === "bugs") && (
               <ConfirmDialog
@@ -526,9 +534,22 @@ function ArchivedFolderCard({ folder, isSelected, onSelect, onView, onRestore, o
           <div style={{ display: 'flex', gap: 6 }}>
             <button className="arc-action-btn arc-action-view" onClick={onView}><Eye size={12} /> View Content</button>
           {onRestore && (
-            <button className="arc-action-btn arc-action-restore" onClick={(e) => { e.stopPropagation(); onRestore(); }}>
-              <RotateCcw size={12} /> Restore
-            </button>
+            <div onClick={(e) => e.stopPropagation()}>
+              <ConfirmDialog
+                tone="primary"
+                icon={<RotateCcw size={16} />}
+                title="Restore Folder?"
+                description={`Are you sure you want to restore folder "${folder.name}" and its contents from archive?`}
+                confirmText="Restore"
+                cancelText="Cancel"
+                placement="bottomRight"
+                onConfirm={onRestore}
+              >
+                <button className="arc-action-btn arc-action-restore">
+                  <RotateCcw size={12} /> Restore
+                </button>
+              </ConfirmDialog>
+            </div>
           )}
           </div>
           {onDelete && (
@@ -607,15 +628,28 @@ function ArchivedSheetCard({ sheet, isSelected, onSelect, isCurrent, onView, onR
           <div style={{ display: 'flex', gap: 6 }}>
             <button className="arc-action-btn arc-action-view" onClick={onView}><Eye size={12} /> View</button>
           {onRestore && (
-            <Tooltip title={restoreTooltip}>
-              <button 
-                className="arc-action-btn arc-action-restore" 
-                onClick={(e) => { e.stopPropagation(); onRestore(); }}
-                disabled={!!restoreTooltip}
-              >
-                <RotateCcw size={12} /> Restore
-              </button>
-            </Tooltip>
+            <div onClick={(e) => e.stopPropagation()}>
+              <Tooltip title={restoreTooltip}>
+                <ConfirmDialog
+                  tone="primary"
+                  icon={<RotateCcw size={16} />}
+                  title="Restore Sheet?"
+                  description={`Are you sure you want to restore sheet "${sheet.name}" and its bugs from archive?`}
+                  confirmText="Restore"
+                  cancelText="Cancel"
+                  placement="bottomRight"
+                  disabled={!!restoreTooltip}
+                  onConfirm={onRestore}
+                >
+                  <button 
+                    className="arc-action-btn arc-action-restore" 
+                    disabled={!!restoreTooltip}
+                  >
+                    <RotateCcw size={12} /> Restore
+                  </button>
+                </ConfirmDialog>
+              </Tooltip>
+            </div>
           )}
           </div>
           {onDelete && (
@@ -683,15 +717,28 @@ function ArchivedBugCard({ bug, isSelected, onSelect, onView, onRestore, onDelet
         </div>
         <div className="arc-foot-row" style={{ justifyContent: 'space-between', alignItems: 'center' }}>
           {onRestore && (
-            <Tooltip title={restoreTooltip}>
-              <button 
-                className="arc-action-btn arc-action-restore" 
-                onClick={onRestore} 
-                disabled={!!restoreTooltip}
-              >
-                <RotateCcw size={12} /> Restore Bug
-              </button>
-            </Tooltip>
+            <div onClick={(e) => e.stopPropagation()}>
+              <Tooltip title={restoreTooltip}>
+                <ConfirmDialog
+                  tone="primary"
+                  icon={<RotateCcw size={16} />}
+                  title="Restore Bug?"
+                  description={`Are you sure you want to restore bug "${bug.title || "this bug"}" from archive?`}
+                  confirmText="Restore"
+                  cancelText="Cancel"
+                  placement="bottomRight"
+                  disabled={!!restoreTooltip}
+                  onConfirm={onRestore}
+                >
+                  <button 
+                    className="arc-action-btn arc-action-restore" 
+                    disabled={!!restoreTooltip}
+                  >
+                    <RotateCcw size={12} /> Restore Bug
+                  </button>
+                </ConfirmDialog>
+              </Tooltip>
+            </div>
           )}
           {onDelete && (
             <ConfirmDialog

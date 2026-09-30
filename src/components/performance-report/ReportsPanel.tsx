@@ -227,6 +227,23 @@ export default function ReportsPanel() {
       .catch(() => { });
   }, []);
 
+  const visibleSections = useMemo(() => {
+    return SECTIONS.filter((s) => {
+      if (s.key === 'overview') return true;
+      const mw = moduleWeights.find((w) => w.key === s.key);
+      return mw ? mw.enabled !== false : true;
+    });
+  }, [moduleWeights]);
+
+  useEffect(() => {
+    if (activeSection !== 'overview') {
+      const mw = moduleWeights.find((w) => w.key === activeSection);
+      if (mw && mw.enabled === false) {
+        setActiveSection('overview');
+      }
+    }
+  }, [moduleWeights, activeSection]);
+
   // Fetch with EXPLICIT filters (no closure on state) so the auto-run can never
   // pick up a stale range. Both the button and the auto-run go through this.
   const fetchReport = useCallback(
@@ -570,7 +587,7 @@ export default function ReportsPanel() {
         ) : (
           <>
             <div className="prr-tabs" role="tablist">
-              {SECTIONS.map((s) => {
+              {visibleSections.map((s) => {
                 const active = activeSection === s.key;
                 return (
                   <button

@@ -1,10 +1,12 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, useContext } from "react";
 import { useRouter } from "next/navigation";
 import { api } from "@/lib/axios";
 import { useTheme } from "@/context/ThemeContext";
 import { useAuth } from "@/context/AuthContext";
+import ProductContext from "@/context/ProductContext";
+import { productFromHostname } from "@/lib/product";
 import {
   BarChart,
   Bar,
@@ -617,6 +619,11 @@ function SprintReportExport({
   sprintId: string;
   hasPrime: boolean;
 }) {
+  const prodCtx = useContext(ProductContext);
+  const resolvedProduct = prodCtx?.product || (typeof window !== 'undefined' ? productFromHostname(window.location.hostname) : 'zukvo');
+  const brandName = resolvedProduct === 'testiez' ? 'Testiez' : 'Zukvo';
+  const brandColor = resolvedProduct === 'testiez' ? '#8b5cf6' : '#3b82f6';
+
   return (
     <div className="bg-zinc-50 dark:bg-[#0B0F1A]">
       <div className="px-8 pt-8 pb-4">
@@ -643,7 +650,7 @@ function SprintReportExport({
         <ConclusionSection overview={data.overview} />
         
         <div className="pt-8 pb-4 text-center text-sm font-medium text-zinc-500 dark:text-zinc-400">
-          Generated from <span className="text-[#3b82f6]">Zukvo</span>
+          Generated from <span style={{ color: brandColor }}>{brandName}</span>
         </div>
       </div>
     </div>

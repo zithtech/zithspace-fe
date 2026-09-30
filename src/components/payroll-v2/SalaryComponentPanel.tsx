@@ -321,6 +321,14 @@ export default function SalaryComponentPanel() {
     displayOrder: 0,
   };
 
+  const suggestionOptions = useMemo(() => {
+    return COMPONENT_SUGGESTIONS.map((s) => ({
+      value: s.name,
+      label: s.name,
+      description: `${CATEGORY_META[s.category ?? 'earning'].label} · ${s.calculationType === 'percentage' ? `${s.defaultValue ?? 0}% of ${PERCENT_OF_LABEL[s.percentageOf ?? 'basic']}` : 'Fixed amount'}`,
+    }));
+  }, []);
+
   const openCreate = () => {
     setEditing(null);
     setCodeTouched(false);
@@ -462,7 +470,6 @@ export default function SalaryComponentPanel() {
     return <div style={{ padding: 40, textAlign: 'center', color: PALETTE.grey }}>You don’t have permission to view salary components.</div>;
   }
 
-  const suggestionOptions = COMPONENT_SUGGESTIONS.map((s) => ({ value: s.name }));
   const isPercent = calcType === 'percentage';
 
   return (
@@ -628,20 +635,50 @@ export default function SalaryComponentPanel() {
               {/* STEP 1 — Basic Details */}
               <SectionCard icon={<InfoCircleOutlined />} tint={TINT.blue} color={PALETTE.blue} title="Basic Details" subtitle="What this component is and where it belongs" step="STEP 1">
                 <DrawerRow label="Component name" hint="Pick a common component or type your own" required>
-                  <Form.Item style={{ marginBottom: 0 }} name="name" rules={[{ required: true, message: 'Name is required' }]}>
-                    <AutoComplete
+                  <Form.Item style={{ marginBottom: 0 }} name="name" rules={[{ required: true, message: 'Name is required' }, { pattern: /^[a-zA-Z\s\-]+$/, message: 'Only letters and spaces are allowed in component name' }]}>
+                    <SearchableDropdown
+                      className="pvc-dd-flat"
+                      placeholder="Select component name"
+                      searchPlaceholder="Search component name..."
+                      itemNoun="components"
+                      freeText={true}
                       options={suggestionOptions}
-                      onSelect={applySuggestion}
-                      filterOption={(input, option) => (option?.value as string).toLowerCase().includes(input.toLowerCase())}
-                      allowClear
-                    >
-                      <Input size="large" maxLength={120} placeholder="e.g. House Rent Allowance" />
-                    </AutoComplete>
+                      onChange={(val: string) => {
+                        const sanitized = val ? val.replace(/[^a-zA-Z\s\-]/g, '') : '';
+                        form.setFieldValue('name', sanitized);
+                        if (!editing && !codeTouched) {
+                          form.setFieldValue('code', slugifyCode(sanitized || ''));
+                        }
+                        if (sanitized) {
+                          applySuggestion(sanitized);
+                        }
+                      }}
+                      style={{ width: '100%', height: 40 }}
+                    />
                   </Form.Item>
                 </DrawerRow>
                 <DrawerRow label="Code" hint="Auto-generated from the name — override if needed" required>
-                  <Form.Item style={{ marginBottom: 0 }} name="code" rules={[{ required: true, message: 'Code is required' }, { pattern: /^[a-zA-Z0-9_-]+$/, message: 'Letters, numbers, - and _ only' }]}>
-                    <Input size="large" placeholder="HRA" maxLength={40} disabled={!!editing} onChange={() => setCodeTouched(true)} style={{ fontFamily: 'monospace', color: 'var(--text-slate-600)' }} />
+                  <Form.Item style={{ marginBottom: 0 }} name="code" rules={[{ required: true, message: 'Code is required' }, { pattern: /^[a-zA-Z0-9_-]+$/, message: 'Special characters are not allowed' }]}>
+                    <Input
+                      size="large"
+                      placeholder="HRA"
+                      maxLength={40}
+                      disabled={!!editing}
+                      onKeyDown={(e) => {
+                        if (['Backspace', 'Delete', 'Tab', 'Escape', 'Enter', 'ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(e.key) || e.ctrlKey || e.metaKey) {
+                          return;
+                        }
+                        if (!/^[a-zA-Z0-9_-]$/.test(e.key)) {
+                          e.preventDefault();
+                        }
+                      }}
+                      onChange={(e) => {
+                        setCodeTouched(true);
+                        const sanitized = e.target.value.replace(/[^a-zA-Z0-9_-]/g, '');
+                        form.setFieldValue('code', sanitized);
+                      }}
+                      style={{ fontFamily: 'monospace', color: 'var(--text-slate-600)' }}
+                    />
                   </Form.Item>
                 </DrawerRow>
                 <DrawerRow label="Category" hint="Which bucket this component belongs to" required>
@@ -664,7 +701,7 @@ export default function SalaryComponentPanel() {
                   </Form.Item>
                 </DrawerRow>
                 <DrawerRow label="Description" hint="A short note on what this component is for">
-                  <Form.Item style={{ marginBottom: 0 }} name="description">
+                  <Form.Item style={{ marginBottom: 0 }} name="description" rules={[{ pattern: /^[a-zA-Z0-9\s\-_.,()&/'"]*$/, message: 'Special characters are not allowed' }]}>
                     <TextArea rows={2} maxLength={500} placeholder="What is this component for?" />
                   </Form.Item>
                 </DrawerRow>
@@ -691,7 +728,27 @@ export default function SalaryComponentPanel() {
                 </DrawerRow>
                 <DrawerRow label={isPercent ? 'Percentage (%)' : 'Default amount'} hint="Salary structures can override this value">
                   <Form.Item style={{ marginBottom: 0 }} name="defaultValue">
-                    <InputNumber min={0} max={isPercent ? 100 : 100000000} step={isPercent ? 0.5 : 100} style={{ width: '100%', height: 40 }} placeholder={isPercent ? 'e.g. 40' : 'e.g. 15000'} />
+                    <InputNumber
+                      min={0}
+                      max={isPercent ? 100 : 100000000}
+                      step={isPercent ? 0.5 : 100}
+                      style={{ width: '100%', height: 40 }}
+                      placeholder={isPercent ? 'e.g. 40' : 'e.g. 15000'}
+                      onKeyDown={(e) => {
+                        if (['Backspace', 'Delete', 'Tab', 'Escape', 'Enter', 'ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(e.key) || e.ctrlKey || e.metaKey) {
+                          return;
+                        }
+                        if (!/^[0-9.]$/.test(e.key)) {
+                          e.preventDefault();
+                        }
+                      }}
+                      parser={(val) => {
+                        if (!val) return '' as any;
+                        const clean = val.replace(/[^0-9.]/g, '');
+                        const parts = clean.split('.');
+                        return (parts.length > 2 ? `${parts[0]}.${parts.slice(1).join('')}` : clean) as any;
+                      }}
+                    />
                   </Form.Item>
                 </DrawerRow>
                 {isPercent && (

@@ -173,6 +173,15 @@ export default function PayslipBankPanel() {
   const setBankField = <K extends keyof UpdateBankSettingsInput>(k: K, v: UpdateBankSettingsInput[K]) => setBank((p) => ({ ...p, [k]: v }));
 
   const save = async () => {
+    if (view === 'payslip') {
+      if (tpl.companyName && !/^[a-zA-Z0-9\s\-_.,()&/'"]*$/.test(tpl.companyName)) { message.error('Special characters are not allowed in company name'); return; }
+      if (tpl.companyAddress && !/^[a-zA-Z0-9\s\-_.,()&/'"#]*$/.test(tpl.companyAddress)) { message.error('Special characters are not allowed in company address'); return; }
+      if (tpl.footerNote && !/^[a-zA-Z0-9\s\-_.,()&/'"]*$/.test(tpl.footerNote)) { message.error('Special characters are not allowed in footer note'); return; }
+    } else {
+      if (bank.companyBankName && !/^[a-zA-Z0-9\s\-_.,()&/'"]*$/.test(bank.companyBankName)) { message.error('Special characters are not allowed in bank name'); return; }
+      if (bank.companyAccountNumber && !/^[a-zA-Z0-9\-]*$/.test(bank.companyAccountNumber)) { message.error('Special characters are not allowed in account number'); return; }
+      if (bank.companyIfsc && !/^[a-zA-Z0-9]*$/.test(bank.companyIfsc)) { message.error('Special characters are not allowed in IFSC'); return; }
+    }
     setSaving(true);
     try {
       if (view === 'payslip') { const s = await PayrollV2Service.updatePayslipTemplate(tpl); const f = tplToForm(s); setTpl(f); setTplSaved(f); }

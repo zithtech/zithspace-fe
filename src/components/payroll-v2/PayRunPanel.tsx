@@ -348,7 +348,19 @@ export default function PayRunPanel() {
       title: 'Payslip', key: 'payslip', width: 90, align: 'center' as const,
       render: (_: any, it: PayRunItem) => {
         const ps = payslips.get(it.employeeId);
-        if (ps) return <a href={ps.fileUrl} target="_blank" rel="noreferrer" style={{ color: PALETTE.blue }}><DownloadOutlined /> PDF</a>;
+        if (ps) {
+          const fileName = `Payslip_${ps.periodLabel || ps.month + '_' + ps.year}.pdf`;
+          const proxyUrl = `/api/download-proxy?url=${encodeURIComponent(ps.fileUrl)}&filename=${encodeURIComponent(fileName)}`;
+          return (
+            <a
+              href={proxyUrl}
+              download={fileName}
+              style={{ color: PALETTE.blue }}
+            >
+              <DownloadOutlined /> PDF
+            </a>
+          );
+        }
         const st = payslipItems.get(it.employeeId)?.status;
         if (st === 'processing' || st === 'pending') return <ZukvoLoader size="sm" />;
         if (st === 'failed') return <Tooltip title={payslipItems.get(it.employeeId)?.error || 'Generation failed'}><span style={{ color: PALETTE.red, fontWeight: 600 }}>Failed</span></Tooltip>;
@@ -545,7 +557,22 @@ export default function PayRunPanel() {
               )}
               {detail && isLocked && bankFile && (
                 <Tooltip title={`${bankFile.employeeCount} payees · ${money(bankFile.totalAmount)} · ${bankFile.format}`}>
-                  <Button type="link" icon={<DownloadOutlined />} href={bankFile.fileUrl} target="_blank">Bank File</Button>
+                  <Button
+                    type="link"
+                    icon={<DownloadOutlined />}
+                    onClick={() => {
+                      const fileName = `Bank_File_${bankFile.periodLabel || bankFile.runId}.csv`;
+                      const proxyUrl = `/api/download-proxy?url=${encodeURIComponent(bankFile.fileUrl)}&filename=${encodeURIComponent(fileName)}`;
+                      const a = document.createElement('a');
+                      a.href = proxyUrl;
+                      a.download = fileName;
+                      document.body.appendChild(a);
+                      a.click();
+                      a.remove();
+                    }}
+                  >
+                    Bank File
+                  </Button>
                 </Tooltip>
               )}
               {detail && isFinalized && canPayPayrollRun && (
@@ -612,7 +639,25 @@ export default function PayRunPanel() {
                         <div className="pvr-bf-title">Bank File</div>
                         <div className="pvr-bf-sub">{bankFile.periodLabel} · {BANK_FMT_LABEL[bankFile.format] ?? bankFile.format} · {bankFile.paymentMode.toUpperCase()}</div>
                       </div>
-                      <Button type="primary" ghost size="small" icon={<DownloadOutlined />} href={bankFile.fileUrl} target="_blank" style={{ borderRadius: 8, fontWeight: 600 }}>Download CSV</Button>
+                      <Button
+                        type="primary"
+                        ghost
+                        size="small"
+                        icon={<DownloadOutlined />}
+                        onClick={() => {
+                          const fileName = `Bank_File_${bankFile.periodLabel || bankFile.runId}.csv`;
+                          const proxyUrl = `/api/download-proxy?url=${encodeURIComponent(bankFile.fileUrl)}&filename=${encodeURIComponent(fileName)}`;
+                          const a = document.createElement('a');
+                          a.href = proxyUrl;
+                          a.download = fileName;
+                          document.body.appendChild(a);
+                          a.click();
+                          a.remove();
+                        }}
+                        style={{ borderRadius: 8, fontWeight: 600 }}
+                      >
+                        Download CSV
+                      </Button>
                     </div>
                     <div className="pvr-bf-cells">
                       <div className="pvr-bf-cell"><span>Payees</span><strong>{bankFile.employeeCount}</strong></div>

@@ -1172,6 +1172,7 @@ export default function LeadSettingsPage() {
                             placement="topRight"
                             onConfirm={async () => {
                                 try {
+                                    setIsDrawerOpen(false);
                                     await deleteStatus(record.id);
                                     message.success("Status deleted successfully");
                                     reloadData();
@@ -1273,6 +1274,7 @@ export default function LeadSettingsPage() {
                             placement="topRight"
                             onConfirm={async () => {
                                 try {
+                                    setIsDrawerOpen(false);
                                     await deleteAction(record.id);
                                     message.success("Action removed successfully");
                                     reloadData();
@@ -1403,6 +1405,7 @@ export default function LeadSettingsPage() {
                             placement="topRight"
                             onConfirm={async () => {
                                 try {
+                                    setIsDrawerOpen(false);
                                     await deletePlatform(record.id);
                                     message.success("Platform deleted");
                                     reloadData();
@@ -1658,7 +1661,15 @@ export default function LeadSettingsPage() {
                                             activeTab === "1" ? (
                                                 pagedStatuses.map((item, idx) => {
                                                     return (
-                                                        <div key={item.id} className="pc-card" onClick={() => handleEditStatus(item)}>
+                                                        <div
+                                                            key={item.id}
+                                                            className="pc-card"
+                                                            onClick={(e) => {
+                                                                const t = e.target as HTMLElement;
+                                                                if (t.closest('.ant-dropdown, .ant-dropdown-trigger, .ant-popover, .confirm-pop-overlay, .pc-actions, button, .ant-switch, .lset-flag')) return;
+                                                                handleEditStatus(item);
+                                                            }}
+                                                        >
                                                             <div className="pc-top">
                                                                 <div className="pc-avatar" style={{ background: 'linear-gradient(135deg, #3B82F6 0%, #2563EB 100%)' }}>
                                                                     {item.icon && STATUS_ICON_BY_KEY[item.icon] ? STATUS_ICON_BY_KEY[item.icon].render(12) : item.statusName?.charAt(0).toUpperCase()}
@@ -1705,6 +1716,7 @@ export default function LeadSettingsPage() {
                                                                                         placement="left"
                                                                                         onConfirm={async () => {
                                                                                             try {
+                                                                                                setIsDrawerOpen(false);
                                                                                                 await deleteStatus(item.id);
                                                                                                 message.success("Status deleted successfully");
                                                                                                 reloadData();
@@ -1809,7 +1821,15 @@ export default function LeadSettingsPage() {
                                                 })
                                             ) : activeTab === "2" ? (
                                                 pagedActions.map((item) => (
-                                                    <div key={item.id} className="pc-card" onClick={() => handleEditAction(item)}>
+                                                    <div
+                                                        key={item.id}
+                                                        className="pc-card"
+                                                        onClick={(e) => {
+                                                            const t = e.target as HTMLElement;
+                                                            if (t.closest('.ant-dropdown, .ant-dropdown-trigger, .ant-popover, .confirm-pop-overlay, .pc-actions, button, .ant-switch, .lset-flag')) return;
+                                                            handleEditAction(item);
+                                                        }}
+                                                    >
                                                         <div className="pc-top">
                                                             <div className="pc-avatar" style={{ background: 'linear-gradient(135deg, #3B82F6 0%, #2563EB 100%)' }}>
                                                                 {renderIcon(item.icon) || item.actionName?.charAt(0).toUpperCase()}
@@ -1856,6 +1876,7 @@ export default function LeadSettingsPage() {
                                                                                     placement="left"
                                                                                     onConfirm={async () => {
                                                                                         try {
+                                                                                            setIsDrawerOpen(false);
                                                                                             await deleteAction(item.id);
                                                                                             message.success("Action removed successfully");
                                                                                             reloadData();
@@ -1916,7 +1937,15 @@ export default function LeadSettingsPage() {
                                                     const isOnline = item.type === "online";
                                                     const href = item.url ? (/^https?:\/\//i.test(item.url) ? item.url : `https://${item.url}`) : "";
                                                     return (
-                                                        <div key={item.id} className="pc-card" onClick={() => handleEditPlatform(item)}>
+                                                        <div
+                                                            key={item.id}
+                                                            className="pc-card"
+                                                            onClick={(e) => {
+                                                                const t = e.target as HTMLElement;
+                                                                if (t.closest('.ant-dropdown, .ant-dropdown-trigger, .ant-popover, .confirm-pop-overlay, .pc-actions, button, .ant-switch, .lset-flag, a')) return;
+                                                                handleEditPlatform(item);
+                                                            }}
+                                                        >
                                                             <div className="pc-top">
                                                                 <div className="pc-avatar" style={{ background: 'linear-gradient(135deg, #3B82F6 0%, #2563EB 100%)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', color: '#ffffff' }}>
                                                                     {renderPlatformLogo(item.logoUrl, 16, '#ffffff', false)}
@@ -1959,6 +1988,7 @@ export default function LeadSettingsPage() {
                                                                                         placement="left"
                                                                                         onConfirm={async () => {
                                                                                             try {
+                                                                                                setIsDrawerOpen(false);
                                                                                                 await deletePlatform(item.id);
                                                                                                 message.success("Platform deleted");
                                                                                                 reloadData();

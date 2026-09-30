@@ -3025,15 +3025,33 @@ export default function LeadsPage() {
                     >
                       Clear
                     </Button>
-                    <Button
-                      size="small"
-                      danger
-                      icon={<Trash2 size={13} />}
-                      className="lm-bulk-btn lm-bulk-btn-danger"
-                      onClick={handleBulkDelete}
+                    <ConfirmDialog
+                      tone="danger"
+                      icon={<Trash2 size={16} />}
+                      title={`Delete ${selectedRowKeys.length} lead${selectedRowKeys.length > 1 ? "s" : ""}?`}
+                      description="Selected leads will be moved to Trash. This action can be reverted from there."
+                      confirmText="Move to Trash"
+                      cancelText="Cancel"
+                      placement="bottomRight"
+                      onConfirm={async () => {
+                        try {
+                          await Promise.all(selectedRowKeys.map((id) => deleteLead(String(id))));
+                          messageApi.success(`${selectedRowKeys.length} lead${selectedRowKeys.length > 1 ? "s" : ""} moved to Trash`);
+                          setSelectedRowKeys([]);
+                        } catch (err) {
+                          // Error surfaced via hook
+                        }
+                      }}
                     >
-                      Delete
-                    </Button>
+                      <Button
+                        size="small"
+                        danger
+                        icon={<Trash2 size={13} />}
+                        className="lm-bulk-btn lm-bulk-btn-danger"
+                      >
+                        Delete
+                      </Button>
+                    </ConfirmDialog>
                   </div>
                 </div>
               )}

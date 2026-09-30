@@ -302,7 +302,10 @@ export default function SalaryStructurePanel() {
 
   const submit = async () => {
     if (!name.trim()) { message.error('Structure name is required'); return; }
-    if (!/^[a-zA-Z0-9_-]+$/.test(code)) { message.error('Code may only contain letters, numbers, - and _'); return; }
+    if (!/[a-zA-Z]/.test(name.trim())) { message.error('Structure name must contain at least one letter'); return; }
+    if (!/^[a-zA-Z0-9\s&()_".,\-'/—–]*$/.test(name.trim())) { message.error('Special characters are not allowed in structure name'); return; }
+    if (!/^[a-zA-Z0-9_-]+$/.test(code)) { message.error('Special characters are not allowed in code'); return; }
+    if (description && !/^[a-zA-Z0-9\s\-_.,()&/'"—–]*$/.test(description.trim())) { message.error('Special characters are not allowed in description'); return; }
     if (lines.length === 0) { message.error('Add at least one component'); return; }
     for (const l of lines) {
       if (l.calculationType === 'percentage' && !l.percentageOf) {
@@ -488,23 +491,89 @@ export default function SalaryStructurePanel() {
             {/* STEP 1 — Details */}
             <SectionCard icon={<InfoCircleOutlined />} tint={TINT.blue} color={PALETTE.blue} title="Structure Details" subtitle="Identify this grade and its reference CTC" step="STEP 1">
               <DrawerRow label="Structure name" hint="Grade / template name shown when assigning">
-                <Input size="large" maxLength={160} placeholder="e.g. Grade A — Engineering" value={name}
-                  onChange={(e) => { const v = e.target.value; setName(v); if (!editing && !codeTouched) setCode(slugifyCode(v)); }} />
+                <Input
+                  size="large"
+                  maxLength={160}
+                  placeholder="e.g. Grade A — Engineering"
+                  value={name}
+                  onKeyDown={(e) => {
+                    if (['Backspace', 'Delete', 'Tab', 'Escape', 'Enter', 'ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(e.key) || e.ctrlKey || e.metaKey) {
+                      return;
+                    }
+                    if (!/^[a-zA-Z\s\-]$/.test(e.key)) {
+                      e.preventDefault();
+                    }
+                  }}
+                  onChange={(e) => {
+                    const v = e.target.value.replace(/[^a-zA-Z\s\-]/g, '');
+                    setName(v);
+                    if (!editing && !codeTouched) setCode(slugifyCode(v));
+                  }}
+                />
               </DrawerRow>
               <DrawerRow label="Code" hint="Auto-generated from the name — override if needed">
-                <Input size="large" maxLength={40} placeholder="GRADE_A" value={code} disabled={!!editing}
-                  onChange={(e) => { setCodeTouched(true); setCode(e.target.value); }} style={{ fontFamily: 'monospace', color: 'var(--text-slate-600)' }} />
+                <Input
+                  size="large"
+                  maxLength={40}
+                  placeholder="GRADE_A"
+                  value={code}
+                  disabled={!!editing}
+                  onKeyDown={(e) => {
+                    if (['Backspace', 'Delete', 'Tab', 'Escape', 'Enter', 'ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(e.key) || e.ctrlKey || e.metaKey) {
+                      return;
+                    }
+                    if (!/^[a-zA-Z0-9_-]$/.test(e.key)) {
+                      e.preventDefault();
+                    }
+                  }}
+                  onChange={(e) => {
+                    setCodeTouched(true);
+                    const sanitized = e.target.value.replace(/[^a-zA-Z0-9_-]/g, '');
+                    setCode(sanitized);
+                  }}
+                  style={{ fontFamily: 'monospace', color: 'var(--text-slate-600)' }}
+                />
               </DrawerRow>
               <DrawerRow label="Reference monthly gross" hint="Used to preview each component's amount">
-                <InputNumber size="large" min={0} max={100000000} step={1000} style={{ width: '100%' }} value={monthlyCtc}
-                  formatter={(v) => `₹ ${v}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')} parser={(v) => Number((v || '').replace(/[^\d.]/g, '')) as any}
-                  onChange={(v) => setMonthlyCtc(Number(v ?? 0))} />
+                <InputNumber
+                  size="large"
+                  min={0}
+                  max={100000000}
+                  step={1000}
+                  style={{ width: '100%' }}
+                  value={monthlyCtc}
+                  formatter={(v) => `₹ ${v}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
+                  parser={(v) => {
+                    if (!v) return 0 as any;
+                    const clean = String(v).replace(/[^\d.]/g, '');
+                    const parts = clean.split('.');
+                    return Number(parts.length > 2 ? `${parts[0]}.${parts.slice(1).join('')}` : clean) as any;
+                  }}
+                  onKeyDown={(e) => {
+                    if (['Backspace', 'Delete', 'Tab', 'Escape', 'Enter', 'ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(e.key) || e.ctrlKey || e.metaKey) {
+                      return;
+                    }
+                    if (!/^[0-9.]$/.test(e.key)) {
+                      e.preventDefault();
+                    }
+                  }}
+                  onChange={(v) => setMonthlyCtc(Number(v ?? 0))}
+                />
               </DrawerRow>
               <DrawerRow label="Active" hint="Available for assignment to employees" inlineControl>
                 <Switch checked={isActive} onChange={setIsActive} />
               </DrawerRow>
               <DrawerRow label="Description" hint="A short note on who this grade is for">
-                <Input.TextArea rows={2} maxLength={500} placeholder="Who is this grade for?" value={description} onChange={(e) => setDescription(e.target.value)} />
+                <Input.TextArea
+                  rows={2}
+                  maxLength={500}
+                  placeholder="Who is this grade for?"
+                  value={description}
+                  onChange={(e) => {
+                    const v = e.target.value.replace(/[^a-zA-Z0-9\s\-_.,()&/'"—–]/g, '');
+                    setDescription(v);
+                  }}
+                />
               </DrawerRow>
             </SectionCard>
 
@@ -549,7 +618,22 @@ export default function SalaryStructurePanel() {
                       )}
                       <InputNumber
                         size="small" min={0} max={l.calculationType === 'percentage' ? 100 : 100000000}
-                        value={l.value} onChange={(v) => updateLine(l.componentId, { value: Number(v ?? 0) })}
+                        value={l.value}
+                        onKeyDown={(e) => {
+                          if (['Backspace', 'Delete', 'Tab', 'Escape', 'Enter', 'ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(e.key) || e.ctrlKey || e.metaKey) {
+                            return;
+                          }
+                          if (!/^[0-9.]$/.test(e.key)) {
+                            e.preventDefault();
+                          }
+                        }}
+                        parser={(v) => {
+                          if (!v) return '' as any;
+                          const clean = String(v).replace(/[^\d.]/g, '');
+                          const parts = clean.split('.');
+                          return (parts.length > 2 ? `${parts[0]}.${parts.slice(1).join('')}` : clean) as any;
+                        }}
+                        onChange={(v) => updateLine(l.componentId, { value: Number(v ?? 0) })}
                         style={{ width: 92 }} placeholder={l.calculationType === 'percentage' ? '%' : '₹'}
                       />
                       <div className="pvs-line-amount">{money(amountById[l.componentId] ?? 0)}</div>
@@ -639,9 +723,9 @@ export default function SalaryStructurePanel() {
         .pvs-footer-info strong { color: var(--text-slate-700); font-weight: 700; }
         .pvs-pager { display: flex; align-items: center; gap: 3px; }
         .pvs-pager-btn, .pvs-pager-num { min-width: 28px; height: 28px; border-radius: 7px; border: 1px solid var(--border-slate-200); background: var(--bg-pure-white); color: var(--text-slate-600); cursor: pointer; font-size: 12.5px; font-weight: 600; }
-        .pvs-pager-btn:hover:not(:disabled), .pvs-pager-num:hover { border-color: #c4b5fd; color: ${PALETTE.violet}; }
+        .pvs-pager-btn:hover:not(:disabled), .pvs-pager-num:hover { border-color: #93c5fd; color: #3b82f6; }
         .pvs-pager-btn:disabled { opacity: 0.4; cursor: not-allowed; }
-        .pvs-pager-num.is-active { background: ${PALETTE.violet}; border-color: ${PALETTE.violet}; color: #fff; }
+        .pvs-pager-num.is-active { background: #3b82f6; border-color: #3b82f6; color: #fff; }
         .pvs-pagesize { margin-left: 5px; }
         .pvs-pagesize .ant-select-selector { border-radius: 7px !important; height: 28px !important; }
 

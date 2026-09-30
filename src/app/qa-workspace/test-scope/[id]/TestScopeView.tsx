@@ -2,12 +2,14 @@
 import { message } from "@/providers/AntdGlobalProvider";
 
 
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState, useContext } from "react";
 import { useRouter } from "next/navigation";
 import { api as axios } from "@/lib/axios";
 import { MembersService } from "@/services/membersService";
 import { useTicketDrawer } from "@/context/TicketDrawerContext";
 import { usePermission } from "@/hooks/usePermission";
+import ProductContext from "@/context/ProductContext";
+import { productFromHostname } from "@/lib/product";
 
 import {
   Target,
@@ -647,6 +649,10 @@ function TestScopeExport({
   usersMap: Record<string, string>;
   positionsMap: Record<string, string>;
 }) {
+  const prodCtx = useContext(ProductContext);
+  const resolvedProduct = prodCtx?.product || (typeof window !== 'undefined' ? productFromHostname(window.location.hostname) : 'zukvo');
+  const brandName = resolvedProduct === 'testiez' ? 'Testiez' : 'Zukvo';
+  const brandColor = resolvedProduct === 'testiez' ? '#8b5cf6' : '#3b82f6';
   const d = data.details || {};
   return (
     <div className="bg-zinc-50 dark:bg-[#0B0F1A]">
@@ -983,7 +989,7 @@ function TestScopeExport({
         </section>
 
         <div className="pt-8 pb-4 text-center text-sm font-medium text-zinc-500 dark:text-zinc-400">
-          Generated from <span className="text-[#3b82f6]">Zukvo</span>
+          Generated from <span style={{ color: brandColor }}>{brandName}</span>
         </div>
       </div>
     </div>

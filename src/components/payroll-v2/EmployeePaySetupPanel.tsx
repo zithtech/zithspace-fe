@@ -505,9 +505,9 @@ export default function EmployeePaySetupPanel() {
         .pvep-footer-info strong { color: var(--text-slate-700); font-weight: 700; }
         .pvep-pager { display: flex; align-items: center; gap: 3px; }
         .pvep-pager-btn, .pvep-pager-num { min-width: 28px; height: 28px; border-radius: 7px; border: 1px solid var(--border-slate-200); background: var(--bg-pure-white); color: var(--text-slate-600); cursor: pointer; font-size: 12.5px; font-weight: 600; }
-        .pvep-pager-btn:hover:not(:disabled), .pvep-pager-num:hover { border-color: #cbd5e1; color: ${PALETTE.slate}; }
+        .pvep-pager-btn:hover:not(:disabled), .pvep-pager-num:hover { border-color: #93c5fd; color: #3b82f6; }
         .pvep-pager-btn:disabled { opacity: 0.4; cursor: not-allowed; }
-        .pvep-pager-num.is-active { background: ${PALETTE.slate}; border-color: ${PALETTE.slate}; color: #fff; }
+        .pvep-pager-num.is-active { background: #3b82f6; border-color: #3b82f6; color: #fff; }
         .pvep-pagesize { margin-left: 5px; }
         .pvep-pagesize .ant-select-selector { border-radius: 7px !important; height: 28px !important; }
 

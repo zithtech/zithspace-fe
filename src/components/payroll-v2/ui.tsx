@@ -169,7 +169,7 @@ export function PvStyles() {
       .pvp-sprint-row3 { display: flex; align-items: center; gap: 12px; padding-left: 15px; }
       .pvp-sprint-progress-bar { flex: 1 1 auto; position: relative; height: 6px; background: var(--bg-slate-100, #f1f5f9); border-radius: 999px; overflow: hidden; min-width: 60px; }
       [data-theme='dark'] .pvp-sprint-progress-bar { background: #1f2937 !important; }
-      .pvp-sprint-progress-fill { position: absolute; inset: 0; background: linear-gradient(90deg, #3b82f6, #2563eb); border-radius: 999px; transition: width 0.4s ease; }
+      .pvp-sprint-progress-fill { position: absolute; inset: 0; background: linear-gradient(90deg, #3b82f6, #3b82f6); border-radius: 999px; transition: width 0.4s ease; }
       .pvp-sprint-progress-pct { flex-shrink: 0; font-size: 12px; font-weight: 800; color: var(--text-slate-900, #0f172a); font-variant-numeric: tabular-nums; min-width: 36px; }
       [data-theme='dark'] .pvp-sprint-progress-pct { color: #f1f5f9 !important; }
 
@@ -262,7 +262,109 @@ export function PvStyles() {
         flex-shrink: 0;
       }
       .pv-table-wrap .ant-pagination-total-text { margin-right: auto; color: var(--text-slate-500); font-size: 13px; }
-      
+
+      /* Standard Blue Pagination Styling for Payroll */
+      .pv-table-wrap .ant-pagination .ant-pagination-item,
+      .mps-footer .ant-pagination .ant-pagination-item,
+      .pvr-footer .ant-pagination .ant-pagination-item,
+      .rpt-footer .ant-pagination .ant-pagination-item,
+      .pv-table-wrap .ant-pagination .ant-pagination-prev .ant-pagination-item-link,
+      .pv-table-wrap .ant-pagination .ant-pagination-next .ant-pagination-item-link,
+      .mps-footer .ant-pagination .ant-pagination-prev .ant-pagination-item-link,
+      .mps-footer .ant-pagination .ant-pagination-next .ant-pagination-item-link,
+      .pvr-footer .ant-pagination .ant-pagination-prev .ant-pagination-item-link,
+      .pvr-footer .ant-pagination .ant-pagination-next .ant-pagination-item-link,
+      .rpt-footer .ant-pagination .ant-pagination-prev .ant-pagination-item-link,
+      .rpt-footer .ant-pagination .ant-pagination-next .ant-pagination-item-link {
+        border: 1px solid var(--border-slate-200) !important;
+        border-radius: 6px !important;
+        background: var(--bg-pure-white) !important;
+        color: var(--text-slate-600) !important;
+        font-weight: 500 !important;
+      }
+      .pv-table-wrap .ant-pagination .ant-pagination-item a,
+      .mps-footer .ant-pagination .ant-pagination-item a,
+      .pvr-footer .ant-pagination .ant-pagination-item a,
+      .rpt-footer .ant-pagination .ant-pagination-item a {
+        color: var(--text-slate-600) !important;
+      }
+      .pv-table-wrap .ant-pagination .ant-pagination-item-active,
+      .mps-footer .ant-pagination .ant-pagination-item-active,
+      .pvr-footer .ant-pagination .ant-pagination-item-active,
+      .rpt-footer .ant-pagination .ant-pagination-item-active {
+        background: #3b82f6 !important;
+        border-color: #3b82f6 !important;
+      }
+      .pv-table-wrap .ant-pagination .ant-pagination-item-active a,
+      .pv-table-wrap .ant-pagination .ant-pagination-item-active:hover a,
+      .mps-footer .ant-pagination .ant-pagination-item-active a,
+      .mps-footer .ant-pagination .ant-pagination-item-active:hover a,
+      .pvr-footer .ant-pagination .ant-pagination-item-active a,
+      .pvr-footer .ant-pagination .ant-pagination-item-active:hover a,
+      .rpt-footer .ant-pagination .ant-pagination-item-active a,
+      .rpt-footer .ant-pagination .ant-pagination-item-active:hover a {
+        color: #ffffff !important;
+        font-weight: 700 !important;
+      }
+      .pv-table-wrap .ant-pagination .ant-pagination-item:hover:not(.ant-pagination-item-active),
+      .mps-footer .ant-pagination .ant-pagination-item:hover:not(.ant-pagination-item-active),
+      .pvr-footer .ant-pagination .ant-pagination-item:hover:not(.ant-pagination-item-active),
+      .rpt-footer .ant-pagination .ant-pagination-item:hover:not(.ant-pagination-item-active) {
+        border-color: #3b82f6 !important;
+        background: rgba(59, 130, 246, 0.06) !important;
+      }
+      .pv-table-wrap .ant-pagination .ant-pagination-item:hover:not(.ant-pagination-item-active) a,
+      .mps-footer .ant-pagination .ant-pagination-item:hover:not(.ant-pagination-item-active) a,
+      .pvr-footer .ant-pagination .ant-pagination-item:hover:not(.ant-pagination-item-active) a,
+      .rpt-footer .ant-pagination .ant-pagination-item:hover:not(.ant-pagination-item-active) a {
+        color: #3b82f6 !important;
+      }
+      .pv-table-wrap .ant-pagination .ant-pagination-options-size-changer .ant-select-selector,
+      .mps-footer .ant-pagination .ant-pagination-options-size-changer .ant-select-selector,
+      .pvr-footer .ant-pagination .ant-pagination-options-size-changer .ant-select-selector,
+      .rpt-footer .ant-pagination .ant-pagination-options-size-changer .ant-select-selector {
+        border: 1px solid var(--border-slate-200) !important;
+        border-radius: 6px !important;
+        background: var(--bg-pure-white) !important;
+        font-size: 12px !important;
+      }
+
+      /* Dark mode support for Payroll pagination */
+      [data-theme='dark'] .pv-table-wrap .ant-pagination .ant-pagination-item,
+      [data-theme='dark'] .mps-footer .ant-pagination .ant-pagination-item,
+      [data-theme='dark'] .pvr-footer .ant-pagination .ant-pagination-item,
+      [data-theme='dark'] .rpt-footer .ant-pagination .ant-pagination-item,
+      [data-theme='dark'] .pv-table-wrap .ant-pagination .ant-pagination-prev .ant-pagination-item-link,
+      [data-theme='dark'] .pv-table-wrap .ant-pagination .ant-pagination-next .ant-pagination-item-link,
+      [data-theme='dark'] .mps-footer .ant-pagination .ant-pagination-prev .ant-pagination-item-link,
+      [data-theme='dark'] .mps-footer .ant-pagination .ant-pagination-next .ant-pagination-item-link,
+      [data-theme='dark'] .pvr-footer .ant-pagination .ant-pagination-prev .ant-pagination-item-link,
+      [data-theme='dark'] .pvr-footer .ant-pagination .ant-pagination-next .ant-pagination-item-link,
+      [data-theme='dark'] .rpt-footer .ant-pagination .ant-pagination-prev .ant-pagination-item-link,
+      [data-theme='dark'] .rpt-footer .ant-pagination .ant-pagination-next .ant-pagination-item-link {
+        border-color: #374151 !important;
+        background: #111827 !important;
+        color: #9ca3af !important;
+      }
+      [data-theme='dark'] .pv-table-wrap .ant-pagination .ant-pagination-item a,
+      [data-theme='dark'] .mps-footer .ant-pagination .ant-pagination-item a,
+      [data-theme='dark'] .pvr-footer .ant-pagination .ant-pagination-item a,
+      [data-theme='dark'] .rpt-footer .ant-pagination .ant-pagination-item a {
+        color: #9ca3af !important;
+      }
+      [data-theme='dark'] .pv-table-wrap .ant-pagination .ant-pagination-item-active,
+      [data-theme='dark'] .mps-footer .ant-pagination .ant-pagination-item-active,
+      [data-theme='dark'] .pvr-footer .ant-pagination .ant-pagination-item-active,
+      [data-theme='dark'] .rpt-footer .ant-pagination .ant-pagination-item-active {
+        background: #3b82f6 !important;
+        border-color: #3b82f6 !important;
+      }
+      [data-theme='dark'] .pv-table-wrap .ant-pagination .ant-pagination-item-active a,
+      [data-theme='dark'] .mps-footer .ant-pagination .ant-pagination-item-active a,
+      [data-theme='dark'] .pvr-footer .ant-pagination .ant-pagination-item-active a,
+      [data-theme='dark'] .rpt-footer .ant-pagination .ant-pagination-item-active a {
+        color: #ffffff !important;
+      }
     `}</style>
   );
 }

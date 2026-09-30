@@ -120,55 +120,100 @@ export default function MyDocumentsPanel() {
   ];
 
   return (
-    <div style={{ padding: "24px 0 64px 0", minHeight: "100%", display: "flex", flexDirection: "column", gap: "24px" }}>
-      <div style={{
-        display: "flex",
-        justifyContent: "space-between",
-        alignItems: "center",
-        margin: "0 -32px",
-        padding: "0 32px 16px 32px",
-        borderBottom: "1px solid var(--border-slate-200)"
-      }}>
-        <div>
-          <Title level={4} style={{ margin: 0, fontWeight: 700, color: "var(--text-slate-900)" }}>
-            My Documents
-          </Title>
-          <Text type="secondary" style={{ fontSize: 13 }}>
-            View and download your HR documents.
-          </Text>
+    <div className="mydocs-wrap">
+      <div className="mydocs-header">
+        <div className="mydocs-header-about">
+          <div className="mydocs-header-icon">
+            <FileTextOutlined />
+          </div>
+          <div>
+            <div className="mydocs-header-title">My Documents</div>
+            <div className="mydocs-header-sub">View and download your HR documents</div>
+          </div>
         </div>
-        <Input
-          placeholder="Search documents..."
-          prefix={<SearchOutlined style={{ color: 'var(--text-slate-400)' }} />}
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          allowClear
-          style={{ width: 280 }}
-        />
+        <div className="mydocs-header-actions">
+          <div className="mydocs-search-wrap">
+            <SearchOutlined className="mydocs-search-icon" />
+            <input
+              className="mydocs-search"
+              placeholder="Search documents…"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+          </div>
+        </div>
       </div>
 
-      <style>{`
-        .my-docs-table .ant-table-container,
-        .my-docs-table .ant-table,
+      <div className="mydocs-body">
+        <div className="my-docs-table-wrap">
+          <ZukvoLoadingOverlay loading={loading} message="">
+            <Table
+              className="my-docs-table"
+              dataSource={filteredDocuments}
+              columns={columns}
+              rowKey="id"
+              pagination={false}
+              locale={{
+                emptyText: (
+                  <NoData description="No documents found." />
+                ),
+              }}
+            />
+          </ZukvoLoadingOverlay>
+        </div>
+      </div>
+
+      <style jsx global>{`
+        .mydocs-wrap { display: flex; flex-direction: column; flex: 1; min-height: 100%; position: relative; background: var(--bg-pure-white); }
+        .mydocs-header {
+          display: flex; align-items: center; justify-content: space-between; gap: 16px;
+          padding: 14px 24px; margin: 0;
+          border-bottom: 1px solid var(--border-slate-200); background: var(--bg-pure-white);
+          flex-wrap: wrap;
+        }
+        .mydocs-header-about { display: flex; align-items: center; gap: 12px; min-width: 200px; }
+        .mydocs-header-icon {
+          width: 38px; height: 38px; border-radius: 10px;
+          background: rgba(59, 130, 246, 0.10); color: #3b82f6;
+          display: inline-flex; align-items: center; justify-content: center;
+          font-size: 18px; flex-shrink: 0;
+        }
+        .mydocs-header-title { font-size: 17px; font-weight: 800; color: var(--text-slate-900); letter-spacing: -0.02em; line-height: 1.15; }
+        .mydocs-header-sub { font-size: 12.5px; color: var(--text-slate-500); margin-top: 2px; }
+        .mydocs-header-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+        .mydocs-search-wrap {
+          display: flex; align-items: center; height: 34px; width: 240px;
+          border-radius: 8px; background: var(--bg-pure-white);
+          border: 1px solid var(--border-slate-200); padding: 0 10px;
+        }
+        .mydocs-search-wrap:focus-within { border-color: #93c5fd; box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.10); }
+        .mydocs-search-icon { color: var(--text-slate-400); font-size: 14px; }
+        .mydocs-search { flex: 1; border: none; outline: none; background: transparent; margin-left: 9px; font-size: 13px; color: var(--text-slate-900); }
+        
+        .mydocs-body { flex: 1; min-height: 0; padding: 20px 24px 24px 24px; }
+        .my-docs-table-wrap { border: 1px solid var(--border-slate-200); border-radius: 0; overflow: hidden; background: var(--bg-pure-white); }
+        .my-docs-table .ant-table, .my-docs-table .ant-table-container { background: transparent; font-size: 12.5px; border-radius: 0px !important; }
         .my-docs-table .ant-table-thead > tr > th {
-          border-radius: 0px !important;
+          background: var(--bg-slate-50) !important;
+          border-bottom: 1px solid var(--border-slate-200) !important;
+          font-size: 10px !important; font-weight: 700 !important;
+          letter-spacing: 0.04em; text-transform: uppercase;
+          color: var(--text-slate-400) !important; padding: 9px 12px !important;
+          border-radius: 0 !important;
+        }
+        .my-docs-table .ant-table-tbody > tr > td {
+          border-bottom: 1px solid var(--border-slate-100) !important;
+          padding: 10px 12px !important;
+        }
+        .my-docs-table .ant-table-tbody > tr:last-child > td { border-bottom: none !important; }
+        .my-docs-table .ant-table-tbody > tr:hover > td { background: var(--bg-slate-50) !important; }
+
+        @media (max-width: 768px) {
+          .mydocs-header { padding: 12px 16px; }
+          .mydocs-body { padding: 16px 16px 20px 16px; }
+          .mydocs-search-wrap { width: 100%; }
         }
       `}</style>
-      <ZukvoLoadingOverlay loading={loading} message="">
-        <Table
-          className="my-docs-table"
-          dataSource={filteredDocuments}
-          columns={columns}
-          rowKey="id"
-          pagination={false}
-          locale={{
-            emptyText: (
-              <NoData description="No documents found." />
-            ),
-          }}
-          style={{ border: "1px solid var(--border-slate-200)", borderRadius: 0, overflow: "hidden" }}
-        />
-      </ZukvoLoadingOverlay>
     </div>
   );
 }

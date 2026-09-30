@@ -17,6 +17,21 @@ const EMPTY: UpsertProfileInput = {
 
 const initials = (name: string) => name.split(' ').map((w) => w[0]).filter(Boolean).slice(0, 2).join('').toUpperCase();
 
+const ALLOWED_NAME_KEY_REGEX = /^[a-zA-Z\s\-]$/;
+const handleNameKeyDown = (e: React.KeyboardEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  const allowedKeys = [
+    'Backspace', 'Delete', 'Tab', 'Escape', 'Enter',
+    'ArrowLeft', 'ArrowRight', 'Home', 'End',
+  ];
+  if (allowedKeys.includes(e.key) || e.ctrlKey || e.metaKey) {
+    return;
+  }
+  if (e.key.length === 1 && !ALLOWED_NAME_KEY_REGEX.test(e.key)) {
+    e.preventDefault();
+  }
+};
+const sanitizeNameInput = (val: string) => val.replace(/[^a-zA-Z\s\-]/g, '');
+
 function SectionCard({ icon, tint, color, title, subtitle, children }: { icon: React.ReactNode; tint: string; color: string; title: string; subtitle: string; children: React.ReactNode }) {
   return (
     <div className="epd-card">
@@ -74,6 +89,15 @@ export default function EmployeeProfileDrawer({
 
   const save = async () => {
     if (!employee) return;
+    if (form.pan && !/^[A-Za-z0-9]*$/.test(form.pan)) { message.error('Special characters are not allowed in PAN'); return; }
+    if (form.uan && !/^[A-Za-z0-9]*$/.test(form.uan)) { message.error('Special characters are not allowed in UAN'); return; }
+    if (form.pfNumber && !/^[A-Za-z0-9\-_./\s]*$/.test(form.pfNumber)) { message.error('Special characters are not allowed in PF Number'); return; }
+    if (form.esiNumber && !/^[A-Za-z0-9\-_./\s]*$/.test(form.esiNumber)) { message.error('Special characters are not allowed in ESI Number'); return; }
+    if (form.accountHolderName && !/^[a-zA-Z\s\-]+$/.test(form.accountHolderName)) { message.error('Only letters and spaces are allowed in Account Holder Name'); return; }
+    if (form.bankName && !/^[a-zA-Z\s\-]+$/.test(form.bankName)) { message.error('Only letters and spaces are allowed in Bank Name'); return; }
+    if (form.bankIfsc && !/^[A-Za-z0-9]*$/.test(form.bankIfsc)) { message.error('Special characters are not allowed in IFSC'); return; }
+    if (form.bankAccountNumber && !/^[A-Za-z0-9\-]*$/.test(form.bankAccountNumber)) { message.error('Special characters are not allowed in Account Number'); return; }
+
     setSaving(true);
     try {
       await PayrollV2Service.upsertEmployeeProfile(employee.value, form);
@@ -117,8 +141,8 @@ export default function EmployeeProfileDrawer({
               </SectionCard>
 
               <SectionCard icon={<BankOutlined />} tint={TINT.green} color={PALETTE.green} title="Salary Bank Account" subtitle="Where this employee is paid">
-                <Field label="Account holder name" hint="As printed on the bank record"><Input value={form.accountHolderName ?? ''} maxLength={120} onChange={(e) => set('accountHolderName', e.target.value)} placeholder="As per bank records" /></Field>
-                <Field label="Bank name" hint="Bank the salary account is held with"><Input value={form.bankName ?? ''} maxLength={160} onChange={(e) => set('bankName', e.target.value)} placeholder="e.g. HDFC Bank" prefix={<BankOutlined style={{ color: 'var(--text-slate-400)' }} />} /></Field>
+                <Field label="Account holder name" hint="As printed on the bank record"><Input value={form.accountHolderName ?? ''} maxLength={120} onKeyDown={handleNameKeyDown} onChange={(e) => set('accountHolderName', sanitizeNameInput(e.target.value))} placeholder="As per bank records" /></Field>
+                <Field label="Bank name" hint="Bank the salary account is held with"><Input value={form.bankName ?? ''} maxLength={160} onKeyDown={handleNameKeyDown} onChange={(e) => set('bankName', sanitizeNameInput(e.target.value))} placeholder="e.g. HDFC Bank" prefix={<BankOutlined style={{ color: 'var(--text-slate-400)' }} />} /></Field>
                 <Field label="IFSC" hint="11-character branch IFSC"><Input value={form.bankIfsc ?? ''} maxLength={20} onChange={(e) => set('bankIfsc', e.target.value.toUpperCase())} placeholder="HDFC0001234" style={{ fontFamily: 'monospace' }} /></Field>
                 <Field label="Account number" hint="Salary account credited each cycle"><Input value={form.bankAccountNumber ?? ''} maxLength={40} onChange={(e) => set('bankAccountNumber', e.target.value)} placeholder="50100123456789" /></Field>
               </SectionCard>

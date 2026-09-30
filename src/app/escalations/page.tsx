@@ -67,6 +67,8 @@ import { History, Menu } from 'lucide-react';
 import TransactionHistoryDrawer from '@/components/common/TransactionHistoryDrawer';
 import ConfirmDialog from '@/components/common/ConfirmDialog';
 import { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
+import { StatCards } from "@/components/common/StatCards";
+import { FilterBar, FilterToggleButton, TicketFilterPill } from "@/components/common/FilterBar";
 
 dayjs.extend(relativeTime);
 
@@ -155,12 +157,13 @@ export default function EscalationListPage() {
   const [statuses, setStatuses] = useState<any[]>([]);
 
   // Filters
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [statusFilter, setStatusFilter] = useState<string[]>([]);
   const [priorityFilter, setPriorityFilter] = useState<string[]>([]);
   const [categoryFilter, setCategoryFilter] = useState<string[]>([]);
 
   const [tablePage, setTablePage] = useState(1);
-  const [tablePageSize, setTablePageSize] = useState(20);
+  const [tablePageSize, setTablePageSize] = useState(15);
   const [totalEscalations, setTotalEscalations] = useState(0);
   const [totalTrash, setTotalTrash] = useState(0);
   const [selectedKeys, setSelectedKeys] = useState<React.Key[]>([]);
@@ -641,6 +644,8 @@ export default function EscalationListPage() {
       dataIndex: 'subject',
       key: 'subject',
       fixed: 'left' as const,
+      onHeaderCell: () => ({ style: { paddingLeft: 24 } }),
+      onCell: () => ({ style: { paddingLeft: 24 } }),
       render: (text: string, record: any) => (
         <div className="es-name-cell">
           <div className="es-name-icon">
@@ -735,6 +740,8 @@ export default function EscalationListPage() {
       align: 'center' as const,
       width: 72,
       fixed: 'right' as const,
+      onHeaderCell: () => ({ style: { textAlign: "center" as const } }),
+      onCell: () => ({ style: { textAlign: "center" as const } }),
       render: (_: any, record: any) => (
         <Dropdown menu={actionMenu(record)} overlayClassName="es-action-pop" trigger={['click']} placement="bottomRight">
           <Button type="text" className="es-icon-btn" icon={<EllipsisOutlined />} onClick={(e) => e.stopPropagation()} />
@@ -833,122 +840,156 @@ export default function EscalationListPage() {
 
         {/* ============================ MAIN ============================ */}
         <main className="es-main">
-          {/* My Hub: header moved here from the (removed) left rail */}
-          {isMyHub && (
-            <div className="es-mh-header">
-              <div className="es-side-logo"><AlertOutlined style={{ color: isDark ? '#ffffff' : '#3b82f6' }} /></div>
-              <div className="es-side-head-text">
-                <div className="es-side-title">Escalations</div>
-                <div className="es-side-subtitle">Quality & Performance</div>
+          {/* Header */}
+          {isMyHub ? (
+            <div className="es-header es-header--myhub">
+              <div className="es-header-about">
+                <div className="es-side-logo"><AlertOutlined style={{ color: isDark ? '#ffffff' : '#3b82f6' }} /></div>
+                <div className="es-side-head-text">
+                  <div className="es-side-title">Escalations</div>
+                  <div className="es-side-subtitle">Quality & Performance</div>
+                </div>
+              </div>
+
+              <div className="es-header-actions">
+                <div className="es-search-wrap">
+                  <SearchOutlined className="es-search-icon" />
+                  <input
+                    ref={searchRef}
+                    className="es-search"
+                    placeholder="Search subject, target, project…"
+                    value={searchText}
+                    onChange={(e) => setSearchText(e.target.value)}
+                  />
+                </div>
+
+                <div className="es-topbar-meta">
+                  <span className="es-meta-item"><span className="es-pulse" /><strong>{totalEscalations}</strong> total</span>
+                  <span className="es-meta-dot">·</span>
+                  <span className="es-meta-item"><strong>{statsData.pending}</strong> pending</span>
+                </div>
+
+                <FilterToggleButton
+                  isOpen={isFilterOpen}
+                  onToggle={() => setIsFilterOpen((prev) => !prev)}
+                  activeCount={(categoryFilter.length > 0 ? 1 : 0) + (priorityFilter.length > 0 ? 1 : 0) + (statusFilter.length > 0 ? 1 : 0)}
+                />
+                <div className="es-segmented">
+                  <button type="button" className={view === 'grid' ? 'is-active' : ''} onClick={() => setView('grid')} aria-label="Grid view"><AppstoreOutlined /></button>
+                  <button type="button" className={view === 'list' ? 'is-active' : ''} onClick={() => setView('list')} aria-label="List view"><UnorderedListOutlined /></button>
+                </div>
+                <Tooltip title="Refresh">
+                  <button type="button" className="es-ghost-btn" onClick={handleRefresh}><ReloadOutlined spin={loading} /></button>
+                </Tooltip>
               </div>
             </div>
+          ) : (
+            <>
+              <div className="es-topbar">
+                <div className="es-topbar-left" style={{ display: 'flex', flex: 1, alignItems: 'center', gap: 8, maxWidth: 520 }}>
+                  <Button
+                    className="es-mobile-menu-btn"
+                    type="text"
+                    icon={<Menu size={18} />}
+                    onClick={() => setMobileSidebarOpen(true)}
+                  />
+                  <div className="es-search-wrap" style={{ maxWidth: 'none' }}>
+                    <SearchOutlined className="es-search-icon" />
+                    <input
+                      ref={searchRef}
+                      className="es-search"
+                      placeholder="Search subject, target, project…"
+                      value={searchText}
+                      onChange={(e) => setSearchText(e.target.value)}
+                    />
+                  </div>
+                </div>
+
+                <div className="es-topbar-meta">
+                  <span className="es-meta-item"><span className="es-pulse" /><strong>{totalEscalations}</strong> total</span>
+                  <span className="es-meta-dot">·</span>
+                  <span className="es-meta-item"><strong>{statsData.pending}</strong> pending</span>
+                </div>
+
+                <div className="es-topbar-actions">
+                  <FilterToggleButton
+                    isOpen={isFilterOpen}
+                    onToggle={() => setIsFilterOpen((prev) => !prev)}
+                    activeCount={(categoryFilter.length > 0 ? 1 : 0) + (priorityFilter.length > 0 ? 1 : 0) + (statusFilter.length > 0 ? 1 : 0)}
+                  />
+                  <div className="es-segmented">
+                    <button type="button" className={view === 'grid' ? 'is-active' : ''} onClick={() => setView('grid')} aria-label="Grid view"><AppstoreOutlined /></button>
+                    <button type="button" className={view === 'list' ? 'is-active' : ''} onClick={() => setView('list')} aria-label="List view"><UnorderedListOutlined /></button>
+                  </div>
+                  <Tooltip title="Refresh">
+                    <button type="button" className="es-ghost-btn" onClick={handleRefresh}><ReloadOutlined spin={loading} /></button>
+                  </Tooltip>
+                </div>
+              </div>
+              <div className="es-divider" />
+            </>
           )}
-          <div className="es-topbar">
-            <div className="es-topbar-left" style={{ display: 'flex', flex: 1, alignItems: 'center', gap: 8, maxWidth: 520 }}>
-              {!isMyHub && (
-                <Button
-                  className="es-mobile-menu-btn"
-                  type="text"
-                  icon={<Menu size={18} />}
-                  onClick={() => setMobileSidebarOpen(true)}
-                />
-              )}
-              <div className="es-search-wrap" style={{ maxWidth: 'none' }}>
-                <SearchOutlined className="es-search-icon" />
-                <input
-                  ref={searchRef}
-                  className="es-search"
-                  placeholder="Search subject, target, project…"
-                  value={searchText}
-                  onChange={(e) => setSearchText(e.target.value)}
-                />
-
-              </div>
-            </div>
-
-            <div className="es-topbar-meta">
-              <span className="es-meta-item"><span className="es-pulse" /><strong>{totalEscalations}</strong> total</span>
-              <span className="es-meta-dot">·</span>
-              <span className="es-meta-item"><strong>{statsData.pending}</strong> pending</span>
-            </div>
-
-            <div className="es-topbar-actions">
-              <div className="es-segmented">
-                <button type="button" className={view === 'grid' ? 'is-active' : ''} onClick={() => setView('grid')} aria-label="Grid view"><AppstoreOutlined /></button>
-                <button type="button" className={view === 'list' ? 'is-active' : ''} onClick={() => setView('list')} aria-label="List view"><UnorderedListOutlined /></button>
-              </div>
-              <Tooltip title="Refresh">
-                <button type="button" className="es-ghost-btn" onClick={handleRefresh}><ReloadOutlined spin={loading} /></button>
-              </Tooltip>
-            </div>
-          </div>
-
-          <div className="es-divider" />
 
           {/* Stat cards */}
-          <div className="es-stats">
-            {statCells.map((s) => (
-              <div key={s.key} className="es-stat-card">
-                <div className="es-stat-top">
-                  <div className="es-stat-left">
-                    <span className="es-stat-icon" style={{ background: s.tint, color: s.color }}>{s.icon}</span>
-                    <div style={{ display: 'flex', flexDirection: 'column' }}>
-                      <span className="es-stat-label">{s.title}</span>
-                      {(s as any).subtitle && <span style={{ fontSize: 10, color: 'var(--text-slate-400)', marginTop: 1 }}>{(s as any).subtitle}</span>}
-                    </div>
-                  </div>
-                </div>
-                <div className="es-stat-bottom">
-                  <div className="es-stat-value-wrap">
-                    <span className="es-stat-value">{s.value}{s.suffix}</span>
-                  </div>
-                  <div className="es-stat-spark"><AreaSparkline values={s.trend} color={s.color} /></div>
-                </div>
-              </div>
-            ))}
-          </div>
+          <StatCards
+            title="Escalations Overview"
+            statusText="ACTIVE"
+            progressPct={statsData.total > 0 ? Math.round((statsData.resolved / statsData.total) * 100) : 0}
+            cards={statCells}
+          />
 
-          {/* Filters (moved from the left sidebar to a bar above the table) */}
-          <div className="es-filter-bar">
-            <SearchableDropdown
-              mode="multiple"
-              className="es-side-sd"
-              placeholder="Category"
-              searchPlaceholder="Search category"
-              itemNoun="categories"
-              value={categoryFilter}
-              onChange={(v) => setCategoryFilter(v || [])}
-              options={categoryOptions}
-              width="180px"
-            />
-            <SearchableDropdown
-              mode="multiple"
-              className="es-side-sd"
-              placeholder="Priority"
-              searchPlaceholder="Search priority"
-              itemNoun="priorities"
-              value={priorityFilter}
-              onChange={(v) => setPriorityFilter(v || [])}
-              options={priorityOptions}
-              width="180px"
-            />
-            <SearchableDropdown
-              mode="multiple"
-              className="es-side-sd"
-              placeholder="Status"
-              searchPlaceholder="Search status"
-              itemNoun="statuses"
-              value={statusFilter}
-              onChange={(v) => setStatusFilter(v || [])}
-              options={statusOptions}
-              width="180px"
-            />
-            {hasActiveFilters && (
-              <button type="button" className="es-clear-filters" onClick={handleClearFilters}>
-                <CloseCircleOutlined /> Clear filters
-              </button>
-            )}
-          </div>
+          {/* Unified FilterBar */}
+          {isFilterOpen && (
+            <FilterBar
+              activeCount={(categoryFilter.length > 0 ? 1 : 0) + (priorityFilter.length > 0 ? 1 : 0) + (statusFilter.length > 0 ? 1 : 0)}
+              onReset={handleClearFilters}
+              onClose={() => setIsFilterOpen(false)}
+              actions={
+                <span style={{ fontSize: 12, color: 'var(--text-slate-500)', whiteSpace: 'nowrap' }}>
+                  <b>{filteredEscalations.length}</b> of <b>{totalEscalations}</b> escalations
+                </span>
+              }
+            >
+              <TicketFilterPill
+                label="Category"
+                icon={<AppstoreOutlined />}
+                values={categoryFilter}
+                multiple
+                options={categoryOptions.map((c) => ({
+                  value: c.value,
+                  label: c.label,
+                  dotColor: c.color || '#3b82f6',
+                }))}
+                onChange={(v) => setCategoryFilter(Array.isArray(v) ? (v as string[]) : v ? [String(v)] : [])}
+              />
+
+              <TicketFilterPill
+                label="Priority"
+                icon={<FireOutlined />}
+                values={priorityFilter}
+                multiple
+                options={priorityOptions.map((p) => ({
+                  value: p.value,
+                  label: p.label,
+                  dotColor: p.color || '#ef4444',
+                }))}
+                onChange={(v) => setPriorityFilter(Array.isArray(v) ? (v as string[]) : v ? [String(v)] : [])}
+              />
+
+              <TicketFilterPill
+                label="Status"
+                icon={<CheckCircleOutlined />}
+                values={statusFilter}
+                multiple
+                options={statusOptions.map((s) => ({
+                  value: s.value,
+                  label: s.label,
+                  dotColor: s.color || '#10b981',
+                }))}
+                onChange={(v) => setStatusFilter(Array.isArray(v) ? (v as string[]) : v ? [String(v)] : [])}
+              />
+            </FilterBar>
+          )}
 
           {/* Table / grid */}
           <div className="es-body">
@@ -980,7 +1021,7 @@ export default function EscalationListPage() {
                               </ZukvoLoadingOverlay>
               </div>
             ) : (
-              <div className="es-grid">
+              <div className="es-grid" style={{ marginTop: 16, padding: "0 24px" }}>
                 {loading ? (
                   <div className="es-grid-loading">Loading…</div>
                 ) : filteredEscalations.length === 0 ? (
@@ -1107,7 +1148,7 @@ export default function EscalationListPage() {
                   className="es-pagesize"
                   value={tablePageSize}
                   onChange={(v) => { setTablePageSize(v); setTablePage(1); }}
-                  options={[10, 20, 25, 50, 100].map((n) => ({ value: n, label: `${n} / page` }))}
+                  options={[10, 15, 20, 25, 50, 100].map((n) => ({ value: n, label: `${n} / page` }))}
                   popupMatchSelectWidth={120}
                 />
               </div>
@@ -1535,7 +1576,7 @@ export default function EscalationListPage() {
       <style jsx global>{`
         .es-shell {
           display: flex;
-          margin: 0 -16px;
+          margin: 0 -8px;
           height: calc(100vh - 64px);
           background: var(--bg-pure-white);
           overflow: hidden;
@@ -1607,8 +1648,8 @@ export default function EscalationListPage() {
         .es-side-sd { border-radius: 8px !important; }
         /* Filter bar above the table (moved from the left sidebar) */
         .es-filter-bar {
-          display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
-          margin-bottom: 12px;
+          display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+          margin-top: 14px; margin-bottom: 14px; padding: 0 24px;
         }
         .es-filter-bar .es-clear-filters { margin-left: 4px; }
         .es-side-select .ant-select-selector {
@@ -1622,15 +1663,19 @@ export default function EscalationListPage() {
         }
 
         /* ---------------- Main ---------------- */
-        .es-main { flex: 1; min-width: 0; padding: 8px 18px 0; display: flex; flex-direction: column; height: 100%; }
-        /* My Hub header (moved here from the removed left rail) */
-        .es-mh-header {
-          display: flex; align-items: center; gap: 12px;
-          padding: 4px 0 12px; margin-bottom: 10px;
-          border-bottom: 1px solid var(--border-slate-100);
+        .es-main { flex: 1; min-width: 0; padding: 0; display: flex; flex-direction: column; height: 100%; }
+        /* My Hub unified header */
+        .es-header--myhub {
+          display: flex; align-items: center; justify-content: space-between; gap: 16px;
+          padding: 14px 24px; margin-bottom: 0;
+          border-bottom: 1px solid var(--border-slate-200); background: var(--bg-pure-white);
+          flex-wrap: wrap;
         }
+        .es-header-about { display: flex; align-items: center; gap: 12px; min-width: 200px; }
+        .es-header-actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-left: auto; }
+        .es-header-actions .es-search-wrap { width: 220px; max-width: 260px; }
         .es-body { flex: 1; min-height: 0; overflow-y: auto; }
-        .es-topbar { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+        .es-topbar { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; padding: 12px 24px 8px 24px; }
         .es-search-wrap {
           position: relative; flex: 1; max-width: 520px; display: flex; align-items: center;
           height: 32px; border-radius: 8px; background: var(--bg-pure-white);
@@ -1666,7 +1711,7 @@ export default function EscalationListPage() {
         }
         .es-ghost-btn:hover { color: #3B82F6; border-color: #bfdbfe; }
 
-        .es-divider { height: 1px; background: var(--border-slate-200); margin: 0 -18px 10px; }
+        .es-divider { height: 1px; background: var(--border-slate-200); margin: 0; }
 
         /* Stat cards */
         .es-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 14px; }
@@ -1758,9 +1803,11 @@ export default function EscalationListPage() {
           padding: 10px 14px; border-top: 1px solid var(--border-slate-200);
         }
         .es-footer--sticky {
-          position: sticky; bottom: 0; z-index: 30; margin: 0 -18px 0; padding: 6px 18px;
+          position: sticky; bottom: 0; z-index: 30; margin: 0; padding: 0 24px;
           background: var(--bg-pure-white);
           box-shadow: 0 -4px 14px rgba(15,23,42,0.05);
+          height: 52px !important;
+          box-sizing: border-box;
         }
         .es-footer-info { font-size: 12px; color: var(--text-slate-500); }
         .es-footer-info strong { color: var(--text-slate-700); font-weight: 700; }

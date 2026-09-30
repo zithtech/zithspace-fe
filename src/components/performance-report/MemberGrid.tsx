@@ -42,6 +42,7 @@ export default function MemberGrid({
   const [search, setSearch] = useState('');
   const [debounced, setDebounced] = useState('');
   const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(15);
   const [view, setView] = useState<ViewMode>('grid');
 
   const [projects, setProjects] = useState<Opt[]>([]);
@@ -81,7 +82,7 @@ export default function MemberGrid({
     try {
       const res = await PerformanceReportService.getMembers({
         page,
-        limit: PAGE_SIZE,
+        limit: pageSize,
         search: debounced || undefined,
         projectId: projectId || undefined,
         positionId: positionId || undefined,
@@ -94,7 +95,7 @@ export default function MemberGrid({
     } finally {
       setLoading(false);
     }
-  }, [page, debounced, projectId, positionId, departmentId]);
+  }, [page, pageSize, debounced, projectId, positionId, departmentId]);
 
   useEffect(() => {
     load();
@@ -102,10 +103,10 @@ export default function MemberGrid({
 
   const rangeLabel = useMemo(() => {
     if (total === 0) return 'No members';
-    const start = (page - 1) * PAGE_SIZE + 1;
-    const end = Math.min(page * PAGE_SIZE, total);
+    const start = (page - 1) * pageSize + 1;
+    const end = Math.min(page * pageSize, total);
     return `Showing ${start}–${end} of ${total}`;
-  }, [page, total]);
+  }, [page, pageSize, total]);
 
   // Active filters, rendered as removable chips under the toolbar.
   const chips = useMemo(() => {
@@ -486,10 +487,15 @@ export default function MemberGrid({
         <span className="mg-footer-info">{rangeLabel}</span>
         <Pagination
           current={page}
-          pageSize={PAGE_SIZE}
+          pageSize={pageSize}
           total={total}
-          showSizeChanger={false}
-          onChange={setPage}
+          showSizeChanger={true}
+          pageSizeOptions={[10, 15, 20, 25, 50, 100]}
+          onChange={(p, s) => {
+            setPage(p);
+            if (s && s !== pageSize) setPageSize(s);
+          }}
+          size="small"
         />
       </div>
 
@@ -498,13 +504,11 @@ export default function MemberGrid({
         .mg-ellipsis { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
 
         /* ── Hero band (full-bleed via the layout's -header rule) ───────────── */
-        /* The negative top margin swallows .pr-main + .pr-content's top padding
-           so the tinted band starts flush with the top of the page. */
         .mg-header {
           position: relative;
           overflow: hidden;
-          margin-top: -12px;
-          padding: 14px 0 13px;
+          margin-top: 0;
+          padding: 14px 24px 13px;
           margin-bottom: 14px;
           border-bottom: 1px solid var(--border-slate-100);
           background:
@@ -558,7 +562,7 @@ export default function MemberGrid({
         /* ── Command bar ────────────────────────────────────────────────────── */
         .mg-toolbar {
           display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
-          padding: 10px 12px; margin-bottom: 12px;
+          padding: 10px 12px; margin: 0 24px 12px 24px;
           border: 1px solid var(--border-slate-200); border-radius: 16px;
           background: var(--bg-pure-white);
           box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04), 0 8px 24px rgba(15, 23, 42, 0.035);
@@ -646,7 +650,7 @@ export default function MemberGrid({
         .mg-chip-reset:hover { text-decoration: underline; }
 
         /* ── Body ───────────────────────────────────────────────────────────── */
-        .mg-body { flex: 1; min-height: 0; padding-bottom: 6px; }
+        .mg-body { flex: 1; min-height: 0; padding: 0 24px 6px 24px; }
         .mg-grid {
           display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 14px;
         }
@@ -818,7 +822,7 @@ export default function MemberGrid({
         .mg-footer {
           position: sticky; bottom: 0; z-index: 5;
           display: flex; align-items: center; justify-content: space-between; gap: 12px;
-          padding: 14px 32px; margin: 8px -32px 0;
+          padding: 14px 24px; margin: 8px 0 0;
           border-top: 1px solid var(--border-slate-100); flex-shrink: 0;
           background: var(--bg-pure-white);
           box-shadow: 0 -6px 18px rgba(15, 23, 42, 0.05);

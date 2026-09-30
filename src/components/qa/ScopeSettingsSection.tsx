@@ -10,14 +10,15 @@
  */
 
 import React, { useCallback, useEffect, useState } from "react";
-import { Button, Form, Input, Modal, Table, Tag, Tooltip, message } from "antd";
+import { Button, Form, Input, Modal, Table, Tag, Tooltip, message, Select } from "antd";
 import { CloseOutlined } from "@ant-design/icons";
 import { Check, CheckCircle2, FileText, Pencil, Plus, Settings, Trash2, TrendingUp, Search } from "lucide-react";
 
 import ConfirmDialog from "@/components/common/ConfirmDialog";
 import ZukvoLoader from "@/components/common/ZukvoLoader";
 import PostCreationSuccessScreen from "@/components/common/PostCreationSuccessScreen";
-import { api as axios } from "@/lib/axios";
+import { api as axios, apiClient } from "@/lib/axios";
+import { useDebounce } from "@/hooks/useDebounce";
 
 export type ScopeCategory = "scope_type" | "priority" | "status";
 
@@ -79,34 +80,53 @@ const FIELD_FOR: Record<ScopeCategory, string> = {
   status: "status",
 };
 
+export interface ScopeSettingsParams {
+  category?: ScopeCategory;
+  page?: number;
+  pageSize?: number;
+  search?: string;
+  enabled?: boolean;
+}
+
 /**
  * The option list itself. Shared by the sidebar (for counts) and the pane, so
  * both read the same fetch rather than each firing their own.
  */
-export function useScopeSettings(enabled = true) {
+export function useScopeSettings(paramsOrEnabled: boolean | ScopeSettingsParams = true) {
+  const params = typeof paramsOrEnabled === "boolean" ? { enabled: paramsOrEnabled } : paramsOrEnabled;
+  const { category, page, pageSize, search, enabled = true } = params;
+
   const [items, setItems] = useState<any[]>([]);
+  const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(enabled);
 
   const refetch = useCallback(async () => {
     if (!enabled) return;
     setLoading(true);
     try {
-      const res: any = await axios.get(`/api/v2/qa/test-scopes/settings?_t=${Date.now()}`);
+      const qParams: any = { _t: Date.now() };
+      if (category) qParams.category = category;
+      if (page !== undefined) qParams.page = page;
+      if (pageSize !== undefined) qParams.pageSize = pageSize;
+      if (search) qParams.search = search;
+
+      const res: any = await apiClient.get(`/api/v2/qa/test-scopes/settings`, { params: qParams });
       let data: any[] = [];
-      if (Array.isArray(res)) data = res;
-      else if (Array.isArray(res?.data)) data = res.data;
-      else if (Array.isArray(res?.data?.data)) data = res.data.data;
+      if (Array.isArray(res.data?.data)) data = res.data.data;
+      else if (Array.isArray(res.data)) data = res.data;
+      const totalCount = res.data?.pagination?.total ?? data.length;
       setItems(data);
+      setTotal(totalCount);
     } catch (err) {
       console.error("Failed to fetch test scope settings", err);
     } finally {
       setLoading(false);
     }
-  }, [enabled]);
+  }, [enabled, category, page, pageSize, search]);
 
   useEffect(() => { refetch(); }, [refetch]);
 
-  return { items, loading, refetch };
+  return { items, total, loading, refetch };
 }
 
 /**
@@ -135,21 +155,32 @@ export function useScopeUsage(enabled: boolean) {
 
 interface ScopeOptionsTableProps {
   category: ScopeCategory;
-  items: any[];
-  loading: boolean;
+  items?: any[];
+  loading?: boolean;
   scopes: any[];
   canManage: boolean;
   onCreate: () => void;
   onEdit: (item: any) => void;
-  onChanged: () => void;
+  onChanged?: () => void;
 }
 
 export function ScopeOptionsTable({
-  category, items, loading, scopes, canManage, onCreate, onEdit, onChanged,
+  category, scopes, canManage, onCreate, onEdit, onChanged,
 }: ScopeOptionsTableProps) {
   const meta = SCOPE_SETTING_CATEGORIES.find(c => c.key === category);
 
   const [searchTerm, setSearchTerm] = useState("");
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(15);
+  const debouncedSearch = useDebounce(searchTerm, 300);
+
+  const { items, total, loading, refetch } = useScopeSettings({
+    category,
+    page,
+    pageSize,
+    search: debouncedSearch,
+    enabled: true,
+  });
 
   /** How many scopes currently reference an option — shown before deleting. */
   const usageCountFor = (record: any) => {
@@ -161,127 +192,177 @@ export function ScopeOptionsTable({
     try {
       await axios.delete(`/api/v2/qa/test-scopes/settings/${id}`);
       message.success("Deleted");
-      onChanged();
+      refetch();
+      onChanged?.();
     } catch { message.error("Failed to delete"); }
   };
 
-  const visible = items.filter(s => {
-    if (s.category !== category) return false;
-    if (searchTerm) {
-      const lowerSearch = searchTerm.toLowerCase();
-      return (
-        s.label.toLowerCase().includes(lowerSearch) ||
-        s.value.toLowerCase().includes(lowerSearch)
-      );
-    }
-    return true;
-  });
+  useEffect(() => {
+    setPage(1);
+  }, [debouncedSearch, category]);
+
+  const pageCount = Math.max(1, Math.ceil(total / pageSize));
+  const safePage = Math.min(page, pageCount);
+  const pageStart = total === 0 ? 0 : (safePage - 1) * pageSize + 1;
+  const pageEnd = Math.min(safePage * pageSize, total);
 
   return (
-    <div className="sc-tablewrap">
-      <div className="st-head">
-        <div className="min-w-0">
-          <div className="st-head__title">{SCOPE_CATEGORY_LABELS[category]} options</div>
-          <div className="st-head__desc">{meta?.help}</div>
-        </div>
-        <div className="st-head__actions" style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-          <Input
-            placeholder="Search…"
-            prefix={<Search size={14} style={{ color: "var(--text-slate-400)" }} />}
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            style={{ width: 200 }}
-            allowClear
+    <div style={{ display: "flex", flexDirection: "column", height: "100%", minHeight: 0, flex: 1 }}>
+      <div className="dh-main-scroll" style={{ flex: 1, overflowY: "auto", padding: 0 }}>
+        <div className="sc-tablewrap" style={{ borderLeft: "none", borderRight: "none", borderTop: "none", borderRadius: 0, margin: 0 }}>
+          <div className="st-head">
+            <div className="min-w-0">
+              <div className="st-head__title">{SCOPE_CATEGORY_LABELS[category]} options</div>
+              <div className="st-head__desc">{meta?.help}</div>
+            </div>
+            <div className="st-head__actions" style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+              <Input
+                placeholder="Search…"
+                prefix={<Search size={14} style={{ color: "var(--text-slate-400)" }} />}
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                style={{ width: 200 }}
+                allowClear
+              />
+              {canManage && (
+                <Button type="primary" size="small" icon={<Plus size={14} />} onClick={onCreate}>Add Option</Button>
+              )}
+            </div>
+          </div>
+
+          <Table
+            className="ts-table sc-table"
+            dataSource={items}
+            rowKey="id"
+            pagination={false}
+            scroll={{ x: "max-content" }}
+            locale={{
+              emptyText: loading ? (
+                <ZukvoLoader size="md" message="Loading options…" />
+              ) : (
+                <div className="sc-empty">
+                  <Settings size={26} className="sc-empty__icon" />
+                  <p className="sc-empty__title">No {SCOPE_CATEGORY_LABELS[category].toLowerCase()} options yet</p>
+                  <p className="sc-empty__desc">{meta?.help}</p>
+                  {canManage && (
+                    <Button type="primary" size="small" icon={<Plus size={14} />} onClick={onCreate}>Add the first option</Button>
+                  )}
+                </div>
+              ),
+            }}
+            columns={[
+              {
+                title: "Option",
+                dataIndex: "label",
+                render: (label: string, record: any) => (
+                  <div className="st-option">
+                    <Tag color={record.color && record.color !== "default" ? record.color : undefined} className="st-option__tag">
+                      {label}
+                    </Tag>
+                    <span className="st-option__hint">as it appears in dropdowns</span>
+                  </div>
+                ),
+              },
+              {
+                title: "Value key",
+                dataIndex: "value",
+                width: 220,
+                render: (v: string) => <code className="st-code">{v}</code>,
+              },
+              {
+                title: "Used by",
+                key: "usage",
+                width: 140,
+                render: (_: any, record: any) => {
+                  const n = usageCountFor(record);
+                  return n > 0
+                    ? <span className="st-usage">{n} scope{n === 1 ? "" : "s"}</span>
+                    : <span className="st-usage is-empty">Not used</span>;
+                },
+              },
+              {
+                title: "Actions",
+                key: "actions",
+                width: 100,
+                align: "right" as const,
+                render: (_: any, record: any) => {
+                  const inUse = usageCountFor(record);
+                  // Curating the option lists is a QA-manage action
+                  if (!canManage) return <span className="sc-muted">—</span>;
+                  return (
+                    <div className="sc-rowactions">
+                      <Tooltip title="Edit">
+                        <button onClick={() => onEdit(record)} aria-label="Edit"><Pencil size={15} /></button>
+                      </Tooltip>
+                      <ConfirmDialog
+                        tone="danger"
+                        title="Delete this option?"
+                        description={inUse > 0
+                          ? `${inUse} scope${inUse === 1 ? "" : "s"} still use this — they'll keep the value but it won't be selectable.`
+                          : "It will no longer be selectable on test scopes."}
+                        confirmText="Delete"
+                        onConfirm={() => handleDelete(record.id)}
+                      >
+                        <Tooltip title="Delete">
+                          <button className="is-danger" aria-label="Delete"><Trash2 size={15} /></button>
+                        </Tooltip>
+                      </ConfirmDialog>
+                    </div>
+                  );
+                },
+              },
+            ]}
           />
-          {canManage && (
-            <Button type="primary" size="small" icon={<Plus size={14} />} onClick={onCreate}>Add Option</Button>
-          )}
         </div>
       </div>
 
-      <Table
-        className="ts-table sc-table"
-        dataSource={visible}
-        rowKey="id"
-        pagination={false}
-        scroll={{ x: "max-content" }}
-        locale={{
-          emptyText: loading ? (
-            <ZukvoLoader size="md" message="Loading options…" />
-          ) : (
-            <div className="sc-empty">
-              <Settings size={26} className="sc-empty__icon" />
-              <p className="sc-empty__title">No {SCOPE_CATEGORY_LABELS[category].toLowerCase()} options yet</p>
-              <p className="sc-empty__desc">{meta?.help}</p>
-              {canManage && (
-                <Button type="primary" size="small" icon={<Plus size={14} />} onClick={onCreate}>Add the first option</Button>
-              )}
-            </div>
-          ),
-        }}
-        columns={[
-          {
-            title: "Option",
-            dataIndex: "label",
-            render: (label: string, record: any) => (
-              <div className="st-option">
-                <Tag color={record.color && record.color !== "default" ? record.color : undefined} className="st-option__tag">
-                  {label}
-                </Tag>
-                <span className="st-option__hint">as it appears in dropdowns</span>
-              </div>
-            ),
-          },
-          {
-            title: "Value key",
-            dataIndex: "value",
-            width: 220,
-            render: (v: string) => <code className="st-code">{v}</code>,
-          },
-          {
-            title: "Used by",
-            key: "usage",
-            width: 140,
-            render: (_: any, record: any) => {
-              const n = usageCountFor(record);
-              return n > 0
-                ? <span className="st-usage">{n} scope{n === 1 ? "" : "s"}</span>
-                : <span className="st-usage is-empty">Not used</span>;
-            },
-          },
-          {
-            title: "Actions",
-            key: "actions",
-            width: 100,
-            align: "right" as const,
-            render: (_: any, record: any) => {
-              const inUse = usageCountFor(record);
-              // Curating the option lists is a QA-manage action
-              if (!canManage) return <span className="sc-muted">—</span>;
-              return (
-                <div className="sc-rowactions">
-                  <Tooltip title="Edit">
-                    <button onClick={() => onEdit(record)} aria-label="Edit"><Pencil size={15} /></button>
-                  </Tooltip>
-                  <ConfirmDialog
-                    tone="danger"
-                    title="Delete this option?"
-                    description={inUse > 0
-                      ? `${inUse} scope${inUse === 1 ? "" : "s"} still use this — they'll keep the value but it won't be selectable.`
-                      : "It will no longer be selectable on test scopes."}
-                    confirmText="Delete"
-                    onConfirm={() => handleDelete(record.id)}
-                  >
-                    <Tooltip title="Delete">
-                      <button className="is-danger" aria-label="Delete"><Trash2 size={15} /></button>
-                    </Tooltip>
-                  </ConfirmDialog>
-                </div>
-              );
-            },
-          },
-        ]}
-      />
+      {total > 0 && (
+        <div className="pp-footer">
+          <div className="pp-footer-info">
+            Showing <strong>{pageStart}–{pageEnd}</strong> of <strong>{total}</strong>
+          </div>
+          <div className="pp-pager">
+            <button
+              type="button"
+              className="pp-pager-btn"
+              disabled={safePage <= 1}
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+            >
+              ‹
+            </button>
+            {Array.from({ length: pageCount }, (_, i) => i + 1)
+              .slice(Math.max(0, safePage - 3), Math.max(0, safePage - 3) + 5)
+              .map((p) => (
+                <button
+                  key={p}
+                  type="button"
+                  className={`pp-pager-num ${p === safePage ? "is-active" : ""}`}
+                  onClick={() => setPage(p)}
+                >
+                  {p}
+                </button>
+              ))}
+            <button
+              type="button"
+              className="pp-pager-btn"
+              disabled={safePage >= pageCount}
+              onClick={() => setPage((p) => Math.min(pageCount, p + 1))}
+            >
+              ›
+            </button>
+            <Select
+              className="pp-pagesize"
+              value={pageSize}
+              onChange={(v) => {
+                setPageSize(v);
+                setPage(1);
+              }}
+              options={[10, 15, 20, 25, 50, 100].map((n) => ({ value: n, label: `${n} / page` }))}
+              popupMatchSelectWidth={120}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }

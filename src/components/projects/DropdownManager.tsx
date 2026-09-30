@@ -3,6 +3,8 @@
 import NoData from "@/components/common/NoData";
 import { SectionCard, drawerFormStyles } from "@/components/common/DrawerSection";
 import ConfirmDialog from "@/components/common/ConfirmDialog";
+import { StatCards } from "@/components/common/StatCards";
+import { FilterBar } from "@/components/common/FilterBar";
 import React, { useState, useEffect } from 'react';
 import {
   Table,
@@ -62,9 +64,13 @@ const { TextArea } = Input;
 
 interface DropdownManagerProps {
   onDataChange?: () => void;
+  /** Pre-select a tab on mount (used when the host page owns the nav). */
+  initialTab?: string;
+  /** When true, hides the built-in left-side tab navigation. */
+  hideTabs?: boolean;
 }
 
-export default function DropdownManager({ onDataChange }: DropdownManagerProps) {
+export default function DropdownManager({ onDataChange, initialTab, hideTabs }: DropdownManagerProps) {
   const { theme } = useTheme();
   const { run, stepIndex, setStepIndex, currentTourKey } = useTour();
   const [form] = Form.useForm();
@@ -74,7 +80,7 @@ export default function DropdownManager({ onDataChange }: DropdownManagerProps) 
   const [modalVisible, setModalVisible] = useState(false);
   const [editingOption, setEditingOption] = useState<DropdownOption | null>(null);
   const [successData, setSuccessData] = useState<{ name: string } | null>(null);
-  const [activeTab, setActiveTab] = useState('platform');
+  const [activeTab, setActiveTab] = useState(initialTab || 'platform');
   const [searchQuery, setSearchQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState<'all' | 'active' | 'hidden'>('all');
   const { socket, connected } = useSocket();
@@ -544,7 +550,7 @@ export default function DropdownManager({ onDataChange }: DropdownManagerProps) 
         onChange={handleTabClick}
         onTabClick={handleTabClick}
         tabPosition={!screens.lg ? 'top' : 'left'}
-        className="manager-tabs"
+        className={`manager-tabs${hideTabs ? ' dm-hide-tabs' : ''}`}
         style={{ flex: 1, height: '100%' }}
         items={dropdownTypes.map(type => ({
           key: type.key,
@@ -582,6 +588,7 @@ export default function DropdownManager({ onDataChange }: DropdownManagerProps) 
             const activeCount = allItems.filter(o => o.isActive).length;
             const hiddenCount = allItems.length - activeCount;
             const colorCount = allItems.filter(o => !!o.color).length;
+            const activeFilters = (searchQuery.trim() ? 1 : 0) + (filterStatus !== 'all' ? 1 : 0);
             const filteredItems = allItems
               .filter(o => {
                 if (filterStatus === 'active') return o.isActive;
@@ -599,212 +606,164 @@ export default function DropdownManager({ onDataChange }: DropdownManagerProps) 
               });
 
             return (
-              <div className="tab-content-area">
-                {/* Premium Hero Header */}
-                <div
-                  className="dm-hero"
-                  style={{
-                    background: `linear-gradient(135deg, ${type.color}14 0%, ${type.color}05 60%, transparent 100%)`,
-                    borderColor: `${type.color}26`,
-                  }}
+              <div className="tab-content-area" style={{ display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0 }}>
+
+                {/* ── StatCards ─────────────────────────────────────── */}
+                <StatCards
+                  title={type.label}
+                  dotColor={type.color}
+                  statusText="ACTIVE"
+                  statusColor="#10b981"
+                  cells={[
+                    { label: 'Total',  value: allItems.length,  color: type.color },
+                    { label: 'Active', value: activeCount,      color: '#10b981'  },
+                    { label: 'Hidden', value: hiddenCount,      color: '#64748b'  },
+                    { label: 'Themed', value: colorCount,       color: '#a855f7'  },
+                  ]}
+                  extra={
+                    <Space size={8}>
+                      {type.key === 'status' && canUpdateTicketSetting && (
+                        <Button
+                          size="small"
+                          icon={<ThunderboltOutlined />}
+                          onClick={handleStandardizeLifecycles}
+                          loading={loading}
+                        >
+                          Synchronize
+                        </Button>
+                      )}
+                      {canCreateTicketSetting && (
+                        <Button
+                          data-tour={`tickets-setting-create-${type.key}-btn`}
+                          type="primary"
+                          size="small"
+                          icon={<PlusOutlined />}
+                          onClick={handleCreate}
+                          style={{ background: type.color, borderColor: type.color }}
+                        >
+                          {type.key === 'platform' ? 'New Platform' :
+                           type.key === 'stack' ? 'New Stack' :
+                           type.key === 'priority' ? 'New Priority' :
+                           type.key === 'taskLevel' ? 'New Complexity' :
+                           type.key === 'taskType' ? 'New Work Type' :
+                           type.key === 'status' ? 'New Lifecycle' :
+                           `New ${type.label}`}
+                        </Button>
+                      )}
+                    </Space>
+                  }
+                />
+
+                {/* ── FilterBar ─────────────────────────────────────── */}
+                <FilterBar
+                  isOpen
+                  label="Filters"
+                  activeCount={activeFilters}
+                  onReset={() => { setSearchQuery(''); setFilterStatus('all'); }}
                 >
-                  <div
-                    className="dm-hero-glow"
-                    style={{ background: `radial-gradient(circle at 80% 20%, ${type.color}40 0%, transparent 60%)` }}
+                  {/* Search */}
+                  <Input
+                    prefix={<SearchOutlined style={{ color: 'var(--text-slate-400)', fontSize: 12 }} />}
+                    placeholder={`Search ${type.label.toLowerCase()}\u2026`}
+                    value={searchQuery}
+                    onChange={e => setSearchQuery(e.target.value)}
+                    allowClear
+                    style={{ width: 220, height: 28, fontSize: 12, borderRadius: 6 }}
                   />
-                  <div className="dm-hero-content">
-                    <div className="dm-hero-left">
-                      <div
-                        className="dm-hero-icon"
-                        style={{
-                          background: `linear-gradient(135deg, ${type.color} 0%, ${type.color}cc 100%)`,
-                          boxShadow: 'none',
+
+                  {/* Status pills */}
+                  {([
+                    { key: 'all',    label: 'All',    count: allItems.length, color: undefined   },
+                    { key: 'active', label: 'Active', count: activeCount,     color: '#10b981'   },
+                    { key: 'hidden', label: 'Hidden', count: hiddenCount,     color: '#94a3b8'   },
+                  ] as const).map(pill => (
+                    <button
+                      key={pill.key}
+                      type="button"
+                      onClick={() => setFilterStatus(pill.key as any)}
+                      style={{
+                        display: 'inline-flex', alignItems: 'center', gap: 5,
+                        height: 26, padding: '0 10px',
+                        borderRadius: 6, border: '1px solid',
+                        fontSize: 11.5, fontWeight: 600, cursor: 'pointer',
+                        transition: 'all .15s ease',
+                        background: filterStatus === pill.key
+                          ? (pill.color ? `${pill.color}18` : 'rgba(59,130,246,.08)')
+                          : 'transparent',
+                        borderColor: filterStatus === pill.key
+                          ? (pill.color || '#3b82f6')
+                          : 'var(--border-slate-200)',
+                        color: filterStatus === pill.key
+                          ? (pill.color || '#3b82f6')
+                          : 'var(--text-slate-600)',
+                      }}
+                    >
+                      {pill.label}
+                      <span style={{
+                        display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                        minWidth: 18, height: 16, padding: '0 5px',
+                        borderRadius: 999, fontSize: 10, fontWeight: 700,
+                        background: filterStatus === pill.key
+                          ? (pill.color || '#3b82f6')
+                          : 'var(--bg-slate-100)',
+                        color: filterStatus === pill.key ? '#fff' : 'var(--text-slate-500)',
+                      }}>
+                        {pill.count}
+                      </span>
+                    </button>
+                  ))}
+                </FilterBar>
+
+                {/* ── Table ─────────────────────────────────────────── */}
+                <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
+                <ZukvoLoadingOverlay loading={dataLoading} message="" className="dh-main-overlay">
+                  <div className="dh-main-scroll" style={{ flex: 1, overflowY: 'auto', padding: 0 }}>
+                    <div className="sc-tablewrap" style={{ borderLeft: 'none', borderRight: 'none', borderTop: 'none', borderRadius: 0, margin: 0 }}>
+                      <Table
+                        columns={columns}
+                        dataSource={filteredItems}
+                        rowKey="id"
+                        pagination={false}
+                        size="middle"
+                        className="sc-table"
+                        scroll={{ x: 'max-content' }}
+                        locale={{
+                          emptyText: (
+                            <NoData description={(
+                              <div className="dm-empty-state">
+                                <div className="dm-empty-icon" style={{ background: `${type.color}14`, color: type.color }}>
+                                  {React.cloneElement(type.icon as React.ReactElement, { style: { fontSize: 28 } })}
+                                </div>
+                                <div className="dm-empty-title">
+                                  {searchQuery || filterStatus !== 'all'
+                                    ? 'No matching definitions'
+                                    : `No ${type.label.toLowerCase()} configured yet`}
+                                </div>
+                                <div className="dm-empty-desc">
+                                  {searchQuery || filterStatus !== 'all'
+                                    ? 'Try a different search term or clear your filters.'
+                                    : `Create your first ${type.label.toLowerCase().replace(/s$/, '')} definition to get started.`}
+                                </div>
+                                {canCreateTicketSetting && !searchQuery && filterStatus === 'all' && (
+                                  <Button
+                                    type="primary"
+                                    size="small"
+                                    icon={<PlusOutlined />}
+                                    onClick={handleCreate}
+                                    style={{ marginTop: 12, background: type.color, borderColor: type.color }}
+                                  >
+                                    Create Definition
+                                  </Button>
+                                )}
+                              </div>
+                            )} />
+                          ),
                         }}
-                      >
-                        {React.cloneElement(type.icon as React.ReactElement, {
-                          style: { fontSize: 18, color: '#fff' },
-                        })}
-                      </div>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: 2, minWidth: 0 }}>
-                        <div className="dm-hero-eyebrow">
-                          <span style={{ color: type.color }}>●</span>
-                          CONFIGURATION · {type.key.toUpperCase()}
-                        </div>
-                        <div style={{ display: 'flex', alignItems: 'baseline', flexWrap: 'wrap', gap: 8 }}>
-                          <Title level={3} className="dm-hero-title">
-                            {type.label}
-                          </Title>
-                          <Text className="dm-hero-desc">{type.description}</Text>
-                        </div>
-                      </div>
+                      />
                     </div>
-                    <div className="dm-stats-grid">
-                      <div className="dm-stat-card" title="Total Definitions">
-                        <div className="dm-stat-icon" style={{ background: `${type.color}1a`, color: type.color }}>
-                          <AppstoreFilled />
-                        </div>
-                        <span className="dm-stat-value">{allItems.length}</span>
-                        <span className="dm-stat-label">Total</span>
-                      </div>
-                      <div className="dm-stat-card" title="Active & Visible">
-                        <div className="dm-stat-icon" style={{ background: 'rgba(16, 185, 129, 0.12)', color: '#10b981' }}>
-                          <CheckCircleFilled />
-                        </div>
-                        <span className="dm-stat-value">{activeCount}</span>
-                        <span className="dm-stat-label">Active</span>
-                      </div>
-                      <div className="dm-stat-card" title="Hidden / Archived">
-                        <div className="dm-stat-icon" style={{ background: 'rgba(148, 163, 184, 0.15)', color: '#64748b' }}>
-                          <EyeInvisibleFilled />
-                        </div>
-                        <span className="dm-stat-value">{hiddenCount}</span>
-                        <span className="dm-stat-label">Hidden</span>
-                      </div>
-                      <div className="dm-stat-card" title="With Visual Identity">
-                        <div className="dm-stat-icon" style={{ background: 'rgba(168, 85, 247, 0.12)', color: '#a855f7' }}>
-                          <StarFilled />
-                        </div>
-                        <span className="dm-stat-value">{colorCount}</span>
-                        <span className="dm-stat-label">Themed</span>
-                      </div>
-                    </div>
-                    <div className="dm-hero-right">
-                      <Space size={8}>
-                        {type.key === 'status' && canUpdateTicketSetting && (
-                          <Button
-                            icon={<ThunderboltOutlined />}
-                            onClick={handleStandardizeLifecycles}
-                            loading={loading}
-                            className="dm-sync-btn"
-                          >
-                            Synchronize
-                          </Button>
-                        )}
-                        {canCreateTicketSetting && (
-                          <Button
-                            data-tour={`tickets-setting-create-${type.key}-btn`}
-                            type="primary"
-                            icon={<PlusOutlined />}
-                            onClick={handleCreate}
-                            className="dm-primary-btn"
-                            style={{
-                              background: `linear-gradient(135deg, ${type.color} 0%, ${type.color}d9 100%)`,
-                              boxShadow: "none",
-                            }}
-                          >
-                            {type.key === 'platform' ? 'New Platform' :
-                             type.key === 'stack' ? 'New Stack' :
-                             type.key === 'priority' ? 'New Priority' :
-                             type.key === 'taskLevel' ? 'New Complexity' :
-                             type.key === 'taskType' ? 'New Work Type' :
-                             type.key === 'status' ? 'New Lifecycle' :
-                             `New ${type.label}`}
-                          </Button>
-                        )}
-                      </Space>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Toolbar: search + filter chips */}
-                <div className="dm-toolbar">
-                  <div className="dm-search-box">
-                    <SearchOutlined className="dm-search-icon" />
-                    <input
-                      className="dm-search-input"
-                      placeholder={`Search ${type.label.toLowerCase()} by label, key, or context…`}
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                    />
-                    {searchQuery && (
-                      <button className="dm-search-clear" onClick={() => setSearchQuery('')}>
-                        Clear
-                      </button>
-                    )}
-                  </div>
-                  <div className="dm-filter-chips">
-                    <button
-                      className={`dm-chip ${filterStatus === 'all' ? 'active' : ''}`}
-                      onClick={() => setFilterStatus('all')}
-                    >
-                      <FilterOutlined />
-                      All
-                      <span className="dm-chip-count">{allItems.length}</span>
-                    </button>
-                    <button
-                      className={`dm-chip ${filterStatus === 'active' ? 'active' : ''}`}
-                      onClick={() => setFilterStatus('active')}
-                    >
-                      <CheckCircleFilled style={{ color: '#10b981' }} />
-                      Active
-                      <span className="dm-chip-count">{activeCount}</span>
-                    </button>
-                    <button
-                      className={`dm-chip ${filterStatus === 'hidden' ? 'active' : ''}`}
-                      onClick={() => setFilterStatus('hidden')}
-                    >
-                      <EyeInvisibleFilled style={{ color: '#94a3b8' }} />
-                      Hidden
-                      <span className="dm-chip-count">{hiddenCount}</span>
-                    </button>
-                    <Tooltip title="Reload from server">
-                      <button className="dm-chip dm-chip-icon" onClick={loadDropdownOptions}>
-                        <ReloadOutlined spin={dataLoading} />
-                      </button>
-                    </Tooltip>
-                  </div>
-                </div>
-
-                {/* Table */}
-                <ZukvoLoadingOverlay loading={dataLoading} message="">
-                  <div className="dm-table-wrapper">
-                    <Table
-                      columns={columns}
-                      dataSource={filteredItems}
-                      rowKey="id"
-                      pagination={false}
-                    size="middle"
-                    className="premium-table workstation-grid"
-                    scroll={{ x: 800, y: screens.lg ? 'calc(100vh - 420px)' : 'calc(100vh - 520px)' }}
-                    locale={{
-                      emptyText: <NoData description={(
-                                                    <div className="dm-empty-state">
-                                                      <div className="dm-empty-icon" style={{ background: `${type.color}14`, color: type.color }}>
-                                                        {React.cloneElement(type.icon as React.ReactElement, { style: { fontSize: 28 } })}
-                                                      </div>
-                                                      <div className="dm-empty-title">
-                                                        {searchQuery || filterStatus !== 'all'
-                                                          ? 'No matching definitions'
-                                                          : `No ${type.label.toLowerCase()} configured yet`}
-                                                      </div>
-                                                      <div className="dm-empty-desc">
-                                                        {searchQuery || filterStatus !== 'all'
-                                                          ? 'Try a different search term or clear your filters.'
-                                                          : `Create your first ${type.label.toLowerCase().replace(/s$/, '')} definition to get started.`}
-                                                      </div>
-                                                      {canCreateTicketSetting && (
-                                                        <Button
-                                                          type="primary"
-                                                          icon={<PlusOutlined />}
-                                                          onClick={handleCreate}
-                                                          style={{
-                                                            marginTop: 16,
-                                                            borderRadius: 8,
-                                                            height: 38,
-                                                            fontWeight: 700,
-                                                            background: type.color,
-                                                            borderColor: type.color,
-                                                          }}
-                                                        >
-                                                          Create Definition
-                                                        </Button>
-                                                      )}
-                                                    </div>
-                                                  )} />,
-                    }}
-                  />
                   </div>
                 </ZukvoLoadingOverlay>
+                </div>
               </div>
             );
           })()
@@ -970,7 +929,7 @@ export default function DropdownManager({ onDataChange }: DropdownManagerProps) 
                   ]}
                   normalize={(value) => (value || '').replace(/[^a-zA-Z0-9\s\-_]/g, '')}
                 >
-                  <Input placeholder="e.g. High Priority" />
+                  <Input placeholder="e.g. High Priority" maxLength={40} showCount />
                 </Form.Item>
                 <Form.Item
                   name="value"
@@ -982,7 +941,7 @@ export default function DropdownManager({ onDataChange }: DropdownManagerProps) 
                   normalize={(value) => (value || '').replace(/[^a-zA-Z0-9_]/g, '')}
                   extra="Internal identifier (uppercase/lowercase without spaces)"
                 >
-                  <Input placeholder="e.g. HIGH" className="dm-input-mono" />
+                  <Input placeholder="e.g. HIGH" className="dm-input-mono" maxLength={40} showCount />
                 </Form.Item>
               </SectionCard>
 
@@ -1037,6 +996,23 @@ export default function DropdownManager({ onDataChange }: DropdownManagerProps) 
         .manager-tabs .ant-tabs-content, 
         .manager-tabs .ant-tabs-content-holder,
         .manager-tabs .ant-tabs-tabpane {
+          height: 100% !important;
+        }
+
+        /* ── Hide built-in tab nav when host page owns navigation ─── */
+        .dm-hide-tabs > .ant-tabs-nav,
+        .dm-hide-tabs.ant-tabs-left > .ant-tabs-nav {
+          display: none !important;
+        }
+        .dm-hide-tabs > .ant-tabs-content-holder {
+          margin: 0 !important;
+          padding: 0 !important;
+          border-left: none !important;
+          width: 100% !important;
+        }
+        .dm-hide-tabs .ant-tabs-content,
+        .dm-hide-tabs .ant-tabs-tabpane {
+          padding: 0 !important;
           height: 100% !important;
         }
 
@@ -1618,7 +1594,7 @@ export default function DropdownManager({ onDataChange }: DropdownManagerProps) 
 
         /* ── Content area ─────────────────────────────────────────── */
         .tab-content-area {
-          padding: 24px 32px 32px;
+          padding: 0;
           height: 100%;
           overflow-y: auto;
           display: flex;

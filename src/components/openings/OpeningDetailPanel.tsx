@@ -425,69 +425,72 @@ export default function OpeningDetailPanel({ openingId }: { openingId: string })
         </div>
       </div>
 
-      {status === 'pending_approval' && currentStep && (
-        <div className="omp-callout">
-          <CheckCircle2 size={15} style={{ color: PALETTE.blue, flexShrink: 0 }} />
-          <span>
-            Waiting on <strong>{currentStep.stepName}</strong>
-            {currentStep.approverName ? ` — ${currentStep.approverName}` : ''}
-            {currentStep.roleName ? ` — anyone with the ${currentStep.roleName} role` : ''}
-            {currentStep.isOptional && ' (optional step)'}
-          </span>
-        </div>
-      )}
+      <div className="omp-detail-body">
+        {status === 'pending_approval' && currentStep && (
+          <div className="omp-callout">
+            <CheckCircle2 size={15} style={{ color: PALETTE.blue, flexShrink: 0 }} />
+            <span>
+              Waiting on <strong>{currentStep.stepName}</strong>
+              {currentStep.approverName ? ` — ${currentStep.approverName}` : ''}
+              {currentStep.roleName ? ` — anyone with the ${currentStep.roleName} role` : ''}
+              {currentStep.isOptional && ' (optional step)'}
+            </span>
+          </div>
+        )}
 
-      {opening.closureReason && (
-        <div className="omp-callout is-muted">
-          <XCircle size={15} style={{ color: PALETTE.ash, flexShrink: 0 }} />
-          <span>
-            Closed as <strong>{opening.closureReason.replace(/_/g, ' ')}</strong>
-            {opening.closureNote ? ` — ${opening.closureNote}` : ''}
-          </span>
-        </div>
-      )}
+        {opening.closureReason && (
+          <div className="omp-callout is-muted">
+            <XCircle size={15} style={{ color: PALETTE.ash, flexShrink: 0 }} />
+            <span>
+              Closed as <strong>{opening.closureReason.replace(/_/g, ' ')}</strong>
+              {opening.closureNote ? ` — ${opening.closureNote}` : ''}
+            </span>
+          </div>
+        )}
 
-      <Tabs
-        activeKey={tab}
-        onChange={setTab}
-        items={[
-          {
-            key: 'overview',
-            label: 'Overview',
-            children: <OverviewTab opening={opening} />,
-          },
-          {
-            key: 'approvals',
-            label: 'Approvals',
-            children: <ApprovalsTab state={approvals} />,
-          },
-          {
-            key: 'postings',
-            label: 'Postings',
-            children: <PostingsTab openingId={openingId} onChanged={load} />,
-          },
-          {
-            key: 'candidates',
-            label: 'Candidates',
-            children: <CandidatesTab openingId={openingId} opening={opening} onChanged={load} />,
-          },
-          {
-            key: 'referrals',
-            label: 'Referrals',
-            children: <ReferralsTab openingId={openingId} />,
-          },
-          {
-            key: 'rounds',
-            label: 'Rounds',
-            children: <RoundsTab opening={opening} />,
-          },
-          {
-            key: 'timeline',
-            label: 'Timeline',
-            children: <TimelineTab history={statusState.history} />,
-          },
-        ]}
-      />
+        <Tabs
+          activeKey={tab}
+          onChange={setTab}
+          className="omp-detail-tabs"
+          items={[
+            {
+              key: 'overview',
+              label: 'Overview',
+              children: <OverviewTab opening={opening} />,
+            },
+            {
+              key: 'approvals',
+              label: 'Approvals',
+              children: <ApprovalsTab state={approvals} />,
+            },
+            {
+              key: 'postings',
+              label: 'Postings',
+              children: <PostingsTab openingId={openingId} onChanged={load} />,
+            },
+            {
+              key: 'candidates',
+              label: 'Candidates',
+              children: <CandidatesTab openingId={openingId} opening={opening} onChanged={load} />,
+            },
+            {
+              key: 'referrals',
+              label: 'Referrals',
+              children: <ReferralsTab openingId={openingId} />,
+            },
+            {
+              key: 'rounds',
+              label: 'Rounds',
+              children: <RoundsTab opening={opening} />,
+            },
+            {
+              key: 'timeline',
+              label: 'Timeline',
+              children: <TimelineTab history={statusState.history} />,
+            },
+          ]}
+        />
+      </div>
 
       <OpeningFormDrawer
         open={editOpen}
@@ -548,6 +551,17 @@ export default function OpeningDetailPanel({ openingId }: { openingId: string })
 
       <style jsx global>{`
         .omp-detail-header { align-items: flex-start; }
+        .omp-detail-body {
+          padding: 20px 24px 32px 24px;
+        }
+        .omp-detail-tabs .ant-tabs-nav {
+          margin-bottom: 20px !important;
+        }
+        .omp-detail-tabs .ant-tabs-tab {
+          padding: 8px 16px !important;
+          font-weight: 600;
+          font-size: 13px;
+        }
         .omp-archived-flag {
           margin-left: 8px; font-size: 10px; font-weight: 700; text-transform: uppercase;
           letter-spacing: 0.06em; color: var(--text-slate-500); background: var(--bg-slate-50);

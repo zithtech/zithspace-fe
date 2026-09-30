@@ -29,6 +29,15 @@ import {
   SearchOutlined,
   EditOutlined,
   DeleteOutlined,
+  EyeOutlined,
+  DownloadOutlined,
+  FileImageOutlined,
+  FilePdfOutlined,
+  FileWordOutlined,
+  FileExcelOutlined,
+  FileZipOutlined,
+  VideoCameraOutlined,
+  AudioOutlined,
   ArrowUpOutlined,
   ArrowDownOutlined,
   CalendarOutlined,
@@ -53,14 +62,26 @@ import { MembersService, Member } from '@/services/membersService';
 import { useExpenseCategories } from '@/hooks/useExpenseCategories';
 import type { ColumnsType } from 'antd/es/table';
 import dayjs from 'dayjs';
+import relativeTime from 'dayjs/plugin/relativeTime';
 import { usePermission } from '@/hooks/usePermission';
 import { useActivitySource } from '@/hooks/useActivitySource';
-import { History, Sparkles, Menu, X } from "lucide-react";
+import { History, Sparkles, Menu, X, UploadCloud, FileText, Trash2, ExternalLink, Paperclip, Download, Eye, ArrowUpRight, ArrowDownLeft } from "lucide-react";
 import TransactionHistoryDrawer from "@/components/common/TransactionHistoryDrawer";
 import { SearchableDropdown } from '@/components/common/SearchableDropdown';
-import TicketFilterPill from "@/components/projects/TicketFilterPill";
+import { FilterBar, FilterToggleButton, TicketFilterPill } from '@/components/common/FilterBar';
 import ConfirmDialog from "@/components/common/ConfirmDialog";
 import { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
+
+dayjs.extend(relativeTime);
+
+const fileToBase64 = (file: File): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = (error) => reject(error);
+  });
+};
 
 const { Text } = Typography;
 const { RangePicker } = DatePicker;
@@ -170,7 +191,7 @@ export default function AccountsPage() {
   // Pagination and filtering
   const [pagination, setPagination] = useState({
     current: 1,
-    pageSize: 20,
+    pageSize: 15,
     total: 0,
   });
 
@@ -191,14 +212,148 @@ export default function AccountsPage() {
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [modalType, setModalType] = useState<'add' | 'edit'>('add');
   const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
+  const [viewDrawerVisible, setViewDrawerVisible] = useState(false);
+  const [viewTransaction, setViewTransaction] = useState<Transaction | null>(null);
   const [formLoading, setFormLoading] = useState(false);
   const [breakdownDrawerVisible, setBreakdownDrawerVisible] = useState(false);
   const [recentDrawerVisible, setRecentDrawerVisible] = useState(false);
+
+  const showViewDrawer = (transaction: Transaction) => {
+    setViewTransaction(transaction);
+    setViewDrawerVisible(true);
+  };
+
+  // Attachments state
+  const [attachments, setAttachments] = useState<Array<{ name: string; size?: number; type?: string; base64?: string; url?: string }>>([]);
+  const [previewingAttachment, setPreviewingAttachment] = useState<{
+    name: string;
+    url?: string;
+    base64?: string;
+    size?: number;
+    type?: string;
+  } | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  const formatFileSize = (bytes?: number): string => {
+    if (!bytes || bytes === 0) return "0 Bytes";
+    const k = 1024;
+    const sizes = ["Bytes", "KB", "MB", "GB"];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + " " + sizes[i];
+  };
+
+  const getAttachmentFileType = (name: string, type?: string): string => {
+    if (type) return type.toLowerCase();
+    const ext = (name || '').split('.').pop()?.toLowerCase() || '';
+    if (['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg'].includes(ext)) return 'image/' + ext;
+    if (ext === 'pdf') return 'application/pdf';
+    if (['doc', 'docx'].includes(ext)) return 'application/msword';
+    if (['xls', 'xlsx', 'csv'].includes(ext)) return 'application/vnd.ms-excel';
+    if (['zip', 'rar', '7z', 'tar', 'gz'].includes(ext)) return 'application/zip';
+    if (['mp4', 'webm', 'mov', 'avi'].includes(ext)) return 'video/' + ext;
+    if (['mp3', 'wav', 'ogg'].includes(ext)) return 'audio/' + ext;
+    if (['txt', 'log', 'md'].includes(ext)) return 'text/plain';
+    return 'application/octet-stream';
+  };
+
+  const getFileIcon = (fileName: string, fileType?: string) => {
+    const type = getAttachmentFileType(fileName, fileType);
+    const iconStyle = { fontSize: "16px" };
+
+    if (type.includes("image")) {
+      return { icon: <FileImageOutlined style={iconStyle} />, color: "#10b981", bg: "rgba(16, 185, 129, 0.10)" };
+    }
+    if (type.includes("pdf")) {
+      return { icon: <FilePdfOutlined style={iconStyle} />, color: "#ef4444", bg: "rgba(239, 68, 68, 0.10)" };
+    }
+    if (type.includes("word") || type.includes("msword") || type.includes("document") || /\.(docx?)$/i.test(fileName)) {
+      return { icon: <FileWordOutlined style={iconStyle} />, color: "#3b82f6", bg: "rgba(59, 130, 246, 0.10)" };
+    }
+    if (type.includes("excel") || type.includes("spreadsheet") || type.includes("sheet") || /\.(xlsx?|csv)$/i.test(fileName)) {
+      return { icon: <FileExcelOutlined style={iconStyle} />, color: "#10b981", bg: "rgba(16, 185, 129, 0.10)" };
+    }
+    if (type.includes("zip") || type.includes("rar") || type.includes("7z") || type.includes("tar") || type.includes("gz")) {
+      return { icon: <FileZipOutlined style={iconStyle} />, color: "#f59e0b", bg: "rgba(245, 158, 11, 0.10)" };
+    }
+    if (type.includes("video")) {
+      return { icon: <VideoCameraOutlined style={iconStyle} />, color: "#8b5cf6", bg: "rgba(139, 92, 246, 0.10)" };
+    }
+    if (type.includes("audio")) {
+      return { icon: <AudioOutlined style={iconStyle} />, color: "#ec4899", bg: "rgba(236, 72, 153, 0.10)" };
+    }
+    return { icon: <FileTextOutlined style={iconStyle} />, color: "#64748b", bg: "rgba(100, 116, 139, 0.10)" };
+  };
+
+  const handleDownloadAttachment = (e: React.MouseEvent, fileUrl?: string, fileName?: string, base64?: string) => {
+    e.stopPropagation();
+    e.preventDefault();
+    if (fileUrl) {
+      const proxyUrl = `/api/download?url=${encodeURIComponent(fileUrl)}&name=${encodeURIComponent(fileName || 'download')}`;
+      const link = document.createElement("a");
+      link.href = proxyUrl;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } else if (base64) {
+      const link = document.createElement("a");
+      link.href = base64;
+      link.download = fileName || "download";
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+  };
+
+  const processFiles = async (files: FileList | File[]) => {
+    if (!files || files.length === 0) return;
+
+    try {
+      const newAttachments: Array<{ name: string; size: number; type: string; base64: string }> = [];
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        if (file.size > 25 * 1024 * 1024) {
+          messageApi.error(`File "${file.name}" exceeds 25MB limit`);
+          continue;
+        }
+        const b64 = await fileToBase64(file);
+        newAttachments.push({
+          name: file.name,
+          size: file.size,
+          type: file.type || 'application/octet-stream',
+          base64: b64,
+        });
+      }
+      setAttachments((prev) => [...prev, ...newAttachments]);
+    } catch (err: any) {
+      messageApi.error("Failed to process attachment");
+    }
+  };
+
+  const handleFilesSelected = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files) {
+      processFiles(e.target.files);
+    }
+    e.target.value = "";
+  };
+
+  const handleRemoveAttachment = (indexToRemove: number) => {
+    setAttachments((prev) => prev.filter((_, idx) => idx !== indexToRemove));
+  };
 
   // Layout states
   const [savedView, setSavedView] = useState<'all' | 'mine' | 'credit' | 'debit'>('all');
   const [view, setView] = useState<'list' | 'grid'>('list');
   const [isMobileOpen, setIsMobileOpen] = useState(false);
+  const [isFilterRowOpen, setIsFilterRowOpen] = useState(false);
+
+  const activeFilterCount = useMemo(() => {
+    let count = 0;
+    if (categoryFilter) count++;
+    if (memberFilter) count++;
+    if (dateRange) count++;
+    if (thisMonthOnly) count++;
+    return count;
+  }, [categoryFilter, memberFilter, dateRange, thisMonthOnly]);
 
   const searchRef = useRef<any>(null);
 
@@ -358,6 +513,13 @@ export default function AccountsPage() {
           description: values.description,
           notes: values.notes || '',
           date: values.date.toDate(),
+          attachments: attachments.map((a) => ({
+            name: a.name,
+            size: a.size,
+            type: a.type,
+            base64: a.base64,
+            url: a.url || '',
+          })),
         };
 
         await TransactionsService.updateTransaction(selectedTransaction.id, updatePayload);
@@ -371,6 +533,13 @@ export default function AccountsPage() {
           description: values.description,
           notes: values.notes || '',
           date: values.date.toDate(),
+          attachments: attachments.map((a) => ({
+            name: a.name,
+            size: a.size,
+            type: a.type,
+            base64: a.base64,
+            url: a.url || '',
+          })),
         };
 
         await TransactionsService.createTransaction(createPayload);
@@ -379,6 +548,7 @@ export default function AccountsPage() {
 
       setIsModalVisible(false);
       form.resetFields();
+      setAttachments([]);
       setSelectedTransaction(null);
       fetchTransactions();
       fetchSummary();
@@ -399,6 +569,7 @@ export default function AccountsPage() {
     setModalType('add');
     form.resetFields();
     form.setFieldsValue({ date: dayjs() });
+    setAttachments([]);
     setSelectedTransaction(null);
     setIsModalVisible(true);
   };
@@ -406,6 +577,7 @@ export default function AccountsPage() {
   const showEditModal = (transaction: Transaction) => {
     setModalType('edit');
     setSelectedTransaction(transaction);
+    setAttachments(transaction.attachments || transaction.metadata?.attachments || []);
 
     form.setFieldsValue({
       type: transaction.type,
@@ -413,7 +585,7 @@ export default function AccountsPage() {
       member: typeof transaction.member === 'object' ? transaction.member.id : transaction.member,
       category: transaction.category,
       description: transaction.description,
-      notes: transaction.notes || '',
+      notes: transaction.notes || transaction.metadata?.notes || '',
       date: dayjs(transaction.date),
     });
     setIsModalVisible(true);
@@ -463,7 +635,7 @@ export default function AccountsPage() {
     setPagination(prev => ({
       ...prev,
       current: newPagination.current || 1,
-      pageSize: newPagination.pageSize || 20,
+      pageSize: newPagination.pageSize || 15,
     }));
 
     if (sorter && !Array.isArray(sorter) && sorter.field && sorter.order) {
@@ -522,7 +694,8 @@ export default function AccountsPage() {
   const actionMenu = (record: Transaction) => ({
     className: 'pp-action-menu',
     items: [
-      { key: 'edit', disabled: !canUpdateAccount, label: menuLabel('Edit transaction', 'Modify entry details', <EditOutlined />, '#3b82f6', 'rgba(59,130,246,0.12)') },
+      { key: 'view', label: menuLabel('View details', 'Inspect transaction info', <EyeOutlined />, '#3b82f6', 'rgba(59,130,246,0.12)') },
+      { key: 'edit', disabled: !canUpdateAccount, label: menuLabel('Edit transaction', 'Modify entry details', <EditOutlined />, '#10b981', 'rgba(16,185,129,0.12)') },
       { type: 'divider' as const },
       {
         key: 'delete',
@@ -571,6 +744,7 @@ export default function AccountsPage() {
     ],
     onClick: ({ key, domEvent }: any) => {
       domEvent.stopPropagation();
+      if (key === 'view') showViewDrawer(record);
       if (key === 'edit') showEditModal(record);
     },
   });
@@ -656,11 +830,32 @@ export default function AccountsPage() {
         const isCredit = record.type === 'credit';
         const color = isCredit ? '#10b981' : '#64748b';
         const bg = isCredit ? 'rgba(16,185,129,0.10)' : 'rgba(100,116,139,0.10)';
+        const formattedCategory = (category || '—').replace(/_/g, ' ').toUpperCase();
         return (
-          <span className="pp-tag" style={{ background: bg, color }}>
-            <span className="pp-tag-dot" />
-            {category.replace('_', ' ').toUpperCase()}
-          </span>
+          <Tooltip title={formattedCategory} placement="topLeft">
+            <span
+              className="pp-tag"
+              style={{
+                background: bg,
+                color,
+                maxWidth: '160px',
+                display: 'inline-flex',
+                alignItems: 'center',
+              }}
+            >
+              <span className="pp-tag-dot" style={{ flexShrink: 0 }} />
+              <span
+                style={{
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                  display: 'inline-block',
+                }}
+              >
+                {formattedCategory}
+              </span>
+            </span>
+          </Tooltip>
         );
       },
       sorter: true,
@@ -670,31 +865,23 @@ export default function AccountsPage() {
       title: 'DESCRIPTION',
       dataIndex: 'description',
       key: 'description',
-      render: (text: string, record: Transaction) => (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <Tooltip title={text} placement="topLeft">
-              <span style={{
-                fontSize: '11.5px',
-                fontWeight: 500,
-                color: 'var(--text-slate-900)',
-                display: '-webkit-box',
-                WebkitLineClamp: 2,
-                WebkitBoxOrient: 'vertical',
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-                lineHeight: '1.4',
-                maxWidth: '300px'
-              }}>
-                {text}
-              </span>
-            </Tooltip>
-            {(record.metadata?.invoiceId || record.metadata?.source === 'invoice_module') && (
-              <span className="pp-tag pp-tag--blue" style={{ height: '17px', padding: '0 5px', fontSize: '9px', flexShrink: 0 }}>INVOICE</span>
-            )}
-          </div>
-          {record.notes && <span style={{ fontSize: '11px', color: 'var(--text-slate-400)' }}>{record.notes}</span>}
-        </div>
+      render: (text: string) => (
+        <Tooltip title={text} placement="topLeft">
+          <span style={{
+            fontSize: '12px',
+            fontWeight: 500,
+            color: 'var(--text-slate-900)',
+            display: '-webkit-box',
+            WebkitLineClamp: 2,
+            WebkitBoxOrient: 'vertical',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            lineHeight: '1.4',
+            maxWidth: '360px'
+          }}>
+            {text || '—'}
+          </span>
+        </Tooltip>
       ),
       sorter: true,
       sortOrder: sortBy === 'description' ? (sortOrder === 'asc' ? 'ascend' : 'descend') : undefined,
@@ -841,66 +1028,6 @@ export default function AccountsPage() {
               })}
             </div>
 
-            <div className="pp-side-section-label">Filters</div>
-            <div className="pp-side-filters">
-              <SearchableDropdown
-                className="pp-side-sd"
-                placeholder="Category"
-                searchPlaceholder="Search categories"
-                itemNoun="categories"
-                value={categoryFilter ?? undefined}
-                onChange={(v) => setCategoryFilter(v ?? undefined)}
-                options={expenseCategories.map((c: any) => ({ value: c.name, label: c.name }))}
-                width={212}
-                disabled={expenseCategories.length === 0}
-              />
-              {(canCreateAccount || canUpdateAccount || canDeleteAccount) && (
-                <SearchableDropdown
-                  className="pp-side-sd"
-                  placeholder="Member"
-                  searchPlaceholder="Search members"
-                  itemNoun="members"
-                  value={memberFilter ?? undefined}
-                  onChange={(v) => setMemberFilter(v ?? undefined)}
-                  options={memberOptions}
-                  width={212}
-                  disabled={members.length === 0}
-                />
-              )}
-              <RangePicker
-                className="pp-side-range"
-                value={dateRange}
-                onChange={handleDateRangeChange}
-                placeholder={['Start date', 'End date']}
-                separator={<span style={{ color: 'var(--text-slate-400)' }}>›</span>}
-                suffixIcon={null}
-                format="MMM D"
-              />
-              <div className="pp-side-switch-wrap">
-                <span className="pp-side-switch-label">This month only</span>
-                <Switch
-                  size="small"
-                  checked={thisMonthOnly}
-                  onChange={handleThisMonthToggle}
-                />
-              </div>
-              {(categoryFilter || memberFilter || dateRange || !thisMonthOnly || searchText) && (
-                <button
-                  type="button"
-                  className="pp-clear-filters"
-                  onClick={() => {
-                    setCategoryFilter(undefined);
-                    setMemberFilter(undefined);
-                    setDateRange(null);
-                    setThisMonthOnly(false);
-                    setSearchText('');
-                  }}
-                >
-                  <CloseCircleOutlined /> Clear filters
-                </button>
-              )}
-            </div>
-
             <div className="pp-side-section-label">Actions</div>
             <div className="pp-side-list">
               <button
@@ -969,6 +1096,11 @@ export default function AccountsPage() {
             </div>
 
             <div className="pp-topbar-actions">
+              <FilterToggleButton
+                isOpen={isFilterRowOpen}
+                onToggle={() => setIsFilterRowOpen((v) => !v)}
+                activeCount={activeFilterCount}
+              />
               <div className="pp-segmented">
                 <button type="button" className={view === 'list' ? 'is-active' : ''} onClick={() => setView('list')} aria-label="List view"><UnorderedListOutlined /></button>
                 <button type="button" className={view === 'grid' ? 'is-active' : ''} onClick={() => setView('grid')} aria-label="Grid view"><AppstoreOutlined /></button>
@@ -981,31 +1113,136 @@ export default function AccountsPage() {
 
           <div className="pp-divider" />
 
-          {/* Sparkline Stat Cards */}
-          <div className="pp-stats">
-            {statCells.map((s) => (
-              <div key={s.key} className="pp-stat-card">
-                <div className="pp-stat-top">
-                  <div className="pp-stat-left">
-                    <span className="pp-stat-icon" style={{ background: s.tint, color: s.color }}>{s.icon}</span>
-                    <span className="pp-stat-label">{s.title}</span>
-                  </div>
-                  {s.delta > 0 && (
-                    <span className="pp-stat-delta" style={{ color: s.color, background: s.tint }}>
-                      +{s.delta} {s.deltaLabel}
+          {/* Sprint Header (Stats) */}
+          <div className="pp-sprint-head-v2">
+            <div className="pp-sprint-row1">
+              <div className="pp-sprint-title-block">
+                <span
+                  className="pp-sprint-dot"
+                  style={{
+                    background: '#10b981',
+                    boxShadow: '0 0 0 3px rgba(16, 185, 129, 0.2)',
+                  }}
+                />
+                <h2 className="pp-sprint-title">Accounts — Financial Overview</h2>
+                <div className="pp-sprint-tags">
+                  <span className="pp-sprint-tag pp-sprint-tag-active">LIVE</span>
+                  <span className="pp-sprint-tag pp-sprint-tag-neutral">
+                    {summary?.balance?.totalCount ?? pagination.total ?? 0} TOTAL
+                  </span>
+                  {(summary?.balance?.creditCount ?? 0) > 0 && (
+                    <span className="pp-sprint-tag pp-sprint-tag-active">
+                      {summary?.balance?.creditCount} CREDITS
+                    </span>
+                  )}
+                  {(summary?.balance?.debitCount ?? 0) > 0 && (
+                    <span className="pp-sprint-tag pp-sprint-tag-delayed">
+                      {summary?.balance?.debitCount} DEBITS
                     </span>
                   )}
                 </div>
-                <div className="pp-stat-bottom">
-                  <div className="pp-stat-value-wrap">
-                    <span className="pp-stat-value">{s.value}{s.suffix}</span>
-                    <span className="pp-stat-period">monthly trend</span>
-                  </div>
-                  <div className="pp-stat-spark"><AreaSparkline values={s.trend} color={s.color} /></div>
-                </div>
               </div>
-            ))}
+            </div>
+            <div className="pp-sprint-row2">
+              <span className="pp-sprint-meta">
+                <CalendarOutlined style={{ fontSize: 11 }} />
+                <span>This Month</span>
+              </span>
+              {statCells.map((s) => (
+                <span key={s.key} className="pp-sprint-meta">
+                  <span style={{ color: s.color, display: 'flex', alignItems: 'center' }}>{s.icon}</span>
+                  {s.title}: <b>{s.value}</b>
+                </span>
+              ))}
+            </div>
+            <div className="pp-sprint-row3">
+              <div className="pp-sprint-progress-bar">
+                <div
+                  className="pp-sprint-progress-fill"
+                  style={{
+                    width: `${
+                      (summary?.balance?.totalCount ?? pagination.total ?? 0) === 0
+                        ? 0
+                        : ((summary?.balance?.credits ?? 0) + (summary?.balance?.debits ?? 0)) > 0
+                        ? Math.min(100, Math.max(0, Math.round(((summary?.balance?.credits ?? 0) / ((summary?.balance?.credits ?? 0) + (summary?.balance?.debits ?? 0))) * 100)))
+                        : 100
+                    }%`,
+                    background: 'linear-gradient(90deg, #3b82f6, #2563eb)',
+                  }}
+                />
+              </div>
+              <span className="pp-sprint-progress-pct">
+                {
+                  (summary?.balance?.totalCount ?? pagination.total ?? 0) === 0
+                    ? 0
+                    : ((summary?.balance?.credits ?? 0) + (summary?.balance?.debits ?? 0)) > 0
+                    ? Math.min(100, Math.max(0, Math.round(((summary?.balance?.credits ?? 0) / ((summary?.balance?.credits ?? 0) + (summary?.balance?.debits ?? 0))) * 100)))
+                    : 100
+                }%
+              </span>
+            </div>
           </div>
+
+          {/* ── Inline filter row (when opened) ── */}
+          <FilterBar
+            isOpen={isFilterRowOpen}
+            activeCount={activeFilterCount}
+            onClose={() => setIsFilterRowOpen(false)}
+            onReset={() => {
+              setCategoryFilter(undefined);
+              setMemberFilter(undefined);
+              setDateRange(null);
+              setThisMonthOnly(false);
+              setSearchText('');
+            }}
+          >
+            {/* Category Pill */}
+            {expenseCategories.length > 0 && (
+              <TicketFilterPill
+                label="Category"
+                value={categoryFilter || ''}
+                options={expenseCategories.map((c: any) => ({ value: c.name, label: c.name }))}
+                onChange={(val: any) => setCategoryFilter(val || undefined)}
+                itemNoun="categories"
+                multiple={false}
+              />
+            )}
+
+            {/* Member Pill */}
+            {(canCreateAccount || canUpdateAccount || canDeleteAccount) && members.length > 0 && (
+              <TicketFilterPill
+                icon={<UserOutlined style={{ fontSize: 11 }} />}
+                label="Member"
+                value={memberFilter || ''}
+                options={memberOptions}
+                onChange={(val: any) => setMemberFilter(val || undefined)}
+                itemNoun="members"
+                showAvatar
+                width={260}
+                multiple={false}
+              />
+            )}
+
+            {/* Date Range Picker */}
+            <DatePicker.RangePicker
+              value={dateRange}
+              onChange={handleDateRangeChange}
+              placeholder={['Start date', 'End date']}
+              style={{ height: 28, borderRadius: 6, fontSize: 12 }}
+              format="MMM D, YYYY"
+              allowClear
+            />
+
+            {/* This month only Switch */}
+            <div className="flex items-center gap-2 px-2.5 py-1 bg-white dark:bg-slate-800 rounded-md border border-slate-200 dark:border-slate-700 h-[28px]">
+              <span className="text-xs font-semibold text-slate-700 dark:text-slate-200">This month only</span>
+              <Switch
+                size="small"
+                checked={thisMonthOnly}
+                onChange={handleThisMonthToggle}
+              />
+            </div>
+          </FilterBar>
 
           {/* Main View Area */}
           <div className="pp-body">
@@ -1024,8 +1261,8 @@ export default function AccountsPage() {
                     onRow={(record) => ({
                       onClick: (e) => {
                         const t = e.target as HTMLElement;
-                        if (t.closest('.ant-checkbox-wrapper, .ant-table-selection-column, button, input, .ant-select, .ant-dropdown-trigger, .pp-icon-btn')) return;
-                        showEditModal(record);
+                        if (t.closest('.ant-checkbox-wrapper, .ant-table-selection-column, button, input, .ant-select, .ant-dropdown-trigger, .pp-icon-btn, a')) return;
+                        showViewDrawer(record);
                       },
                       className: 'pp-row',
                     })}
@@ -1046,7 +1283,7 @@ export default function AccountsPage() {
                       const accent = accentFor(item.id || item.description || '');
                       const member = typeof item.member === 'object' ? item.member : null;
                       return (
-                        <div key={item.id} className="pc-card" onClick={() => showEditModal(item)}>
+                        <div key={item.id} className="pc-card" onClick={() => showViewDrawer(item)}>
                           <div className="pc-top">
                             <div className="pc-avatar" style={{ background: `linear-gradient(135deg, ${accent[0]} 0%, ${accent[1]} 100%)` }}>
                               {initialsOf(item.description)}
@@ -1107,14 +1344,6 @@ export default function AccountsPage() {
                                   {isCredit ? '+' : '-'}{formatCurrency(item.amount)}
                                 </span>
                               </span>
-                              {/* <span className="pc-foot-div" /> */}
-                              {/* <button
-                              type="button"
-                              className="pc-foot-item pc-view-btn"
-                              onClick={(e) => { e.stopPropagation(); showEditModal(item); }}
-                            >
-                              <EditOutlined /> Edit
-                            </button> */}
                             </div>
                           </div>
                         </div>
@@ -1142,14 +1371,388 @@ export default function AccountsPage() {
                   className="pp-pagesize"
                   value={pagination.pageSize}
                   onChange={(v) => { setPagination(p => ({ ...p, pageSize: v, current: 1 })); }}
-                  options={[10, 20, 25, 50, 100].map((n) => ({ value: n, label: `${n} / page` }))}
+                  options={[10, 15, 20, 25, 50, 100].map((n) => ({ value: n, label: `${n} / page` }))}
                   popupMatchSelectWidth={120}
+                  size="small"
                 />
               </div>
             </div>
           )}
         </main>
       </div>
+
+      {/* Transaction View Drawer */}
+      <Drawer
+        title={
+          <div className="accounts-breakdown__title">
+            <div
+              className="accounts-breakdown__title-icon"
+              style={{
+                background: viewTransaction?.type === 'credit'
+                  ? 'rgba(16, 185, 129, 0.12)'
+                  : 'rgba(59, 130, 246, 0.12)',
+                color: viewTransaction?.type === 'credit' ? '#10b981' : '#3b82f6',
+                border: `1px solid ${viewTransaction?.type === 'credit' ? 'rgba(16,185,129,0.25)' : 'rgba(59,130,246,0.25)'}`,
+              }}
+            >
+              {viewTransaction?.type === 'credit' ? (
+                <ArrowDownLeft size={18} />
+              ) : (
+                <ArrowUpRight size={18} />
+              )}
+            </div>
+            <div className="accounts-breakdown__title-text">
+              <div className="accounts-breakdown__title-main">Transaction Details</div>
+              <div className="accounts-breakdown__title-sub">
+                {viewTransaction ? (
+                  <span>
+                    {viewTransaction.type === 'credit' ? 'Income / Credit' : 'Expense / Debit'} · {dayjs(viewTransaction.date).format('MMM D, YYYY')}
+                  </span>
+                ) : 'Transaction information'}
+              </div>
+            </div>
+          </div>
+        }
+        placement="right"
+        width={680}
+        open={viewDrawerVisible}
+        onClose={() => {
+          setViewDrawerVisible(false);
+          setViewTransaction(null);
+        }}
+        destroyOnClose
+        extra={
+          <Space size={8}>
+            {viewTransaction && canReadActivityLog && (
+              <Button
+                icon={<History size={14} />}
+                onClick={() => {
+                  setSelectedTransaction(viewTransaction);
+                  setHistoryOpen(true);
+                }}
+                size="small"
+                style={{ borderRadius: 6 }}
+              >
+                History
+              </Button>
+            )}
+            {viewTransaction && canUpdateAccount && (
+              <Button
+                type="primary"
+                icon={<EditOutlined />}
+                onClick={() => {
+                  const tx = viewTransaction;
+                  setViewDrawerVisible(false);
+                  setViewTransaction(null);
+                  showEditModal(tx);
+                }}
+                size="small"
+                style={{ borderRadius: 6, fontWeight: 600 }}
+              >
+                Edit
+              </Button>
+            )}
+          </Space>
+        }
+        styles={{
+          header: { borderBottom: '1px solid var(--accounts-card-border)', padding: '14px 20px', background: 'var(--accounts-card-bg)' },
+          body: { padding: 0, background: 'var(--customers-page-bg)' },
+        }}
+      >
+        {viewTransaction && (
+          <div className="accounts-view-drawer__body">
+            {/* Amount Banner Card */}
+            <div
+              className="accounts-view-banner"
+              style={{
+                borderColor: viewTransaction.type === 'credit' ? 'rgba(16,185,129,0.25)' : 'rgba(59,130,246,0.25)',
+              }}
+            >
+              <div className="accounts-view-banner__top">
+                <div>
+                  <span className="accounts-view-banner__label">Transaction Amount</span>
+                  <div
+                    className="accounts-view-banner__amount"
+                    style={{ color: viewTransaction.type === 'credit' ? '#10b981' : 'var(--text-slate-900)' }}
+                  >
+                    {viewTransaction.type === 'credit' ? '+' : '-'}{formatCurrency(viewTransaction.amount)}
+                  </div>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 6 }}>
+                  <span
+                    className="pp-vis-pill"
+                    style={{
+                      color: viewTransaction.type === 'credit' ? '#10b981' : '#64748b',
+                      background: viewTransaction.type === 'credit' ? 'rgba(16,185,129,0.12)' : 'rgba(100,116,139,0.12)',
+                      borderColor: viewTransaction.type === 'credit' ? 'rgba(16,185,129,0.25)' : 'rgba(100,116,139,0.25)',
+                      fontSize: '11px',
+                      padding: '3px 10px',
+                    }}
+                  >
+                    <span
+                      className="pp-vis-dot"
+                      style={{ background: viewTransaction.type === 'credit' ? '#10b981' : '#64748b' }}
+                    />
+                    {viewTransaction.type.toUpperCase()}
+                  </span>
+                  <span className="pp-tag" style={{ fontSize: '11px', padding: '3px 8px' }}>
+                    <span className="pp-tag-dot" />
+                    {viewTransaction.category.replace('_', ' ').toUpperCase()}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Key Information Grid */}
+            <div className="accounts-view-card">
+              <div className="accounts-view-card__header">
+                <div className="accounts-view-card__title">
+                  <BankOutlined style={{ color: '#3b82f6', marginRight: 6 }} /> General Information
+                </div>
+              </div>
+              <div className="accounts-view-grid">
+                <div className="accounts-view-field">
+                  <span className="accounts-view-field__label">Member / Created By</span>
+                  <div className="accounts-view-field__value">
+                    {typeof viewTransaction.member === 'object' && viewTransaction.member ? (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <Avatar
+                          size={24}
+                          src={viewTransaction.member.avatarUrl}
+                          style={{ background: 'rgba(59,130,246,0.10)', color: '#3b82f6', fontSize: 10, fontWeight: 700 }}
+                        >
+                          {initialsOf(viewTransaction.member.name)}
+                        </Avatar>
+                        <div>
+                          <div style={{ fontWeight: 600, color: 'var(--text-slate-800)', fontSize: '12.5px' }}>
+                            {viewTransaction.member.name}
+                          </div>
+                          {(() => {
+                            const pos = typeof viewTransaction.member === 'object' && viewTransaction.member?.position
+                              ? (typeof viewTransaction.member.position === 'object' ? (viewTransaction.member.position as any)?.title : viewTransaction.member.position)
+                              : null;
+                            if (!pos) return null;
+                            return (
+                              <div style={{ fontSize: '11px', color: 'var(--text-slate-400)' }}>
+                                {pos}
+                              </div>
+                            );
+                          })()}
+                        </div>
+                      </div>
+                    ) : (
+                      <span style={{ color: 'var(--text-slate-400)' }}>—</span>
+                    )}
+                  </div>
+                </div>
+
+                <div className="accounts-view-field">
+                  <span className="accounts-view-field__label">Date & Time</span>
+                  <div className="accounts-view-field__value">
+                    <div style={{ fontWeight: 600, color: 'var(--text-slate-800)', fontSize: '12.5px' }}>
+                      {dayjs(viewTransaction.date).format('MMMM D, YYYY')}
+                    </div>
+                    <div style={{ fontSize: '11px', color: 'var(--text-slate-400)' }}>
+                      {dayjs(viewTransaction.date).format('h:mm A')} ({dayjs(viewTransaction.date).fromNow()})
+                    </div>
+                  </div>
+                </div>
+
+                <div className="accounts-view-field">
+                  <span className="accounts-view-field__label">Category</span>
+                  <div className="accounts-view-field__value">
+                    <span style={{ fontWeight: 600, textTransform: 'capitalize', color: 'var(--text-slate-800)' }}>
+                      {viewTransaction.category.replace('_', ' ')}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="accounts-view-field">
+                  <span className="accounts-view-field__label">Type</span>
+                  <div className="accounts-view-field__value">
+                    <span style={{ fontWeight: 600, textTransform: 'capitalize', color: viewTransaction.type === 'credit' ? '#10b981' : '#64748b' }}>
+                      {viewTransaction.type === 'credit' ? 'Money In (Credit)' : 'Money Out (Debit)'}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Description Card */}
+            <div className="accounts-view-card">
+              <div className="accounts-view-card__header">
+                <div className="accounts-view-card__title">
+                  <FileText size={14} style={{ color: '#3b82f6', marginRight: 6 }} /> Description
+                </div>
+              </div>
+              <div className="accounts-view-card__content">
+                <div style={{ fontSize: '13px', color: 'var(--text-slate-800)', lineHeight: '1.6', whiteSpace: 'pre-wrap' }}>
+                  {viewTransaction.description || 'No description provided.'}
+                </div>
+              </div>
+            </div>
+
+            {/* Notes Card */}
+            {viewTransaction.notes && (
+              <div className="accounts-view-card">
+                <div className="accounts-view-card__header">
+                  <div className="accounts-view-card__title">
+                    <FileTextOutlined style={{ color: '#64748b', marginRight: 6 }} /> Additional Notes
+                  </div>
+                </div>
+                <div className="accounts-view-card__content">
+                  <div style={{ fontSize: '12.5px', color: 'var(--text-slate-700)', lineHeight: '1.5', whiteSpace: 'pre-wrap' }}>
+                    {viewTransaction.notes}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Attachments Card */}
+            {(() => {
+              const atts = viewTransaction.attachments || viewTransaction.metadata?.attachments || [];
+              if (atts.length === 0) return null;
+              return (
+                <div className="accounts-view-card">
+                  <div className="accounts-view-card__header">
+                    <div className="accounts-view-card__title">
+                      <Paperclip size={14} style={{ color: '#3b82f6', marginRight: 6 }} /> Attachments ({atts.length})
+                    </div>
+                  </div>
+                  <div className="accounts-view-card__content">
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                      {atts.map((att: any, idx: number) => {
+                        const { icon, color, bg } = getFileIcon(att.name, att.type);
+                        return (
+                          <div
+                            key={idx}
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'space-between',
+                              padding: '10px 14px',
+                              background: 'var(--bg-slate-50)',
+                              border: '1px solid var(--border-slate-200)',
+                              borderRadius: 8,
+                              cursor: att.url ? 'pointer' : 'default',
+                              transition: 'all 0.15s ease',
+                            }}
+                            onClick={() => {
+                              if (att.url) setPreviewingAttachment(att);
+                            }}
+                          >
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0, flex: 1 }}>
+                              <div
+                                style={{
+                                  width: 34,
+                                  height: 34,
+                                  borderRadius: 8,
+                                  background: bg,
+                                  color: color,
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  flexShrink: 0,
+                                }}
+                              >
+                                {icon}
+                              </div>
+                              <div style={{ minWidth: 0, flex: 1 }}>
+                                <div
+                                  style={{
+                                    fontSize: '12.5px',
+                                    fontWeight: 600,
+                                    color: 'var(--text-slate-800)',
+                                    overflow: 'hidden',
+                                    textOverflow: 'ellipsis',
+                                    whiteSpace: 'nowrap',
+                                  }}
+                                  title={att.name}
+                                >
+                                  {att.name}
+                                </div>
+                                {att.size ? (
+                                  <div style={{ fontSize: '11px', color: 'var(--text-slate-400)' }}>
+                                    {formatFileSize(att.size)}
+                                  </div>
+                                ) : null}
+                              </div>
+                            </div>
+
+                            {att.url && (
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }} onClick={(e) => e.stopPropagation()}>
+                                <Button
+                                  size="small"
+                                  icon={<EyeOutlined style={{ color: '#10b981' }} />}
+                                  onClick={() => setPreviewingAttachment(att)}
+                                  style={{ borderRadius: 6, fontSize: '11.5px', height: 28 }}
+                                >
+                                  View
+                                </Button>
+                                <Button
+                                  size="small"
+                                  icon={<DownloadOutlined style={{ color: '#3b82f6' }} />}
+                                  onClick={(e) => handleDownloadAttachment(e, att.url, att.name)}
+                                  style={{ borderRadius: 6, fontSize: '11.5px', height: 28 }}
+                                >
+                                  Download
+                                </Button>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
+
+            {/* Linked Invoice / Source Metadata if available */}
+            {(viewTransaction.metadata?.invoiceId || viewTransaction.metadata?.invoiceNumber) && (
+              <div className="accounts-view-card">
+                <div className="accounts-view-card__header">
+                  <div className="accounts-view-card__title">
+                    <FileTextOutlined style={{ color: '#3b82f6', marginRight: 6 }} /> Linked Invoice
+                  </div>
+                </div>
+                <div className="accounts-view-card__content">
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <div>
+                      <span style={{ fontSize: '12.5px', fontWeight: 600, color: 'var(--text-slate-800)' }}>
+                        Invoice #{viewTransaction.metadata?.invoiceNumber || viewTransaction.metadata?.invoiceId}
+                      </span>
+                      {viewTransaction.metadata?.customerName && (
+                        <div style={{ fontSize: '11px', color: 'var(--text-slate-400)' }}>
+                          Customer: {viewTransaction.metadata?.customerName}
+                        </div>
+                      )}
+                    </div>
+                    {viewTransaction.metadata?.invoiceId && (
+                      <Button
+                        size="small"
+                        icon={<ExternalLink size={12} />}
+                        onClick={() => router.push(`/invoice/invoices?search=${viewTransaction.metadata?.invoiceNumber || ''}`)}
+                        style={{ borderRadius: 6, fontSize: '11.5px' }}
+                      >
+                        Go to Invoice
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* System Info Footnote */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 8px', fontSize: '11px', color: 'var(--text-slate-400)' }}>
+              <span>Created: {dayjs(viewTransaction.createdAt).format('MMM D, YYYY · h:mm A')}</span>
+              {viewTransaction.updatedAt && (
+                <span>Updated: {dayjs(viewTransaction.updatedAt).format('MMM D, YYYY · h:mm A')}</span>
+              )}
+            </div>
+          </div>
+        )}
+      </Drawer>
 
       {/* Transaction Add/Edit Drawer */}
       <Drawer
@@ -1383,6 +1986,90 @@ export default function AccountsPage() {
                   style={{ padding: '10px 14px' }}
                 />
               </Form.Item>
+            </div>
+
+            {/* Section: Receipts & Attachments */}
+            <div className="accounts-tx-section">
+              <div className="accounts-tx-section__head">
+                <span className="accounts-tx-section__num">04</span>
+                <div>
+                  <div className="accounts-tx-section__title">Receipts & Documents</div>
+                  <div className="accounts-tx-section__sub">Attach bills, receipts, or proof documents (PDF, images, etc. up to 25MB)</div>
+                </div>
+              </div>
+
+              <div
+                className="accounts-upload-zone"
+                onClick={() => fileInputRef.current?.click()}
+                onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); }}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+                    processFiles(e.dataTransfer.files);
+                  }
+                }}
+              >
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  multiple
+                  style={{ display: 'none' }}
+                  onChange={handleFilesSelected}
+                  accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.csv,.txt"
+                />
+                <div className="accounts-upload-zone__icon">
+                  <UploadCloud size={24} color="#3b82f6" />
+                </div>
+                <div className="accounts-upload-zone__text">
+                  <span className="accounts-upload-zone__browse">Click to upload</span> or drag and drop
+                </div>
+                <div className="accounts-upload-zone__hint">
+                  PDF, PNG, JPG, Excel, Word files up to 25MB each
+                </div>
+              </div>
+
+              {attachments.length > 0 && (
+                <div className="accounts-file-list">
+                  {attachments.map((att, idx) => (
+                    <div key={idx} className="accounts-file-item">
+                      <div className="accounts-file-item__icon">
+                        <FileText size={16} />
+                      </div>
+                      <div className="accounts-file-item__info">
+                        <div className="accounts-file-item__name" title={att.name}>{att.name}</div>
+                        <div className="accounts-file-item__meta">
+                          {att.size ? `${(att.size / 1024).toFixed(1)} KB` : 'Uploaded file'}
+                          {att.url && <span className="accounts-file-item__badge">R2 Cloud</span>}
+                        </div>
+                      </div>
+                      <div className="accounts-file-item__actions">
+                        {(att.url || att.base64) && (
+                          <button
+                            type="button"
+                            className="accounts-file-item__btn"
+                            title="Preview Attachment"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setPreviewingAttachment(att);
+                            }}
+                          >
+                            <Eye size={14} />
+                          </button>
+                        )}
+                        <button
+                          type="button"
+                          className="accounts-file-item__btn accounts-file-item__btn--delete"
+                          title="Remove Attachment"
+                          onClick={(e) => { e.stopPropagation(); handleRemoveAttachment(idx); }}
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         </Form>
@@ -1618,11 +2305,101 @@ export default function AccountsPage() {
         subtitle={selectedTransaction ? selectedTransaction.description : "All financial account events"}
       />
 
+      {/* Attachment Preview Modal (Matching Ticket Attachment Viewer) */}
+      <Modal
+        title={
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, maxWidth: '90%' }}>
+            <Paperclip size={15} style={{ color: '#3b82f6', flexShrink: 0 }} />
+            <span style={{ fontSize: '14px', fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {previewingAttachment?.name}
+            </span>
+          </div>
+        }
+        open={!!previewingAttachment}
+        onCancel={() => setPreviewingAttachment(null)}
+        footer={
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+            <Button onClick={() => setPreviewingAttachment(null)}>Close</Button>
+            {previewingAttachment && (previewingAttachment.url || previewingAttachment.base64) && (
+              <Button
+                type="primary"
+                icon={<DownloadOutlined />}
+                onClick={(e) => handleDownloadAttachment(e, previewingAttachment.url, previewingAttachment.name, previewingAttachment.base64)}
+              >
+                Download File
+              </Button>
+            )}
+          </div>
+        }
+        width={840}
+        centered
+        destroyOnClose
+        className="attachment-viewer-modal"
+      >
+        {previewingAttachment && (
+          <div style={{ width: '100%', height: '65vh', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', background: 'var(--bg-slate-50)', borderRadius: 8 }}>
+            {getAttachmentFileType(previewingAttachment.name, previewingAttachment.type).includes('image') ? (
+              <img
+                src={previewingAttachment.url || previewingAttachment.base64}
+                alt={previewingAttachment.name}
+                style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }}
+              />
+            ) : getAttachmentFileType(previewingAttachment.name, previewingAttachment.type).includes('pdf') ? (
+              <iframe
+                src={
+                  previewingAttachment.url
+                    ? `/api/download?url=${encodeURIComponent(previewingAttachment.url)}&name=${encodeURIComponent(previewingAttachment.name)}&inline=true`
+                    : previewingAttachment.base64
+                }
+                width="100%"
+                height="100%"
+                style={{ border: 'none' }}
+                title={previewingAttachment.name}
+              />
+            ) : previewingAttachment.url && (
+              getAttachmentFileType(previewingAttachment.name, previewingAttachment.type).includes('word') ||
+              getAttachmentFileType(previewingAttachment.name, previewingAttachment.type).includes('msword') ||
+              getAttachmentFileType(previewingAttachment.name, previewingAttachment.type).includes('excel') ||
+              getAttachmentFileType(previewingAttachment.name, previewingAttachment.type).includes('spreadsheet') ||
+              /\.(docx?|xlsx?|pptx?)$/i.test(previewingAttachment.name)
+            ) ? (
+              <iframe
+                src={`https://docs.google.com/viewer?url=${encodeURIComponent(previewingAttachment.url)}&embedded=true`}
+                width="100%"
+                height="100%"
+                style={{ border: 'none', background: '#fff' }}
+                title={previewingAttachment.name}
+              />
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 24, textAlign: 'center' }}>
+                <FileTextOutlined style={{ fontSize: 48, color: 'var(--text-slate-400)', marginBottom: 12 }} />
+                <div style={{ fontSize: '13.5px', fontWeight: 600, color: 'var(--text-slate-800)', marginBottom: 4 }}>
+                  {previewingAttachment.name}
+                </div>
+                <Typography.Text type="secondary" style={{ fontSize: '12px', marginBottom: 16 }}>
+                  Direct preview is not available for this file type.
+                </Typography.Text>
+                {(previewingAttachment.url || previewingAttachment.base64) && (
+                  <Button
+                    type="primary"
+                    icon={<DownloadOutlined />}
+                    onClick={(e) => handleDownloadAttachment(e, previewingAttachment.url, previewingAttachment.name, previewingAttachment.base64)}
+                  >
+                    Download File
+                  </Button>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+      </Modal>
+
       <style jsx global>{`
         .pp-shell {
           display: flex;
-          margin: 0 -24px;
-          min-height: calc(100vh - 54px);
+          margin: 0 -8px;
+          height: calc(100vh - 54px);
+          overflow: hidden;
           background: var(--bg-pure-white);
         }
         .pp-shell,
@@ -1752,9 +2529,9 @@ export default function AccountsPage() {
         .pp-trash:hover { color: #3B82F6; }
 
         /* ---------------- Main ---------------- */
-        .pp-main { flex: 1; min-width: 0; padding: 8px 32px 0 20px; display: flex; flex-direction: column; }
-        .pp-body { flex: 1 0 auto; padding-bottom: 60px; }
-        .pp-topbar { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; flex-wrap: wrap; }
+        .pp-main { flex: 1; min-width: 0; padding: 8px 0 0 0; display: flex; flex-direction: column; overflow: hidden; }
+        .pp-body { flex: 1; min-height: 0; padding-bottom: 60px; overflow-y: auto; overflow-x: auto; width: 100%; }
+        .pp-topbar { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; flex-wrap: wrap; padding: 0 32px 0 20px; flex-shrink: 0; }
         .pp-search-wrap {
           position: relative; flex: 1; max-width: 520px; min-width: 240px; display: flex; align-items: center;
           height: 32px; border-radius: 8px; background: var(--bg-pure-white);
@@ -1790,36 +2567,147 @@ export default function AccountsPage() {
         }
         .pp-ghost-btn:hover { color: #3B82F6; border-color: #bfdbfe; }
 
-        .pp-divider { height: 1px; background: var(--border-slate-200); margin: 0 -32px 10px -20px; }
+        .pp-divider { display: none; }
 
-        /* Stat cards */
-        .pp-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 14px; }
-        .pp-stat-card {
-          background: var(--bg-pure-white); border: 1px solid var(--border-slate-200);
-          border-radius: 0; padding: 12px 14px; min-height: 92px;
-          display: flex; flex-direction: column; justify-content: space-between; gap: 10px;
-          box-shadow: 0 1px 2px rgba(15,23,42,0.04);
+        /* Sprint Header (Stats) */
+        .pp-sprint-head-v2 {
+          display: flex;
+          flex-direction: column;
+          gap: 6px;
+          padding: 10px 24px;
+          background: var(--bg-slate-50, #f8fafc);
+          border-bottom: 1px solid var(--border-slate-200, #e2e8f0);
+          margin-bottom: 0px;
+          flex-shrink: 0;
         }
-        .pp-stat-top { display: flex; align-items: center; justify-content: space-between; }
-        .pp-stat-left { display: flex; align-items: center; gap: 8px; }
-        .pp-stat-icon { width: 26px; height: 26px; border-radius: 8px; display: inline-flex; align-items: center; justify-content: center; font-size: 13px; }
-        .pp-stat-label { font-size: 12px; font-weight: 600; color: var(--text-slate-600); }
-        .pp-stat-delta {
-          display: inline-flex; align-items: center; gap: 2px; font-size: 10.5px; font-weight: 700;
-          border-radius: 6px; padding: 1px 6px;
+        .pp-sprint-row1 {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 12px;
+          flex-wrap: wrap;
         }
-        .pp-stat-bottom { display: flex; align-items: flex-end; justify-content: space-between; gap: 8px; }
-        .pp-stat-value-wrap { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; }
-        .pp-stat-value { font-size: 23px; font-weight: 800; color: var(--text-slate-900); letter-spacing: -0.02em; line-height: 1; }
-        .pp-stat-period { font-size: 11px; color: var(--text-slate-400); font-weight: 500; white-space: nowrap; }
-        .pp-stat-spark { opacity: 0.95; }
+        .pp-sprint-title-block {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          min-width: 0;
+          flex: 1 1 auto;
+        }
+        .pp-sprint-dot {
+          width: 7px;
+          height: 7px;
+          border-radius: 50%;
+          flex-shrink: 0;
+        }
+        .pp-sprint-title {
+          font-size: 13.5px !important;
+          font-weight: 800 !important;
+          color: var(--text-slate-900, #0f172a) !important;
+          letter-spacing: -0.01em;
+          margin: 0;
+        }
+        [data-theme='dark'] .pp-sprint-title { color: #f1f5f9 !important; }
+        .pp-sprint-tags {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          flex-shrink: 0;
+        }
+        .pp-sprint-tag {
+          display: inline-flex;
+          align-items: center;
+          height: 18px;
+          padding: 0 6px;
+          font-size: 9px;
+          font-weight: 800;
+          letter-spacing: 0.04em;
+          border-radius: 4px;
+          border: 1px solid transparent;
+          text-transform: uppercase;
+          line-height: 1;
+        }
+        .pp-sprint-tag-neutral {
+          background: transparent;
+          color: var(--text-slate-500);
+          border-color: var(--border-slate-200);
+        }
+        .pp-sprint-tag-active {
+          background: transparent;
+          color: #10b981;
+          border-color: rgba(16, 185, 129, 0.32);
+        }
+        .pp-sprint-tag-delayed {
+          background: transparent;
+          color: #ef4444;
+          border-color: rgba(239, 68, 68, 0.32);
+        }
+        [data-theme='dark'] .pp-sprint-tag-neutral {
+          border-color: rgba(255, 255, 255, 0.12);
+        }
+        [data-theme='dark'] .pp-sprint-tag-delayed {
+          color: #fca5a5;
+        }
+        .pp-sprint-row2 {
+          display: flex;
+          align-items: center;
+          gap: 18px;
+          flex-wrap: wrap;
+          padding-left: 15px;
+        }
+        .pp-sprint-meta {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          font-size: 11.5px;
+          font-weight: 600;
+          color: var(--text-slate-500);
+          letter-spacing: -0.005em;
+        }
+        .pp-sprint-meta b {
+          color: var(--text-slate-900);
+          font-weight: 800;
+        }
+        [data-theme='dark'] .pp-sprint-meta { color: #94a3b8 !important; }
+        [data-theme='dark'] .pp-sprint-meta b { color: #f1f5f9 !important; }
+        .pp-sprint-row3 {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          padding-left: 15px;
+        }
+        .pp-sprint-progress-bar {
+          flex: 1 1 auto;
+          position: relative;
+          height: 6px;
+          background: var(--bg-slate-100, #f1f5f9);
+          border-radius: 999px;
+          overflow: hidden;
+          min-width: 60px;
+        }
+        [data-theme='dark'] .pp-sprint-progress-bar { background: #1f2937 !important; }
+        .pp-sprint-progress-fill {
+          position: absolute;
+          inset: 0;
+          border-radius: 999px;
+          transition: width 0.4s ease;
+        }
+        .pp-sprint-progress-pct {
+          flex-shrink: 0;
+          font-size: 11px;
+          font-weight: 800;
+          color: var(--text-slate-900, #0f172a);
+          font-variant-numeric: tabular-nums;
+          min-width: 32px;
+        }
+        [data-theme='dark'] .pp-sprint-progress-pct { color: #f1f5f9 !important; }
 
         /* Table */
-        .pp-table-wrap { background: var(--bg-pure-white); border: 1px solid var(--border-slate-200); border-radius: 0; overflow: hidden; }
-        .pp-table-wrap ::-webkit-scrollbar { display: none !important; }
-        .pp-table-wrap, .pp-table-wrap * { -ms-overflow-style: none !important; scrollbar-width: none !important; }
+        .pp-table-wrap { background: var(--bg-pure-white); border: none; border-bottom: 1px solid var(--border-slate-200); border-radius: 0; overflow-x: auto; width: 100%; }
+        /* Removed hidden scrollbars so users can scroll */
         .pp-table .ant-table, .pp-table .ant-table-container, .pp-table .ant-table-content { background: transparent; font-size: 12px; border-radius: 0 !important; }
         .pp-table .ant-table-thead > tr > th {
+          position: sticky; top: 0; z-index: 10;
           background: var(--bg-slate-50) !important; border-bottom: 1px solid var(--border-slate-200) !important;
           font-size: 10px !important; font-weight: 700 !important; letter-spacing: 0.04em;
           text-transform: uppercase; color: var(--text-slate-400) !important; padding: 6px 10px !important;
@@ -1891,7 +2779,7 @@ export default function AccountsPage() {
           background: #3B82F6 !important; border: none !important;
           border-radius: 8px !important; font-weight: 600 !important;
         }
-        .pp-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+        .pp-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; padding: 16px 20px; }
         .pp-grid-loading { padding: 40px; text-align: center; color: var(--text-slate-400); grid-column: 1 / -1; }
 
         .pc-card {
@@ -2616,6 +3504,258 @@ export default function AccountsPage() {
         .accounts-tx-form .ant-input-number-input {
           font-variant-numeric: tabular-nums;
           font-weight: 600;
+        }
+
+        /* Attachment & Upload Styles */
+        .accounts-upload-zone {
+          border: 1.5px dashed var(--border-slate-300, #cbd5e1);
+          border-radius: 8px;
+          background: var(--bg-slate-50, #f8fafc);
+          padding: 18px 14px;
+          text-align: center;
+          cursor: pointer;
+          transition: all 0.2s ease;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          gap: 6px;
+        }
+        .accounts-upload-zone:hover {
+          border-color: #3b82f6;
+          background: rgba(59, 130, 246, 0.04);
+        }
+        .accounts-upload-zone__icon {
+          width: 40px;
+          height: 40px;
+          border-radius: 50%;
+          background: rgba(59, 130, 246, 0.1);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          margin-bottom: 2px;
+        }
+        .accounts-upload-zone__text {
+          font-size: 12.5px;
+          font-weight: 500;
+          color: var(--text-slate-600, #475569);
+        }
+        .accounts-upload-zone__browse {
+          color: #3b82f6;
+          font-weight: 700;
+        }
+        .accounts-upload-zone__hint {
+          font-size: 11px;
+          color: var(--text-slate-400, #94a3b8);
+        }
+        .accounts-file-list {
+          margin-top: 10px;
+          display: flex;
+          flex-direction: column;
+          gap: 6px;
+        }
+        .accounts-file-item {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          padding: 8px 12px;
+          background: var(--bg-slate-50, #f8fafc);
+          border: 1px solid var(--border-slate-200, #e2e8f0);
+          border-radius: 6px;
+          transition: border-color 0.15s ease;
+        }
+        .accounts-file-item:hover {
+          border-color: var(--border-slate-300, #cbd5e1);
+        }
+        .accounts-file-item__icon {
+          color: #3b82f6;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          flex-shrink: 0;
+        }
+        .accounts-file-item__info {
+          flex: 1;
+          min-width: 0;
+        }
+        .accounts-file-item__name {
+          font-size: 12px;
+          font-weight: 600;
+          color: var(--text-slate-800, #1e293b);
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+        .accounts-file-item__meta {
+          font-size: 10.5px;
+          color: var(--text-slate-400, #94a3b8);
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          margin-top: 1px;
+        }
+        .accounts-file-item__badge {
+          display: inline-block;
+          font-size: 9px;
+          font-weight: 700;
+          background: rgba(16, 185, 129, 0.12);
+          color: #059669;
+          padding: 0px 4px;
+          border-radius: 4px;
+        }
+        .accounts-file-item__actions {
+          display: flex;
+          align-items: center;
+          gap: 4px;
+          flex-shrink: 0;
+        }
+        .accounts-file-item__btn {
+          border: none;
+          background: transparent;
+          color: var(--text-slate-400, #94a3b8);
+          cursor: pointer;
+          padding: 4px;
+          border-radius: 4px;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          transition: all 0.15s ease;
+        }
+        .accounts-file-item__btn:hover {
+          color: #3b82f6;
+          background: rgba(59, 130, 246, 0.08);
+        }
+        .accounts-file-item__btn--delete:hover {
+          color: #ef4444;
+          background: rgba(239, 68, 68, 0.08);
+        }
+        .accounts-att-pill {
+          display: inline-flex;
+          align-items: center;
+          gap: 3px;
+          font-size: 11px;
+          font-weight: 500;
+          color: #2563eb;
+          background: rgba(37, 99, 235, 0.08);
+          border: 1px solid rgba(37, 99, 235, 0.18);
+          border-radius: 4px;
+          padding: 1px 6px;
+          max-width: 140px;
+          text-decoration: none;
+          transition: all 0.15s ease;
+        }
+        .accounts-att-pill:hover {
+          background: rgba(37, 99, 235, 0.16);
+          color: #1d4ed8;
+        }
+        .accounts-att-pill__name {
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+
+        /* ===== Transaction View Drawer Styles ===== */
+        .accounts-view-drawer__body {
+          padding: 16px 20px 24px;
+          display: flex;
+          flex-direction: column;
+          gap: 14px;
+        }
+        .accounts-view-banner {
+          background: var(--bg-pure-white);
+          border: 1px solid var(--border-slate-200);
+          border-radius: 8px;
+          padding: 16px 18px;
+          box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+        }
+        .accounts-view-banner__top {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 12px;
+        }
+        .accounts-view-banner__label {
+          font-size: 11px;
+          font-weight: 700;
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
+          color: var(--text-slate-400);
+        }
+        .accounts-view-banner__amount {
+          font-size: 24px;
+          font-weight: 800;
+          letter-spacing: -0.02em;
+          line-height: 1.2;
+          margin-top: 4px;
+          font-variant-numeric: tabular-nums;
+        }
+        .accounts-view-card {
+          background: var(--bg-pure-white);
+          border: 1px solid var(--border-slate-200);
+          border-radius: 8px;
+          box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03);
+          overflow: hidden;
+        }
+        .accounts-view-card__header {
+          padding: 10px 14px;
+          background: var(--bg-slate-50);
+          border-bottom: 1px solid var(--border-slate-200);
+        }
+        .accounts-view-card__title {
+          font-size: 11.5px;
+          font-weight: 700;
+          text-transform: uppercase;
+          letter-spacing: 0.04em;
+          color: var(--text-slate-600);
+          display: flex;
+          align-items: center;
+        }
+        .accounts-view-card__content {
+          padding: 12px 14px;
+        }
+        .accounts-view-grid {
+          display: grid;
+          grid-template-columns: repeat(2, 1fr);
+          gap: 14px 16px;
+          padding: 14px;
+        }
+        .accounts-view-field {
+          display: flex;
+          flex-direction: column;
+          gap: 4px;
+        }
+        .accounts-view-field__label {
+          font-size: 10.5px;
+          font-weight: 700;
+          text-transform: uppercase;
+          letter-spacing: 0.04em;
+          color: var(--text-slate-400);
+        }
+        .accounts-view-field__value {
+          font-size: 12.5px;
+          color: var(--text-slate-800);
+        }
+        [data-theme='dark'] .accounts-view-banner,
+        [data-theme='dark'] .accounts-view-card {
+          background: #111720;
+          border-color: #1f2937;
+        }
+        [data-theme='dark'] .accounts-view-card__header {
+          background: #0f1419;
+          border-bottom-color: #1f2937;
+        }
+        [data-theme='dark'] .accounts-view-card__title {
+          color: #94a3b8;
+        }
+        [data-theme='dark'] .accounts-view-field__value {
+          color: #f1f5f9;
+        }
+        .attachment-viewer-modal .ant-modal-content {
+          border-radius: 12px !important;
+          overflow: hidden !important;
+        }
+        .attachment-viewer-modal .ant-modal-body {
+          padding: 16px !important;
         }
       `}</style>
     </MainLayout>

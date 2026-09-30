@@ -38,7 +38,7 @@ export const useCustomers = (filters: CustomersFilters = {}) => {
   return useQuery<PaginatedResponse<Customer>>({
     queryKey: customerKeys.list(filters),
     queryFn: () => CustomersService.getCustomers(filters),
-    staleTime: 5 * 60 * 1000,
+    staleTime: 0,
 
     // ✅ v5 replacement for keepPreviousData
     placeholderData: (previousData) => previousData,
@@ -54,7 +54,7 @@ export const useCustomer = (id: string, enabled = true) => {
     queryKey: customerKeys.detail(id),
     queryFn: () => CustomersService.getCustomer(id),
     enabled: enabled && !!id,
-    staleTime: 5 * 60 * 1000,
+    staleTime: 0,
   });
 };
 

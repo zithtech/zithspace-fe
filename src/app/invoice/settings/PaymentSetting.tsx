@@ -267,7 +267,14 @@ const BankPaymentSettings: FC<BankPaymentSettingsProps> = ({
             name="bankName"
             style={{ marginBottom: 0 }}
           >
-            <Input placeholder="e.g. HDFC Bank" style={inputBase} />
+            <Input 
+              maxLength={100} 
+              placeholder="e.g. HDFC Bank" 
+              style={inputBase} 
+              onInput={(e: any) => {
+                e.target.value = e.target.value.replace(/[^A-Za-z\s.,'&\-]/g, "");
+              }}
+            />
           </Form.Item>
 
           <Form.Item
@@ -308,7 +315,7 @@ const BankPaymentSettings: FC<BankPaymentSettingsProps> = ({
                 style={{ ...monoInput, textTransform: "uppercase" }}
                 maxLength={11}
                 onInput={(e: any) => {
-                  e.target.value = e.target.value.toUpperCase();
+                  e.target.value = e.target.value.replace(/[^A-Za-z0-9]/g, "").toUpperCase();
                 }}
               />
             </Form.Item>
@@ -317,7 +324,14 @@ const BankPaymentSettings: FC<BankPaymentSettingsProps> = ({
               name="branchName"
               style={{ marginBottom: 0 }}
             >
-              <Input placeholder="Branch location" style={inputBase} />
+              <Input 
+                maxLength={100} 
+                placeholder="Branch location" 
+                style={inputBase} 
+                onInput={(e: any) => {
+                  e.target.value = e.target.value.replace(/[^A-Za-z\s.,'&\-]/g, "");
+                }}
+              />
             </Form.Item>
           </div>
 

@@ -168,7 +168,7 @@ export const useProposalLibraryStore = create<LibraryState>()(
         if (sectionsLoaded && !force) return;
         set({ sectionsLoading: true, sectionsError: null });
         try {
-          const sections = await ProposalSectionService.list();
+          const sections = await ProposalSectionService.listAll();
           set({ sections: Array.isArray(sections) ? sections : [], sectionsLoaded: true, sectionsLoading: false });
         } catch (err: any) {
           set({ sectionsLoading: false, sectionsError: err?.message || 'Failed to load sections' });
@@ -213,7 +213,7 @@ export const useProposalLibraryStore = create<LibraryState>()(
         if (templatesLoaded && !force) return;
         set({ templatesLoading: true, templatesError: null });
         try {
-          const templates = await ProposalTemplateService.list();
+          const templates = await ProposalTemplateService.listAll();
           set({ templates: Array.isArray(templates) ? templates : [], templatesLoaded: true, templatesLoading: false });
         } catch (err: any) {
           set({ templatesLoading: false, templatesError: err?.message || 'Failed to load templates' });

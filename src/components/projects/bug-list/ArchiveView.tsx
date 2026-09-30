@@ -37,6 +37,7 @@ import {
 } from "@/hooks/useBugList";
 import type { BugSheet, BugFolder } from "@/services/bugListService";
 import { hivebugStyles } from "./hivebug-styles";
+import { OverviewPager } from "../overview/OverviewPager";
 
 // ─── helpers ────────────────────────────────────────────────────────────────
 
@@ -94,6 +95,7 @@ const formatBreakdown = (folders: number, sheets: number, bugs: number) => {
 // ─── types ───────────────────────────────────────────────────────────────────
 
 interface ArchiveViewProps {
+  projectId?: string;
   selectedSheetId: string | null;
   selectedFolderId: string | null;
   onSelectFolder: (folderId: string | null) => void;
@@ -116,6 +118,7 @@ type FolderWithMeta = BugFolder & {
 // ─── main component ──────────────────────────────────────────────────────────
 
 export default function ArchiveView({
+  projectId,
   selectedSheetId,
   selectedFolderId,
   onSelectFolder,
@@ -147,11 +150,12 @@ export default function ArchiveView({
     });
   };
 
-  const { data: archivedFolders, isLoading: loadingFolders } = useArchivedFolders();
-  const { data: archivedSheets, isLoading: loadingSheets } = useArchivedSheets(selectedFolderId || undefined);
+  const { data: archivedFolders, isLoading: loadingFolders } = useArchivedFolders(projectId);
+  const { data: archivedSheets, isLoading: loadingSheets } = useArchivedSheets(selectedFolderId || undefined, projectId);
   const { data: archivedBugsData, isLoading: loadingBugs } = useBugs({
     scope: "archived",
-    folderId: selectedFolderId || undefined
+    folderId: selectedFolderId || undefined,
+    projectId: projectId || undefined,
   });
   const archivedBugs = archivedBugsData?.bugs || [];
 
@@ -179,7 +183,31 @@ export default function ArchiveView({
 
   const totalItems = (filteredFolders?.length || 0) + (filteredSheets?.length || 0) + filteredBugs.length;
 
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(15);
+
+  React.useEffect(() => {
+    setPage(1);
+  }, [activeTab, selectedFolderId, searchQuery]);
+
   const currentItems = activeTab === "folders" ? filteredFolders : activeTab === "sheets" ? filteredSheets : filteredBugs;
+  const currentTabTotal = currentItems?.length || 0;
+
+  const pagedFolders = React.useMemo(() => {
+    if (!filteredFolders) return [];
+    return filteredFolders.slice((page - 1) * pageSize, page * pageSize);
+  }, [filteredFolders, page, pageSize]);
+
+  const pagedSheets = React.useMemo(() => {
+    if (!filteredSheets) return [];
+    return filteredSheets.slice((page - 1) * pageSize, page * pageSize);
+  }, [filteredSheets, page, pageSize]);
+
+  const pagedBugs = React.useMemo(() => {
+    if (!filteredBugs) return [];
+    return filteredBugs.slice((page - 1) * pageSize, page * pageSize);
+  }, [filteredBugs, page, pageSize]);
+
   const currentIds = (currentItems || []).map((i: any) => i.id);
   const isAllSelected = currentIds.length > 0 && currentIds.every(id => selectedIds.has(id));
 
@@ -231,7 +259,7 @@ export default function ArchiveView({
   }
 
   return (
-    <div className="archive-view-container">
+    <div className="archive-view-container" style={{ display: 'flex', flexDirection: 'column', minHeight: '100%' }}>
       <style>{hivebugStyles}</style>
 
       {/* ── header ── */}
@@ -307,7 +335,7 @@ export default function ArchiveView({
                 onClick={() => {
                   if (activeTab === "folders") bulkRestoreFolders.mutate(Array.from(selectedIds));
                   else if (activeTab === "sheets") bulkRestoreSheets.mutate(Array.from(selectedIds));
-                  else bulkRestore.mutate(Array.from(selectedIds));
+                  else bulkRestore.mutate({ bugIds: Array.from(selectedIds), from: "archive" });
                   setSelectedIds(new Set());
                 }}
               >
@@ -343,13 +371,13 @@ export default function ArchiveView({
         </div>
       )}
 
-      <div className="trash-content">
+      <div className="trash-content" style={{ flex: 1 }}>
         {(activeTab === "folders" || selectedFolderId) && !selectedFolderId && (
           <div className="arc-grid">
-            {(!filteredFolders || filteredFolders.length === 0) ? (
+            {(!pagedFolders || pagedFolders.length === 0) ? (
               <EmptyArchive title="No archived folders" />
             ) : (
-              filteredFolders.map((f) => (
+              pagedFolders.map((f) => (
                 <ArchivedFolderCard
                   key={f.id}
                   folder={f as FolderWithMeta}
@@ -369,10 +397,10 @@ export default function ArchiveView({
 
         {(activeTab === "sheets" || selectedFolderId) && (
           <div className="arc-grid">
-            {(!filteredSheets || filteredSheets.length === 0) ? (
+            {(!pagedSheets || pagedSheets.length === 0) ? (
               <EmptyArchive title={selectedFolderId ? "No sheets in this folder" : "No archived sheets"} />
             ) : (
-              filteredSheets.map((s) => (
+              pagedSheets.map((s) => (
                 <ArchivedSheetCard
                   key={s.id}
                   sheet={s as SheetWithMeta}
@@ -396,10 +424,10 @@ export default function ArchiveView({
         )}
         {activeTab === "bugs" && (
           <div className="arc-grid">
-            {filteredBugs.length === 0 ? (
+            {pagedBugs.length === 0 ? (
               <EmptyArchive title={selectedFolderId ? "No bugs in this folder" : "No archived bugs"} />
             ) : (
-              filteredBugs.map((b: any) => (
+              pagedBugs.map((b: any) => (
                 <ArchivedBugCard
                   key={b.id}
                   bug={b}
@@ -409,7 +437,7 @@ export default function ArchiveView({
                   isNestedInSheet={!!selectedSheetId}
                   isNestedInFolder={!!selectedFolderId}
                   onRestore={canRestoreBugArchive ? () => {
-                    restoreBug.mutate(b.id);
+                    restoreBug.mutate({ id: b.id, from: "archive" });
                     setSelectedIds(new Set());
                   } : undefined}
                   onDelete={canDeleteBugArchive ? () => {
@@ -422,6 +450,21 @@ export default function ArchiveView({
           </div>
         )}
       </div>
+
+      {currentTabTotal > 0 && (
+        <OverviewPager
+          total={currentTabTotal}
+          page={page}
+          pageSize={pageSize}
+          onPageChange={setPage}
+          onPageSizeChange={(newSize) => {
+            setPageSize(newSize);
+            setPage(1);
+          }}
+          pageSizeOptions={[10, 15, 20, 25, 50, 100]}
+          noun={activeTab === "folders" ? "folders" : activeTab === "sheets" ? "sheets" : "bugs"}
+        />
+      )}
     </div>
   );
 }

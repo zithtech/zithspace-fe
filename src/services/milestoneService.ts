@@ -1,4 +1,4 @@
-import { api } from "@/lib/axios";
+import { api, apiClient } from "@/lib/axios";
 
 export type MilestoneStatus =
   | "not_started"
@@ -63,8 +63,30 @@ export interface UpdateMilestonePayload {
 }
 
 export const milestoneService = {
-  list(clientId: string) {
-    return api.get<Milestone[]>(`/api/clients-v2/${clientId}/milestones`);
+  async list(
+    clientId: string,
+    params: {
+      page?: number;
+      limit?: number;
+      search?: string;
+      status?: string;
+      projectId?: string;
+    } = {},
+  ) {
+    const qs = new URLSearchParams();
+    Object.entries(params).forEach(([k, v]) => {
+      if (v != null && v !== "") qs.append(k, String(v));
+    });
+    const res = await apiClient.get(
+      `/api/clients-v2/${clientId}/milestones${qs.toString() ? `?${qs.toString()}` : ""}`,
+    );
+    if (res.data?.success === false) {
+      throw new Error(res.data.error || "Failed to load milestones");
+    }
+    return {
+      data: (res.data?.data || []) as Milestone[],
+      meta: res.data?.meta || { total: (res.data?.data || []).length, page: 1, limit: 15, totalPages: 1 },
+    };
   },
   create(clientId: string, payload: CreateMilestonePayload) {
     return api.post<Milestone>(

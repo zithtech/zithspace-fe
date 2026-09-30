@@ -275,14 +275,28 @@ const PerformanceReportService = {
     return unwrap<{ reports: GeneratedReport[]; periods: string[] }>(res.data) ?? { reports: [], periods: [] };
   },
 
+  /** Delete a generated report */
   async deleteGeneratedReport(id: string): Promise<void> {
     await apiClient.delete(`${BASE}/generated/${id}`);
   },
 
   /** The current user's own generated reports (My Reports). */
-  async getMyGeneratedReports(): Promise<GeneratedReport[]> {
-    const res = await apiClient.get(`${BASE}/generated/mine`);
-    return unwrap<GeneratedReport[]>(res.data) ?? [];
+  async getMyGeneratedReports(params?: { page?: number; limit?: number }): Promise<{ data: GeneratedReport[]; pagination: { total: number; page: number; limit: number } }> {
+    const res = await apiClient.get(`${BASE}/generated/mine`, { params });
+    const raw = res.data;
+    if (Array.isArray(raw?.data)) {
+      return {
+        data: raw.data,
+        pagination: raw.pagination ?? { total: raw.data.length, page: 1, limit: raw.data.length || 15 },
+      };
+    }
+    if (Array.isArray(raw)) {
+      return {
+        data: raw,
+        pagination: { total: raw.length, page: 1, limit: raw.length || 15 },
+      };
+    }
+    return { data: [], pagination: { total: 0, page: 1, limit: 15 } };
   },
 
   /** Leave 2.0 requests overlapping the date range (optionally one member). */
@@ -295,6 +309,16 @@ const PerformanceReportService = {
       },
     });
     return unwrap<ReportLeave[]>(res.data) ?? [];
+  },
+
+  /** Trigger automated report generation sweep on demand */
+  async triggerAutoGenerateSweep(): Promise<{ scannedTenants: number; generatedCount: number; failedCount: number }> {
+    const res = await apiClient.post(
+      `${BASE}/settings/trigger-auto-generate`,
+      {},
+      { timeout: 300000 }
+    );
+    return unwrap(res.data);
   },
 };
 

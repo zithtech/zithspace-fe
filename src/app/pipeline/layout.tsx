@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Users, Settings, Menu, X } from 'lucide-react';
 import MainLayout from '@/components/layout/MainLayout';
+import { PipStyles } from '@/components/pipeline/ui';
 import ProtectedRoute from '@/components/common/ProtectedRoute';
 import { usePermission } from '@/hooks/usePermission';
 
@@ -56,6 +57,7 @@ export default function PipelineLayout({ children }: { children: React.ReactNode
   return (
     <ProtectedRoute>
       <MainLayout>
+        <PipStyles />
         <div className="pl-shell">
           {isMobileOpen && (
             <div className="pl-sidebar-backdrop" onClick={() => setIsMobileOpen(false)} />
@@ -156,23 +158,25 @@ export default function PipelineLayout({ children }: { children: React.ReactNode
           .pl-view-item.is-active .pl-view-label { color: var(--text-slate-900); font-weight: 600; }
           .pl-view-icon { width: 16px; display: inline-flex; justify-content: center; align-items: center; }
           .pl-view-label { flex: 1; font-size: 13px; font-weight: 500; color: var(--text-slate-700); }
-          .pl-main { flex: 1; min-width: 0; padding: 8px 0 0; display: flex; flex-direction: column; }
-          .pl-content { flex: 1; min-height: 0; padding: 4px 16px 0; display: flex; flex-direction: column; }
+          .pl-main { flex: 1; min-width: 0; padding: 0; display: flex; flex-direction: column; }
+          .pl-content { flex: 1; min-height: 0; padding: 0; display: flex; flex-direction: column; }
           
-          .pl-content > * > [class*="-header"],
-          .pl-content > * > [class*="-footer"] {
-            margin-left: -16px !important;
-            margin-right: -16px !important;
-            padding-left: 16px !important;
-            padding-right: 16px !important;
+          .pl-content > [class*="-header"],
+          .pl-content > [class*="-footer"],
+          .pl-content > .pl-topbar,
+          .pl-content > .opn-sprint-header-v2 {
+            margin-left: 0 !important;
+            margin-right: 0 !important;
+            padding-left: 20px !important;
+            padding-right: 20px !important;
           }
 
           .pl-topbar { 
             display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
             position: sticky; top: 0; z-index: 30;
             background: var(--bg-pure-white);
-            margin: -4px -16px 8px -16px;
-            padding: 8px 16px 8px 16px;
+            margin: 0;
+            padding: 10px 20px;
             border-bottom: 1px solid var(--border-slate-200);
           }
           .pl-search-wrap {
@@ -198,15 +202,16 @@ export default function PipelineLayout({ children }: { children: React.ReactNode
           /* Footer + pager */
           .pl-footer {
             display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;
-            padding: 10px 14px; border-top: 1px solid var(--border-slate-200);
+            padding: 10px 20px; border-top: 1px solid var(--border-slate-200);
           }
           .pl-footer--sticky {
             position: sticky; bottom: 0; z-index: 30;
-            margin: 8px -16px 0 -16px;
-            padding: 0 16px 0 16px;
+            margin: 0 !important;
+            padding: 10px 20px !important;
             background: var(--bg-pure-white);
             box-shadow: 0 -4px 14px rgba(15,23,42,0.05);
-            height: 45px;
+            min-height: 45px;
+            height: auto;
           }
           .pl-footer-info { font-size: 12px; color: var(--text-slate-500); }
           .pl-footer-info strong { color: var(--text-slate-700); font-weight: 700; }
@@ -299,9 +304,14 @@ export default function PipelineLayout({ children }: { children: React.ReactNode
             .pl-mobile-header { display: flex; }
             .pl-main { padding: 4px 0 0; }
             .pl-content { padding: 4px 16px 0; }
-            .pl-content > * > [class*="-header"],
-            .pl-content > * > [class*="-footer"] {
+            .pl-content > [class*="-header"],
+            .pl-content > [class*="-footer"],
+            .pl-content > .pl-topbar,
+            .pl-content > .opn-sprint-header-v2 {
               margin-left: -16px !important; margin-right: -16px !important; padding-left: 16px !important; padding-right: 16px !important;
+            }
+            .pl-content > .pl-body .pip-table-wrap {
+              margin-left: -16px !important; margin-right: -16px !important;
             }
           }
         `}</style>

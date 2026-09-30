@@ -9837,7 +9837,8 @@ export default function ManagerReimbursementsPage() {
                     rowExpandable: (record) => (record.items?.length || 0) > 0,
                   }}
                   pagination={{
-                    pageSize: 10,
+                    defaultPageSize: 15,
+                    pageSizeOptions: [10, 15, 20, 25, 50, 100],
                     size: "small",
                     showSizeChanger: true,
                     showTotal: (total) => `Total ${total} reimbursements`,

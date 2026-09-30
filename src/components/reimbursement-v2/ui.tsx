@@ -222,21 +222,95 @@ export interface StatCell {
   tint: string;
 }
 
-export function StatCards({ cells }: { cells: StatCell[] }) {
+export function StatCards({
+  cells,
+  title = "Reimbursement Overview",
+  tag = "LIVE",
+  dotColor = "#3b82f6",
+  progressPct,
+}: {
+  cells: StatCell[];
+  title?: string;
+  tag?: string;
+  dotColor?: string;
+  progressPct?: string | number;
+}) {
+  const { pctNumber, pctString } = React.useMemo(() => {
+    if (progressPct !== undefined && progressPct !== null && progressPct !== "") {
+      const parsed = typeof progressPct === "number" ? progressPct : parseFloat(String(progressPct));
+      if (!isNaN(parsed)) {
+        const clamped = Math.min(100, Math.max(0, parsed));
+        return { pctNumber: clamped, pctString: `${clamped}%` };
+      }
+    }
+    if (cells && cells.length > 0) {
+      let total = 0;
+      let completed = 0;
+      let hasTotal = false;
+      for (const item of cells) {
+        const lbl = String(item.label || "").toLowerCase();
+        const rawVal = item.value;
+        const numVal = typeof rawVal === "number" ? rawVal : parseFloat(String(rawVal).replace(/[^0-9.-]/g, ""));
+        if (!isNaN(numVal)) {
+          if (lbl.includes("total") || lbl.includes("all") || lbl.includes("count")) {
+            total = numVal;
+            hasTotal = true;
+          } else if (lbl.includes("approved") || lbl.includes("paid") || lbl.includes("completed")) {
+            completed += numVal;
+          }
+        }
+      }
+      if (hasTotal && total > 0) {
+        const computed = Math.min(100, Math.max(0, Math.round((completed / total) * 100)));
+        return { pctNumber: computed, pctString: `${computed}%` };
+      }
+    }
+    return { pctNumber: 0, pctString: "0%" };
+  }, [progressPct, cells]);
+
   return (
-    <div className="rvp-stats">
-      {cells.map((c) => (
-        <div className="rvp-stat-card" key={c.label}>
-          <span className="rvp-stat-icon" style={{ background: c.tint, color: c.color }}>
-            {c.icon}
-          </span>
-          <div className="rvp-stat-body">
-            <div className="rvp-stat-value">{c.value}</div>
-            <div className="rvp-stat-label">{c.label}</div>
-            {c.hint && <div className="rvp-stat-hint">{c.hint}</div>}
+    <div className="rvp-sprint-header-v2">
+      <div className="rvp-sprint-row1">
+        <div className="rvp-sprint-title-block">
+          <div
+            className="rvp-sprint-dot"
+            style={{
+              background: dotColor,
+              boxShadow: `0 0 0 3px ${dotColor}33`,
+            }}
+          />
+          <h2 className="rvp-sprint-title">{title}</h2>
+          <div className="rvp-sprint-tags">
+            <span className="rvp-sprint-tag rvp-sprint-tag-active">{tag}</span>
           </div>
         </div>
-      ))}
+      </div>
+      <div className="rvp-sprint-row2">
+        {cells.map((c) => (
+          <span key={c.label} className="rvp-sprint-meta">
+            <span style={{ color: c.color, display: "flex", alignItems: "center" }}>
+              {c.icon}
+            </span>
+            <span>
+              <b>{c.value}</b> {c.label}
+            </span>
+            {c.hint && (
+              <span style={{ color: "var(--text-slate-400)", marginLeft: 4, fontWeight: 400 }}>
+                {c.hint}
+              </span>
+            )}
+          </span>
+        ))}
+      </div>
+      <div className="rvp-sprint-row3">
+        <div className="rvp-sprint-progress-bar">
+          <div
+            className="rvp-sprint-progress-fill"
+            style={{ width: `${pctNumber}%` }}
+          />
+        </div>
+        <span className="rvp-sprint-progress-pct">{pctString}</span>
+      </div>
     </div>
   );
 }
@@ -277,22 +351,22 @@ export function SectionCard({
 }
 
 export const tablePaginationConfig = {
-  pageSize: 20,
+  pageSize: 15,
   showTotal: (total: number, range: [number, number]) => (
     <>Showing <strong>{range[0]}–{range[1]}</strong> of <strong>{total}</strong></>
   ),
   showSizeChanger: true,
-  pageSizeOptions: ['10', '20', '25', '50', '100']
+  pageSizeOptions: ['10', '15', '20', '25', '50', '100']
 };
 
 // ── Shared styles (render once per panel) ────────────────────────────────────
 export function RmbStyles() {
   return (
     <style jsx global>{`
-      .rvp { display: flex; flex-direction: column; min-height: 0; flex: 1; }
+      .rvp { display: flex; flex-direction: column; min-height: 0; flex: 1; overflow: hidden; }
       .rvp-header {
         display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap;
-        padding: 16px 0 20px !important; border-bottom: 1px solid var(--border-slate-100); margin-bottom: 20px;
+        padding: 16px 20px 20px !important; border-bottom: 1px solid var(--border-slate-100); margin-bottom: 0px;
         position: sticky; top: 0; z-index: 30; background: var(--bg-pure-white);
       }
       .rvp-head-about { display: flex; align-items: center; gap: 10px; min-width: 0; }
@@ -313,50 +387,47 @@ export function RmbStyles() {
       .rvp-head-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
       .rvp-head-actions .ant-btn { height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; }
       .rvp-search.ant-input-affix-wrapper { width: 240px; height: 32px; border-radius: 8px; }
-      .rvp-stats {
-        display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 16px;
-      }
-      @media (max-width: 1024px) {
-        .rvp-stats { grid-template-columns: repeat(2, 1fr); }
-      }
-      @media (max-width: 640px) {
-        .rvp-stats { grid-template-columns: 1fr; }
-      }
-      .rvp-stat-card {
-        display: flex; align-items: center; gap: 12px; padding: 14px 16px; border-radius: 0;
-        border: 1px solid var(--border-slate-200); background: var(--bg-pure-white);
-      }
-      .rvp-stat-icon {
-        width: 38px; height: 38px; border-radius: 10px; display: flex; align-items: center;
-        justify-content: center; font-size: 17px; flex-shrink: 0;
-      }
-      .rvp-stat-body { min-width: 0; }
-      .rvp-stat-value { font-size: 20px; font-weight: 800; color: var(--text-slate-900); line-height: 1.1; }
-      .rvp-stat-label { font-size: 12px; font-weight: 600; color: var(--text-slate-600); margin-top: 2px; }
-      .rvp-stat-hint { font-size: 10.5px; color: var(--text-slate-400); margin-top: 1px; }
-      .rvp-filters { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; }
+      /* Sprint Header (Stats) */
+      .rvp-sprint-header-v2 { display: flex; flex-direction: column; gap: 6px; padding: 10px 24px; background: var(--bg-slate-50, #f8fafc); border-bottom: 1px solid var(--border-slate-200, #e2e8f0); margin-bottom: 0px; flex-shrink: 0; }
+      .rvp-sprint-row1 { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+      .rvp-sprint-title-block { display: flex; align-items: center; gap: 8px; min-width: 0; flex: 1 1 auto; }
+      .rvp-sprint-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+      .rvp-sprint-title { font-size: 13.5px !important; font-weight: 800 !important; color: var(--text-slate-900, #0f172a) !important; letter-spacing: -0.01em; margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+      .rvp-sprint-tags { display: inline-flex; align-items: center; gap: 6px; flex-shrink: 0; }
+      .rvp-sprint-tag { display: inline-flex; align-items: center; height: 18px; padding: 0 6px; font-size: 9px; font-weight: 800; letter-spacing: 0.04em; border-radius: 4px; border: 1px solid transparent; text-transform: uppercase; line-height: 1; }
+      .rvp-sprint-tag-active { background: transparent; color: #10b981; border-color: rgba(16, 185, 129, 0.32); }
+      .rvp-sprint-row2 { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; padding-left: 15px; }
+      .rvp-sprint-meta { display: inline-flex; align-items: center; gap: 6px; font-size: 11.5px; font-weight: 600; color: var(--text-slate-500, #64748b); letter-spacing: -0.005em; }
+      .rvp-sprint-meta b { color: var(--text-slate-900, #0f172a); font-weight: 800; }
+      .rvp-sprint-row3 { display: flex; align-items: center; gap: 12px; padding-left: 15px; }
+      .rvp-sprint-progress-bar { flex: 1 1 auto; position: relative; height: 6px; background: var(--bg-slate-100, #f1f5f9); border-radius: 999px; overflow: hidden; min-width: 60px; }
+      .rvp-sprint-progress-fill { position: absolute; inset: 0; background: linear-gradient(90deg, #3b82f6, #2563eb); border-radius: 999px; transition: width 0.4s ease; }
+      .rvp-sprint-progress-pct { flex-shrink: 0; font-size: 12px; font-weight: 800; color: var(--text-slate-900, #0f172a); font-variant-numeric: tabular-nums; min-width: 36px; }
+      .rvp-filters { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; padding: 0 20px; }
       .rvp-filter-count { font-size: 12px; color: var(--text-slate-500); margin-left: auto; }
-      .rvp > .ant-tabs { display: flex; flex-direction: column; flex: 1; min-height: 0; }
+      .rvp > .ant-tabs { display: flex; flex-direction: column; flex: 1; min-height: 0; overflow: hidden; }
+      .rvp > .ant-tabs > .ant-tabs-nav { padding: 0 20px; margin-bottom: 12px; }
       .rvp > .ant-tabs > .ant-tabs-content-holder,
       .rvp > .ant-tabs > .ant-tabs-content-holder > .ant-tabs-content,
       .rvp > .ant-tabs > .ant-tabs-content-holder > .ant-tabs-content > .ant-tabs-tabpane-active {
-        display: flex; flex-direction: column; flex: 1; min-height: 0;
+        display: flex; flex-direction: column; flex: 1; min-height: 0; overflow: hidden;
       }
       .rvp-table-wrap {
-        display: flex; flex-direction: column; flex: 1; min-height: 0;
+        display: flex; flex-direction: column; flex: 1; min-height: 0; overflow: hidden;
       }
-      .rvp-table-wrap .ant-table-wrapper { display: flex; flex-direction: column; flex: 1; min-height: 0; }
-      .rvp-table-wrap .ant-spin-nested-loading { display: flex; flex-direction: column; flex: 1; min-height: 0; }
-      .rvp-table-wrap .ant-spin-container { display: flex; flex-direction: column; flex: 1; min-height: 0; }
+      .rvp-table-wrap .ant-table-wrapper { display: flex; flex-direction: column; flex: 1; min-height: 0; overflow: hidden; }
+      .rvp-table-wrap .ant-spin-nested-loading { display: flex; flex-direction: column; flex: 1; min-height: 0; overflow: hidden; }
+      .rvp-table-wrap .ant-spin-container { display: flex; flex-direction: column; flex: 1; min-height: 0; overflow: hidden; }
       .rvp-table-wrap .ant-table {
-        flex: 0 1 auto; overflow: auto;
+        flex: 1 1 auto; overflow: hidden; display: flex; flex-direction: column;
         background: var(--bg-pure-white);
         border: 1px solid var(--border-slate-200);
         border-radius: 0 !important;
-        margin-bottom: 24px;
+        margin-bottom: 0;
       }
+      .rvp-table-wrap .ant-table-container { overflow: hidden !important; display: flex; flex-direction: column; flex: 1; min-height: 0; }
+      .rvp-table-wrap .ant-table-content { overflow-y: auto !important; overflow-x: auto !important; flex: 1; min-height: 0; }
       .rvp-table-wrap .ant-table table { min-width: 800px; }
-      .rvp-table-wrap .ant-table-container,
       .rvp-table-wrap .ant-table-thead > tr > th:first-child,
       .rvp-table-wrap .ant-table-thead > tr > th:last-child {
         border-radius: 0 !important;
@@ -364,7 +435,9 @@ export function RmbStyles() {
       
       /* Ticket style table headers for ALL v2 tables (in rv-shell and drawers) */
       .rvp-table-wrap .ant-table-thead > tr > th,
-      .ant-drawer-content .ant-table-thead > tr > th {
+      .ant-drawer-content .ant-table-thead > tr > th,
+      .ant-table-thead > tr > th {
+        position: sticky; top: 0; z-index: 10;
         padding: 5px 10px !important;
         font-size: 10px !important;
         font-weight: 800 !important;
@@ -373,6 +446,7 @@ export function RmbStyles() {
         text-transform: uppercase;
         letter-spacing: 0.04em;
         text-align: left !important;
+        border-bottom: 1px solid var(--border-slate-200) !important;
         /* Remove vertical separator lines between header cells */
         border-inline-end: none !important;
       }
@@ -403,14 +477,12 @@ export function RmbStyles() {
       }
 
       .rvp-table-wrap .ant-pagination {
-
-        margin: auto -32px 0 -32px !important;
-        padding: 12px 32px;
+        margin: 0 !important;
+        padding: 12px 20px;
         background: var(--bg-pure-white);
         border-top: 1px solid var(--border-slate-200);
-        position: sticky; bottom: 0; z-index: 20;
         display: flex; align-items: center;
-        box-shadow: 0 -4px 14px rgba(15, 23, 42, 0.03);
+        flex-shrink: 0;
       }
       .rvp-table-wrap .ant-pagination-total-text { margin-right: auto; color: var(--text-slate-500); font-size: 13px; }
       .rvp-empty { padding: 48px; text-align: center; color: var(--text-slate-400); }

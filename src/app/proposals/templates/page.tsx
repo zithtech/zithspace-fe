@@ -2,9 +2,9 @@
 
 import NoData from "@/components/common/NoData";
 
-import React, { useMemo, useState, useEffect } from 'react';
+import React, { useMemo, useState, useEffect, useCallback } from 'react';
 import {
-  Button, Dropdown, message, Select, Tooltip,
+  Button, Dropdown, message, Select, Table, Tooltip,
 } from 'antd';
 import type { MenuProps } from 'antd';
 import {
@@ -17,12 +17,14 @@ import { LayoutTemplate } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import dayjs from 'dayjs';
 import MainLayout from '@/components/layout/MainLayout';
+import StatCards from '@/components/common/StatCards';
 import ProtectedRoute from '@/components/common/ProtectedRoute';
 import { resolveTheme } from '@/components/proposals/themePresets';
 import { nanoid } from 'nanoid';
 import {
   useProposalLibraryStore, LibraryTemplate, LibrarySection, blockTypeForSectionType,
 } from '@/store/proposalLibraryStore';
+import { ProposalTemplateService } from '@/services/proposalTemplateService';
 import { usePermission } from '@/hooks/usePermission';
 import { useActivitySource } from '@/hooks/useActivitySource';
 import ConfirmDialog from '@/components/common/ConfirmDialog';
@@ -30,7 +32,7 @@ import TemplatePreviewModal from '@/components/proposals/TemplatePreviewModal';
 import '../library.css';
 
 type SavedView = 'all' | 'archived';
-const PAGE_SIZE_OPTIONS = [10, 20, 25, 50, 100];
+const PAGE_SIZE_OPTIONS = [10, 15, 20, 25, 50, 100];
 
 const BLOCK_TYPE_LABEL: Record<string, string> = {
   cover: 'Cover', text: 'Text', section: 'Section', pricing: 'Pricing',
@@ -80,20 +82,65 @@ function TemplatesContent() {
   const [messageApi, holder] = message.useMessage();
   const { canCreateProposal, canUpdateProposal, canDeleteProposal } = usePermission();
 
-  const templates = useProposalLibraryStore((s) => s.templates);
   const sections = useProposalLibraryStore((s) => s.sections);
   const fetchSections = useProposalLibraryStore((s) => s.fetchSections);
-  const fetchTemplates = useProposalLibraryStore((s) => s.fetchTemplates);
-  useEffect(() => { fetchSections(); fetchTemplates(true); }, [fetchSections, fetchTemplates]);
   const duplicateTemplate = useProposalLibraryStore((s) => s.duplicateTemplate);
   const archiveTemplate = useProposalLibraryStore((s) => s.archiveTemplate);
   const deleteTemplate = useProposalLibraryStore((s) => s.deleteTemplate);
-  const sectionsLoading = useProposalLibraryStore((s) => s.sectionsLoading);
-  const templatesLoading = useProposalLibraryStore((s) => s.templatesLoading);
-  const loading = sectionsLoading || templatesLoading;
+
+  const [templatesList, setTemplatesList] = useState<LibraryTemplate[]>([]);
+  const [templatesLoading, setTemplatesLoading] = useState(false);
+  const [templatesLoaded, setTemplatesLoaded] = useState(false);
+  const [total, setTotal] = useState(0);
+  const [stats, setStats] = useState({
+    total: 0,
+    active: 0,
+    archived: 0,
+  });
+
+  const [searchText, setSearchText] = useState('');
+  const [savedView, setSavedView] = useState<SavedView>('all');
+  const [view, setView] = useState<'list' | 'grid'>('list');
+  const [tablePage, setTablePage] = useState(1);
+  const [tablePageSize, setTablePageSize] = useState(15);
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
+  const [previewTpl, setPreviewTpl] = useState<LibraryTemplate | null>(null);
+
+  const loadTemplates = useCallback(async () => {
+    setTemplatesLoading(true);
+    try {
+      const res = await ProposalTemplateService.list({
+        page: tablePage,
+        limit: tablePageSize,
+        search: searchText.trim() || undefined,
+        view: savedView,
+      });
+      setTemplatesList(res.data || []);
+      if (res.pagination) {
+        setTotal(res.pagination.total);
+      }
+      if (res.stats) {
+        setStats(res.stats);
+      }
+      setTemplatesLoaded(true);
+    } catch (err: any) {
+      messageApi.error(err?.message || 'Failed to load templates');
+    } finally {
+      setTemplatesLoading(false);
+    }
+  }, [tablePage, tablePageSize, searchText, savedView, messageApi]);
+
+  useEffect(() => {
+    loadTemplates();
+  }, [loadTemplates]);
+
+  useEffect(() => {
+    fetchSections();
+  }, [fetchSections]);
+
   const handleRefresh = () => {
+    loadTemplates();
     fetchSections(true);
-    fetchTemplates(true);
   };
 
   const sectionById = useMemo(() => {
@@ -109,48 +156,29 @@ function TemplatesContent() {
       ? t.blocks.map(blockLabel)
       : (t.sectionIds || []).map((id) => sectionById.get(id)?.name).filter(Boolean) as string[]);
 
-  const [searchText, setSearchText] = useState('');
-  const [savedView, setSavedView] = useState<SavedView>('all');
-  const [view, setView] = useState<'grid' | 'list'>('grid');
-  const [tablePage, setTablePage] = useState(1);
-  const [tablePageSize, setTablePageSize] = useState(20);
-  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
-
-  const [previewTpl, setPreviewTpl] = useState<LibraryTemplate | null>(null);
-
   const handleDeleteTemplate = async (t: LibraryTemplate) => {
     try {
       await deleteTemplate(t.id);
       messageApi.success('Template deleted');
+      loadTemplates();
     } catch (e: any) {
       messageApi.error(e?.message || 'Failed to delete template');
       throw e; // keep the confirm popover open on failure
     }
   };
 
-  const activeCount = templates.filter((t) => !t.archived).length;
-  const archivedCount = templates.filter((t) => t.archived).length;
-  const avgBlocks = activeCount
-    ? Math.round(templates.filter((t) => !t.archived).reduce((a, t) => a + blockCount(t), 0) / activeCount)
+  const activeCount = stats.active;
+  const archivedCount = stats.archived;
+  const avgBlocks = templatesList.length
+    ? Math.round(templatesList.filter((t) => !t.archived).reduce((a, t) => a + blockCount(t), 0) / Math.max(1, templatesList.filter((t) => !t.archived).length))
     : 0;
   const sectionCount = sections.filter((s) => !s.archived).length;
 
-  const filtered = useMemo(() => {
-    const q = searchText.trim().toLowerCase();
-    return templates.filter((t) => {
-      if (savedView === 'archived') { if (!t.archived) return false; }
-      else if (t.archived) return false;
-      if (q && !`${t.name} ${t.description || ''}`.toLowerCase().includes(q)) return false;
-      return true;
-    });
-  }, [templates, searchText, savedView]);
-
-  const total = filtered.length;
   const pageCount = Math.max(1, Math.ceil(total / tablePageSize));
   const safePage = Math.min(tablePage, pageCount);
   const pageStart = total === 0 ? 0 : (safePage - 1) * tablePageSize + 1;
   const pageEnd = Math.min(safePage * tablePageSize, total);
-  const paged = filtered.slice((safePage - 1) * tablePageSize, safePage * tablePageSize);
+  const paged = templatesList;
 
   const views: { key: SavedView; label: string; icon: React.ReactNode; color: string; count: number }[] = [
     { key: 'all', label: 'All Templates', icon: <AppstoreOutlined />, color: '#3B82F6', count: activeCount },
@@ -195,11 +223,17 @@ function TemplatesContent() {
       else if (key === 'edit') openEdit(t);
       else if (key === 'duplicate') {
         duplicateTemplate(t.id)
-          .then(() => messageApi.success('Template duplicated'))
+          .then(() => {
+            messageApi.success('Template duplicated');
+            loadTemplates();
+          })
           .catch((e: any) => messageApi.error(e?.message || 'Failed to duplicate template'));
       } else if (key === 'archive') {
         archiveTemplate(t.id, !t.archived)
-          .then(() => messageApi.success(t.archived ? 'Template restored' : 'Template archived'))
+          .then(() => {
+            messageApi.success(t.archived ? 'Template restored' : 'Template archived');
+            loadTemplates();
+          })
           .catch((e: any) => messageApi.error(e?.message || 'Failed to update template'));
       }
     },
@@ -210,6 +244,104 @@ function TemplatesContent() {
     { key: 'avg', title: 'Avg. Blocks', value: avgBlocks, icon: <BlockOutlined />, color: '#2563eb', tint: 'rgba(37,99,235,0.10)' },
     { key: 'lib', title: 'Section Library', value: sectionCount, icon: <FolderOpenOutlined />, color: '#059669', tint: 'rgba(5,150,105,0.10)' },
     { key: 'arch', title: 'Archived', value: archivedCount, icon: <InboxOutlined />, color: '#475569', tint: 'rgba(71,85,105,0.10)' },
+  ];
+
+  const cards = useMemo(() => {
+    return statCells.map((s, i) => ({
+      title: s.title,
+      value: s.value,
+      icon: s.icon,
+      color: s.color,
+      sparkline: trendFor(i + s.value),
+    }));
+  }, [statCells]);
+
+  const tableColumns = [
+    {
+      title: 'TEMPLATE NAME',
+      dataIndex: 'name',
+      key: 'name',
+      render: (_: any, t: LibraryTemplate) => {
+        const theme = resolveTheme(t.themeId);
+        return (
+          <div className="pp-name-cell" onClick={() => setPreviewTpl(t)} style={{ cursor: 'pointer' }}>
+            <div className="pp-name-icon" style={{ background: `linear-gradient(135deg, ${theme.from} 0%, ${theme.to} 100%)`, color: '#fff' }}>
+              <LayoutTemplate size={13} />
+            </div>
+            <span className="pp-name-title">{t.name}</span>
+          </div>
+        );
+      },
+    },
+    {
+      title: 'THEME',
+      key: 'theme',
+      render: (_: any, t: LibraryTemplate) => {
+        const theme = resolveTheme(t.themeId);
+        return (
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: 'var(--text-slate-700)' }}>
+            <span style={{ width: 12, height: 12, borderRadius: 3, background: `linear-gradient(135deg, ${theme.from}, ${theme.to})`, display: 'inline-block' }} />
+            {theme.label}
+          </span>
+        );
+      },
+    },
+    {
+      title: 'BLOCKS',
+      key: 'blocks',
+      render: (_: any, t: LibraryTemplate) => (
+        <span style={{ fontSize: '12px', color: 'var(--text-slate-700)' }}>
+          {blockCount(t)} block{blockCount(t) !== 1 ? 's' : ''}
+        </span>
+      ),
+    },
+    {
+      title: 'STRUCTURE',
+      key: 'chips',
+      render: (_: any, t: LibraryTemplate) => {
+        const chips = chipLabels(t);
+        return (
+          <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
+            {chips.slice(0, 3).map((label, i) => <span key={i} className="lib-tpl__seq-chip">{label}</span>)}
+            {chips.length > 3 && <span className="lib-tpl__seq-chip">+{chips.length - 3}</span>}
+          </div>
+        );
+      },
+    },
+    {
+      title: 'UPDATED',
+      dataIndex: 'updatedAt',
+      key: 'updatedAt',
+      render: (date: string) => <span style={{ fontSize: '12px', color: '#64748b' }}>{date ? dayjs(date).format('MMM D, YYYY') : '—'}</span>,
+    },
+    {
+      title: 'ACTIONS',
+      key: 'actions',
+      align: 'center' as const,
+      onHeaderCell: () => ({ style: { textAlign: 'center' as const } }),
+      onCell: () => ({ style: { textAlign: 'center' as const } }),
+      render: (_: any, t: LibraryTemplate) => (
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }} onClick={(e) => e.stopPropagation()}>
+          <Tooltip title="Preview">
+            <button type="button" className="pp-ghost-btn" onClick={() => setPreviewTpl(t)} style={{ width: 28, height: 28, fontSize: 12 }}>
+              <EyeOutlined />
+            </button>
+          </Tooltip>
+          {canCreateProposal && (
+            <Tooltip title="Use Template">
+              <button type="button" className="pp-ghost-btn" onClick={() => useTemplate(t)} style={{ width: 28, height: 28, fontSize: 12, color: '#2563eb' }}>
+                <ArrowRightOutlined />
+              </button>
+            </Tooltip>
+          )}
+          <Dropdown menu={cardMenu(t)} overlayClassName="pp-action-pop" trigger={['click']} placement="bottomRight">
+            <button type="button" className="pc-actions" style={{ background: 'transparent', border: 'none', cursor: 'pointer', padding: '4px' }}>
+              <EllipsisOutlined style={{ fontSize: '16px', color: '#64748b' }} />
+            </button>
+          </Dropdown>
+        </div>
+      ),
+    },
   ];
 
   const emptyState = (
@@ -303,8 +435,8 @@ function TemplatesContent() {
                 <button type="button" className={view === 'list' ? 'is-active' : ''} onClick={() => setView('list')} aria-label="List view"><UnorderedListOutlined /></button>
               </div>
               <Tooltip title="Refresh">
-                <button type="button" className="pp-ghost-btn" onClick={handleRefresh} disabled={loading}>
-                  <ReloadOutlined spin={loading} />
+                <button type="button" className="pp-ghost-btn" onClick={handleRefresh} disabled={templatesLoading}>
+                  <ReloadOutlined spin={templatesLoading} />
                 </button>
               </Tooltip>
               <Tooltip title="Section library">
@@ -315,97 +447,111 @@ function TemplatesContent() {
 
           <div className="pp-divider" />
 
-          <div className="pp-stats">
-            {statCells.map((s, i) => (
-              <div key={s.key} className="pp-stat-card">
-                <div className="pp-stat-top">
-                  <div className="pp-stat-left">
-                    <span className="pp-stat-icon" style={{ background: s.tint, color: s.color }}>{s.icon}</span>
-                    <span className="pp-stat-label">{s.title}</span>
-                  </div>
-                </div>
-                <div className="pp-stat-bottom">
-                  <div className="pp-stat-value-wrap"><span className="pp-stat-value">{s.value}</span></div>
-                  <div className="pp-stat-spark"><AreaSparkline values={trendFor(i + s.value)} color={s.color} /></div>
-                </div>
-              </div>
-            ))}
-          </div>
+          <StatCards
+            title="Templates Overview"
+            statusText="ACTIVE"
+            progressPct={(activeCount + archivedCount) > 0 ? Math.round((activeCount / (activeCount + archivedCount)) * 100) : 0}
+            cards={cards}
+          />
 
           <div className="pp-body">
-            <div className="pp-grid" style={view === 'list' ? { gridTemplateColumns: '1fr' } : undefined}>
-              {paged.length === 0 ? (
-                <div style={{ gridColumn: '1 / -1' }}><NoData description={emptyState} /></div>
-              ) : paged.map((t) => {
-                const theme = resolveTheme(t.themeId);
-                const chips = chipLabels(t);
-                return (
-                  <div key={t.id} className="pc-card" onClick={() => setPreviewTpl(t)}>
-                    <div className="pc-top">
-                      <div className="pc-avatar" style={{ background: `linear-gradient(135deg, ${theme.from} 0%, ${theme.to} 100%)` }}>
-                        <LayoutTemplate size={15} />
-                      </div>
-                      <div className="pc-identity-body">
-                        <div className="pc-title">{t.name}</div>
-                        <div className="pc-client-line">
-                          <span className="pc-client-key">Blocks:</span>
-                          <span className="pc-client-val">{blockCount(t)}</span>
+            {view === 'list' ? (
+              <div className="pp-table-wrap" style={{ borderRadius: 0, background: 'var(--bg-pure-white)', border: '1px solid var(--border-slate-200)' }}>
+                <Table
+                  columns={tableColumns}
+                  dataSource={paged}
+                  loading={templatesLoading}
+                  rowKey="id"
+                  size="small"
+                  className="pp-table"
+                  scroll={{ x: 'max-content' }}
+                  pagination={false}
+                  locale={{ emptyText: <NoData description={emptyState} /> }}
+                  onRow={(record) => ({
+                    onClick: (e) => {
+                      const t = e.target as HTMLElement;
+                      if (t.closest('.ant-dropdown-trigger, button')) return;
+                      setPreviewTpl(record);
+                    }
+                  })}
+                  rowClassName="pp-row"
+                />
+              </div>
+            ) : (
+              <div className="pp-grid" style={{ padding: '16px 24px' }}>
+                {paged.length === 0 ? (
+                  <div style={{ gridColumn: '1 / -1' }}><NoData description={emptyState} /></div>
+                ) : paged.map((t) => {
+                  const theme = resolveTheme(t.themeId);
+                  const chips = chipLabels(t);
+                  return (
+                    <div key={t.id} className="pc-card" onClick={() => setPreviewTpl(t)}>
+                      <div className="pc-top">
+                        <div className="pc-avatar" style={{ background: `linear-gradient(135deg, ${theme.from} 0%, ${theme.to} 100%)` }}>
+                          <LayoutTemplate size={15} />
+                        </div>
+                        <div className="pc-identity-body">
+                          <div className="pc-title">{t.name}</div>
+                          <div className="pc-client-line">
+                            <span className="pc-client-key">Blocks:</span>
+                            <span className="pc-client-val">{blockCount(t)}</span>
+                          </div>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 4 }} onClick={(e) => e.stopPropagation()}>
+                          {canDeleteProposal && !t.system && (
+                            <ConfirmDialog
+                              tone="danger"
+                              icon={<DeleteOutlined />}
+                              title="Delete template?"
+                              description={`"${t.name}" will be permanently removed. Proposals already created from it are not affected.`}
+                              confirmText="Delete"
+                              placement="bottomRight"
+                              onConfirm={() => handleDeleteTemplate(t)}
+                            >
+                              <button type="button" className="pc-actions" title="Delete" style={{ color: '#ef4444' }}><DeleteOutlined /></button>
+                            </ConfirmDialog>
+                          )}
+                          <Dropdown menu={cardMenu(t)} overlayClassName="pp-action-pop" trigger={['click']} placement="bottomRight">
+                            <button type="button" className="pc-actions"><EllipsisOutlined /></button>
+                          </Dropdown>
                         </div>
                       </div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 4 }} onClick={(e) => e.stopPropagation()}>
-                        {canDeleteProposal && !t.system && (
-                          <ConfirmDialog
-                            tone="danger"
-                            icon={<DeleteOutlined />}
-                            title="Delete template?"
-                            description={`"${t.name}" will be permanently removed. Proposals already created from it are not affected.`}
-                            confirmText="Delete"
-                            placement="bottomRight"
-                            onConfirm={() => handleDeleteTemplate(t)}
-                          >
-                            <button type="button" className="pc-actions" title="Delete" style={{ color: '#ef4444' }}><DeleteOutlined /></button>
-                          </ConfirmDialog>
-                        )}
-                        <Dropdown menu={cardMenu(t)} overlayClassName="pp-action-pop" trigger={['click']} placement="bottomRight">
-                          <button type="button" className="pc-actions"><EllipsisOutlined /></button>
-                        </Dropdown>
+                      <div className="pc-foot">
+                        <div className="pc-foot-row">
+                          <span className="pc-foot-item">
+                            <span className="pc-foot-key">Theme</span>
+                            <span style={{ width: 12, height: 12, borderRadius: 3, background: `linear-gradient(135deg, ${theme.from}, ${theme.to})`, display: 'inline-block' }} />
+                            <span className="pc-foot-val">{theme.label}</span>
+                          </span>
+                          <span className="pc-foot-div" />
+                          <span className="pc-foot-item">
+                            <span className="pc-foot-key">Updated</span>
+                            <span className="pc-foot-val">{t.updatedAt ? dayjs(t.updatedAt).format('MMM D, YYYY') : '—'}</span>
+                          </span>
+                        </div>
+                        <div className="pc-foot-row">
+                          {chips.slice(0, 3).map((label, i) => <span key={i} className="lib-tpl__seq-chip">{label}</span>)}
+                          {chips.length > 3 && <span className="lib-tpl__seq-chip">+{chips.length - 3}</span>}
+                        </div>
+                        <div className="pc-foot-row">
+                          <button type="button" className="pc-foot-item pc-view-btn" onClick={(e) => { e.stopPropagation(); setPreviewTpl(t); }}>
+                            <EyeOutlined /> Preview
+                          </button>
+                          {canCreateProposal && (
+                            <>
+                              <span className="pc-foot-div" />
+                              <button type="button" className="pc-foot-item pc-view-btn" onClick={(e) => { e.stopPropagation(); useTemplate(t); }}>
+                                <ArrowRightOutlined /> Use Template
+                              </button>
+                            </>
+                          )}
+                        </div>
                       </div>
                     </div>
-                    <div className="pc-foot">
-                      <div className="pc-foot-row">
-                        <span className="pc-foot-item">
-                          <span className="pc-foot-key">Theme</span>
-                          <span style={{ width: 12, height: 12, borderRadius: 3, background: `linear-gradient(135deg, ${theme.from}, ${theme.to})`, display: 'inline-block' }} />
-                          <span className="pc-foot-val">{theme.label}</span>
-                        </span>
-                        <span className="pc-foot-div" />
-                        <span className="pc-foot-item">
-                          <span className="pc-foot-key">Updated</span>
-                          <span className="pc-foot-val">{t.updatedAt ? dayjs(t.updatedAt).format('MMM D, YYYY') : '—'}</span>
-                        </span>
-                      </div>
-                      <div className="pc-foot-row">
-                        {chips.slice(0, 3).map((label, i) => <span key={i} className="lib-tpl__seq-chip">{label}</span>)}
-                        {chips.length > 3 && <span className="lib-tpl__seq-chip">+{chips.length - 3}</span>}
-                      </div>
-                      <div className="pc-foot-row">
-                        <button type="button" className="pc-foot-item pc-view-btn" onClick={(e) => { e.stopPropagation(); setPreviewTpl(t); }}>
-                          <EyeOutlined /> Preview
-                        </button>
-                        {canCreateProposal && (
-                          <>
-                            <span className="pc-foot-div" />
-                            <button type="button" className="pc-foot-item pc-view-btn" onClick={(e) => { e.stopPropagation(); useTemplate(t); }}>
-                              <ArrowRightOutlined /> Use Template
-                            </button>
-                          </>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
 
           {total > 0 && (
@@ -441,7 +587,7 @@ function TemplatesContent() {
 export default function TemplatesPage() {
   return (
     <ProtectedRoute>
-      <MainLayout>
+      <MainLayout noPadding>
         <TemplatesContent />
       </MainLayout>
     </ProtectedRoute>

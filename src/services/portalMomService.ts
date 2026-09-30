@@ -103,6 +103,8 @@ export const portalMomService = {
     limit?: number;
     projectId?: string;
     search?: string;
+    from?: string;
+    to?: string;
   }) {
     const qs = new URLSearchParams();
     Object.entries(params).forEach(([k, v]) => {

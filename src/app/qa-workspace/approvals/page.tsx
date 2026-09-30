@@ -19,7 +19,7 @@ import NoData from "@/components/common/NoData";
 import React, { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import MainLayout from "@/components/layout/MainLayout";
 import { App, Button, DatePicker, Input, Modal, Select, Table, Tooltip  } from "antd";
-import { SearchOutlined, FileDoneOutlined } from "@ant-design/icons";
+import { SearchOutlined, FileDoneOutlined, UserOutlined } from "@ant-design/icons";
 import {
   Eye,
   Inbox,
@@ -40,9 +40,12 @@ import type { SortOrder } from "antd/es/table/interface";
 
 import { usePermission } from "@/hooks/usePermission";
 import { useActivitySource } from "@/hooks/useActivitySource";
+import { useAuth } from "@/context/AuthContext";
 import { useTour } from "@/context/TourContext";
 import { api as axios } from "@/lib/axios";
 import { SearchableDropdown } from "@/components/common/SearchableDropdown";
+import StatCards from "@/components/common/StatCards";
+import { FilterBar, FilterToggleButton, TicketFilterPill } from "@/components/common/FilterBar";
 import ZukvoLoader, { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
 import ScopeApprovals from "./ScopeApprovals";
 import { MembersService } from "@/services/membersService";
@@ -133,6 +136,7 @@ function ApprovalsContent() {
 
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { user } = useAuth();
   const { canReadPmApproval, canApproveSubmission, canSendBackSubmission, canApproveScope } = usePermission();
   const { run, currentTourKey, stepIndex, setStepIndex, steps } = useTour();
 
@@ -179,12 +183,15 @@ function ApprovalsContent() {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(15);
   const [total, setTotal] = useState(0);
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
 
   /** The decision modals — one submission at a time, each with its own note. */
   const [approveTarget, setApproveTarget] = useState<SubmissionListItem | null>(null);
   const [approveComment, setApproveComment] = useState("");
   const [sendBackTarget, setSendBackTarget] = useState<SubmissionListItem | null>(null);
   const [sendBackReason, setSendBackReason] = useState("");
+  const [retestTarget, setRetestTarget] = useState<SubmissionListItem | null>(null);
+  const [retestComment, setRetestComment] = useState("");
 
   const bucket = useMemo(
     () => BUCKETS.find((b) => b.key === bucketKey) || BUCKETS[0],
@@ -293,6 +300,22 @@ function ApprovalsContent() {
     }
   };
 
+  const confirmRetest = async () => {
+    if (!retestTarget) return;
+    try {
+      setBusy(true);
+      await QaSubmissionService.changeStatus(retestTarget.id, "Retesting", retestComment.trim() || undefined);
+      message.success(`${retestTarget.submission_name} moved to Retesting`);
+      setRetestTarget(null);
+      setRetestComment("");
+      await Promise.all([fetchList(), fetchStats()]);
+    } catch (e: any) {
+      message.error(e?.response?.data?.error || "The submission could not be moved to Retesting");
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const confirmSendBack = async () => {
     if (!sendBackTarget) return;
     // The server rejects an empty reason too — asking here saves the round trip
@@ -336,7 +359,7 @@ function ApprovalsContent() {
     [members],
   );
 
-  const openSubmission = (id: string) => router.push(`/qa-workspace/qa-submissions/${id}`);
+  const openSubmission = (id: string) => router.push(`/qa-workspace/qa-submissions/${id}?from=approvals`);
 
   // Either queue is enough to have business here — an approver who only signs
   // off test scopes still needs this page.
@@ -434,6 +457,8 @@ function ApprovalsContent() {
         // record moves on to QA's sign-off, so the row states the outcome
         // instead of showing an inert pair of buttons.
         const decided = r.status === "Approved" || r.status === "QA Signed-off";
+        const isReportsTo = !!user && !!r.owner_reports_to_id && String(user.id) === String(r.owner_reports_to_id);
+
         return (
           <div className="sc-rowactions" onClick={(ev) => ev.stopPropagation()}>
             <Tooltip title="Open the full submission">
@@ -446,19 +471,33 @@ function ApprovalsContent() {
                 Approved {fmtDate(r.approved_at)}
                 {r.status === "QA Signed-off" ? " · signed off" : " · awaiting QA sign-off"}
               </span>
-            ) : (
+            ) : isReportsTo ? (
               <>
-                {canSendBackSubmission && (
-                  <Button
-                    size="small"
-                    icon={<Undo2 size={13} />}
-                    onClick={() => {
-                      setSendBackReason("");
-                      setSendBackTarget(r);
-                    }}
-                  >
-                    Send Back
-                  </Button>
+                {canSendBackSubmission && !["Draft", "Approved", "Sent Back"].includes(r.status) && (
+                  <Tooltip title="Send Back">
+                    <Button
+                      size="small"
+                      icon={<Undo2 size={13} />}
+                      onClick={() => {
+                        setSendBackReason("");
+                        setSendBackTarget(r);
+                      }}
+                      aria-label="Send Back"
+                    />
+                  </Tooltip>
+                )}
+                {canSendBackSubmission && !["Draft", "Approved", "QA Signed-off", "Retesting"].includes(r.status) && (
+                  <Tooltip title="Retesting">
+                    <Button
+                      size="small"
+                      icon={<RefreshCcw size={13} />}
+                      onClick={() => {
+                        setRetestComment("");
+                        setRetestTarget(r);
+                      }}
+                      aria-label="Retesting"
+                    />
+                  </Tooltip>
                 )}
                 {canApproveSubmission && (
                   <Button
@@ -475,6 +514,8 @@ function ApprovalsContent() {
                   </Button>
                 )}
               </>
+            ) : (
+              <span className="qs-muted">Awaiting decision</span>
             )}
           </div>
         );
@@ -517,7 +558,8 @@ function ApprovalsContent() {
           .dh-sidebar.is-mobile-open { left: 0; }
 
           /* Stats tiles grid → 2-col on mobile */
-          .dh-main-scroll { padding: 12px 14px !important; }
+          .dh-main-scroll { padding: 0 0 40px !important; overflow-x: hidden; }
+          .sc-filters-mobile-wrap { padding: 12px 14px !important; }
           .grid.grid-cols-2.lg\:grid-cols-4,
           .grid.grid-cols-2.lg\:grid-cols-5 { grid-template-columns: repeat(2, 1fr) !important; gap: 8px !important; }
 
@@ -617,7 +659,7 @@ function ApprovalsContent() {
             <ScopeApprovals onOpenSidebar={() => setMobileSidebarOpen(true)} />
           ) : (
           <>
-          <div className="dh-main-topbar sc-topbar">
+          <div className="dh-main-topbar sc-topbar" style={{ padding: "8px 16px", minHeight: 52 }}>
             <div className="sc-topbar__title" style={{ display: 'flex', alignItems: 'center' }}>
               <Button
                 className="dh-mobile-menu-btn"
@@ -631,7 +673,21 @@ function ApprovalsContent() {
                 Reported QA submissions waiting on a business decision — approve, or send back with a reason
               </span>
             </div>
-            <div className="dh-main-controls">
+            <div className="dh-main-controls" style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <Input
+                style={{ width: 220, height: 32 }}
+                placeholder="Search submissions, scopes…"
+                prefix={<SearchOutlined style={{ color: "var(--text-slate-400)", fontSize: 12 }} />}
+                className="saas-input"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                allowClear
+              />
+              <FilterToggleButton
+                isOpen={isFilterOpen}
+                onToggle={() => setIsFilterOpen((prev) => !prev)}
+                activeCount={activeFilterCount}
+              />
               <Button
                 type="default"
                 icon={<RotateCw size={14} className={loading ? "animate-spin" : ""} />}
@@ -643,77 +699,96 @@ function ApprovalsContent() {
             </div>
           </div>
 
-          <div className="dh-main-scroll">
-            <div className="qs-statrow">
-              {TILES.map((t) => (
-                <Tooltip key={t.key} title={t.sub} mouseEnterDelay={0.4}>
-                  <div>
-                    <StatTile
-                      compact
-                      label={t.label}
-                      value={tileValue(t.key)}
-                      icon={t.icon}
-                      color={t.color}
-                      bgColor={t.bg}
-                    />
-                  </div>
-                </Tooltip>
-              ))}
-            </div>
+          <div className="dh-main-scroll" style={{ padding: 0 }}>
+            {/* StatCards */}
+            <StatCards
+              title="Approvals Queue"
+              statusText="QUEUE"
+              statusColor="#3b82f6"
+              style={{ margin: 0, borderRadius: 0 }}
+              progressPct={
+                stats && stats.total > 0
+                  ? Math.min(100, Math.round(((stats.qa_signed_off + (stats.approved || 0)) / stats.total) * 100))
+                  : 0
+              }
+              cards={[
+                { label: "Awaiting Approval", value: tileValue("awaiting"), icon: <Inbox size={14} />, color: "#3B82F6" },
+                { label: "Approved", value: tileValue("approved"), icon: <ThumbsUp size={14} />, color: "#10b981" },
+                { label: "QA Signed-off", value: tileValue("qa_signed_off"), icon: <ShieldCheck size={14} />, color: "#10b981" },
+                { label: "Sent Back", value: tileValue("sent_back"), icon: <Undo2 size={14} />, color: "#ef4444" },
+                { label: "All Submissions", value: tileValue("total"), icon: <Layers size={14} />, color: "#64748b" },
+              ]}
+            />
 
-            <div className="sc-filters">
-              <Input
-                className="sc-filters__search"
-                placeholder="Search submissions, scopes…"
-                prefix={<SearchOutlined style={{ color: "var(--text-slate-400)" }} />}
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                allowClear
-              />
-              <SearchableDropdown
-                options={scopeOptions}
-                value={scopeFilter}
-                onChange={setScopeFilter}
-                placeholder="All scopes"
-                itemNoun="scopes"
-                className="sc-filters__field"
-              />
-              <SearchableDropdown
-                options={memberOptions}
-                value={ownerFilter}
-                onChange={setOwnerFilter}
-                placeholder="Any QA owner"
-                itemNoun="people"
-                className="sc-filters__field"
-              />
-              <SearchableDropdown
-                options={RECOMMENDATIONS.map((r) => ({ value: r, label: r }))}
-                value={recommendationFilter}
-                onChange={setRecommendationFilter}
-                placeholder="Any recommendation"
-                hideAvatar
-                itemNoun="recommendations"
-                className="sc-filters__field"
-              />
-              <RangePicker
-                value={dateRange as any}
-                onChange={(v) => setDateRange(v as any)}
-                format="DD MMM YYYY"
-                allowEmpty={[true, true]}
-              />
-              {activeFilterCount > 0 && (
-                <button type="button" className="sc-clear" onClick={clearFilters}>
-                  Clear ({activeFilterCount})
-                </button>
-              )}
-            </div>
+            {/* Unified FilterBar */}
+            {isFilterOpen && (
+              <div className="sc-filters-mobile-wrap" style={{ padding: "12px 14px" }}>
+                <FilterBar
+                  activeCount={activeFilterCount}
+                  onReset={clearFilters}
+                  onClose={() => setIsFilterOpen(false)}
+                  actions={
+                    <span style={{ fontSize: 12, color: "var(--text-slate-500)", whiteSpace: "nowrap" }}>
+                      <b>{rows.length}</b> of <b>{total}</b> submissions
+                    </span>
+                  }
+                >
+                  <TicketFilterPill
+                    icon={<Layers size={12} />}
+                    label="Scope"
+                    value={scopeFilter || ""}
+                    options={scopeOptions}
+                    onChange={setScopeFilter}
+                    itemNoun="scopes"
+                    multiple={false}
+                  />
+                  <TicketFilterPill
+                    icon={<UserOutlined style={{ fontSize: 11 }} />}
+                    label="Owner"
+                    value={ownerFilter || ""}
+                    options={memberOptions}
+                    onChange={setOwnerFilter}
+                    itemNoun="people"
+                    multiple={false}
+                    showAvatar
+                  />
+                  <TicketFilterPill
+                    icon={<ThumbsUp size={12} />}
+                    label="Outcome"
+                    value={recommendationFilter || ""}
+                    options={RECOMMENDATIONS.map((r) => ({ value: r, label: r }))}
+                    onChange={setRecommendationFilter}
+                    itemNoun="recommendations"
+                    multiple={false}
+                  />
+                  <RangePicker
+                    size="small"
+                    style={{ height: 28, borderRadius: 6 }}
+                    placeholder={["Start", "End"]}
+                    value={dateRange as any}
+                    onChange={(dates) => setDateRange(dates as any)}
+                    format="MMM D, YYYY"
+                    allowEmpty={[true, true]}
+                  />
+                </FilterBar>
+              </div>
+            )}
 
             <ZukvoLoadingOverlay
               loading={loading || busy}
               message="Loading approvals…"
               minHeight={firstLoad ? 360 : undefined}
             >
-              <div className="sc-tablewrap">
+              <div
+                className="sc-tablewrap"
+                style={{
+                  borderLeft: "none",
+                  borderRight: "none",
+                  borderTop: "none",
+                  borderRadius: 0,
+                  margin: 0,
+                }}
+              >
                 {firstLoad ? (
                   <div style={{ minHeight: 360 }} />
                 ) : (
@@ -868,6 +943,53 @@ function ApprovalsContent() {
           onChange={(ev) => setSendBackReason(ev.target.value)}
           placeholder="What does QA need to do before this can be approved?"
         />
+      </Modal>
+
+      {/* Retesting modal */}
+      <Modal
+        open={!!retestTarget}
+        onCancel={() => setRetestTarget(null)}
+        title="Move submission to Retesting"
+        okText="Confirm Retesting"
+        confirmLoading={busy}
+        onOk={confirmRetest}
+        width={560}
+      >
+        {retestTarget && (
+          <>
+            <p style={{ marginBottom: 10 }}>
+              Move <strong>{retestTarget.submission_name}</strong>
+              {retestTarget.scope_name ? ` (${retestTarget.scope_name})` : ""} to <strong>Retesting</strong>.
+            </p>
+            <div className="qs-metrics" style={{ marginBottom: 12 }}>
+              <div className="qs-metric">
+                <span className="qs-metric__label">Total</span>
+                <span className="qs-metric__value">{retestTarget.total_cases}</span>
+              </div>
+              <div className="qs-metric qs-metric--green">
+                <span className="qs-metric__label">Passed</span>
+                <span className="qs-metric__value">{retestTarget.passed}</span>
+              </div>
+              <div className="qs-metric qs-metric--red">
+                <span className="qs-metric__label">Failed</span>
+                <span className="qs-metric__value">{retestTarget.failed}</span>
+              </div>
+              <div className="qs-metric qs-metric--amber">
+                <span className="qs-metric__label">Open bugs</span>
+                <span className="qs-metric__value">{retestTarget.open_bugs}</span>
+              </div>
+            </div>
+            <p className="qs-hint" style={{ marginBottom: 10 }}>
+              Moving to Retesting allows QA to link retest runs and re-verify fixes for failing test cases.
+            </p>
+            <Input.TextArea
+              rows={3}
+              value={retestComment}
+              onChange={(ev) => setRetestComment(ev.target.value)}
+              placeholder="Reason or instructions for retesting (optional)"
+            />
+          </>
+        )}
       </Modal>
     </MainLayout>
   );

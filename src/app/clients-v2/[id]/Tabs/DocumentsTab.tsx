@@ -1,7 +1,7 @@
 "use client";
 
 import NoData from "@/components/common/NoData";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import {
   Table,
   Button,
@@ -22,6 +22,8 @@ import {
   Dropdown,
   Avatar,
   Tag,
+  Pagination,
+  Typography,
 } from "antd";
 import {
   Upload as UploadIcon,
@@ -83,7 +85,7 @@ const DOCUMENT_CATEGORIES: Record<string, string[]> = {
 
 export default function DocumentsTab({
   clientId,
-  documents,
+  documents = [],
   onRefresh,
 }: Props) {
   const { canUpdateClient, canDeleteClient } = usePermission();
@@ -92,11 +94,61 @@ export default function DocumentsTab({
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [fileList, setFileList] = useState<any[]>([]);
   const [uploading, setUploading] = useState(false);
+
+  const [items, setItems] = useState<any[]>(documents || []);
+  const [totalCount, setTotalCount] = useState(0);
+  const [loadingDocs, setLoadingDocs] = useState(false);
+
+  const [searchTerm, setSearchTerm] = useState("");
+  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(15);
+
+  const fetchDocuments = async (
+    page = currentPage,
+    size = pageSize,
+    search = searchTerm,
+  ) => {
+    setLoadingDocs(true);
+    try {
+      const qs = new URLSearchParams();
+      qs.append("page", String(page));
+      qs.append("limit", String(size));
+      if (search.trim()) qs.append("search", search.trim());
+      const res = await apiClient.get(`/api/clients-v2/${clientId}/documents?${qs.toString()}`);
+      const data = res.data?.data || [];
+      const meta = res.data?.meta || { total: data.length };
+      setItems(Array.isArray(data) ? data : []);
+      setTotalCount(meta.total ?? (Array.isArray(data) ? data.length : 0));
+    } catch (err) {
+      console.error("Failed to fetch documents:", err);
+    } finally {
+      setLoadingDocs(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchDocuments(currentPage, pageSize, searchTerm);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [clientId, currentPage, pageSize]);
+
+  useEffect(() => {
+    const t = setTimeout(() => {
+      setCurrentPage(1);
+      fetchDocuments(1, pageSize, searchTerm);
+    }, 300);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchTerm]);
+
   const [refreshing, setRefreshing] = useState(false);
   const handleRefresh = async () => {
     try {
       setRefreshing(true);
-      await onRefresh();
+      await Promise.all([
+        fetchDocuments(currentPage, pageSize, searchTerm),
+        onRefresh(),
+      ]);
     } finally {
       setRefreshing(false);
     }
@@ -105,8 +157,6 @@ export default function DocumentsTab({
   const [modal, modalContextHolder] = Modal.useModal();
   const [viewModalOpen, setViewModalOpen] = useState(false);
   const [viewingDocument, setViewingDocument] = useState<any>(null);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [docSource, setDocSource] = useState<"upload" | "url">("upload");
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [editingDocument, setEditingDocument] = useState<any>(null);
@@ -186,6 +236,7 @@ export default function DocumentsTab({
     if (!socket || !connected) return;
     const handler = (payload: { clientId?: string } | undefined) => {
       if (payload?.clientId && payload.clientId !== clientId) return;
+      fetchDocuments();
       onRefresh();
     };
     socket.on("client_document:created", handler);
@@ -264,23 +315,15 @@ export default function DocumentsTab({
     return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
   };
 
-  const filteredDocuments = documents.filter((d) => {
-    const q = searchTerm.toLowerCase();
-    const matchesSearch = !searchTerm || (
-      (d.fileName || "").toLowerCase().includes(q) ||
-      (d.category || "").toLowerCase().includes(q) ||
-      (d.documentType || "").toLowerCase().includes(q)
-    );
-
-    return matchesSearch;
-  });
+  const paginatedDocuments = items;
+  const filteredDocuments = items;
 
   // --- Category + subtype option lists (suggested + custom from prior uploads) ---
   const uniq = (arr: (string | undefined | null)[]) =>
     Array.from(new Set(arr.filter((x): x is string => !!x && x.trim().length > 0)));
 
   const suggestedCategories = Object.keys(DOCUMENT_CATEGORIES);
-  const customCategories = uniq(documents.map((d) => d.category)).filter(
+  const customCategories = uniq(items.map((d) => d.category)).filter(
     (c) => !suggestedCategories.includes(c),
   );
 
@@ -571,6 +614,7 @@ export default function DocumentsTab({
         form.resetFields();
         setFileList([]);
         setDocSource("upload");
+        fetchDocuments();
         onRefresh();
       } catch (err: any) {
         messageApi.error(
@@ -647,6 +691,7 @@ export default function DocumentsTab({
         setEditModalOpen(false);
         setEditingDocument(null);
         editForm.resetFields();
+        fetchDocuments();
         onRefresh();
       } catch (err: any) {
         messageApi.error(
@@ -664,6 +709,7 @@ export default function DocumentsTab({
     try {
       await api.delete(`/api/clients-v2/${clientId}/documents/${documentId}`);
       messageApi.success("Deletion Complete: Document archive has been successfully removed.");
+      fetchDocuments();
       onRefresh();
     } catch (error) {
       messageApi.error("Error: Failed to purge document archive.");
@@ -671,7 +717,7 @@ export default function DocumentsTab({
   };
 
   return (
-    <div style={{ animation: "fadeIn 0.3s ease-in-out" }}>
+    <div style={{ animation: "fadeIn 0.3s ease-in-out" }} className="documents-tab-container">
       {contextHolder}
       {modalContextHolder}
       <div className="cd-tab-sticky-head">
@@ -742,152 +788,182 @@ export default function DocumentsTab({
         <div className="ptab-divider" />
       </div>
 
-      {viewMode === "list" ? (
-        <div className="pp-table-wrap">
-          <Table
-            dataSource={filteredDocuments}
-            columns={columns}
-            rowKey="id"
-            pagination={{ pageSizeOptions: [10, 20, 25, 50, 100], pageSize: 20, hideOnSinglePage: true }}
-            className="pp-table"
-            scroll={{ x: "max-content" }}
-            locale={{
-              emptyText: <NoData description={(
-                                    <div className="ptab-empty">
-                                      <div className="ptab-empty-icon">
-                                        <FolderArchive size={26} />
-                                      </div>
-                                      <div className="ptab-empty-title">No documents yet</div>
-                                      <div className="ptab-empty-desc">
-                                        Upload MSAs, SOWs, NDAs, and other legal annexures to keep a complete client record.
-                                      </div>
-                                    </div>
-                                  )} />,
-            }}
-          />
-        </div>
-      ) : (
-        <div className="pp-grid">
-          {filteredDocuments.length === 0 ? (
-            <div className="ptab-empty-wrapper">
-              <div className="ptab-empty" style={{ background: "var(--bg-pure-white)", border: "1px solid var(--border-slate-200)", padding: "40px 24px" }}>
-                <div className="ptab-empty-icon">
-                  <FolderArchive size={26} />
-                </div>
-                <div className="ptab-empty-title">No documents yet</div>
-                <div className="ptab-empty-desc">
-                  Upload MSAs, SOWs, NDAs, and other legal annexures to keep a complete client record.
+      <div className="documents-tab-body">
+        {viewMode === "list" ? (
+          <div className="pp-table-wrap">
+            <Table
+              dataSource={paginatedDocuments}
+              columns={columns}
+              rowKey="id"
+              pagination={false}
+              className="pp-table"
+              scroll={{ x: "max-content" }}
+              locale={{
+                emptyText: <NoData description={(
+                  <div className="ptab-empty">
+                    <div className="ptab-empty-icon">
+                      <FolderArchive size={26} />
+                    </div>
+                    <div className="ptab-empty-title">No documents yet</div>
+                    <div className="ptab-empty-desc">
+                      Upload MSAs, SOWs, NDAs, and other legal annexures to keep a complete client record.
+                    </div>
+                  </div>
+                )} />,
+              }}
+            />
+          </div>
+        ) : (
+          <div className="pp-grid">
+            {items.length === 0 ? (
+              <div className="ptab-empty-wrapper">
+                <div className="ptab-empty" style={{ background: "var(--bg-pure-white)", border: "1px solid var(--border-slate-200)", padding: "40px 24px" }}>
+                  <div className="ptab-empty-icon">
+                    <FolderArchive size={26} />
+                  </div>
+                  <div className="ptab-empty-title">No documents yet</div>
+                  <div className="ptab-empty-desc">
+                    Upload MSAs, SOWs, NDAs, and other legal annexures to keep a complete client record.
+                  </div>
                 </div>
               </div>
-            </div>
-          ) : (
-            filteredDocuments.map((doc) => {
-              return (
-                <div key={doc.id} className="pc-card">
-                  <div className="pc-top">
-                    <div className="pc-avatar" style={{ background: "#3b82f6", color: "#fff" }}>
-                      <FileText size={16} color="#fff" />
-                    </div>
-                    <div className="pc-identity-body">
-                      <div className="pc-title" style={{ display: "flex", alignItems: "center", gap: "6px", flexWrap: "wrap" }}>
-                        <span style={{ maxWidth: "240px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={doc.fileName}>{doc.fileName}</span>
-                        <Tag style={{ borderRadius: 6, fontWeight: 600, border: 0, fontSize: "10px", padding: "1px 6px" }}>
-                          {(doc.documentType || "UNCLASSIFIED").toUpperCase()}
-                        </Tag>
+            ) : (
+              paginatedDocuments.map((doc) => {
+                return (
+                  <div key={doc.id} className="pc-card">
+                    <div className="pc-top">
+                      <div className="pc-avatar" style={{ background: "#3b82f6", color: "#fff" }}>
+                        <FileText size={16} color="#fff" />
                       </div>
-                      <div className="pc-client-line">
-                        <span className="pc-client-key">Group:</span>
-                        <span className="pc-client-val">{doc.category || "—"}</span>
+                      <div className="pc-identity-body">
+                        <div className="pc-title" style={{ display: "flex", alignItems: "center", gap: "6px", flexWrap: "wrap" }}>
+                          <span style={{ maxWidth: "240px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={doc.fileName}>{doc.fileName}</span>
+                          <Tag style={{ borderRadius: 6, fontWeight: 600, border: 0, fontSize: "10px", padding: "1px 6px" }}>
+                            {(doc.documentType || "UNCLASSIFIED").toUpperCase()}
+                          </Tag>
+                        </div>
+                        <div className="pc-client-line">
+                          <span className="pc-client-key">Group:</span>
+                          <span className="pc-client-val">{doc.category || "—"}</span>
+                        </div>
                       </div>
                     </div>
-                  </div>
 
-                  <div className="pc-foot">
-                    <div className="pc-foot-row">
-                      <span className="pc-foot-item">
-                        <span className="pc-foot-key">Created</span>
-                        <span className="pc-foot-val">{doc.createdAt ? dayjs(doc.createdAt).format("MMM DD, YYYY") : "—"}</span>
-                      </span>
-                      {doc.fileSize && (
-                        <>
-                          <span className="pc-foot-div" />
-                          <span className="pc-foot-item">
-                            <span className="pc-foot-key">Size</span>
-                            <span className="pc-foot-val">{formatBytes(doc.fileSize)}</span>
-                          </span>
-                        </>
-                      )}
-                      <span className="pc-foot-div" />
-                      <span className="pc-foot-item">
-                        <span className="pc-foot-key">Created by</span>
-                        <Avatar size={16} style={{ background: "var(--bg-blue-50)", color: "#3b82f6", fontSize: 8, fontWeight: 700 }}>
-                          {doc.uploadedByName?.charAt(0).toUpperCase() || "—"}
-                        </Avatar>
-                        <span className="pc-foot-val">{doc.uploadedByName || "—"}</span>
-                      </span>
-                    </div>
+                    <div className="pc-foot">
+                      <div className="pc-foot-row">
+                        <span className="pc-foot-item">
+                          <span className="pc-foot-key">Created</span>
+                          <span className="pc-foot-val">{doc.createdAt ? dayjs(doc.createdAt).format("MMM DD, YYYY") : "—"}</span>
+                        </span>
+                        {doc.fileSize && (
+                          <>
+                            <span className="pc-foot-div" />
+                            <span className="pc-foot-item">
+                              <span className="pc-foot-key">Size</span>
+                              <span className="pc-foot-val">{formatBytes(doc.fileSize)}</span>
+                            </span>
+                          </>
+                        )}
+                        <span className="pc-foot-div" />
+                        <span className="pc-foot-item">
+                          <span className="pc-foot-key">Created by</span>
+                          <Avatar size={16} style={{ background: "var(--bg-blue-50)", color: "#3b82f6", fontSize: 8, fontWeight: 700 }}>
+                            {doc.uploadedByName?.charAt(0).toUpperCase() || "—"}
+                          </Avatar>
+                          <span className="pc-foot-val">{doc.uploadedByName || "—"}</span>
+                        </span>
+                      </div>
 
-                    <div className="pc-foot-row" style={{ gap: "4px" }}>
-                      <Button
-                        type="text"
-                        size="small"
-                        icon={<Eye size={12} />}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          if (doc.fileUrl) {
-                            setViewingDocument(doc);
-                            setViewModalOpen(true);
-                          } else {
-                            messageApi.info("Preview Notification: Live preview is not supported for this file type.");
-                          }
-                        }}
-                        style={{ display: "inline-flex", alignItems: "center", fontSize: "11px", color: "var(--text-slate-600)", padding: "2px 6px", height: "auto" }}
-                      >
-                        Preview
-                      </Button>
-
-                      <Button
-                        type="text"
-                        size="small"
-                        icon={<Download size={12} />}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleDownload(doc);
-                        }}
-                        style={{ display: "inline-flex", alignItems: "center", fontSize: "11px", color: "var(--text-slate-600)", padding: "2px 6px", height: "auto" }}
-                      >
-                        Download
-                      </Button>
-
-                      {canDeleteClient && (
+                      <div className="pc-foot-row" style={{ gap: "4px" }}>
                         <Button
                           type="text"
-                          danger
                           size="small"
-                          icon={<Trash2 size={12} />}
+                          icon={<Eye size={12} />}
                           onClick={(e) => {
                             e.stopPropagation();
-                            modal.confirm({
-                              title: "Purge Document",
-                              content: "Are you sure you want to permanently delete this document archive?",
-                              okText: "Purge",
-                              okType: "danger",
-                              cancelText: "Cancel",
-                              centered: true,
-                              onOk: () => handleDelete(doc.id),
-                            });
+                            if (doc.fileUrl) {
+                              setViewingDocument(doc);
+                              setViewModalOpen(true);
+                            } else {
+                              messageApi.info("Preview Notification: Live preview is not supported for this file type.");
+                            }
                           }}
-                          style={{ display: "inline-flex", alignItems: "center", fontSize: "11px", padding: "2px 6px", height: "auto" }}
+                          style={{ display: "inline-flex", alignItems: "center", fontSize: "11px", color: "var(--text-slate-600)", padding: "2px 6px", height: "auto" }}
                         >
-                          Delete
+                          Preview
                         </Button>
-                      )}
+
+                        <Button
+                          type="text"
+                          size="small"
+                          icon={<Download size={12} />}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDownload(doc);
+                          }}
+                          style={{ display: "inline-flex", alignItems: "center", fontSize: "11px", color: "var(--text-slate-600)", padding: "2px 6px", height: "auto" }}
+                        >
+                          Download
+                        </Button>
+
+                        {canDeleteClient && (
+                          <Button
+                            type="text"
+                            danger
+                            size="small"
+                            icon={<Trash2 size={12} />}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              modal.confirm({
+                                title: "Purge Document",
+                                content: "Are you sure you want to permanently delete this document archive?",
+                                okText: "Purge",
+                                okType: "danger",
+                                cancelText: "Cancel",
+                                centered: true,
+                                onOk: () => handleDelete(doc.id),
+                              });
+                            }}
+                            style={{ display: "inline-flex", alignItems: "center", fontSize: "11px", padding: "2px 6px", height: "auto" }}
+                          >
+                            Delete
+                          </Button>
+                        )}
+                      </div>
                     </div>
                   </div>
-                </div>
-              );
-            })
-          )}
+                );
+              })
+            )}
+          </div>
+        )}
+      </div>
+
+      {!loadingDocs && totalCount > 0 && (
+        <div className="pm2-pagination documents-pagination-footer">
+          <Typography.Text style={{ fontSize: 13, color: "var(--text-slate-500)" }}>
+            Showing{" "}
+            <span style={{ color: "var(--text-slate-700)", fontWeight: 700 }}>
+              {(currentPage - 1) * pageSize + 1}–
+              {Math.min(currentPage * pageSize, totalCount)}
+            </span>{" "}
+            of{" "}
+            <span style={{ color: "var(--text-slate-700)", fontWeight: 700 }}>
+              {totalCount}
+            </span>{" "}
+            document{totalCount !== 1 ? "s" : ""}
+          </Typography.Text>
+          <Pagination
+            current={currentPage}
+            pageSize={pageSize}
+            total={totalCount}
+            onChange={(page, size) => {
+              setCurrentPage(page);
+              setPageSize(size);
+            }}
+            showSizeChanger
+            pageSizeOptions={[10, 15, 20, 25, 50, 100]}
+          />
         </div>
       )}
 
@@ -1667,6 +1743,104 @@ export default function DocumentsTab({
         }
         [data-theme="dark"] .pmodal-hero-blob {
           opacity: 0.45 !important;
+        }
+
+        /* ── Container & Body for full-height stretch ── */
+        .documents-tab-container {
+          display: flex !important;
+          flex-direction: column !important;
+          flex: 1 !important;
+          min-height: 100% !important;
+          padding: 4px 0 0 0 !important;
+          position: relative !important;
+        }
+        .documents-tab-body {
+          flex: 1 0 auto !important;
+          padding-bottom: 16px !important;
+        }
+
+        /* ── Sticky pagination footer (fixed to bottom) ── */
+        .documents-pagination-footer {
+          display: flex !important;
+          align-items: center !important;
+          justify-content: space-between !important;
+          gap: 12px !important;
+          padding: 10px 16px !important;
+          margin-top: auto !important;
+          margin-left: -12px !important;
+          margin-right: -12px !important;
+          margin-bottom: 0 !important;
+          flex-wrap: wrap !important;
+          position: sticky !important;
+          bottom: 0 !important;
+          left: 0 !important;
+          right: 0 !important;
+          background: var(--bg-pure-white) !important;
+          border-top: 1px solid var(--border-slate-200) !important;
+          z-index: 20 !important;
+          box-shadow: 0 -4px 16px rgba(15, 23, 42, 0.04) !important;
+        }
+        [data-theme="dark"] .documents-pagination-footer {
+          background: #0B0F1A !important;
+          border-top-color: #1f2937 !important;
+        }
+        @media (max-width: 900px) {
+          .documents-pagination-footer {
+            margin-left: -12px !important;
+            margin-right: -12px !important;
+            padding-left: 12px !important;
+            padding-right: 12px !important;
+          }
+        }
+        @media (max-width: 720px) {
+          .documents-pagination-footer {
+            margin-left: -12px !important;
+            margin-right: -12px !important;
+            padding-left: 12px !important;
+            padding-right: 12px !important;
+          }
+        }
+
+        .documents-pagination-footer .ant-pagination-item,
+        .documents-pagination-footer .ant-pagination-prev .ant-pagination-item-link,
+        .documents-pagination-footer .ant-pagination-next .ant-pagination-item-link {
+          border: 1px solid var(--border-slate-200) !important;
+          border-radius: 6px !important;
+          background: transparent !important;
+          color: var(--text-slate-500) !important;
+        }
+        .documents-pagination-footer .ant-pagination-item-active {
+          background: #3b82f6 !important;
+          border-color: #3b82f6 !important;
+        }
+        .documents-pagination-footer .ant-pagination-item-active a {
+          color: #fff !important;
+        }
+        .documents-pagination-footer .ant-select-selector {
+          border: 1px solid var(--border-slate-200) !important;
+          border-radius: 6px !important;
+          background: transparent !important;
+          height: 28px !important;
+          font-size: 12px !important;
+        }
+        [data-theme="dark"] .documents-pagination-footer .ant-pagination-item,
+        [data-theme="dark"] .documents-pagination-footer .ant-pagination-prev .ant-pagination-item-link,
+        [data-theme="dark"] .documents-pagination-footer .ant-pagination-next .ant-pagination-item-link {
+          border-color: #374151 !important;
+          background: #111827 !important;
+          color: #9ca3af !important;
+        }
+        [data-theme="dark"] .documents-pagination-footer .ant-pagination-item-active {
+          background: #3b82f6 !important;
+          border-color: #3b82f6 !important;
+        }
+        [data-theme="dark"] .documents-pagination-footer .ant-pagination-item-active a {
+          color: #fff !important;
+        }
+        [data-theme="dark"] .documents-pagination-footer .ant-select-selector {
+          border-color: #374151 !important;
+          background: #111827 !important;
+          color: #e5e7eb !important;
         }
       `}} />
     </div>

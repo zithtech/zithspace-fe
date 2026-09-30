@@ -66,7 +66,7 @@ const STATUS_COPY: Record<string, string> = {
 };
 
 export default function RequestedPlaybooksPage() {
-  useActivitySource({ section: "WORK", module: "QA", page: "RequestedPlaybooks" });
+  useActivitySource({ section: "WORK", module: "Playbooks", page: "RequestedPlaybooks" });
 
   const router = useRouter();
   const queryClient = useQueryClient();
@@ -82,8 +82,7 @@ export default function RequestedPlaybooksPage() {
 
   const hasRequestPlaybookFeature = Boolean(
     user?.subscriptionFeatures &&
-    (user.subscriptionFeatures.includes("work_playbooks_requested_playbooks_request_playbook") ||
-     user.subscriptionFeatures.includes("work_playbooks_qa_playbooks_request_playbook"))
+    user.subscriptionFeatures.includes("work_playbooks_requested_playbooks_request_playbook")
   );
 
   const [status, setStatus] = useState("all");

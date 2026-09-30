@@ -18,7 +18,7 @@ export function useExpenseCategories(limit?: number, offset?: number) {
         throw error;
       }
     },
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 0, // Always fetch fresh data on limit/page change
     retry: 1, // Allow one retry on failure
     retryDelay: 1000, // Wait 1 second before retry
   });

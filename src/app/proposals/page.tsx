@@ -49,6 +49,7 @@ import {
 import { Sparkles, Mail, Wand2 } from 'lucide-react';
 import { EndToEndZaiModal } from '@/components/proposals/EndToEndZaiModal';
 import MainLayout from '@/components/layout/MainLayout';
+import StatCards from '@/components/common/StatCards';
 import { ProposalService } from '@/services/proposalService';
 import { useProposalLibraryStore } from '@/store/proposalLibraryStore';
 import SaveAsTemplateModal from '@/components/proposals/SaveAsTemplateModal';
@@ -125,7 +126,7 @@ const AreaSparkline = ({ values, color }: { values: number[]; color: string }) =
 
 const RECENTS_KEY = 'proposal_recents_v1';
 const STARRED_KEY = 'proposal_starred_v1';
-const PAGE_SIZE_OPTIONS = [10, 20, 25, 50, 100];
+const PAGE_SIZE_OPTIONS = [10, 15, 20, 25, 50, 100];
 
 const readLS = <T,>(key: string, fallback: T): T => {
   if (typeof window === 'undefined') return fallback;
@@ -174,7 +175,7 @@ export default function ProposalsListPage() {
   const [creatorFilter, setCreatorFilter] = useState<string | null>(null);
   const [dateRange, setDateRange] = useState<any>(null);
   const [savedView, setSavedView] = useState<SavedView>('all');
-  const [view, setView] = useState<'list' | 'grid'>('grid');
+  const [view, setView] = useState<'list' | 'grid'>('list');
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const [isZaiModalOpen, setIsZaiModalOpen] = useState(false);
 
@@ -182,7 +183,7 @@ export default function ProposalsListPage() {
   const [recents, setRecents] = useState<any[]>([]);
   const [selectedKeys, setSelectedKeys] = useState<React.Key[]>([]);
   const [tablePage, setTablePage] = useState(1);
-  const [tablePageSize, setTablePageSize] = useState(20);
+  const [tablePageSize, setTablePageSize] = useState(15);
 
   const [isMailDrawerVisible, setIsMailDrawerVisible] = useState(false);
   const [selectedProposalForMail, setSelectedProposalForMail] = useState<any>(null);
@@ -499,6 +500,16 @@ export default function ProposalsListPage() {
     ];
   }, [proposals, stats]);
 
+  const cards = useMemo(() => {
+    return statCells.map((s) => ({
+      title: s.title,
+      value: `${s.value}${s.suffix}`,
+      icon: s.icon,
+      color: s.color,
+      sparkline: s.trend,
+    }));
+  }, [statCells]);
+
   const handleExport = async (id: string, format: 'pdf' | 'word') => {
     const key = 'exporting';
     try {
@@ -678,6 +689,8 @@ export default function ProposalsListPage() {
       key: 'title',
       width: 400,
       fixed: 'left' as const,
+      onHeaderCell: () => ({ style: { paddingLeft: 24 } }),
+      onCell: () => ({ style: { paddingLeft: 24 } }),
       render: (_: string, record: any) => {
         const isStar = !!starred[record.id];
         return (
@@ -787,6 +800,8 @@ export default function ProposalsListPage() {
       align: 'center' as const,
       width: 72,
       fixed: 'right' as const,
+      onHeaderCell: () => ({ style: { textAlign: 'center' as const } }),
+      onCell: () => ({ style: { textAlign: 'center' as const } }),
       render: (_: any, record: any) => (
         <Dropdown
           menu={actionMenu(record)}
@@ -864,7 +879,7 @@ export default function ProposalsListPage() {
 
   return (
     <ProtectedRoute>
-      <MainLayout>
+      <MainLayout noPadding>
         {messageHolder}
         {modalContextHolder}
 
@@ -1037,28 +1052,12 @@ export default function ProposalsListPage() {
             <div className="pp-divider" />
 
             {/* Stat cards */}
-            <div className="pp-stats">
-              {statCells.map((s) => (
-                <div key={s.key} className="pp-stat-card">
-                  <div className="pp-stat-top">
-                    <div className="pp-stat-left">
-                      <span className="pp-stat-icon" style={{ background: s.tint, color: s.color }}>{s.icon}</span>
-                      <span className="pp-stat-label">{s.title}</span>
-                    </div>
-                    {s.delta > 0 && (
-                      <span className="pp-stat-delta"><RiseOutlined style={{ fontSize: 9 }} />+{s.delta}</span>
-                    )}
-                  </div>
-                  <div className="pp-stat-bottom">
-                    <div className="pp-stat-value-wrap">
-                      <span className="pp-stat-value">{s.value}{s.suffix}</span>
-                      <span className="pp-stat-period">this week</span>
-                    </div>
-                    <div className="pp-stat-spark"><AreaSparkline values={s.trend} color={s.color} /></div>
-                  </div>
-                </div>
-              ))}
-            </div>
+            <StatCards
+              title="Proposals Overview"
+              statusText="ACTIVE"
+              progressPct={stats.winRate || 0}
+              cards={cards}
+            />
 
             {/* Table / grid */}
             <div className="pp-body">
@@ -1268,7 +1267,8 @@ export default function ProposalsListPage() {
         <style jsx global>{`
           .pp-shell {
             display: flex;
-            margin: 0 -8px;
+            margin: 0;
+            width: 100%;
             min-height: calc(100vh - 64px);
             background: var(--bg-pure-white);
           }
@@ -1379,9 +1379,9 @@ export default function ProposalsListPage() {
           .pp-trash:hover { color: #ef4444; }
 
           /* ---------------- Main ---------------- */
-          .pp-main { flex: 1; min-width: 0; padding: 8px 18px 0; display: flex; flex-direction: column; }
+          .pp-main { flex: 1; min-width: 0; padding: 8px 0 0 0; display: flex; flex-direction: column; }
           .pp-body { flex: 1 0 auto; }
-          .pp-topbar { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; position: sticky; top: 0; z-index: 50; background: var(--bg-pure-white, #fff); padding: 8px 0; margin-top: -8px; }
+          .pp-topbar { display: flex; align-items: center; gap: 10px; padding: 12px 24px 8px 24px; margin-bottom: 12px; position: sticky; top: 0; z-index: 50; background: var(--bg-pure-white, #fff); }
           .pp-search-wrap {
             position: relative; flex: 1; max-width: 520px; display: flex; align-items: center;
             height: 32px; border-radius: 8px; background: var(--bg-pure-white);
@@ -1417,7 +1417,7 @@ export default function ProposalsListPage() {
           }
           .pp-ghost-btn:hover { color: #3B82F6; border-color: #bfdbfe; }
 
-          .pp-divider { height: 1px; background: var(--border-slate-200); margin: 0 -18px 10px; }
+          .pp-divider { height: 1px; background: var(--border-slate-200); margin: 0; }
 
           /* Stat cards */
           .pp-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 14px; }
@@ -1526,7 +1526,7 @@ export default function ProposalsListPage() {
             box-sizing: border-box;
           }
           .pp-footer--sticky {
-            position: sticky; bottom: 0; z-index: 30; margin: 8px -18px 0; padding: 0 18px;
+            position: sticky; bottom: 0; z-index: 30; margin: 0; padding: 0 24px;
             background: var(--bg-pure-white);
             box-shadow: 0 -4px 14px rgba(15,23,42,0.05);
             height: 52px !important;
@@ -1557,7 +1557,7 @@ export default function ProposalsListPage() {
             background: #3B82F6 !important; border: none !important;
             border-radius: 8px !important; font-weight: 600 !important;
           }
-          .pp-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+          .pp-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin-top: 16px; padding: 0 24px; align-items: start; }
           .pp-grid-loading { padding: 40px; text-align: center; color: var(--text-slate-400); grid-column: 1 / -1; }
 
           .pc-card {

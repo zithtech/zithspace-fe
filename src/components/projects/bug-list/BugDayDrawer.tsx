@@ -377,7 +377,7 @@ export default function BugDayDrawer({
                               <span className={`bdd-tag sev-${b.severity}`}>{b.severity}</span>
                             )}
                             {b.ticketNumber && (
-                              <span className="bdd-tag is-link">
+                              <span className={`bdd-tag is-link ${['live', 'completed', 'done', 'complete'].includes(b.ticketStatus?.trim().toLowerCase() || '') ? 'is-live' : ''}`}>
                                 <TicketIcon size={10} />
                                 {b.ticketNumber}
                               </span>
@@ -799,6 +799,11 @@ const dayDrawerStyles = `
   border-color: color-mix(in oklab, var(--d-accent) 30%, transparent);
   color: var(--d-accent);
   text-transform: none;
+}
+.bdd-tag.is-link.is-live {
+  background: rgba(16,185,129,0.08);
+  border-color: rgba(16,185,129,0.3);
+  color: #10b981;
 }
 .bdd-tag.sev-blocker, .bdd-tag.sev-critical {
   background: rgba(239,68,68,0.12);

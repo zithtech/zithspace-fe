@@ -32,6 +32,7 @@ import {
   ZukvoLogo,
   TestiezLogo,
   LinearMark,
+  JiraMark,
   TicketFlowHeader,
   TicketFlowCard,
 } from "./ticket-flow";
@@ -452,6 +453,7 @@ export function ModePicker({
 }) {
   const { isTestiez } = useProduct();
   const isLinear = brand === "linear";
+  const isJira = brand === "jira";
 
   const showManual = hasGrid !== false;
   const showAi = hasPrime !== false;
@@ -463,13 +465,13 @@ export function ModePicker({
   return (
     <>
       <TicketFlowHeader
-        mark={isLinear ? <LinearMark size={22} /> : (isTestiez ? <TestiezLogo size={22} /> : <ZukvoLogo size={22} />)}
+        mark={isLinear ? <LinearMark size={22} /> : isJira ? <JiraMark size={22} /> : (isTestiez ? <TestiezLogo size={22} /> : <ZukvoLogo size={22} />)}
         title={
           count === 0
             ? "Every bug has been bundled"
             : `How should ${count === 1 ? "this bug" : `these ${count} bugs`} become tickets?`
         }
-        eyebrow={`Step 2 · ${isLinear ? "Linear" : (isTestiez ? "Testiez" : "Zukvo")} method`}
+        eyebrow={`Step 2 · ${isLinear ? "Linear" : isJira ? "Jira" : (isTestiez ? "Testiez" : "Zukvo")} method`}
         chips={[
           {
             icon: <ListChecks size={12} />,

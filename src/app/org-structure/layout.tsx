@@ -4,6 +4,7 @@ import React from "react";
 import { usePathname, useRouter } from "next/navigation";
 import MainLayout from "@/components/layout/MainLayout";
 import ProtectedRoute from "@/components/common/ProtectedRoute";
+import { DocStyles } from "@/components/letters/ui";
 import { useAuth } from "@/context/AuthContext";
 import { Permissions } from "@/types/permissions";
 import {
@@ -168,6 +169,7 @@ export default function OrgStructureLayout({ children }: { children: React.React
 
           {/* ============================ MAIN ============================ */}
           <main className="osx-main">
+            <DocStyles />
             <div className="osx-mobile-header">
               <button
                 className="osx-mobile-toggle"
@@ -195,8 +197,8 @@ export default function OrgStructureLayout({ children }: { children: React.React
              right — neutralise it so content stays within the main column, and
              make it a column so the scaffold fills the height (sticky footer
              reaches the viewport bottom instead of floating mid-page). */
-          .osx-main .orgx-shell { margin: 0; display: flex; flex-direction: column; min-height: 100%; }
-          .osx-main .orgx-shell > .omx-main { flex: 1 1 auto; min-height: 0; }
+          .osx-main .orgx-shell { margin: 0; display: flex; flex-direction: column; height: 100%; min-height: 0; flex: 1; overflow: hidden; }
+          .osx-main .orgx-shell > .omx-main { flex: 1 1 auto; min-height: 0; height: 100%; }
 
           /* ---------------- Sidebar ---------------- */
           .osx-sidebar {
@@ -300,7 +302,7 @@ export default function OrgStructureLayout({ children }: { children: React.React
             flex: 1;
             min-width: 0;
             height: 100%;
-            overflow-y: auto;
+            overflow: hidden;
             display: flex;
             flex-direction: column;
           }

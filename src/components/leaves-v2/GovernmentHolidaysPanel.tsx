@@ -24,8 +24,8 @@ import { SearchableDropdown } from '@/components/common/SearchableDropdown';
 import LeaveV2Service, { CatalogHoliday, HolidayType } from '@/services/leaveV2Service';
 import { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
 
-const PALETTE = { blue: '#3B82F6', green: '#10B981', red: '#EF4444', grey: '#94A3B8' } as const;
-const TINT = { blue: 'rgba(59,130,246,0.10)', green: 'rgba(16,185,129,0.10)', red: 'rgba(239,68,68,0.10)', grey: 'rgba(148,163,184,0.12)' } as const;
+import { PALETTE, TINT, StatCards } from '@/components/leaves-v2/ui';
+import { FilterBar, FilterToggleButton, TicketFilterPill } from '@/components/common/FilterBar';
 
 const COUNTRY_NAME: Record<string, string> = { IN: 'India', US: 'United States', AE: 'United Arab Emirates', GB: 'United Kingdom', SG: 'Singapore' };
 const countryLabel = (c: string) => `${COUNTRY_NAME[c] ?? c} (${c})`;
@@ -52,8 +52,9 @@ export default function GovernmentHolidaysPanel() {
   const [selected, setSelected] = useState<React.Key[]>([]);
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState<TypeFilter>('all');
+  const [isFilterRowOpen, setIsFilterRowOpen] = useState(false);
   const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(20);
+  const [pageSize, setPageSize] = useState(15);
 
   useEffect(() => {
     if (!canReadLeaveHoliday) return;
@@ -196,43 +197,55 @@ export default function GovernmentHolidaysPanel() {
           </div>
         </div>
         <div className="lvgh-header-actions">
-          <SearchableDropdown placeholder="Country" itemNoun="countries" allowClear={false} value={country} onChange={(v) => setCountry(v as string)} options={countries.map((c) => ({ value: c, label: countryLabel(c) }))} style={{ width: 200, height: 34 }} width={220} />
-          <Tooltip title="Refresh"><button type="button" className="lvgh-ghost-btn" onClick={() => load(country)}><ReloadOutlined spin={loading} /></button></Tooltip>
-        </div>
-      </div>
-
-      <div className="lvgh-stats">
-        {statCells.map((s) => (
-          <div key={s.key} className="lvgh-stat-card">
-            <div className="lvgh-stat-top">
-              <span className="lvgh-stat-icon" style={{ background: s.tint, color: s.color }}>{s.icon}</span>
-              <span className="lvgh-stat-label">{s.title}</span>
-            </div>
-            <div className="lvgh-stat-bottom">
-              <span className="lvgh-stat-value">{s.value}</span>
-              <span className="lvgh-stat-period">{s.period}</span>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      <div className="lvgh-bar">
-        <div className="lvgh-filters">
           <div className="lvgh-search-wrap">
             <SearchOutlined className="lvgh-search-icon" />
             <input className="lvgh-search" placeholder="Search holiday…" value={search} onChange={(e) => setSearch(e.target.value)} />
           </div>
-          <SearchableDropdown placeholder="Type" itemNoun="types" value={typeFilter === 'all' ? undefined : typeFilter} onChange={(v) => setTypeFilter((v as TypeFilter) ?? 'all')} options={TYPE_OPTIONS} style={{ width: 150 }} width={200} />
-          {(search || typeFilter !== 'all') && <button type="button" className="lvgh-clear" onClick={() => { setSearch(''); setTypeFilter('all'); setPage(1); }}><CloseCircleOutlined /> Clear</button>}
+          <FilterToggleButton
+            isOpen={isFilterRowOpen}
+            onToggle={() => setIsFilterRowOpen((prev) => !prev)}
+            activeCount={typeFilter !== 'all' ? 1 : 0}
+          />
+          <SearchableDropdown placeholder="Country" itemNoun="countries" allowClear={false} value={country} onChange={(v) => setCountry(v as string)} options={countries.map((c) => ({ value: c, label: countryLabel(c) }))} style={{ width: 170, height: 32 }} width={200} />
+          <Tooltip title="Refresh"><button type="button" className="lvgh-ghost-btn" onClick={() => load(country)}><ReloadOutlined spin={loading} /></button></Tooltip>
+          {canCreateLeaveHoliday && (
+            <Button type="primary" icon={<PlusOutlined />} loading={adding} disabled={selected.length === 0} onClick={addSelected} className="lvgh-add-btn">
+              Add {selected.length > 0 ? selected.length : ''} to our holidays
+            </Button>
+          )}
         </div>
-        {canCreateLeaveHoliday && (
-          <Button type="primary" icon={<PlusOutlined />} loading={adding} disabled={selected.length === 0} onClick={addSelected} className="lvgh-add-btn">
-            Add {selected.length > 0 ? selected.length : ''} to our holidays
-          </Button>
-        )}
       </div>
 
-      <div className="lvgh-table-wrap">
+      <StatCards
+        title="Leave Overview"
+        statusText="LIVE"
+        progressPct={stats.total > 0 ? Math.round((stats.added / stats.total) * 100) : 0}
+        cells={statCells.map(s => ({
+          label: s.title,
+          value: <>{s.value} <span style={{ fontSize: 11, fontWeight: 500, color: 'var(--text-slate-400)' }}>{s.period}</span></>,
+          icon: s.icon,
+          color: s.color,
+          tint: s.tint
+        }))}
+      />
+
+      {isFilterRowOpen && (
+        <FilterBar
+          activeCount={typeFilter !== 'all' ? 1 : 0}
+          onReset={() => { setSearch(''); setTypeFilter('all'); setPage(1); }}
+          onClose={() => setIsFilterRowOpen(false)}
+        >
+          <TicketFilterPill
+            label="Type"
+            icon={<GlobalOutlined />}
+            value={typeFilter === 'all' ? undefined : typeFilter}
+            options={TYPE_OPTIONS.map((t) => ({ value: t.value, label: t.label }))}
+            onChange={(v) => setTypeFilter((v as TypeFilter) || 'all')}
+          />
+        </FilterBar>
+      )}
+
+      <div className="lv-table-wrap">
         <ZukvoLoadingOverlay loading={loading} message="">
           <Table
             rowKey="id"
@@ -294,7 +307,7 @@ export default function GovernmentHolidaysPanel() {
               className="lvgh-pagesize"
               value={pageSize}
               onChange={(v) => { setPageSize(v); setPage(1); }}
-              options={[10, 20, 25, 50, 100].map((n) => ({ value: n, label: `${n} / page` }))}
+              options={[10, 15, 20, 25, 50, 100].map((n) => ({ value: n, label: `${n} / page` }))}
               popupMatchSelectWidth={120}
             />
           </div>
@@ -303,7 +316,7 @@ export default function GovernmentHolidaysPanel() {
 
       <style jsx global>{`
         .lvgh { display: flex; flex-direction: column; flex: 1; min-height: 0; }
-        .lvgh-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding-bottom: 14px; margin-bottom: 14px; border-bottom: 1px solid var(--border-slate-200); flex-wrap: wrap; }
+        .lvgh-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding-bottom: 14px; margin-bottom: 14px; border-bottom: 1px solid var(--border-slate-200); flex-wrap: wrap; flex-shrink: 0; }
         .lvgh-header-about { display: flex; align-items: center; gap: 12px; min-width: 200px; }
         .lvgh-header-icon { width: 38px; height: 38px; border-radius: 10px; background: ${TINT.blue}; color: ${PALETTE.blue}; display: inline-flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; }
         .lvgh-header-title { font-size: 17px; font-weight: 800; color: var(--text-slate-900); letter-spacing: -0.02em; }
@@ -319,7 +332,7 @@ export default function GovernmentHolidaysPanel() {
         .lvgh-stat-bottom { display: flex; align-items: baseline; gap: 6px; }
         .lvgh-stat-value { font-size: 23px; font-weight: 800; color: var(--text-slate-900); }
         .lvgh-stat-period { font-size: 11px; color: var(--text-slate-400); }
-        .lvgh-bar { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 14px; flex-wrap: wrap; }
+        .lvgh-bar { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 14px; flex-wrap: wrap; flex-shrink: 0; }
         .lvgh-filters { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
         .lvgh-search-wrap { display: flex; align-items: center; height: 34px; width: 240px; border-radius: 8px; background: var(--bg-pure-white); border: 1px solid var(--border-slate-200); padding: 0 10px; }
         .lvgh-search-wrap:focus-within { border-color: #93c5fd; box-shadow: 0 0 0 3px rgba(59,130,246,0.10); }
@@ -328,7 +341,6 @@ export default function GovernmentHolidaysPanel() {
         .lvgh-clear { display: inline-flex; align-items: center; gap: 5px; background: none; border: none; cursor: pointer; padding: 3px 6px; font-size: 12px; font-weight: 600; color: ${PALETTE.red}; }
         .lvgh-add-btn { height: 36px !important; border-radius: 8px !important; font-weight: 600 !important; }
         .lvgh-table-wrap { background: var(--bg-pure-white); border: 1px solid var(--border-slate-200); border-radius: 0; overflow: auto; flex: 1; min-height: 0; }
-        .lvgh-table .ant-table-content { overflow: visible !important; }
         .lvgh-table, .lvgh-table.ant-table-wrapper, .lvgh-table .ant-table, .lvgh-table .ant-table-container, .lvgh-table .ant-table-content, .lvgh-table .ant-table-header, .lvgh-table .ant-table-body { background: transparent; font-size: 12px; border-radius: 0 !important; }
         .lvgh-table .ant-table-thead > tr > th,
         .lvgh-table .ant-table-thead > tr > td {
@@ -342,7 +354,7 @@ export default function GovernmentHolidaysPanel() {
         .lvgh-table .ant-table-tbody > tr.lvgh-row:hover > td { background: var(--bg-slate-50) !important; }
         .lvgh-table .ant-pagination { display: none; }
         
-        .lvgh-footer { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; height: 52px; box-sizing: border-box; }
+        .lvgh-footer { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; height: 52px; box-sizing: border-box; flex-shrink: 0; }
         .lvgh-footer--sticky { position: sticky; bottom: 0; z-index: 20; margin: 20px -32px 0; padding: 0 32px; background: var(--bg-pure-white); border-top: 1px solid var(--border-slate-200); box-shadow: 0 -4px 14px rgba(15,23,42,0.05); }
         .lvgh-footer-info {
           font-size: 12px;

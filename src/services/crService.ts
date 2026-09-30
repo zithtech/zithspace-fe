@@ -1,4 +1,4 @@
-import { api } from "@/lib/axios";
+import { api, apiClient } from "@/lib/axios";
 
 export type CrStatus =
   | "draft"
@@ -86,10 +86,31 @@ export interface CrDetail extends CrListItem {
 
 export const crService = {
   // Staff endpoints
-  listForClient(clientId: string) {
-    return api.get<CrListItem[]>(
-      `/api/clients-v2/${clientId}/change-requests`,
+  async listForClient(
+    clientId: string,
+    params: {
+      page?: number;
+      limit?: number;
+      search?: string;
+      status?: string;
+      priority?: string;
+      projectId?: string;
+    } = {},
+  ) {
+    const qs = new URLSearchParams();
+    Object.entries(params).forEach(([k, v]) => {
+      if (v != null && v !== "") qs.append(k, String(v));
+    });
+    const res = await apiClient.get(
+      `/api/clients-v2/${clientId}/change-requests${qs.toString() ? `?${qs.toString()}` : ""}`,
     );
+    if (res.data?.success === false) {
+      throw new Error(res.data.error || "Failed to load change requests");
+    }
+    return {
+      data: (res.data?.data || []) as CrListItem[],
+      meta: res.data?.meta || { total: (res.data?.data || []).length, page: 1, limit: 15, totalPages: 1 },
+    };
   },
   create(
     clientId: string,

@@ -130,12 +130,22 @@ export const useLeads = () => {
         setLoading(false);
       }
     }, []),
-    fetchTrashLeads: useCallback(async () => {
+    fetchTrashLeads: useCallback(async (params?: { page?: number; limit?: number; search?: string }) => {
       setLoading(true);
       setError(null);
       try {
-        const data = await LeadService.getTrash();
-        setLeads(data);
+        const res = await LeadService.getTrash(params);
+        if (res?.pagination) {
+          setLeads(res.data || []);
+          return res;
+        } else if (res?.data && Array.isArray(res.data)) {
+          setLeads(res.data);
+          return res;
+        } else if (Array.isArray(res)) {
+          setLeads(res);
+          return { data: res, pagination: { total: res.length } };
+        }
+        return res;
       } catch (err: any) {
         setError(err.response?.data?.error || "Failed to fetch trash leads");
         console.error("Fetch trash leads error:", err);

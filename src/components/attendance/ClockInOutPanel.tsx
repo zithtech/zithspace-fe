@@ -42,20 +42,7 @@ import { useSocket } from '@/providers/SocketProvider';
 import { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
 
 // ── Module palette: blue / green / amber / red / grey ───────────────────────
-const PALETTE = {
-  blue: '#3B82F6',
-  green: '#10B981',
-  amber: '#F59E0B',
-  red: '#EF4444',
-  grey: '#94A3B8',
-} as const;
-const TINT = {
-  blue: 'rgba(59,130,246,0.10)',
-  green: 'rgba(16,185,129,0.10)',
-  amber: 'rgba(245,158,11,0.12)',
-  red: 'rgba(239,68,68,0.10)',
-  grey: 'rgba(148,163,184,0.12)',
-} as const;
+import { PALETTE, TINT, StatCards } from '@/components/attendance/ui';
 
 interface TodayStatus extends TodayAttendance {
   shift?: { id: string; name: string; startTime: string; endTime: string; isFlexible?: boolean };
@@ -85,7 +72,7 @@ const formatDuration = (minutes?: number) => {
   return `${h}h ${m}m`;
 };
 
-const PAGE_SIZE_OPTIONS = [10, 20, 25, 50, 100];
+const PAGE_SIZE_OPTIONS = [10, 15, 20, 25, 50, 100];
 
 // Clock In / Out panel — 5 stacked full-width sections:
 //   1) Header   2) Clock band (horizontal)   3) Work Hours Insights (horizontal)
@@ -107,7 +94,7 @@ export default function ClockInOutPanel() {
   const [breakModalOpen, setBreakModalOpen] = useState(false);
 
   const [tablePage, setTablePage] = useState(1);
-  const [tablePageSize, setTablePageSize] = useState(20);
+  const [tablePageSize, setTablePageSize] = useState(15);
 
   const monthStart = useMemo(() => dayjs().startOf('month'), []);
   const monthEnd = useMemo(() => dayjs().endOf('month'), []);
@@ -334,7 +321,22 @@ export default function ClockInOutPanel() {
         </Tooltip>
       </div>
 
-      {/* ── 2) CLOCK BAND (horizontal, full width) ───────────────────────────── */}
+      {/* ── 2) WORK HOURS INSIGHTS (horizontal, full width) ──────────────────── */}
+      <StatCards
+        title="Work Hours Insights"
+        statusText="LIVE"
+        progressPct={summary?.thisWeek?.totalMinutes ? Math.min(100, Math.round((summary.thisWeek.totalMinutes / (40 * 60)) * 100)) : (summary?.totalDays ? Math.round(((summary.presentDays || 0) / summary.totalDays) * 100) : 0)}
+        cells={insights.map(s => ({
+          label: s.title,
+          value: <>{s.value} <span style={{ fontSize: 11, fontWeight: 500, color: 'var(--text-slate-400)' }}>{s.sub}</span></>,
+          icon: s.icon,
+          color: s.color,
+          tint: s.tint
+        }))}
+      />
+      <div style={{ padding: '0 20px', flexShrink: 0 }}>
+
+      {/* ── 3) CLOCK BAND (horizontal, full width) ───────────────────────────── */}
       <div className="cio-band">
         {/* shift */}
         <div className="cio-band-shift">
@@ -475,27 +477,14 @@ export default function ClockInOutPanel() {
         </div>
       </div>
 
-      {/* ── 3) WORK HOURS INSIGHTS (horizontal, full width) ──────────────────── */}
-      <div className="cio-section-label"><FieldTimeOutlined /> Work Hours Insights</div>
-      <div className="cio-insights">
-        {insights.map((s) => (
-          <div key={s.key} className="cio-insight-card">
-            <div className="cio-insight-top">
-              <span className="cio-insight-icon" style={{ background: s.tint, color: s.color }}>{s.icon}</span>
-              <span className="cio-insight-title">{s.title}</span>
-            </div>
-            <div className="cio-insight-value">{s.value}</div>
-            <div className="cio-insight-sub">{s.sub}</div>
-          </div>
-        ))}
-      </div>
 
       {/* ── 4) CURRENT MONTH TABLE ───────────────────────────────────────────── */}
       <div className="cio-section-label cio-table-label">
         <CalendarOutlined /> {monthLabel} · My Attendance
         <span className="cio-table-count">{total} record{total === 1 ? '' : 's'}</span>
       </div>
-      <div className="cio-table-wrap" style={{ overflowX: 'auto' }}>
+      </div>
+      <div className="att-table-wrap" style={{ overflowX: 'auto' }}>
         <ZukvoLoadingOverlay loading={tableLoading} message="">
           <Table
             rowKey="id"
@@ -514,6 +503,7 @@ export default function ClockInOutPanel() {
         </ZukvoLoadingOverlay>
       </div>
 
+      
       {/* ── 5) STICKY BOTTOM PAGER ───────────────────────────────────────────── */}
       {total > 0 && (
         <div className="cio-footer cio-footer--sticky">
@@ -576,7 +566,7 @@ export default function ClockInOutPanel() {
 
         /* 2) Clock band — horizontal full width */
         .cio-band {
-          display: flex; align-items: stretch; gap: 0; margin-bottom: 20px;
+          display: flex; align-items: stretch; gap: 0; margin-top: 8px; margin-bottom: 12px;
           background: var(--bg-pure-white); border: 1px solid var(--border-slate-200);
           border-radius: 0; box-shadow: 0 1px 2px rgba(15,23,42,0.04); overflow: hidden;
         }
@@ -659,7 +649,7 @@ export default function ClockInOutPanel() {
           font-size: 12.5px; font-weight: 700; color: var(--text-slate-700);
         }
         .cio-section-label .anticon { color: var(--text-slate-400); }
-        .cio-table-label { margin-top: 4px; }
+        .cio-table-label { margin-top: 2px; margin-bottom: 6px; }
         .cio-table-count { margin-left: auto; font-size: 11.5px; font-weight: 600; color: var(--text-slate-400); }
 
         /* 3) Insights — horizontal full width */

@@ -1,5 +1,13 @@
 import { api, ApiError, apiUtils, PaginatedResponse } from '@/lib/axios';
 
+export interface TransactionAttachment {
+  name: string;
+  url: string;
+  size?: number;
+  type?: string;
+  base64?: string;
+}
+
 export interface Transaction {
   id: string;
   type: 'credit' | 'debit';
@@ -15,6 +23,7 @@ export interface Transaction {
   notes?: string;
   date: string;
   metadata?: any;
+  attachments?: TransactionAttachment[];
   createdAt: string;
   updatedAt: string;
 }
@@ -27,6 +36,7 @@ export interface CreateTransactionData {
   description: string;
   notes?: string;
   date: Date;
+  attachments?: TransactionAttachment[];
 }
 
 export interface UpdateTransactionData extends Partial<CreateTransactionData> {}

@@ -21,6 +21,7 @@ import {
 } from 'antd';
 import { Menu } from 'lucide-react';
 import { drawerFormStyles as formStyles, SectionCard } from "@/components/common/DrawerSection";
+import { FilterBar, FilterToggleButton, TicketFilterPill } from '@/components/common/FilterBar';
 import type { ColumnsType } from 'antd/es/table';
 import {
   PlusOutlined,
@@ -46,6 +47,7 @@ import LeaveV2Service, {
   LeaveTypeV2,
 } from '@/services/leaveV2Service';
 import { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
+import { StatCards } from './ui';
 
 const { TextArea } = Input;
 
@@ -139,7 +141,7 @@ const AreaSparkline = ({ values, color }: { values: number[]; color: string }) =
   );
 };
 
-const PAGE_SIZE_OPTIONS = [10, 20, 25, 50, 100];
+const PAGE_SIZE_OPTIONS = [10, 15, 20, 25, 50, 100];
 
 // Decorative sparkline shapes (no leave-type time-series exists yet).
 const TRENDS: Record<string, number[]> = {
@@ -170,6 +172,7 @@ export default function LeaveTypePanel() {
   const [unitFilter, setUnitFilter] = useState<UnitFilter>('all');
   const [paidFilter, setPaidFilter] = useState<PaidFilter>('all');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
+  const [isFilterRowOpen, setIsFilterRowOpen] = useState(false);
 
   // drawer
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -180,7 +183,7 @@ export default function LeaveTypePanel() {
   const [form] = Form.useForm<CreateLeaveTypeInput>();
   
   const [tablePage, setTablePage] = useState(1);
-  const [tablePageSize, setTablePageSize] = useState(20);
+  const [tablePageSize, setTablePageSize] = useState(15);
 
   // Fetch types with filters for server-side pagination
   const load = useCallback(async (p = tablePage, size = tablePageSize, q = search, u = unitFilter, paid = paidFilter, stat = statusFilter) => {
@@ -396,6 +399,11 @@ export default function LeaveTypePanel() {
             <SearchOutlined className="lvt-search-icon" />
             <input className="lvt-search" placeholder="Search name or code…" value={search} onChange={(e) => setSearch(e.target.value)} />
           </div>
+          <FilterToggleButton
+            isOpen={isFilterRowOpen}
+            onToggle={() => setIsFilterRowOpen((prev) => !prev)}
+            activeCount={(unitFilter !== 'all' ? 1 : 0) + (paidFilter !== 'all' ? 1 : 0) + (statusFilter !== 'all' ? 1 : 0)}
+          />
           <Tooltip title="Refresh"><button type="button" className="lvt-ghost-btn" onClick={() => load()}><ReloadOutlined spin={loading} /></button></Tooltip>
           {canCreateLeaveType && (
             <Button type="primary" icon={<PlusOutlined />} onClick={openCreate} className="lvt-add-btn">New Leave Type</Button>
@@ -404,79 +412,61 @@ export default function LeaveTypePanel() {
       </div>
 
       {/* ── 2) STAT CARDS (square — exact Proposal stat-card UI) ─────────────── */}
-      <div className="lvt-stats">
-        {statCells.map((s) => (
-          <div key={s.key} className="lvt-stat-card">
-            <div className="lvt-stat-top">
-              <div className="lvt-stat-left">
-                <span className="lvt-stat-icon" style={{ background: s.tint, color: s.color }}>{s.icon}</span>
-                <span className="lvt-stat-label">{s.title}</span>
-              </div>
-            </div>
-            <div className="lvt-stat-bottom">
-              <div className="lvt-stat-value-wrap">
-                <span className="lvt-stat-value">{s.value}</span>
-                <span className="lvt-stat-period">{s.period}</span>
-              </div>
-              <div className="lvt-stat-spark"><AreaSparkline values={s.trend} color={s.color} /></div>
-            </div>
-          </div>
-        ))}
-      </div>
+      <StatCards
+        title="Leave Overview"
+        statusText="LIVE"
+        progressPct={stats.total > 0 ? Math.round((stats.active / stats.total) * 100) : 0}
+        cells={statCells.map(s => ({
+          label: s.title,
+          value: <>{s.value} <span style={{ fontSize: 11, fontWeight: 500, color: 'var(--text-slate-400)' }}>{s.period}</span></>,
+          icon: s.icon,
+          color: s.color,
+          tint: s.tint
+        }))}
+      />
 
       {/* ── 3) FILTERS ──────────────────────────────────────────────────────── */}
-      <div className="lvt-filters">
-        <span className="lvt-filter-label"><FilterOutlined /> Filter</span>
-        <SearchableDropdown
-          className="lvt-filter-dd"
-          placeholder="Unit"
-          searchPlaceholder="Search units"
-          itemNoun="units"
-          value={unitFilter === 'all' ? undefined : unitFilter}
-          onChange={(v) => setUnitFilter((v as UnitFilter) ?? 'all')}
-          options={[
-            { value: 'day', label: 'Daily' },
-            { value: 'hour', label: 'Hourly' },
-          ]}
-          style={{ width: 160 }}
-          width={210}
-        />
-        <SearchableDropdown
-          className="lvt-filter-dd"
-          placeholder="Payment"
-          searchPlaceholder="Search"
-          itemNoun="options"
-          value={paidFilter === 'all' ? undefined : paidFilter}
-          onChange={(v) => setPaidFilter((v as PaidFilter) ?? 'all')}
-          options={[
-            { value: 'paid', label: 'Paid only' },
-            { value: 'unpaid', label: 'Unpaid only' },
-          ]}
-          style={{ width: 160 }}
-          width={210}
-        />
-        <SearchableDropdown
-          className="lvt-filter-dd"
-          placeholder="Status"
-          searchPlaceholder="Search statuses"
-          itemNoun="statuses"
-          value={statusFilter === 'all' ? undefined : statusFilter}
-          onChange={(v) => setStatusFilter((v as StatusFilter) ?? 'all')}
-          options={[
-            { value: 'active', label: 'Active' },
-            { value: 'inactive', label: 'Inactive' },
-          ]}
-          style={{ width: 160 }}
-          width={210}
-        />
-        <span className="lvt-filter-count">{total} of {stats.total}</span>
-        {hasActiveFilters && (
-          <button type="button" className="lvt-clear" onClick={clearFilters}><CloseCircleOutlined /> Clear</button>
-        )}
-      </div>
+      {isFilterRowOpen && (
+        <FilterBar
+          activeCount={(unitFilter !== 'all' ? 1 : 0) + (paidFilter !== 'all' ? 1 : 0) + (statusFilter !== 'all' ? 1 : 0)}
+          onReset={clearFilters}
+          onClose={() => setIsFilterRowOpen(false)}
+        >
+          <TicketFilterPill
+            label="Status"
+            icon={<CheckCircleOutlined />}
+            value={statusFilter === 'all' ? undefined : statusFilter}
+            options={[
+              { value: 'active', label: 'Active', dotColor: '#10b981' },
+              { value: 'inactive', label: 'Inactive', dotColor: '#ef4444' },
+            ]}
+            onChange={(v) => setStatusFilter((v as StatusFilter) || 'all')}
+          />
+          <TicketFilterPill
+            label="Unit"
+            icon={<FilterOutlined />}
+            value={unitFilter === 'all' ? undefined : unitFilter}
+            options={[
+              { value: 'day', label: 'Daily', dotColor: '#3b82f6' },
+              { value: 'hour', label: 'Hourly', dotColor: '#8b5cf6' },
+            ]}
+            onChange={(v) => setUnitFilter((v as UnitFilter) || 'all')}
+          />
+          <TicketFilterPill
+            label="Payment"
+            icon={<FilterOutlined />}
+            value={paidFilter === 'all' ? undefined : paidFilter}
+            options={[
+              { value: 'paid', label: 'Paid only', dotColor: '#10b981' },
+              { value: 'unpaid', label: 'Unpaid only', dotColor: '#f59e0b' },
+            ]}
+            onChange={(v) => setPaidFilter((v as PaidFilter) || 'all')}
+          />
+        </FilterBar>
+      )}
 
       {/* ── 4) TABLE (Proposal table UI) ────────────────────────────────────── */}
-      <div className="lvt-table-wrap">
+      <div className="lv-table-wrap">
         <ZukvoLoadingOverlay loading={loading} message="">
           <Table
             rowKey="id"

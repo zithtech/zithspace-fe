@@ -1,4 +1,4 @@
-import { api } from "@/lib/axios";
+import { api, apiClient } from "@/lib/axios";
 
 export type ApprovalStatus =
   | "open"
@@ -105,10 +105,30 @@ export interface CreateApprovalPayload {
 }
 
 export const approvalsService = {
-  listForClient(clientId: string) {
-    return api.get<ApprovalListItem[]>(
-      `/api/clients-v2/${clientId}/approvals`,
+  async listForClient(
+    clientId: string,
+    params: {
+      page?: number;
+      limit?: number;
+      search?: string;
+      status?: string;
+      projectId?: string;
+    } = {},
+  ) {
+    const qs = new URLSearchParams();
+    Object.entries(params).forEach(([k, v]) => {
+      if (v != null && v !== "") qs.append(k, String(v));
+    });
+    const res = await apiClient.get(
+      `/api/clients-v2/${clientId}/approvals${qs.toString() ? `?${qs.toString()}` : ""}`,
     );
+    if (res.data?.success === false) {
+      throw new Error(res.data.error || "Failed to load approvals");
+    }
+    return {
+      data: (res.data?.data || []) as ApprovalListItem[],
+      meta: res.data?.meta || { total: (res.data?.data || []).length, page: 1, limit: 15, totalPages: 1 },
+    };
   },
   create(clientId: string, payload: CreateApprovalPayload) {
     return api.post<{ id: string; approvalNumber: string }>(

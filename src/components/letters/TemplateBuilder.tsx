@@ -323,7 +323,7 @@ export default function TemplateBuilder({ templateId }: TemplateBuilderProps) {
           LettersService.getStructures()
         ]);
         setCategories(cats);
-        setCustomStructures(structs);
+        setCustomStructures(Array.isArray(structs) ? structs : (structs as any).data || []);
 
         if (templateId) {
           const tpl = await LettersService.getTemplateById(templateId);

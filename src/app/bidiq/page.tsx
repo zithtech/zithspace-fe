@@ -32,6 +32,7 @@ import {
 import { Table, Input, Empty, Tooltip, Tag, DatePicker, Skeleton, Select, Button } from "antd";
 import dayjs, { Dayjs } from "dayjs";
 import { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
+import { StatCards } from "@/components/common/StatCards";
 
 const { RangePicker } = DatePicker;
 
@@ -113,7 +114,7 @@ export default function BidIqPage() {
   const [dateRange, setDateRange] = useState<[Dayjs | null, Dayjs | null] | null>(null);
   const [layout, setLayout] = useState<"list" | "grid">("list");
   const [tablePage, setTablePage] = useState(1);
-  const [tablePageSize, setTablePageSize] = useState(20);
+  const [tablePageSize, setTablePageSize] = useState(15);
   const [paginatedBids, setPaginatedBids] = useState<Lead[]>([]);
   const [totalCount, setTotalCount] = useState(0);
   const [paginatedLoading, setPaginatedLoading] = useState(false);
@@ -203,7 +204,7 @@ export default function BidIqPage() {
 
       const res = await LeadService.getAll(filters);
       setPaginatedBids(res?.data || []);
-      setTotalCount(res?.pagination?.total || 0);
+      setTotalCount(Number(res?.pagination?.total ?? (res as any)?.count ?? (res as any)?.data?.length ?? 0) || 0);
     } catch (err: any) {
       console.error('Failed to fetch paginated Bidiq:', err);
     } finally {
@@ -275,6 +276,8 @@ export default function BidIqPage() {
       dataIndex: "ai_score",
       key: "ai_score",
       width: 110,
+      onHeaderCell: () => ({ style: { paddingLeft: 24 } }),
+      onCell: () => ({ style: { paddingLeft: 24 } }),
       render: (score: number | undefined) => {
         const level = getScoreLevel(score);
         return (
@@ -369,6 +372,8 @@ export default function BidIqPage() {
       key: "actions",
       width: 130,
       fixed: "right" as const,
+      onHeaderCell: () => ({ style: { paddingRight: 24 } }),
+      onCell: () => ({ style: { paddingRight: 24 } }),
       render: (_: unknown, record: Lead) => (
         <button
           className="biq-view-btn"
@@ -524,61 +529,39 @@ export default function BidIqPage() {
                 </div>
               </div>
 
-              <div className="biq-divider" />
+              <div className="biq-divider" style={{ margin: 0 }} />
 
               {/* Stat cards */}
-              <div className="biq-stat-grid">
-                {(() => {
-                  const t = counts.total || 1;
-                  const spark = (color: string) => (
-                    <div className="biq-stat-spark-wrap">
-                      <span className="biq-spark-label">Score spread</span>
-                      <AreaSparkline values={scoreSpread} color={color} />
-                    </div>
-                  );
-                  return (
-                    <>
-                      <StatCard
-                        icon={Gauge}
-                        label="Analyzed"
-                        value={counts.total}
-                        accent="#3b82f6"
-                        subtle={counts.total > 0 ? "Leads scored by BidIq" : "No analyses yet"}
-                        chart={counts.total > 0 ? spark("#3b82f6") : null}
-                      />
-                      <StatCard
-                        icon={Flame}
-                        label="Hot Leads"
-                        value={counts.hot}
-                        accent="#ef4444"
-                        subtle={counts.total > 0 ? `${Math.round((counts.hot / t) * 100)}% of analyses · score ≥ 80` : "Score ≥ 80"}
-                        chart={counts.total > 0 ? spark("#ef4444") : null}
-                      />
-                      <StatCard
-                        icon={TrendingUp}
-                        label="Avg Score"
-                        value={counts.avg}
-                        accent="#64748b"
-                        subtle={counts.total > 0 ? "Average win-probability" : "Run BidIq to see scores"}
-                        chart={counts.total > 0 ? spark("#64748b") : null}
-                      />
-                      <StatCard
-                        icon={FileText}
-                        label="Proposal Ready"
-                        value={counts.withProposal}
-                        accent="#10b981"
-                        subtle={counts.total > 0 ? `${Math.round((counts.withProposal / t) * 100)}% have a proposal` : "No proposals yet"}
-                        chart={counts.total > 0 ? spark("#10b981") : null}
-                      />
-                    </>
-                  );
-                })()}
+              <div style={{ margin: 0 }}>
+                <StatCards
+                  title="BidIq Overview"
+                  statusText="ACTIVE"
+                  progressPct={counts.avg ? Math.round(Number(counts.avg)) : (counts.total > 0 ? Math.round((counts.hot / counts.total) * 100) : 0)}
+                  cells={[
+                    {
+                      label: "Analyzed",
+                      value: counts.total,
+                    },
+                    {
+                      label: "Hot Leads",
+                      value: counts.hot,
+                    },
+                    {
+                      label: "Avg Score",
+                      value: counts.avg,
+                    },
+                    {
+                      label: "Proposal Ready",
+                      value: counts.withProposal,
+                    },
+                  ]}
+                />
               </div>
 
               {/* Body */}
               <div className="biq-body">
                 {layout === "list" ? (
-                  <div className="biq-table-card">
+                  <div className="biq-table-card" style={{ margin: 0, borderLeft: "none", borderRight: "none" }}>
                     <Table<Lead>
                       rowKey="id"
                       loading={paginatedLoading}
@@ -613,7 +596,7 @@ export default function BidIqPage() {
                     {totalCount === 0 ? (
                       <NoData description="No BidIq analyses yet." />
                     ) : (
-                      <div className="biq-grid">
+                      <div className="biq-grid" style={{ marginTop: 16, padding: "0 24px" }}>
                         {paginatedBids.map((record) => {
                           const level = getScoreLevel(record.ai_score);
                           const pct = record.skill_analysis?.matchPercentage;
@@ -689,57 +672,57 @@ export default function BidIqPage() {
               </div>
 
               {totalCount > 0 && (
-                <div className="biq-bottom-bar">
-                    <div className="biq-bottom-info">
-                      Showing{" "}
-                      <strong>
-                        {(tablePage - 1) * tablePageSize + 1}–
-                        {Math.min(tablePage * tablePageSize, totalCount)}
-                      </strong>{" "}
-                      of <strong>{totalCount}</strong>
-                    </div>
-                    <div className="biq-pager">
-                      <button
-                        type="button"
-                        className="biq-pager-btn"
-                        disabled={tablePage <= 1}
-                        onClick={() => setTablePage((p) => Math.max(1, p - 1))}
-                      >
-                        ‹
-                      </button>
-                      {Array.from({ length: Math.ceil(totalCount / tablePageSize) }, (_, i) => i + 1)
-                        .slice(Math.max(0, tablePage - 3), Math.max(0, tablePage - 3) + 5)
-                        .map((p) => (
-                          <button
-                            key={p}
-                            type="button"
-                            className={`biq-pager-num ${p === tablePage ? "is-active" : ""}`}
-                            onClick={() => setTablePage(p)}
-                          >
-                            {p}
-                          </button>
-                        ))}
-                      <button
-                        type="button"
-                        className="biq-pager-btn"
-                        disabled={tablePage >= Math.ceil(totalCount / tablePageSize)}
-                        onClick={() => setTablePage((p) => Math.min(Math.ceil(totalCount / tablePageSize), p + 1))}
-                      >
-                        ›
-                      </button>
-                      <Select
-                        className="biq-pagesize"
-                        value={tablePageSize}
-                        onChange={(v) => {
-                          setTablePageSize(v);
-                          setTablePage(1);
-                        }}
-                        options={[10, 20, 25, 50, 100].map((n) => ({ value: n, label: `${n} / page` }))}
-                        popupMatchSelectWidth={120}
-                      />
-                    </div>
+                <div className="pp-footer pp-footer--sticky">
+                  <div className="pp-footer-info">
+                    Showing{" "}
+                    <strong>
+                      {(tablePage - 1) * tablePageSize + 1}–
+                      {Math.min(tablePage * tablePageSize, totalCount)}
+                    </strong>{" "}
+                    of <strong>{totalCount}</strong>
                   </div>
-                )}
+                  <div className="pp-pager">
+                    <button
+                      type="button"
+                      className="pp-pager-btn"
+                      disabled={tablePage <= 1}
+                      onClick={() => setTablePage((p) => Math.max(1, p - 1))}
+                    >
+                      ‹
+                    </button>
+                    {Array.from({ length: Math.ceil(totalCount / tablePageSize) }, (_, i) => i + 1)
+                      .slice(Math.max(0, tablePage - 3), Math.max(0, tablePage - 3) + 5)
+                      .map((p) => (
+                        <button
+                          key={p}
+                          type="button"
+                          className={`pp-pager-num ${p === tablePage ? "is-active" : ""}`}
+                          onClick={() => setTablePage(p)}
+                        >
+                          {p}
+                        </button>
+                      ))}
+                    <button
+                      type="button"
+                      className="pp-pager-btn"
+                      disabled={tablePage >= Math.ceil(totalCount / tablePageSize)}
+                      onClick={() => setTablePage((p) => Math.min(Math.ceil(totalCount / tablePageSize), p + 1))}
+                    >
+                      ›
+                    </button>
+                    <Select
+                      className="pp-pagesize"
+                      value={tablePageSize}
+                      onChange={(v) => {
+                        setTablePageSize(v);
+                        setTablePage(1);
+                      }}
+                      options={[10, 15, 20, 25, 50, 100].map((n) => ({ value: n, label: `${n} / page` }))}
+                      popupMatchSelectWidth={120}
+                    />
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -753,10 +736,11 @@ export default function BidIqPage() {
             background: var(--bg-pure-white);
             height: calc(100vh - 64px);
             overflow: hidden;
+            margin: 0 -8px;
           }
           .biq-shell {
             display: flex;
-            margin: 0 -16px;
+            margin: 0;
             height: 100%;
             background: var(--bg-pure-white);
           }
@@ -821,12 +805,12 @@ export default function BidIqPage() {
           /* ---------- Main ---------- */
           .biq-main {
             flex: 1; min-width: 0;
-            padding: 8px 18px 0;
+            padding: 8px 0 0 0;
             display: flex; flex-direction: column; height: 100%;
           }
           .biq-topbar {
             display: flex; align-items: center; justify-content: space-between;
-            gap: 12px; padding-bottom: 4px; flex-wrap: wrap;
+            gap: 12px; padding: 12px 24px 8px 24px; flex-wrap: wrap; margin-bottom: 12px;
           }
           .biq-topbar-search-wrap { flex: 1; min-width: 220px; max-width: 420px; }
           .biq-search-input.ant-input-affix-wrapper {
@@ -836,7 +820,7 @@ export default function BidIqPage() {
           }
           .biq-topbar-actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
           .biq-range.ant-picker { border-radius: 8px; }
-          .biq-divider { height: 1px; background: var(--border-slate-200); margin: 0 -18px 12px; }
+          .biq-divider { height: 1px; background: var(--border-slate-200); margin: 0 0 12px 0; }
 
           /* ---------- Segmented (list/grid) ---------- */
           .biq-segmented {
@@ -889,35 +873,41 @@ export default function BidIqPage() {
           /* ---------- Body ---------- */
           .biq-body { flex: 1; min-height: 0; overflow-y: auto; padding-bottom: 0; }
 
-          /* ---------- Fixed full-bleed pagination footer ---------- */
-          .biq-bottom-bar {
-            flex-shrink: 0;
-            display: flex; align-items: center; justify-content: space-between;
-            flex-wrap: wrap; gap: 10px;
-            margin: 0 -18px;          /* full-bleed: cancel .biq-main horizontal padding */
-            padding: 8px 18px;
+          /* Footer + pager */
+          .pp-footer {
+            display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;
+            padding: 0 14px; border-top: 1px solid var(--border-slate-200);
+            height: 52px !important;
+            box-sizing: border-box;
+          }
+          .pp-footer--sticky {
+            position: sticky; bottom: 0; z-index: 30; margin: 8px 0 0; padding: 0 24px;
             background: var(--bg-pure-white);
-            border-top: 1px solid var(--border-slate-200);
             box-shadow: 0 -4px 14px rgba(15,23,42,0.05);
+            height: 52px !important;
+            box-sizing: border-box;
           }
-          .biq-bottom-info { font-size: 12px; color: var(--text-slate-500); }
-          .biq-bottom-info strong { color: var(--text-slate-700); font-weight: 700; font-variant-numeric: tabular-nums; }
-          .biq-pager { display: flex; align-items: center; gap: 3px; }
-          .biq-pager-btn, .biq-pager-num {
-            min-width: 24px; height: 24px; border-radius: 5px; border: 1px solid var(--border-slate-200);
-            background: var(--bg-pure-white); color: var(--text-slate-600); cursor: pointer; font-size: 11px; font-weight: 600;
+          .pp-footer-info { font-size: 12px; color: var(--text-slate-500); }
+          .pp-footer-info strong { color: var(--text-slate-700); font-weight: 700; font-variant-numeric: tabular-nums; }
+          .pp-pager { display: flex; align-items: center; gap: 3px; }
+          .pp-pager-btn, .pp-pager-num {
+            min-width: 28px; height: 28px; border-radius: 7px; border: 1px solid var(--border-slate-200);
+            background: var(--bg-pure-white); color: var(--text-slate-600); cursor: pointer; font-size: 12.5px; font-weight: 600;
           }
-          .biq-pager-btn:hover:not(:disabled), .biq-pager-num:hover { border-color: #3b82f6; color: #3b82f6; }
-          .biq-pager-btn:disabled { opacity: 0.4; cursor: not-allowed; }
-          .biq-pager-num.is-active { background: #3B82F6; border-color: #3B82F6; color: #fff; }
-          .biq-pagesize { margin-left: 5px; }
-          .biq-pagesize .ant-select-selector { border-radius: 7px !important; height: 24px !important; font-size: 11px !important; padding: 0 8px !important; }
+          .pp-pager-btn:hover:not(:disabled), .pp-pager-num:hover { border-color: #3b82f6; color: #3b82f6; }
+          .pp-pager-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+          .pp-pager-num.is-active { background: #3B82F6; border-color: #3B82F6; color: #fff; }
+          .pp-pagesize { margin-left: 5px; }
+          .pp-pagesize .ant-select-selector { border-radius: 7px !important; height: 28px !important; }
 
           /* ---------- Table (list) ---------- */
           .biq-table-card {
             position: relative; background: var(--bg-pure-white);
             border-radius: 0; border: 1px solid var(--border-slate-200); overflow: hidden;
           }
+          .biq-table-card ::-webkit-scrollbar { display: none !important; }
+          .biq-table-card, .biq-table-card * { -ms-overflow-style: none !important; scrollbar-width: none !important; }
+          .biq-table .ant-table-cell-scrollbar { display: none !important; }
           .biq-table,
           .biq-table.ant-table-wrapper,
           .biq-table .ant-table,

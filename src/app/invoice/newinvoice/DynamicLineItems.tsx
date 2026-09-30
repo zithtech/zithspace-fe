@@ -94,6 +94,12 @@ const AddFieldModal = ({ visible, onCancel, onAdd }: any) => {
   const [form] = Form.useForm();
   const fieldType = Form.useWatch('fieldType', form);
 
+  useEffect(() => {
+    if (visible) {
+      form.resetFields();
+    }
+  }, [visible, form]);
+
   return (
     <Modal
       open={visible}
@@ -131,7 +137,7 @@ const AddFieldModal = ({ visible, onCancel, onAdd }: any) => {
               className="text-[15px] font-semibold leading-tight"
               style={{ color: 'var(--text-primary)' }}
             >
-              Add custom field
+              Add column
             </div>
             <div
               className="text-[12px] mt-0.5"
@@ -383,7 +389,7 @@ const AddFieldModal = ({ visible, onCancel, onAdd }: any) => {
             onClick={() => form.submit()}
             style={{ borderRadius: 8, height: 36, background: '#2563eb', fontWeight: 600 }}
           >
-            Add field
+            Add column
           </Button>
         </div>
       </Form>
@@ -547,9 +553,30 @@ const SortableItem = ({
         ) : type === 'date' ? (
           <DatePicker size="small" className={inputClass} placeholder={label} style={{ width: '100%' }} format="YYYY-MM-DD" />
         ) : type === 'textarea' ? (
-          <Input.TextArea size="small" autoSize={{ minRows: 1, maxRows: 3 }} className="rounded-md border-gray-200 text-xs" placeholder={label} />
+          <Input.TextArea 
+            size="small" 
+            autoSize={{ minRows: 1, maxRows: 3 }} 
+            className="rounded-md border-gray-200 text-xs" 
+            placeholder={label} 
+            onKeyDown={(e) => {
+              const isNumeric = (e.key >= '0' && e.key <= '9') || 
+                                (e.code && e.code.startsWith('Numpad') && e.code.length === 7 && e.code[6] >= '0' && e.code[6] <= '9');
+              if (isNumeric) e.preventDefault();
+            }}
+          />
         ) : (
-          <Input size="small" placeholder={label} className={inputClass} />
+          <Input 
+            size="small" 
+            placeholder={label} 
+            className={inputClass} 
+            onKeyDown={(e) => {
+              if (type === 'text') {
+                const isNumeric = (e.key >= '0' && e.key <= '9') || 
+                                  (e.code && e.code.startsWith('Numpad') && e.code.length === 7 && e.code[6] >= '0' && e.code[6] <= '9');
+                if (isNumeric) e.preventDefault();
+              }
+            }}
+          />
         )}
       </Form.Item>
     );
@@ -928,7 +955,17 @@ export default function DynamicLineItems({
   };
 
   const onAddCustomField = (values: any) => {
-    const key = values.label.toLowerCase().replace(/\s+/g, '_');
+    const rawKey = (values.label || 'custom_field')
+      .toLowerCase()
+      .trim()
+      .replace(/[^a-z0-9_]/g, '_')
+      .replace(/_+/g, '_');
+    let key = rawKey;
+    let counter = 1;
+    while (activeColumns.some(c => c.key === key)) {
+      key = `${rawKey}_${counter++}`;
+    }
+
     const newCol: Column = {
       key,
       label: values.label,
@@ -937,8 +974,20 @@ export default function DynamicLineItems({
       options: values.options,
       required: values.required,
       showInPdf: values.showInPdf,
-      width: 'min-w-[120px]'
+      width: 'min-w-[130px]'
     };
+
+    // Ensure all existing line items have this key initialized in extraFields
+    const currentLineItems = form.getFieldValue('lineItems') || [];
+    const updatedLineItems = currentLineItems.map((item: any) => ({
+      ...item,
+      extraFields: {
+        ...(item?.extraFields || {}),
+        [key]: ''
+      }
+    }));
+    form.setFieldsValue({ lineItems: updatedLineItems });
+
     setActiveColumns(prev => [...prev, newCol]);
     setShowAddFieldModal(false);
   };
@@ -1103,11 +1152,11 @@ export default function DynamicLineItems({
                   </Button>
                   <Divider type="vertical" className="hidden sm:block h-6 mx-0.5 border-[var(--border-color)]" />
                   <Button
-                    icon={<SettingOutlined style={{ fontSize: 13 }} />}
+                    icon={<PlusOutlined style={{ fontSize: 13 }} />}
                     onClick={() => setShowAddFieldModal(true)}
-                    className="flex items-center gap-1 font-medium text-[var(--text-primary)] rounded-lg border-[var(--border-color)] bg-[var(--bg-secondary)] h-8 px-2.5 text-[12.5px] hover:border-slate-300 transition-all"
+                    className="flex items-center gap-1 font-medium text-[var(--text-primary)] rounded-lg border-[var(--border-color)] bg-[var(--bg-secondary)] h-8 px-2.5 text-[12.5px] hover:border-blue-300 hover:text-blue-600 transition-all"
                   >
-                    <span className="hidden sm:inline">Customize</span>
+                    <span className="hidden sm:inline">Add column</span>
                   </Button>
                   <Button
                     type="primary"
@@ -1260,9 +1309,7 @@ export default function DynamicLineItems({
                                   Add first row
                                 </Button>
                                 <Button
-                                  icon={
-                                    <Sparkles size={13} style={{ color: 'var(--text-secondary)' }} />
-                                  }
+                                  icon={<PlusOutlined style={{ fontSize: 13, color: 'var(--text-secondary)' }} />}
                                   className="rounded-lg h-10 px-4 font-medium text-[13px] flex items-center gap-1.5"
                                   style={{
                                     background: 'var(--bg-secondary)',
@@ -1271,7 +1318,7 @@ export default function DynamicLineItems({
                                   }}
                                   onClick={() => setShowAddFieldModal(true)}
                                 >
-                                  Customize columns
+                                  Add column
                                 </Button>
                               </div>
 

@@ -74,17 +74,32 @@ export interface PortalApprovalMeta {
   total: number;
   page: number;
   limit: number;
+  totalPages?: number;
   counts: Record<ApprovalStatus, number>;
   mine: boolean;
+  projects?: { id: string; name: string; code: string | null }[];
 }
 
 export const portalApprovalsService = {
-  async list(params: { page?: number; limit?: number; status?: string; mine?: boolean }) {
+  async list(params: {
+    page?: number;
+    limit?: number;
+    status?: string;
+    mine?: boolean;
+    search?: string;
+    projectId?: string;
+    from?: string;
+    to?: string;
+  } = {}) {
     const qs = new URLSearchParams();
     if (params.page) qs.append("page", String(params.page));
     if (params.limit) qs.append("limit", String(params.limit));
     if (params.status) qs.append("status", params.status);
     if (params.mine === false) qs.append("mine", "false");
+    if (params.search) qs.append("search", params.search);
+    if (params.projectId) qs.append("projectId", params.projectId);
+    if (params.from) qs.append("from", params.from);
+    if (params.to) qs.append("to", params.to);
     const res = await portalClient.get(
       `/api/client-portal/approvals${qs.toString() ? `?${qs.toString()}` : ""}`,
     );

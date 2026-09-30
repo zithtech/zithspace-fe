@@ -29,7 +29,7 @@ export const useSettingsProfiles = (filters: SettingsListParams = {}) => {
   return useQuery({
     queryKey: settingsKeys.list(filters),
     queryFn: () => InvoiceSettingsService.getProfiles(filters),
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 0,
   });
 };
 
@@ -41,7 +41,7 @@ export const useSettingsProfile = (id: string, enabled: boolean = true) => {
     queryKey: settingsKeys.detail(id),
     queryFn: () => InvoiceSettingsService.getProfile(id),
     enabled: !!id && enabled,
-    staleTime: 5 * 60 * 1000,
+    staleTime: 0,
   });
 };
 

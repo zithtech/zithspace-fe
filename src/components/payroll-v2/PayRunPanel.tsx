@@ -6,7 +6,7 @@ import ZukvoLoader from "@/components/common/ZukvoLoader";
 
 import { Menu } from 'lucide-react';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Button, Table, Tag, Drawer, Modal, Select, Input, InputNumber, Avatar, message, Tooltip, Space, Empty } from 'antd';
+import { Button, Table, Tag, Drawer, Modal, Select, Input, InputNumber, Avatar, message, Tooltip, Space, Empty, Pagination } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import {
   PlusOutlined, ReloadOutlined, CloseOutlined, DeleteOutlined, PlayCircleOutlined,
@@ -56,6 +56,11 @@ export default function PayRunPanel() {
   const [empMap, setEmpMap] = useState<Map<string, MemberOption>>(new Map());
   const [loading, setLoading] = useState(false);
 
+  // Pagination state
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(15);
+  const [total, setTotal] = useState(0);
+
   // create modal
   const [createOpen, setCreateOpen] = useState(false);
   const [cMonth, setCMonth] = useState(nowMonth);
@@ -82,17 +87,23 @@ export default function PayRunPanel() {
   const [remarks, setRemarks] = useState('');
   const [processing, setProcessing] = useState(false);
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (p = page, l = limit) => {
     setLoading(true);
     try {
-      const [r, emps] = await Promise.all([PayrollV2Service.listRuns(), PayrollV2Service.getEmployeesForSelect()]);
+      const [res, emps] = await Promise.all([
+        PayrollV2Service.listRuns({ page: p, limit: l }),
+        PayrollV2Service.getEmployeesForSelect(),
+      ]);
+      const r = Array.isArray(res) ? res : res.data;
+      const tot = Array.isArray(res) ? res.length : res.pagination.total;
       setRuns(r);
+      setTotal(tot);
       setEmpMap(new Map(emps.map((e) => [e.value, e])));
     } catch (err: any) {
       message.error(err?.response?.data?.error || 'Failed to load pay runs');
     } finally { setLoading(false); }
-  }, []);
-  useEffect(() => { if (canReadPayrollRun) load(); }, [canReadPayrollRun, load]);
+  }, [page, limit]);
+  useEffect(() => { if (canReadPayrollRun) load(page, limit); }, [canReadPayrollRun, page, limit, load]);
 
   const refreshArtifacts = async (d: PayRunDetail) => {
     if (d.status === 'finalized' || d.status === 'paid') {
@@ -337,7 +348,19 @@ export default function PayRunPanel() {
       title: 'Payslip', key: 'payslip', width: 90, align: 'center' as const,
       render: (_: any, it: PayRunItem) => {
         const ps = payslips.get(it.employeeId);
-        if (ps) return <a href={ps.fileUrl} target="_blank" rel="noreferrer" style={{ color: PALETTE.blue }}><DownloadOutlined /> PDF</a>;
+        if (ps) {
+          const fileName = `Payslip_${ps.periodLabel || ps.month + '_' + ps.year}.pdf`;
+          const proxyUrl = `/api/download-proxy?url=${encodeURIComponent(ps.fileUrl)}&filename=${encodeURIComponent(fileName)}`;
+          return (
+            <a
+              href={proxyUrl}
+              download={fileName}
+              style={{ color: PALETTE.blue }}
+            >
+              <DownloadOutlined /> PDF
+            </a>
+          );
+        }
         const st = payslipItems.get(it.employeeId)?.status;
         if (st === 'processing' || st === 'pending') return <ZukvoLoader size="sm" />;
         if (st === 'failed') return <Tooltip title={payslipItems.get(it.employeeId)?.error || 'Generation failed'}><span style={{ color: PALETTE.red, fontWeight: 600 }}>Failed</span></Tooltip>;
@@ -370,16 +393,37 @@ export default function PayRunPanel() {
           </div>
         </div>
         <div className="pvr-header-actions">
-          <Tooltip title="Refresh"><button type="button" className="pvr-ghost-btn" onClick={load}><ReloadOutlined spin={loading} /></button></Tooltip>
+          <Tooltip title="Refresh"><button type="button" className="pvr-ghost-btn" onClick={() => load(page, limit)}><ReloadOutlined spin={loading} /></button></Tooltip>
           {canCreatePayrollRun && <Button type="primary" icon={<PlusOutlined />} onClick={() => setCreateOpen(true)} className="pvr-add-btn">New Pay Run</Button>}
         </div>
       </div>
 
-      <div className="pvr-table-wrap">
+      <div className="pv-table-wrap">
         {runs.length === 0 && !loading
           ? <div style={{ padding: 48 }}><NoData description="No pay runs yet — create one to get started" /></div>
           : <ZukvoLoadingOverlay loading={loading} message="">
                   <Table rowKey="id" size="small" className="pvr-table" columns={runColumns} dataSource={runs} pagination={false} onRow={(r) => ({ onClick: () => openDetail(r), style: { cursor: 'pointer' } })} scroll={{ x: 'max-content' }} locale={{ emptyText: <NoData /> }} />
+                  {total > 0 && (
+                    <div className="pvr-footer pvr-footer--sticky">
+                      <Pagination
+                        size="small"
+                        current={page}
+                        pageSize={limit}
+                        total={total}
+                        showSizeChanger
+                        pageSizeOptions={[10, 15, 20, 25, 50, 100]}
+                        onChange={(newPage, newPageSize) => {
+                          setPage(newPage);
+                          setLimit(newPageSize);
+                        }}
+                        showTotal={(t, range) => (
+                          <span>
+                            Showing <strong>{range[0]}–{range[1]}</strong> of <strong>{t}</strong>
+                          </span>
+                        )}
+                      />
+                    </div>
+                  )}
                   </ZukvoLoadingOverlay>}
       </div>
 
@@ -513,7 +557,22 @@ export default function PayRunPanel() {
               )}
               {detail && isLocked && bankFile && (
                 <Tooltip title={`${bankFile.employeeCount} payees · ${money(bankFile.totalAmount)} · ${bankFile.format}`}>
-                  <Button type="link" icon={<DownloadOutlined />} href={bankFile.fileUrl} target="_blank">Bank File</Button>
+                  <Button
+                    type="link"
+                    icon={<DownloadOutlined />}
+                    onClick={() => {
+                      const fileName = `Bank_File_${bankFile.periodLabel || bankFile.runId}.csv`;
+                      const proxyUrl = `/api/download-proxy?url=${encodeURIComponent(bankFile.fileUrl)}&filename=${encodeURIComponent(fileName)}`;
+                      const a = document.createElement('a');
+                      a.href = proxyUrl;
+                      a.download = fileName;
+                      document.body.appendChild(a);
+                      a.click();
+                      a.remove();
+                    }}
+                  >
+                    Bank File
+                  </Button>
                 </Tooltip>
               )}
               {detail && isFinalized && canPayPayrollRun && (
@@ -580,7 +639,25 @@ export default function PayRunPanel() {
                         <div className="pvr-bf-title">Bank File</div>
                         <div className="pvr-bf-sub">{bankFile.periodLabel} · {BANK_FMT_LABEL[bankFile.format] ?? bankFile.format} · {bankFile.paymentMode.toUpperCase()}</div>
                       </div>
-                      <Button type="primary" ghost size="small" icon={<DownloadOutlined />} href={bankFile.fileUrl} target="_blank" style={{ borderRadius: 8, fontWeight: 600 }}>Download CSV</Button>
+                      <Button
+                        type="primary"
+                        ghost
+                        size="small"
+                        icon={<DownloadOutlined />}
+                        onClick={() => {
+                          const fileName = `Bank_File_${bankFile.periodLabel || bankFile.runId}.csv`;
+                          const proxyUrl = `/api/download-proxy?url=${encodeURIComponent(bankFile.fileUrl)}&filename=${encodeURIComponent(fileName)}`;
+                          const a = document.createElement('a');
+                          a.href = proxyUrl;
+                          a.download = fileName;
+                          document.body.appendChild(a);
+                          a.click();
+                          a.remove();
+                        }}
+                        style={{ borderRadius: 8, fontWeight: 600 }}
+                      >
+                        Download CSV
+                      </Button>
                     </div>
                     <div className="pvr-bf-cells">
                       <div className="pvr-bf-cell"><span>Payees</span><strong>{bankFile.employeeCount}</strong></div>
@@ -640,7 +717,7 @@ export default function PayRunPanel() {
 
       <style jsx global>{`
         .pvr { display: flex; flex-direction: column; flex: 1; min-height: 0; }
-        .pvr-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding-bottom: 14px; margin-bottom: 14px; border-bottom: 1px solid var(--border-slate-200); flex-wrap: wrap; }
+        .pvr-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding-bottom: 14px; margin-bottom: 0; border-bottom: 1px solid var(--border-slate-200); flex-wrap: wrap; }
         .pvr-header-about { display: flex; align-items: center; gap: 12px; }
         .pvr-header-icon { width: 38px; height: 38px; border-radius: 10px; background: ${TINT.green}; color: ${PALETTE.green}; display: inline-flex; align-items: center; justify-content: center; font-size: 18px; }
         .pvr-header-title { font-size: 17px; font-weight: 800; color: var(--text-slate-900); letter-spacing: -0.02em; line-height: 1.15; }
@@ -733,6 +810,13 @@ export default function PayRunPanel() {
         .pvr-bd-full { font-size: 10.5px; color: var(--text-slate-400); }
         .pvr-bd-amt { font-size: 12.5px; font-weight: 700; min-width: 84px; text-align: right; }
         .pvr-bd-lop { margin-top: 4px; font-size: 11.5px; font-weight: 600; color: ${PALETTE.amber}; }
+
+        .pvr-footer { display: flex; align-items: center; justify-content: flex-end; padding: 10px 16px; background: var(--bg-pure-white); border-top: 1px solid var(--border-slate-200); }
+        .pvr-footer--sticky { position: sticky; bottom: 0; z-index: 10; box-shadow: 0 -4px 14px rgba(15, 23, 42, 0.05); }
+        .pvr-footer .ant-pagination { width: 100%; display: flex; align-items: center; justify-content: space-between; margin: 0 !important; padding: 0 !important; border-top: none !important; background: transparent !important; flex-wrap: wrap; gap: 8px; }
+        .pvr-footer .ant-pagination-total-text { margin-right: auto; color: var(--text-slate-500); font-size: 12.5px; }
+
+        .pv-table-wrap .ant-table, .pv-table-wrap .ant-table-container, .pv-table-wrap .ant-table-header, .pv-table-wrap .ant-table-thead, .pv-table-wrap .ant-table-thead > tr > th, .pv-table-wrap .ant-table-container table > thead > tr:first-child > th:first-child, .pv-table-wrap .ant-table-container table > thead > tr:first-child > th:last-child { border-radius: 0px !important; border-start-start-radius: 0px !important; border-start-end-radius: 0px !important; }
 
         .pvr-header-about { display: flex; align-items: center; gap: 12px; min-width: 0; }
 

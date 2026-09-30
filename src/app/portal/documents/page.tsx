@@ -1,21 +1,43 @@
 "use client";
+
 import ZukvoLoader from "@/components/common/ZukvoLoader";
-
-
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   Input,
   Empty,
-  Tooltip,
+  Pagination,
+  DatePicker,
   Modal,
   message,
+  notification,
+  Typography,
+  Button,
+  Space,
+  Tooltip,
+  Tag,
   ConfigProvider,
   theme as antdTheme,
   Select,
 } from "antd";
 import {
+  FilterOutlined,
+  ExpandAltOutlined,
+  CloseOutlined,
+  ReloadOutlined,
+} from "@ant-design/icons";
+import dayjs, { Dayjs } from "dayjs";
+import quarterOfYear from "dayjs/plugin/quarterOfYear";
+import {
+  FolderOpen,
   Search,
-  Download,
+  Calendar,
+  Users,
+  Briefcase,
+  Clock,
+  Plus,
+  UploadCloud,
+  Link as LinkIcon,
+  FileUp,
   FileText,
   Image as ImageIcon,
   FileSpreadsheet,
@@ -24,24 +46,15 @@ import {
   FileType2,
   ExternalLink,
   Eye,
-  Clock,
-  Tag as TagIcon,
-  Plus,
-  UploadCloud,
-  Link as LinkIcon,
-  FileUp,
-  LayoutGrid,
-  List as ListIcon,
-  X,
-  FolderOpen,
-  RefreshCw,
-  Users,
-  Building2,
-  Briefcase,
-  ChevronDown,
-  ArrowUpRight,
+  Download,
   Pencil,
   Trash2,
+  List as ListIcon,
+  LayoutGrid,
+  Tag as TagIcon,
+  ArrowUpRight,
+  X,
+  CheckCircle2,
 } from "lucide-react";
 import {
   portalDocumentService,
@@ -51,34 +64,60 @@ import {
 } from "@/services/portalDocumentService";
 import { usePortalSocket } from "@/providers/PortalSocketProvider";
 import { portalClient } from "@/lib/portalAxios";
+import TicketFilterPill, {
+  FilterPillOption,
+} from "@/components/projects/TicketFilterPill";
 
-/* ─────────────────────────────────────────────────────────
- * Design tokens — premium dense
- * ─────────────────────────────────────────────────────── */
-const T = {
-  pageBg: "#f6f7f9",
-  cardBg: "#ffffff",
-  border: "#e5e7eb",
-  borderHover: "#cbd5e1",
-  borderSoft: "#f1f5f9",
+dayjs.extend(quarterOfYear);
+
+const { RangePicker } = DatePicker;
+
+/* --------------------------------------------------------------- */
+/*  Theme palette                                                  */
+/* --------------------------------------------------------------- */
+
+const p = {
+  surface: "#ffffff",
+  surfaceElevated: "#ffffff",
+  surfaceMuted: "#f8fafc",
+  surfaceSubtle: "#f1f5f9",
+  border: "#e2e8f0",
+  borderStrong: "#cbd5e1",
   text: "#0f172a",
   textMuted: "#475569",
   textSubtle: "#64748b",
   textFaint: "#94a3b8",
-  accent: "#4338ca",
-  accentBg: "#eef2ff",
-  accentBorder: "#c7d2fe",
-  numFont:
-    'ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace',
+  accent: "#3b82f6",
+  accentBg: "#eff6ff",
+  accentBorder: "#bfdbfe",
+  accentText: "#1d4ed8",
+  success: "#059669",
+  successBg: "#ecfdf5",
+  successBorder: "#a7f3d0",
+  successText: "#047857",
+  danger: "#dc2626",
+  dangerBg: "#fef2f2",
+  dangerBorder: "#fecaca",
+  dangerText: "#b91c1c",
+  warning: "#d97706",
+  warningBg: "#fffbeb",
+  warningBorder: "#fde68a",
+  warningText: "#92400e",
+  neutralBg: "#f1f5f9",
+  neutralBorder: "#e2e8f0",
+  neutralText: "#475569",
 };
 
-const GAP = 12;
-const PAGE_PAD_X = 28;
-const PAGE_PAD_Y = 24;
+const SOURCE_FILTER_OPTIONS: FilterPillOption[] = [
+  { value: "all", label: "All documents" },
+  { value: "internal", label: "From Zukvo" },
+  { value: "client", label: "From your team" },
+];
 
-/* ─────────────────────────────────────────────────────────
- * Formatters & helpers
- * ─────────────────────────────────────────────────────── */
+/* --------------------------------------------------------------- */
+/*  File extension helpers & formatters                            */
+/* --------------------------------------------------------------- */
+
 function extOf(fileName: string): string {
   const m = fileName.match(/\.([a-z0-9]+)$/i);
   return m ? m[1].toLowerCase() : "";
@@ -87,17 +126,18 @@ function extOf(fileName: string): string {
 function iconForFile(fileName: string) {
   const ext = extOf(fileName);
   if (["png", "jpg", "jpeg", "webp", "gif", "svg", "heic"].includes(ext))
-    return { Icon: ImageIcon, color: "#0d9488" };
-  if (["pdf"].includes(ext)) return { Icon: FileType2, color: "#b91c1c" };
+    return { Icon: ImageIcon, color: "#0d9488", bg: "#ccfbf1" };
+  if (["pdf"].includes(ext))
+    return { Icon: FileType2, color: "#b91c1c", bg: "#fee2e2" };
   if (["xls", "xlsx", "csv", "ods"].includes(ext))
-    return { Icon: FileSpreadsheet, color: "#047857" };
+    return { Icon: FileSpreadsheet, color: "#047857", bg: "#d1fae5" };
   if (["doc", "docx", "rtf", "odt"].includes(ext))
-    return { Icon: FileText, color: "#1d4ed8" };
+    return { Icon: FileText, color: "#1d4ed8", bg: "#dbeafe" };
   if (["zip", "tar", "gz", "rar", "7z"].includes(ext))
-    return { Icon: FileArchive, color: "#7c2d12" };
+    return { Icon: FileArchive, color: "#7c2d12", bg: "#ffedd5" };
   if (["json", "xml", "yml", "yaml", "ts", "js", "tsx", "jsx", "md"].includes(ext))
-    return { Icon: FileCode2, color: "#7c3aed" };
-  return { Icon: FileText, color: T.textSubtle };
+    return { Icon: FileCode2, color: "#7c3aed", bg: "#ede9fe" };
+  return { Icon: FileText, color: "#64748b", bg: "#f1f5f9" };
 }
 
 function fmtDate(iso: string | null | undefined) {
@@ -130,31 +170,50 @@ function isExternalLink(url: string): boolean {
   return !/r2\.dev|cloudflarestorage/.test(url);
 }
 
-/* ─────────────────────────────────────────────────────────
- * Page
- * ─────────────────────────────────────────────────────── */
+/* --------------------------------------------------------------- */
+/*  Main Component                                                 */
+/* --------------------------------------------------------------- */
+
 export default function PortalDocumentsPage() {
   const [docs, setDocs] = useState<PortalDocument[]>([]);
   const [meta, setMeta] = useState<PortalDocumentMeta | null>(null);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState<string | undefined>(undefined);
   const [projectId, setProjectId] = useState<string | undefined>(undefined);
   const [source, setSource] = useState<DocumentSource>("all");
+  const [datePicked, setDatePicked] = useState<
+    [Dayjs | null, Dayjs | null] | null
+  >(null);
+  const [viewMode, setViewMode] = useState<"table" | "card">("table");
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(15);
+  const [isFilterRowOpen, setIsFilterRowOpen] = useState(false);
+
+  // Modals
   const [uploadOpen, setUploadOpen] = useState(false);
-  const [viewMode, setViewMode] = useState<"list" | "card">("list");
   const [editingDoc, setEditingDoc] = useState<PortalDocument | null>(null);
   const [deletingDoc, setDeletingDoc] = useState<PortalDocument | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const fromIso = datePicked?.[0]
+    ? datePicked[0]!.format("YYYY-MM-DD")
+    : undefined;
+  const toIso = datePicked?.[1] ? datePicked[1]!.format("YYYY-MM-DD") : undefined;
 
-  const load = async () => {
-    setLoading(true);
+  const load = async (isRefresh = false) => {
+    if (isRefresh) setRefreshing(true);
+    else setLoading(true);
     try {
       const res = await portalDocumentService.list({
-        category,
+        page,
+        limit,
+        category: category || undefined,
         search: search || undefined,
-        projectId,
-        source,
+        projectId: projectId || undefined,
+        source: source === "all" ? undefined : source,
+        from: fromIso,
+        to: toIso,
       });
       setDocs(res.data);
       setMeta(res.meta);
@@ -163,21 +222,26 @@ export default function PortalDocumentsPage() {
       setMeta(null);
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   };
 
   useEffect(() => {
     load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [category, projectId, source]);
+  }, [page, limit, category, projectId, source, fromIso, toIso]);
 
+  // Debounce search
   useEffect(() => {
-    const t = setTimeout(load, 250);
+    const t = setTimeout(() => {
+      setPage(1);
+      load();
+    }, 300);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [search]);
 
-  // Real-time: staff/another portal user mutates a document → reload here.
+  // Real-time socket updates
   const { socket, connected } = usePortalSocket();
   useEffect(() => {
     if (!socket || !connected) return;
@@ -195,7 +259,7 @@ export default function PortalDocumentsPage() {
 
   const handleOpen = async (
     doc: PortalDocument,
-    mode: "view" | "download",
+    mode: "view" | "download"
   ) => {
     portalDocumentService.track(doc.id, mode);
     if (mode === "download") {
@@ -206,14 +270,20 @@ export default function PortalDocumentsPage() {
       }
 
       try {
-        message.loading({ content: "Downloading file...", key: "portal-doc-download", duration: 0 });
+        message.loading({
+          content: "Downloading file...",
+          key: "portal-doc-download",
+          duration: 0,
+        });
 
         const response = await portalClient.get(
           `/api/client-portal/documents/${doc.id}/download`,
           { responseType: "blob" }
         );
 
-        const blob = new Blob([response.data], { type: response.headers["content-type"]?.toString() });
+        const blob = new Blob([response.data], {
+          type: response.headers["content-type"]?.toString(),
+        });
         const blobUrl = URL.createObjectURL(blob);
         const link = document.createElement("a");
         link.href = blobUrl;
@@ -223,9 +293,15 @@ export default function PortalDocumentsPage() {
         link.remove();
         URL.revokeObjectURL(blobUrl);
 
-        message.success({ content: "Downloaded successfully", key: "portal-doc-download" });
-      } catch (err) {
-        message.error({ content: "Failed to download", key: "portal-doc-download" });
+        message.success({
+          content: "Downloaded successfully",
+          key: "portal-doc-download",
+        });
+      } catch {
+        message.error({
+          content: "Failed to download",
+          key: "portal-doc-download",
+        });
         window.open(doc.fileUrl, "_blank", "noopener,noreferrer");
       }
     } else {
@@ -248,20 +324,51 @@ export default function PortalDocumentsPage() {
     }
   };
 
+  const projectOptions: FilterPillOption[] = useMemo(() => {
+    return (
+      meta?.projects?.map((proj) => ({
+        value: proj.id,
+        label: proj.name,
+      })) || []
+    );
+  }, [meta?.projects]);
+
+  const categoryOptions: FilterPillOption[] = useMemo(() => {
+    return (
+      meta?.categories?.map((c) => ({
+        value: c,
+        label: c,
+      })) || []
+    );
+  }, [meta?.categories]);
+
+  const activeFilterCount = useMemo(() => {
+    let count = 0;
+    if (source !== "all") count++;
+    if (projectId) count++;
+    if (category) count++;
+    if (datePicked && (datePicked[0] || datePicked[1])) count++;
+    return count;
+  }, [source, projectId, category, datePicked]);
+
+  const total = meta?.total ?? docs.length;
+  const paginatedDocs = docs;
+
   const sourceCounts = meta?.sourceCounts || {
-    all: docs.length,
-    client: 0,
-    internal: 0,
+    all: total,
+    client: docs.filter((d) => d.uploadedByPortal).length,
+    internal: docs.filter((d) => !d.uploadedByPortal).length,
   };
 
   const stats = useMemo(() => {
-    const now = new Date();
-    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const now = dayjs();
+    const startOfMonth = now.startOf("month");
     const thisMonth = docs.filter(
-      (d) => new Date(d.createdAt) >= startOfMonth,
+      (d) => d.createdAt && dayjs(d.createdAt).isAfter(startOfMonth)
     ).length;
-    const categoriesCount = new Set(docs.map((d) => d.category).filter(Boolean))
-      .size;
+    const categoriesCount = (meta?.categories || []).length || new Set(
+      docs.map((d) => d.category).filter(Boolean)
+    ).size;
     return {
       total: sourceCounts.all,
       client: sourceCounts.client,
@@ -269,1386 +376,1325 @@ export default function PortalDocumentsPage() {
       thisMonth,
       categories: categoriesCount,
     };
-  }, [docs, sourceCounts]);
+  }, [docs, sourceCounts, meta?.categories]);
+
+  const activeSourceLabel = useMemo(() => {
+    if (source === "client") return "From your team";
+    if (source === "internal") return "From Zukvo";
+    return "All documents";
+  }, [source]);
+
+  const rangePresets: { label: string; value: [Dayjs, Dayjs] }[] = [
+    { label: "Last 7 days", value: [dayjs().subtract(6, "day"), dayjs()] },
+    { label: "Last 30 days", value: [dayjs().subtract(29, "day"), dayjs()] },
+    {
+      label: "This month",
+      value: [dayjs().startOf("month"), dayjs().endOf("month")],
+    },
+    {
+      label: "Last month",
+      value: [
+        dayjs().subtract(1, "month").startOf("month"),
+        dayjs().subtract(1, "month").endOf("month"),
+      ],
+    },
+    {
+      label: "This quarter",
+      value: [dayjs().startOf("quarter"), dayjs().endOf("quarter")],
+    },
+  ];
 
   return (
     <div
       style={{
-        background: T.pageBg,
         height: "100vh",
         overflowY: "auto",
-        overflowX: "hidden",
+        backgroundColor: "#ffffff",
+        display: "flex",
+        flexDirection: "column",
+        width: "100%",
       }}
     >
+      {/* ── Top Header Toolbar matching Invoices & Meetings ── */}
+      <div className="pm2-toolbar saas-header-container sc-header">
+        <div className="pm2-head-id">
+          <span className="pm2-head-ic">
+            <FolderOpen size={16} />
+          </span>
+          <span className="pm2-head-text">
+            <span className="pm2-head-title">Documents</span>
+            <span className="pm2-head-sub">OVERSEE ASSETS & FILES</span>
+          </span>
+        </div>
+
+        <div className="sc-header-controls">
+          <Input
+            placeholder="Quick search document name..."
+            prefix={
+              <Search
+                size={13}
+                style={{ color: "var(--text-slate-400)", marginRight: 4 }}
+              />
+            }
+            className="saas-input"
+            style={{
+              maxWidth: 280,
+              borderRadius: 8,
+              height: 32,
+              background: "transparent",
+              fontSize: 12.5,
+            }}
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            allowClear
+          />
+
+          <Space.Compact className="ticket-filter-group">
+            <Button
+              icon={<FilterOutlined />}
+              className={activeFilterCount > 0 ? "saas-tag-blue" : ""}
+              style={{ height: 32, fontWeight: 600, fontSize: 12 }}
+              onClick={() => setIsFilterRowOpen((v) => !v)}
+            >
+              Filters {activeFilterCount > 0 && `(${activeFilterCount})`}
+            </Button>
+            <Button
+              icon={<ExpandAltOutlined />}
+              style={{ height: 32 }}
+              aria-label="Expand filters"
+              onClick={() => setIsFilterRowOpen((v) => !v)}
+            />
+          </Space.Compact>
+
+          {/* View Toggle */}
+          <div
+            className="premium-view-toggle"
+            role="group"
+            aria-label="View mode"
+          >
+            <button
+              type="button"
+              data-active={viewMode === "table" ? "true" : "false"}
+              onClick={() => setViewMode("table")}
+              title="Table View"
+            >
+              <ListIcon size={13} />
+            </button>
+            <button
+              type="button"
+              data-active={viewMode === "card" ? "true" : "false"}
+              onClick={() => setViewMode("card")}
+              title="Card View"
+            >
+              <LayoutGrid size={13} />
+            </button>
+          </div>
+        </div>
+
+        <Space size={10} className="sc-header-right">
+          <Button
+            type="primary"
+            icon={<Plus size={14} />}
+            onClick={() => setUploadOpen(true)}
+            style={{
+              height: 32,
+              fontSize: 12.5,
+              fontWeight: 600,
+              borderRadius: 8,
+              display: "flex",
+              alignItems: "center",
+              gap: 6,
+              background: "#3b82f6",
+              borderColor: "#3b82f6",
+            }}
+          >
+            Add document
+          </Button>
+
+          <Tooltip title="Refresh documents">
+            <Button
+              icon={<ReloadOutlined spin={refreshing} />}
+              onClick={() => load(true)}
+              disabled={loading}
+              style={{
+                width: 32,
+                height: 32,
+                borderRadius: 8,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            />
+          </Tooltip>
+        </Space>
+      </div>
+
+      {/* ── Inline filter row (when opened) matching Invoices & Meetings ── */}
+      {isFilterRowOpen && (
+        <div className="tl-filter-row">
+          <div className="tl-filter-row-label">
+            <FilterOutlined style={{ fontSize: 11 }} />
+            <span>Filters</span>
+            <span className="tl-filter-row-count">{activeFilterCount}</span>
+          </div>
+
+          <div className="tl-filter-row-pills">
+            {/* Source Pill */}
+            <TicketFilterPill
+              icon={<CheckCircle2 size={12} />}
+              label="Source"
+              value={source === "all" ? "" : source}
+              options={SOURCE_FILTER_OPTIONS}
+              onChange={(val: any) => {
+                setSource(val || "all");
+                setPage(1);
+              }}
+              itemNoun="sources"
+              multiple={false}
+            />
+
+            {/* Project Pill */}
+            {projectOptions.length > 0 && (
+              <TicketFilterPill
+                icon={<FolderOpen size={12} />}
+                label="Project"
+                value={projectId}
+                options={projectOptions}
+                onChange={(val: any) => {
+                  setProjectId(val || undefined);
+                  setPage(1);
+                }}
+                itemNoun="projects"
+                width={240}
+                multiple={false}
+              />
+            )}
+
+            {/* Category Pill */}
+            {categoryOptions.length > 0 && (
+              <TicketFilterPill
+                icon={<TagIcon size={12} />}
+                label="Category"
+                value={category}
+                options={categoryOptions}
+                onChange={(val: any) => {
+                  setCategory(val || undefined);
+                  setPage(1);
+                }}
+                itemNoun="categories"
+                width={220}
+                multiple={false}
+              />
+            )}
+
+            {/* Date Range Picker */}
+            <RangePicker
+              value={datePicked}
+              onChange={(dates) => {
+                setDatePicked(dates as [Dayjs | null, Dayjs | null] | null);
+                setPage(1);
+              }}
+              presets={rangePresets}
+              className="premium-rangepicker"
+              style={{ height: 28, borderRadius: 6, fontSize: 12 }}
+              placeholder={["Start", "End"]}
+              format="DD MMM YY"
+              suffixIcon={<Calendar size={12} color={p.textFaint} />}
+              allowClear
+            />
+          </div>
+
+          <div className="tl-filter-row-actions">
+            {activeFilterCount > 0 && (
+              <button
+                type="button"
+                className="tl-filter-row-reset"
+                onClick={() => {
+                  setSource("all");
+                  setProjectId(undefined);
+                  setCategory(undefined);
+                  setDatePicked(null);
+                  setPage(1);
+                }}
+              >
+                <ReloadOutlined style={{ fontSize: 10 }} />
+                Reset
+              </button>
+            )}
+            <button
+              type="button"
+              className="tl-filter-row-close"
+              onClick={() => setIsFilterRowOpen(false)}
+              aria-label="Close filters"
+              title="Close filters"
+            >
+              <CloseOutlined style={{ fontSize: 10 }} />
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ── Main Overview Banner (Sprint head style) ── */}
+      <div className="tl-section-head tl-sprint-head-v2 tl-section-head--static">
+        <div className="tl-sprint-row1">
+          <div className="tl-sprint-title-block">
+            <span
+              className="tl-sprint-dot"
+              style={{
+                background: "#3b82f6",
+                boxShadow: "0 0 0 3px rgba(59, 130, 246, 0.2)",
+              }}
+            />
+            <span className="tl-sprint-title pm2-banner-title">
+              Documents — {activeSourceLabel}
+            </span>
+            <span className="tl-sprint-tags">
+              <span className="tl-sprint-tag tl-sprint-tag-neutral">
+                {total} DOCUMENTS
+              </span>
+              {stats.internal > 0 && (
+                <span className="tl-sprint-tag tl-sprint-tag-active">
+                  {stats.internal} FROM ZUKVO
+                </span>
+              )}
+              {stats.client > 0 && (
+                <span className="tl-sprint-tag tl-sprint-tag-delayed">
+                  {stats.client} CLIENT UPLOADED
+                </span>
+              )}
+            </span>
+          </div>
+        </div>
+
+        <div className="tl-sprint-row2">
+          <span className="tl-sprint-meta">
+            <span className="pm2-pulse-dot" />
+            <b>{paginatedDocs.length}</b>{" "}
+            {paginatedDocs.length === 1 ? "result" : "results"} on this page
+          </span>
+          <span className="tl-sprint-meta">
+            <b>{stats.internal}</b> from Zukvo
+          </span>
+          <span className="tl-sprint-meta">
+            <b>{stats.client}</b> client uploads
+          </span>
+          <span className="tl-sprint-meta">
+            <b>{stats.categories}</b> categories
+          </span>
+          <span className="tl-sprint-meta">
+            <b>{stats.thisMonth}</b> this month
+          </span>
+        </div>
+
+        <div className="tl-sprint-row3">
+          <div className="tl-sprint-progress-bar">
+            <div
+              className="tl-sprint-progress-fill"
+              style={{
+                width: `${
+                  total > 0
+                    ? Math.min(
+                        100,
+                        Math.round((stats.internal / total) * 100)
+                      )
+                    : 100
+                }%`,
+              }}
+            />
+          </div>
+          <span className="tl-sprint-progress-pct">
+            {total > 0
+              ? Math.round((stats.internal / total) * 100)
+              : 100}
+            %
+          </span>
+        </div>
+      </div>
+
+      {/* ── Main Content Container ── */}
       <div
-        className="portal-docs-inner"
+        className="portal-documents-content"
         style={{
-          padding: `${PAGE_PAD_Y}px ${PAGE_PAD_X}px ${PAGE_PAD_Y + 8}px`,
-          maxWidth: 1480,
-          margin: "0 auto",
-          display: "flex",
-          flexDirection: "column",
-          gap: GAP,
+          padding: 0,
+          width: "100%",
+          flex: "1 0 auto",
         }}
       >
-        <style>{`
-          @media (max-width: 768px) {
-            .portal-docs-inner { padding: 16px 16px 24px !important; }
-          }
-          @media (max-width: 480px) {
-            .portal-docs-inner { padding: 12px 12px 20px !important; }
-          }
-        `}</style>
-        {/* Hero with stats + actions */}
-        <Hero
-          stats={stats}
-          loading={loading}
-          onReload={load}
-          onUpload={() => setUploadOpen(true)}
-        />
-
-        {/* Source tabs — prominent above the filter row */}
-        <SourceTabs source={source} setSource={setSource} counts={sourceCounts} />
-
-        {/* Filter bar */}
-        <FilterBar
-          search={search}
-          setSearch={setSearch}
-          projectId={projectId}
-          setProjectId={setProjectId}
-          projects={meta?.projects ?? []}
-          category={category}
-          setCategory={setCategory}
-          categories={meta?.categories ?? []}
-          viewMode={viewMode}
-          setViewMode={setViewMode}
-        />
-
-        {/* Body */}
         {loading ? (
-          <div
-            style={{
-              padding: 80,
-              textAlign: "center",
-              background: T.cardBg,
-              border: `1px solid ${T.border}`,
-              borderRadius: 12,
-            }}
-          >
+          <div style={{ padding: 60, textAlign: "center" }}>
             <ZukvoLoader size="md" />
           </div>
-        ) : docs.length === 0 ? (
-          <div
-            style={{
-              padding: 64,
-              textAlign: "center",
-              background: T.cardBg,
-              border: `1px dashed ${T.border}`,
-              borderRadius: 12,
-            }}
-          >
+        ) : paginatedDocs.length === 0 ? (
+          <div style={{ padding: 56, textAlign: "center" }}>
             <Empty
               image={Empty.PRESENTED_IMAGE_SIMPLE}
               description={
-                <span style={{ color: T.textSubtle, fontSize: 13 }}>
-                  {search
-                    ? `No documents match "${search}".`
+                <span style={{ color: p.textSubtle }}>
+                  {search || activeFilterCount > 0
+                    ? "No documents match your filter criteria."
                     : source === "client"
-                      ? "You haven't uploaded any documents yet."
-                      : source === "internal"
-                        ? "Your account team hasn't shared any documents yet."
-                        : "No documents yet."}
+                    ? "You haven't uploaded any documents yet."
+                    : source === "internal"
+                    ? "Your account team hasn't shared any documents yet."
+                    : "No documents yet."}
                 </span>
               }
             />
           </div>
-        ) : viewMode === "list" ? (
-          <DocumentsTable
-            docs={docs}
-            onOpen={handleOpen}
-            onEdit={(d) => setEditingDoc(d)}
-            onDelete={(d) => setDeletingDoc(d)}
-          />
+        ) : viewMode === "table" ? (
+          /* Table View */
+          <div
+            className="pm-table-wrap"
+            style={{
+              background: "#ffffff",
+              overflowX: "auto",
+            }}
+          >
+            {/* Table Header */}
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns:
+                  "minmax(260px, 2.5fr) 150px 130px 120px 140px 130px",
+                minWidth: 920,
+                gap: 12,
+                padding: "7px 16px",
+                background: "var(--bg-slate-50, #f8fafc)",
+                borderBottom: "1px solid var(--border-slate-200, #e2e8f0)",
+                fontSize: 10,
+                fontWeight: 800,
+                color: "var(--text-slate-400, #94a3b8)",
+                textTransform: "uppercase",
+                letterSpacing: "0.04em",
+                alignItems: "center",
+              }}
+            >
+              <div>DOCUMENT / FILE</div>
+              <div>PROJECT</div>
+              <div>CATEGORY</div>
+              <div>SOURCE</div>
+              <div>UPLOADED BY</div>
+              <div>DATE</div>
+            </div>
+
+            <div>
+              {paginatedDocs.map((doc, idx) => (
+                <DocumentRow
+                  key={doc.id}
+                  doc={doc}
+                  isLast={idx === paginatedDocs.length - 1}
+                  onOpen={handleOpen}
+                  onEdit={() => setEditingDoc(doc)}
+                  onDelete={() => setDeletingDoc(doc)}
+                />
+              ))}
+            </div>
+          </div>
         ) : (
-          <DocumentsGrid
-            docs={docs}
-            onOpen={handleOpen}
-            onEdit={(d) => setEditingDoc(d)}
-            onDelete={(d) => setDeletingDoc(d)}
-          />
+          /* Card View */
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))",
+              gap: 14,
+              padding: "16px 24px",
+            }}
+          >
+            {paginatedDocs.map((doc) => (
+              <DocumentCard
+                key={doc.id}
+                doc={doc}
+                onOpen={handleOpen}
+                onEdit={() => setEditingDoc(doc)}
+                onDelete={() => setDeletingDoc(doc)}
+              />
+            ))}
+          </div>
         )}
-
-        <UploadModal
-          open={uploadOpen}
-          projects={meta?.projects ?? []}
-          onClose={() => setUploadOpen(false)}
-          onUploaded={() => {
-            setUploadOpen(false);
-            load();
-          }}
-        />
-
-        <EditDocumentModal
-          doc={editingDoc}
-          projects={meta?.projects ?? []}
-          onClose={() => setEditingDoc(null)}
-          onSaved={() => {
-            setEditingDoc(null);
-            load();
-          }}
-        />
-
-        <Modal
-          open={!!deletingDoc}
-          onCancel={() => setDeletingDoc(null)}
-          onOk={handleDelete}
-          okText="Delete"
-          okButtonProps={{ danger: true, loading: deleting }}
-          cancelButtonProps={{ disabled: deleting }}
-          title="Delete this document?"
-          centered
-          width={420}
-        >
-          <p style={{ color: T.textMuted, fontSize: 13, margin: 0 }}>
-            <strong style={{ color: T.text }}>
-              {deletingDoc?.fileName || "This document"}
-            </strong>{" "}
-            will be permanently removed from the portal and storage. This can't
-            be undone.
-          </p>
-        </Modal>
       </div>
 
-      <style>{`
-        .portal-docs-page .ant-select:not(.ant-select-customize-input)
-          .ant-select-selector {
-          background: ${T.cardBg} !important;
-          border: 1px solid ${T.border} !important;
-          color: ${T.text} !important;
-          border-radius: 8px !important;
-          height: 34px !important;
+      {/* ── Fixed Sticky Bottom Footer ── */}
+      <div
+        className="portal-documents-pagination-footer"
+        style={{
+          position: "sticky",
+          bottom: 0,
+          left: 0,
+          right: 0,
+          zIndex: 20,
+          background: "#ffffff",
+          borderTop: `1px solid ${p.border}`,
+          boxShadow: "0 -4px 16px rgba(15, 23, 42, 0.04)",
+          padding: "10px 24px",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          flexWrap: "wrap",
+          gap: 12,
+          marginTop: "auto",
+        }}
+      >
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <Typography.Text style={{ fontSize: 13, color: p.textSubtle }}>
+            Showing{" "}
+            <span style={{ color: p.text, fontWeight: 700 }}>
+              {paginatedDocs.length > 0 ? (page - 1) * limit + 1 : 0}–
+              {Math.min(page * limit, total)}
+            </span>{" "}
+            of <span style={{ color: p.text, fontWeight: 700 }}>{total}</span>{" "}
+            document{total !== 1 ? "s" : ""}
+          </Typography.Text>
+        </div>
+
+        <Pagination
+          current={page}
+          pageSize={limit}
+          total={total}
+          showSizeChanger
+          pageSizeOptions={["10", "15", "20", "25", "50", "100"]}
+          onChange={(p, size) => {
+            setPage(p);
+            if (size && size !== limit) {
+              setLimit(size);
+            }
+          }}
+          onShowSizeChange={(current, size) => {
+            setPage(1);
+            setLimit(size);
+          }}
+        />
+      </div>
+
+      {/* Upload Modal */}
+      <UploadModal
+        open={uploadOpen}
+        projects={meta?.projects ?? []}
+        onClose={() => setUploadOpen(false)}
+        onUploaded={() => {
+          setUploadOpen(false);
+          load();
+        }}
+      />
+
+      {/* Edit Modal */}
+      <EditDocumentModal
+        doc={editingDoc}
+        projects={meta?.projects ?? []}
+        onClose={() => setEditingDoc(null)}
+        onSaved={() => {
+          setEditingDoc(null);
+          load();
+        }}
+      />
+
+      {/* Delete Confirmation Modal */}
+      <Modal
+        open={!!deletingDoc}
+        onCancel={() => setDeletingDoc(null)}
+        onOk={handleDelete}
+        okText="Delete"
+        okButtonProps={{ danger: true, loading: deleting }}
+        cancelButtonProps={{ disabled: deleting }}
+        title="Delete this document?"
+        centered
+        width={420}
+      >
+        <p style={{ color: p.textMuted, fontSize: 13, margin: 0 }}>
+          <strong style={{ color: p.text }}>
+            {deletingDoc?.fileName || "This document"}
+          </strong>{" "}
+          will be permanently removed from the portal and storage. This can't
+          be undone.
+        </p>
+      </Modal>
+
+      <style jsx global>{`
+        /* ── Header Toolbar ── */
+        .pm2-toolbar.sc-header {
+          position: sticky;
+          top: 0;
+          z-index: 100;
+          height: auto;
+          min-height: 0;
+          margin: 0;
+          padding: 10px 24px;
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          flex-wrap: wrap;
+          background: #ffffff;
+          border-bottom: 1px solid #e2e8f0;
+          flex-shrink: 0;
         }
-        .portal-docs-page .ant-select .ant-select-selection-placeholder,
-        .portal-docs-page .ant-select .ant-select-selection-item {
-          line-height: 32px !important;
+        .sc-header-controls {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          flex: 1;
+          min-width: 0;
         }
-        .portal-docs-page .ant-input,
-        .portal-docs-page .ant-input-affix-wrapper {
-          background: ${T.cardBg} !important;
-          color: ${T.text} !important;
-          border-color: ${T.border} !important;
-          border-radius: 8px !important;
+        .sc-header-right {
+          flex-shrink: 0;
         }
-        .portal-docs-page .ant-input::placeholder,
-        .portal-docs-page .ant-input-affix-wrapper .ant-input::placeholder {
-          color: ${T.textFaint} !important;
+
+        .pm2-head-id {
+          display: flex;
+          align-items: center;
+          gap: 9px;
+          min-width: 0;
+          flex-shrink: 0;
         }
-        .portal-docs-page .ant-input-clear-icon {
-          color: ${T.textFaint} !important;
+        .pm2-head-ic {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          flex-shrink: 0;
+          width: 32px;
+          height: 32px;
+          border-radius: 8px;
+          font-size: 14px;
+          color: #3b82f6;
+          background: rgba(59, 130, 246, 0.1);
+          border: 1px solid rgba(59, 130, 246, 0.18);
         }
-        /* Project filter — prominent */
-        .portal-docs-project-select.ant-select .ant-select-selector {
-          border: 1px solid ${T.border} !important;
+        .pm2-head-text {
+          display: flex;
+          flex-direction: column;
+          min-width: 0;
         }
-        .portal-docs-project-select.is-active.ant-select .ant-select-selector {
-          background: ${T.accentBg} !important;
-          border-color: ${T.accentBorder} !important;
+        .pm2-head-title {
+          font-size: 13.5px;
+          font-weight: 800;
+          color: #0f172a;
+          letter-spacing: -0.01em;
+          line-height: 1.2;
         }
-        /* Popup — force light theme */
-        html body .portal-docs-popup,
-        html[data-theme='dark'] body .portal-docs-popup,
-        [data-theme='dark'] .portal-docs-popup {
-          background: ${T.cardBg} !important;
-          border: 1px solid ${T.border} !important;
-          padding: 4px !important;
-        }
-        html body .portal-docs-popup .ant-select-item,
-        html[data-theme='dark'] body .portal-docs-popup .ant-select-item,
-        [data-theme='dark'] .portal-docs-popup .ant-select-item {
-          color: ${T.text} !important;
-          background: transparent !important;
-          border-radius: 6px !important;
-          padding: 6px 10px !important;
-          margin: 1px 0 !important;
-        }
-        html body .portal-docs-popup .ant-select-item-option-active,
-        html[data-theme='dark'] body .portal-docs-popup .ant-select-item-option-active {
-          background: ${T.borderSoft} !important;
-        }
-        html body .portal-docs-popup .ant-select-item-option-selected,
-        html[data-theme='dark'] body .portal-docs-popup .ant-select-item-option-selected {
-          background: ${T.accentBg} !important;
-        }
-        /* Table */
-        .docs-table {
-          width: 100%;
-          border-collapse: collapse;
-        }
-        .docs-table thead th {
-          padding: 10px 16px;
-          font-size: 10.5px;
-          font-weight: 600;
-          color: ${T.textSubtle};
-          letter-spacing: 0.07em;
+        .pm2-head-sub {
+          font-size: 9.5px;
+          font-weight: 700;
+          letter-spacing: 0.08em;
           text-transform: uppercase;
-          background: #fafbfc;
-          border-bottom: 1px solid ${T.borderSoft};
-          text-align: left;
+          color: #94a3b8;
+          margin-top: 1px;
+        }
+
+        /* ── Overview Banner ── */
+        .tl-section-head {
+          padding: 10px 24px;
+          background: #f8fafc;
+          border-bottom: 1px solid #e2e8f0;
+          flex-shrink: 0;
+        }
+        .tl-sprint-head-v2 {
+          display: flex;
+          flex-direction: column;
+          gap: 6px;
+        }
+        .tl-sprint-row1 {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 12px;
+          flex-wrap: wrap;
+        }
+        .tl-sprint-title-block {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          min-width: 0;
+          flex: 1 1 auto;
+        }
+        .tl-sprint-dot {
+          width: 7px;
+          height: 7px;
+          border-radius: 50%;
+          flex-shrink: 0;
+        }
+        .pm2-banner-title {
+          font-size: 13.5px;
+          font-weight: 800;
+          color: #0f172a;
+          letter-spacing: -0.01em;
           white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
         }
-        .docs-table tbody td {
-          padding: 11px 16px;
-          font-size: 12.5px;
-          color: ${T.text};
-          border-bottom: 1px solid ${T.borderSoft};
-          vertical-align: middle;
+        .tl-sprint-tags {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          flex-shrink: 0;
         }
-        .docs-table tbody tr {
+        .tl-sprint-tag {
+          display: inline-flex;
+          align-items: center;
+          height: 18px;
+          padding: 0 6px;
+          font-size: 9px;
+          font-weight: 800;
+          letter-spacing: 0.04em;
+          border-radius: 4px;
+          border: 1px solid transparent;
+          text-transform: uppercase;
+          line-height: 1;
+        }
+        .tl-sprint-tag-active {
+          background: transparent;
+          color: #10b981;
+          border-color: rgba(16, 185, 129, 0.32);
+        }
+        .tl-sprint-tag-neutral {
+          background: transparent;
+          color: #64748b;
+          border-color: rgba(100, 116, 139, 0.32);
+        }
+        .tl-sprint-tag-delayed {
+          background: transparent;
+          color: #8b5cf6;
+          border-color: rgba(139, 92, 246, 0.32);
+        }
+
+        .tl-sprint-row2 {
+          display: flex;
+          align-items: center;
+          gap: 18px;
+          flex-wrap: wrap;
+          padding-left: 15px;
+        }
+        .tl-sprint-meta {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          font-size: 11.5px;
+          font-weight: 600;
+          color: #64748b;
+          letter-spacing: -0.005em;
+        }
+        .tl-sprint-meta b {
+          color: #0f172a;
+          font-weight: 800;
+        }
+        .pm2-pulse-dot {
+          width: 6px;
+          height: 6px;
+          border-radius: 50%;
+          background: #10b981;
+          display: inline-block;
+          box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.2);
+        }
+
+        .tl-sprint-row3 {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          padding-left: 15px;
+        }
+        .tl-sprint-progress-bar {
+          flex: 1 1 auto;
+          position: relative;
+          height: 6px;
+          background: #f1f5f9;
+          border-radius: 999px;
+          overflow: hidden;
+          min-width: 60px;
+        }
+        .tl-sprint-progress-fill {
+          position: absolute;
+          inset: 0;
+          background: linear-gradient(90deg, #3b82f6, #2563eb);
+          border-radius: 999px;
+          transition: width 0.4s ease;
+        }
+        .tl-sprint-progress-pct {
+          flex-shrink: 0;
+          font-size: 12px;
+          font-weight: 800;
+          color: #0f172a;
+          font-variant-numeric: tabular-nums;
+          min-width: 36px;
+          text-align: right;
+        }
+
+        /* ── Inline Filter Row ── */
+        .tl-filter-row {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          padding: 8px 24px;
+          background: #f8fafc;
+          border-bottom: 1px solid #e2e8f0;
+          flex-shrink: 0;
+        }
+        .tl-filter-row-label {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          font-size: 10.5px;
+          font-weight: 800;
+          color: #64748b;
+          text-transform: uppercase;
+          letter-spacing: 0.08em;
+          flex-shrink: 0;
+        }
+        .tl-filter-row-count {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          min-width: 18px;
+          height: 18px;
+          padding: 0 6px;
+          background: #ffffff;
+          border: 1px solid #cbd5e1;
+          color: #475569;
+          border-radius: 999px;
+          font-size: 10px;
+          font-weight: 800;
+          letter-spacing: 0;
+          font-variant-numeric: tabular-nums;
+        }
+        .tl-filter-row-pills {
+          flex: 1 1 auto;
+          min-width: 0;
+          display: flex;
+          flex-wrap: wrap;
+          align-items: center;
+          gap: 6px;
+        }
+        .tl-filter-row-actions {
+          flex-shrink: 0;
+          display: inline-flex;
+          align-items: center;
+          gap: 4px;
+        }
+        .tl-filter-row-reset {
+          display: inline-flex;
+          align-items: center;
+          gap: 5px;
+          height: 28px;
+          padding: 0 10px;
+          background: transparent;
+          border: 1px dashed #cbd5e1;
+          border-radius: 6px;
+          font-family: inherit;
+          font-size: 11px;
+          font-weight: 700;
+          color: #64748b;
+          cursor: pointer;
+          transition: all 0.12s ease;
+        }
+        .tl-filter-row-reset:hover {
+          color: #1d4ed8;
+          border-color: rgba(59, 130, 246, 0.45);
+          background: rgba(59, 130, 246, 0.06);
+          border-style: solid;
+        }
+        .tl-filter-row-close {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          width: 28px;
+          height: 28px;
+          background: transparent;
+          border: 1px solid #e2e8f0;
+          border-radius: 6px;
+          color: #64748b;
+          cursor: pointer;
+          transition: all 0.12s ease;
+        }
+        .tl-filter-row-close:hover {
+          color: #0f172a;
+          background: #ffffff;
+          border-color: #94a3b8;
+        }
+
+        .saas-tag-blue {
+          background: #eff6ff !important;
+          color: #1d4ed8 !important;
+          border-color: #bfdbfe !important;
+        }
+
+        /* ── View Toggle ── */
+        .premium-view-toggle {
+          display: inline-flex;
+          background: #ffffff;
+          border: 1px solid #e2e8f0;
+          border-radius: 6px;
+          padding: 2px;
+        }
+        .premium-view-toggle button {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          width: 26px;
+          height: 26px;
+          border: none;
+          background: transparent;
+          color: #64748b;
+          border-radius: 4px;
+          cursor: pointer;
+          transition: all 120ms ease;
+        }
+        .premium-view-toggle button:hover {
+          color: #0f172a;
+          background: #f1f5f9;
+        }
+        .premium-view-toggle button[data-active='true'] {
+          background: #eff6ff;
+          color: #1d4ed8;
+        }
+
+        /* Card hover */
+        .pm2-card {
+          transition: all 140ms ease;
+        }
+        .pm2-card:hover {
+          border-color: #cbd5e1 !important;
+          box-shadow: 0 4px 12px rgba(15, 23, 42, 0.06);
+          transform: translateY(-1px);
+        }
+
+        /* Row hover */
+        .pm2-table-row {
           transition: background 120ms ease;
         }
-        .docs-table tbody tr:hover {
-          background: #f8fafc;
+        .pm2-table-row:hover {
+          background: #f8fafc !important;
         }
-        .docs-table tbody tr:hover .docs-row-name {
-          color: ${T.accent};
+
+        .portal-documents-pagination-footer .ant-pagination-item,
+        .portal-documents-pagination-footer .ant-pagination-prev .ant-pagination-item-link,
+        .portal-documents-pagination-footer .ant-pagination-next .ant-pagination-item-link {
+          border: 1px solid var(--border-slate-200, #e2e8f0) !important;
+          border-radius: 6px !important;
+          background: transparent !important;
+          color: var(--text-slate-500, #64748b) !important;
         }
-        .docs-table tbody tr:last-child td {
-          border-bottom: none;
+        .portal-documents-pagination-footer .ant-pagination-item-active {
+          background: #3b82f6 !important;
+          border-color: #3b82f6 !important;
         }
-        .ant-empty-img-simple path,
-        .ant-empty-image svg path {
-          fill: #f8fafc !important;
-          stroke: ${T.borderHover} !important;
-        }
-        .ant-empty-img-simple ellipse,
-        .ant-empty-image svg ellipse {
-          fill: #e2e8f0 !important;
-          stroke: ${T.borderHover} !important;
+        .portal-documents-pagination-footer .ant-pagination-item-active a {
+          color: #ffffff !important;
         }
       `}</style>
     </div>
   );
 }
 
-/* ─────────────────────────────────────────────────────────
- * Hero with stats + actions
- * ─────────────────────────────────────────────────────── */
-const Hero: React.FC<{
-  stats: { total: number; client: number; internal: number; thisMonth: number; categories: number };
-  loading: boolean;
-  onReload: () => void;
-  onUpload: () => void;
-}> = ({ stats, loading, onReload, onUpload }) => (
-  <div
-    className="portal-docs-page portal-docs-hero"
-    style={{
-      background: T.cardBg,
-      border: `1px solid ${T.border}`,
-      borderRadius: 12,
-      padding: "16px 20px",
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "space-between",
-      gap: 16,
-      position: "relative",
-      overflow: "hidden",
-      flexWrap: "wrap",
-    }}
-  >
-    <div
-      style={{
-        position: "absolute",
-        left: 0,
-        top: 0,
-        bottom: 0,
-        width: 3,
-        background: "linear-gradient(180deg, #4338ca 0%, #0d9488 100%)",
-      }}
-    />
-    {/* Title + description */}
-    <div
-      className="portal-docs-hero-title-row"
-      style={{
-        minWidth: 0,
-        flex: "1 1 200px",
-        display: "flex",
-        alignItems: "center",
-        gap: 14,
-      }}
-    >
-      <div
-        style={{
-          width: 38,
-          height: 38,
-          borderRadius: 10,
-          background: T.accentBg,
-          color: T.accent,
-          border: `1px solid ${T.accentBorder}`,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          flexShrink: 0,
-        }}
-      >
-        <FolderOpen size={19} strokeWidth={2.2} />
-      </div>
-      <div style={{ minWidth: 0 }}>
-        <div
-          style={{
-            fontSize: 18,
-            fontWeight: 700,
-            color: T.text,
-            letterSpacing: "-0.022em",
-            lineHeight: 1.2,
-          }}
-        >
-          Documents
-        </div>
-        <div
-          className="portal-docs-hero-desc"
-          style={{
-            fontSize: 12,
-            color: T.textSubtle,
-            marginTop: 3,
-            fontWeight: 500,
-          }}
-        >
-          Every document your account team has shared — and anything you upload here for them.
-        </div>
-      </div>
-    </div>
+/* --------------------------------------------------------------- */
+/*  Table Row Component                                            */
+/* --------------------------------------------------------------- */
 
-    {/* Stats + actions */}
-    <div
-      className="portal-docs-hero-right"
-      style={{
-        display: "flex",
-        gap: 6,
-        flexShrink: 0,
-        alignItems: "stretch",
-        flexWrap: "wrap",
-      }}
-    >
-      {/* Stat cards */}
-      <div
-        className="portal-docs-stat-cards"
-        style={{
-          display: "flex",
-          gap: 6,
-          alignItems: "stretch",
-          flexWrap: "wrap",
-        }}
-      >
-        {[
-          { label: "Total", value: stats.total, accent: "#4338ca" },
-          { label: "Categories", value: stats.categories, accent: "#0d9488" },
-          { label: "This month", value: stats.thisMonth, accent: "#7c3aed" },
-        ].map((s) => (
-          <div
-            key={s.label}
-            style={{
-              padding: "8px 12px",
-              border: `1px solid ${T.border}`,
-              borderRadius: 8,
-              background: "#fafbfc",
-              minWidth: 72,
-              textAlign: "center",
-            }}
-          >
-            <div
-              style={{
-                fontSize: 9.5,
-                fontWeight: 600,
-                letterSpacing: "0.08em",
-                textTransform: "uppercase",
-                color: T.textSubtle,
-              }}
-            >
-              {s.label}
-            </div>
-            <div
-              style={{
-                fontSize: 17,
-                fontWeight: 700,
-                color: s.accent,
-                marginTop: 2,
-                letterSpacing: "-0.02em",
-                lineHeight: 1.1,
-                fontVariantNumeric: "tabular-nums",
-              }}
-            >
-              {s.value}
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {/* Action buttons */}
-      <div
-        className="portal-docs-hero-actions"
-        style={{ display: "flex", gap: 6, alignItems: "stretch" }}
-      >
-        <button
-          type="button"
-          onClick={onUpload}
-          style={{
-            display: "inline-flex",
-            alignItems: "center",
-            gap: 6,
-            padding: "0 14px",
-            height: 38,
-            background: "linear-gradient(135deg, #4338ca 0%, #6366f1 100%)",
-            color: "#ffffff",
-            border: "1px solid #3730a3",
-            borderRadius: 8,
-            fontSize: 12.5,
-            fontWeight: 600,
-            cursor: "pointer",
-            whiteSpace: "nowrap",
-          }}
-        >
-          <Plus size={14} strokeWidth={2.5} />
-          Add document
-        </button>
-        <button
-          type="button"
-          onClick={onReload}
-          aria-label="Reload"
-          style={{
-            height: 38,
-            minWidth: 38,
-            background: T.cardBg,
-            border: `1px solid ${T.border}`,
-            color: T.textMuted,
-            borderRadius: 8,
-            cursor: "pointer",
-            display: "inline-flex",
-            alignItems: "center",
-            justifyContent: "center",
-          }}
-        >
-          <RefreshCw
-            size={14}
-            style={{
-              animation: loading ? "portal-docs-spin 1s linear infinite" : undefined,
-            }}
-          />
-        </button>
-      </div>
-    </div>
-    <style>{`
-      @keyframes portal-docs-spin {
-        from { transform: rotate(0deg); }
-        to   { transform: rotate(360deg); }
-      }
-      /* ── Responsive: tablet (≤ 768px) ── */
-      @media (max-width: 768px) {
-        .portal-docs-hero {
-          flex-direction: column !important;
-          align-items: stretch !important;
-          gap: 12px !important;
-          padding: 14px 16px !important;
-        }
-        .portal-docs-hero-title-row {
-          flex: 1 1 auto !important;
-        }
-        .portal-docs-hero-desc {
-          white-space: normal !important;
-        }
-        .portal-docs-hero-right {
-          flex-wrap: wrap !important;
-          width: 100% !important;
-          justify-content: space-between !important;
-        }
-        .portal-docs-stat-cards {
-          flex: 1 1 auto !important;
-          justify-content: flex-start !important;
-        }
-        .portal-docs-hero-actions {
-          flex-shrink: 0 !important;
-          align-self: flex-end !important;
-        }
-      }
-      /* ── Responsive: mobile (≤ 480px) ── */
-      @media (max-width: 480px) {
-        .portal-docs-hero {
-          padding: 12px 14px !important;
-          gap: 10px !important;
-        }
-        .portal-docs-hero-right {
-          flex-direction: column !important;
-          align-items: stretch !important;
-          gap: 8px !important;
-        }
-        .portal-docs-stat-cards {
-          width: 100% !important;
-          display: grid !important;
-          grid-template-columns: repeat(3, 1fr) !important;
-          gap: 6px !important;
-        }
-        .portal-docs-hero-actions {
-          width: 100% !important;
-          display: flex !important;
-          gap: 6px !important;
-          align-self: auto !important;
-        }
-        .portal-docs-hero-actions button:first-child {
-          flex: 1 !important;
-          justify-content: center !important;
-        }
-      }
-    `}</style>
-  </div>
-);
-
-/* ─────────────────────────────────────────────────────────
- * Source segmented tabs
- * ─────────────────────────────────────────────────────── */
-const SourceTabs: React.FC<{
-  source: DocumentSource;
-  setSource: (s: DocumentSource) => void;
-  counts: { all: number; client: number; internal: number };
-}> = ({ source, setSource, counts }) => {
-  const tabs: {
-    key: DocumentSource;
-    label: string;
-    sub: string;
-    icon: any;
-    accent: string;
-    accentBg: string;
-    accentBorder: string;
-    count: number;
-  }[] = [
-    {
-      key: "all",
-      label: "All documents",
-      sub: "Everything shared",
-      icon: FolderOpen,
-      accent: "#4338ca",
-      accentBg: "#eef2ff",
-      accentBorder: "#c7d2fe",
-      count: counts.all,
-    },
-    {
-      key: "internal",
-      label: "From Zukvo",
-      sub: "Shared by your account team",
-      icon: Briefcase,
-      accent: "#0d9488",
-      accentBg: "#ccfbf1",
-      accentBorder: "#99f6e4",
-      count: counts.internal,
-    },
-    {
-      key: "client",
-      label: "From your team",
-      sub: "Uploaded via the portal",
-      icon: Users,
-      accent: "#7c3aed",
-      accentBg: "#f5f3ff",
-      accentBorder: "#ddd6fe",
-      count: counts.client,
-    },
-  ];
-
-  return (
-    <>
-      <div
-        className="portal-docs-source-tabs"
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
-          gap: GAP,
-        }}
-      >
-        {tabs.map((tab) => {
-          const active = source === tab.key;
-          const Icon = tab.icon;
-          return (
-            <button
-              key={tab.key}
-              type="button"
-              onClick={() => setSource(tab.key)}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 12,
-                padding: "12px 16px",
-                background: active ? tab.accentBg : T.cardBg,
-                border: `1px solid ${active ? tab.accent : T.border}`,
-                borderRadius: 12,
-                cursor: "pointer",
-                textAlign: "left",
-                transition: "all 150ms ease",
-                minHeight: 64,
-              }}
-            >
-              <div
-                style={{
-                  width: 34,
-                  height: 34,
-                  borderRadius: 9,
-                  background: tab.accentBg,
-                  border: `1px solid ${tab.accentBorder}`,
-                  color: tab.accent,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  flexShrink: 0,
-                }}
-              >
-                <Icon size={16} strokeWidth={2.3} />
-              </div>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div
-                  style={{
-                    fontSize: 13,
-                    fontWeight: 700,
-                    color: active ? tab.accent : T.text,
-                    letterSpacing: "-0.01em",
-                  }}
-                >
-                  {tab.label}
-                </div>
-                <div
-                  style={{
-                    fontSize: 11,
-                    color: T.textSubtle,
-                    marginTop: 1,
-                    fontWeight: 500,
-                    overflow: "hidden",
-                    textOverflow: "ellipsis",
-                    whiteSpace: "nowrap",
-                  }}
-                >
-                  {tab.sub}
-                </div>
-              </div>
-              <div
-                style={{
-                  fontSize: 19,
-                  fontWeight: 700,
-                  color: active ? tab.accent : T.text,
-                  fontVariantNumeric: "tabular-nums",
-                  letterSpacing: "-0.02em",
-                  flexShrink: 0,
-                }}
-              >
-                {tab.count}
-              </div>
-            </button>
-          );
-        })}
-      </div>
-      <style>{`
-        @media (max-width: 640px) {
-          .portal-docs-source-tabs {
-            grid-template-columns: 1fr !important;
-            gap: 8px !important;
-          }
-          .portal-docs-source-tabs button {
-            min-height: 52px !important;
-            padding: 10px 14px !important;
-          }
-        }
-        @media (min-width: 641px) and (max-width: 900px) {
-          .portal-docs-source-tabs {
-            grid-template-columns: repeat(2, 1fr) !important;
-          }
-        }
-      `}</style>
-    </>
-  );
-};
-
-/* ─────────────────────────────────────────────────────────
- * Filter bar
-
- * ─────────────────────────────────────────────────────── */
-const FilterBar: React.FC<{
-  search: string;
-  setSearch: (v: string) => void;
-  projectId: string | undefined;
-  setProjectId: (v: string | undefined) => void;
-  projects: { id: string; name: string; code: string | null }[];
-  category: string | undefined;
-  setCategory: (v: string | undefined) => void;
-  categories: string[];
-  viewMode: "list" | "card";
-  setViewMode: (v: "list" | "card") => void;
-}> = ({
-  search,
-  setSearch,
-  projectId,
-  setProjectId,
-  projects,
-  category,
-  setCategory,
-  categories,
-  viewMode,
-  setViewMode,
-}) => (
-  <div
-    className="portal-docs-page portal-docs-filterbar"
-    style={{
-      background: T.cardBg,
-      border: `1px solid ${T.border}`,
-      borderRadius: 12,
-      padding: "10px 12px",
-      display: "flex",
-      gap: 10,
-      flexWrap: "wrap",
-      alignItems: "center",
-    }}
-  >
-    <style>{`
-      @media (max-width: 640px) {
-        .portal-docs-filterbar { padding: 10px !important; gap: 8px !important; }
-        .portal-docs-filterbar .ant-select { width: 100% !important; }
-        .portal-docs-filterbar .ant-input-affix-wrapper { min-width: 0 !important; width: 100% !important; }
-        .portal-docs-filterbar > div:last-child { margin-left: auto; }
-      }
-    `}</style>
-    {/* Project filter */}
-    <Select
-      className={`portal-docs-project-select${projectId ? " is-active" : ""}`}
-      popupClassName="portal-docs-popup"
-      allowClear
-      placeholder={
-        <span
-          style={{
-            display: "inline-flex",
-            alignItems: "center",
-            gap: 6,
-            color: T.textSubtle,
-            fontWeight: 500,
-          }}
-        >
-          <FolderOpen size={14} />
-          {projects.length === 0
-            ? "No projects yet"
-            : `All projects · ${projects.length}`}
-        </span>
-      }
-      value={projectId}
-      onChange={(v) => setProjectId(v as string | undefined)}
-      style={{ width: 240 }}
-      options={projects.map((proj) => ({
-        value: proj.id,
-        label: proj.name,
-        code: proj.code,
-      }))}
-      optionRender={(option) => (
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <FolderOpen size={13} color={T.textSubtle} />
-          <span style={{ fontWeight: 600, color: T.text }}>
-            {String(option.label)}
-          </span>
-          {(option.data as any)?.code && (
-            <span
-              style={{
-                marginLeft: "auto",
-                fontFamily: T.numFont,
-                fontSize: 11,
-                color: T.textFaint,
-              }}
-            >
-              {(option.data as any).code}
-            </span>
-          )}
-        </div>
-      )}
-      labelRender={(label) => (
-        <span
-          style={{
-            display: "inline-flex",
-            alignItems: "center",
-            gap: 6,
-            color: T.accent,
-            fontWeight: 600,
-          }}
-        >
-          <FolderOpen size={14} />
-          {String(label.label ?? "")}
-        </span>
-      )}
-    />
-
-    {/* Category filter */}
-    <Select
-      popupClassName="portal-docs-popup"
-      allowClear
-      placeholder={
-        <span style={{ color: T.textSubtle, fontWeight: 500 }}>
-          All categories
-        </span>
-      }
-      value={category}
-      onChange={(v) => setCategory(v as string | undefined)}
-      style={{ width: 180 }}
-      options={categories.map((c) => ({ value: c, label: c }))}
-    />
-
-    <Input
-      allowClear
-      value={search}
-      onChange={(e) => setSearch(e.target.value)}
-      prefix={<Search size={14} color={T.textSubtle} />}
-      placeholder="Search file name, type, or tag…"
-      style={{
-        flex: 1,
-        minWidth: 240,
-        height: 34,
-      }}
-    />
-
-    <div
-      style={{
-        display: "inline-flex",
-        background: T.borderSoft,
-        padding: 3,
-        borderRadius: 8,
-        border: `1px solid ${T.border}`,
-        height: 34,
-        boxSizing: "border-box",
-        alignItems: "center",
-      }}
-    >
-      {[
-        { mode: "list" as const, icon: <ListIcon size={13} />, label: "List" },
-        {
-          mode: "card" as const,
-          icon: <LayoutGrid size={13} />,
-          label: "Cards",
-        },
-      ].map(({ mode, icon, label }) => {
-        const active = viewMode === mode;
-        return (
-          <button
-            key={mode}
-            onClick={() => setViewMode(mode)}
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: 5,
-              padding: "0 10px",
-              height: 26,
-              fontSize: 12,
-              fontWeight: 600,
-              borderRadius: 5,
-              border: active ? `1px solid ${T.border}` : "1px solid transparent",
-              cursor: "pointer",
-              background: active ? T.cardBg : "transparent",
-              color: active ? T.text : T.textSubtle,
-              transition: "background 120ms ease, color 120ms ease",
-            }}
-          >
-            {icon}
-            {label}
-          </button>
-        );
-      })}
-    </div>
-  </div>
-);
-
-/* ─────────────────────────────────────────────────────────
- * Single flat table
- * ─────────────────────────────────────────────────────── */
-const DocumentsTable: React.FC<{
-  docs: PortalDocument[];
-  onOpen: (doc: PortalDocument, mode: "view" | "download") => void;
-  onEdit: (doc: PortalDocument) => void;
-  onDelete: (doc: PortalDocument) => void;
-}> = ({ docs, onOpen, onEdit, onDelete }) => (
-  <div
-    style={{
-      background: T.cardBg,
-      border: `1px solid ${T.border}`,
-      borderRadius: 12,
-      overflow: "hidden",
-    }}
-  >
-    <div style={{ overflowX: "auto" }}>
-      <table className="docs-table">
-        <thead>
-          <tr>
-            <th style={{ minWidth: 280 }}>File</th>
-            <th style={{ width: 140 }}>Category</th>
-            <th style={{ width: 140 }}>Project</th>
-            <th style={{ width: 110 }}>Source</th>
-            <th style={{ width: 160 }}>Uploaded by</th>
-            <th style={{ width: 110 }}>Date</th>
-            <th style={{ width: 100, textAlign: "right" }}>Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          {docs.map((doc) => {
-            const { Icon, color } = iconForFile(doc.fileName);
-            const looksExternal = isExternalLink(doc.fileUrl);
-            return (
-              <tr key={doc.id}>
-                <td>
-                  <div
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 11,
-                      minWidth: 0,
-                    }}
-                  >
-                    <div
-                      style={{
-                        width: 30,
-                        height: 30,
-                        borderRadius: 8,
-                        background: `${color}14`,
-                        color,
-                        border: `1px solid ${color}33`,
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        flexShrink: 0,
-                      }}
-                    >
-                      <Icon size={13} />
-                    </div>
-                    <div style={{ minWidth: 0, overflow: "hidden" }}>
-                      <div
-                        className="docs-row-name"
-                        style={{
-                          fontSize: 13,
-                          fontWeight: 600,
-                          color: T.text,
-                          whiteSpace: "nowrap",
-                          overflow: "hidden",
-                          textOverflow: "ellipsis",
-                          letterSpacing: "-0.005em",
-                          transition: "color 120ms ease",
-                        }}
-                        title={doc.fileName}
-                      >
-                        {doc.fileName}
-                      </div>
-                      <div
-                        style={{
-                          fontSize: 11,
-                          color: T.textSubtle,
-                          marginTop: 1,
-                          fontWeight: 500,
-                          display: "flex",
-                          alignItems: "center",
-                          gap: 6,
-                          flexWrap: "wrap",
-                        }}
-                      >
-                        <span>{doc.documentType}</span>
-                        {doc.version > 1 && (
-                          <span
-                            style={{
-                              fontFamily: T.numFont,
-                              padding: "1px 5px",
-                              background: T.accentBg,
-                              border: `1px solid ${T.accentBorder}`,
-                              borderRadius: 4,
-                              color: T.accent,
-                              fontWeight: 600,
-                              fontSize: 10,
-                            }}
-                          >
-                            v{doc.version}
-                          </span>
-                        )}
-                        {doc.tags?.slice(0, 2).map((t) => (
-                          <span
-                            key={t}
-                            style={{
-                              fontSize: 10,
-                              padding: "1px 5px",
-                              background: T.borderSoft,
-                              border: `1px solid ${T.border}`,
-                              color: T.textMuted,
-                              borderRadius: 4,
-                              fontWeight: 500,
-                            }}
-                          >
-                            {t}
-                          </span>
-                        ))}
-                        {doc.tags && doc.tags.length > 2 && (
-                          <span style={{ fontSize: 10, color: T.textFaint }}>
-                            +{doc.tags.length - 2}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                </td>
-                <td>
-                  {doc.category ? (
-                    <span
-                      style={{
-                        fontSize: 11,
-                        padding: "2px 8px",
-                        background: T.borderSoft,
-                        border: `1px solid ${T.border}`,
-                        color: T.textMuted,
-                        borderRadius: 6,
-                        fontWeight: 600,
-                        whiteSpace: "nowrap",
-                      }}
-                    >
-                      {doc.category}
-                    </span>
-                  ) : (
-                    <span style={{ color: T.textFaint }}>—</span>
-                  )}
-                </td>
-                <td>
-                  {doc.projectName ? (
-                    <span
-                      style={{
-                        display: "inline-flex",
-                        alignItems: "center",
-                        gap: 4,
-                        maxWidth: 130,
-                        background: T.accentBg,
-                        border: `1px solid ${T.accentBorder}`,
-                        color: T.accent,
-                        padding: "2px 7px",
-                        borderRadius: 6,
-                        fontSize: 11,
-                        fontWeight: 600,
-                        overflow: "hidden",
-                        textOverflow: "ellipsis",
-                        whiteSpace: "nowrap",
-                      }}
-                      title={doc.projectName}
-                    >
-                      <FolderOpen size={10} />
-                      {doc.projectName}
-                    </span>
-                  ) : (
-                    <span style={{ color: T.textFaint }}>—</span>
-                  )}
-                </td>
-                <td>
-                  <SourcePill uploadedByPortal={!!doc.uploadedByPortal} />
-                </td>
-                <td>
-                  <div
-                    style={{
-                      fontSize: 12,
-                      color: T.text,
-                      fontWeight: 500,
-                      whiteSpace: "nowrap",
-                      overflow: "hidden",
-                      textOverflow: "ellipsis",
-                    }}
-                  >
-                    {doc.uploadedByName || "—"}
-                  </div>
-                </td>
-                <td>
-                  <div
-                    style={{
-                      fontSize: 12,
-                      color: T.textMuted,
-                      fontVariantNumeric: "tabular-nums",
-                      whiteSpace: "nowrap",
-                    }}
-                    title={fmtDate(doc.createdAt)}
-                  >
-                    {fmtRelative(doc.createdAt)}
-                  </div>
-                </td>
-                <td>
-                  <div
-                    style={{
-                      display: "flex",
-                      gap: 6,
-                      justifyContent: "flex-end",
-                    }}
-                  >
-                    <Tooltip title={looksExternal ? "Open link" : "Open"}>
-                      <button
-                        onClick={() => onOpen(doc, "view")}
-                        style={iconBtn(false)}
-                        aria-label="Open"
-                      >
-                        {looksExternal ? (
-                          <ExternalLink size={12} />
-                        ) : (
-                          <Eye size={12} />
-                        )}
-                      </button>
-                    </Tooltip>
-                    {!looksExternal && (
-                      <Tooltip title="Download">
-                        <button
-                          onClick={() => onOpen(doc, "download")}
-                          style={iconBtn(false)}
-                          aria-label="Download"
-                        >
-                          <Download size={12} />
-                        </button>
-                      </Tooltip>
-                    )}
-                    {doc.uploadedByPortal && (
-                      <>
-                        <Tooltip title="Edit details">
-                          <button
-                            onClick={() => onEdit(doc)}
-                            style={iconBtn(false)}
-                            aria-label="Edit"
-                          >
-                            <Pencil size={12} />
-                          </button>
-                        </Tooltip>
-                        <Tooltip title="Delete">
-                          <button
-                            onClick={() => onDelete(doc)}
-                            style={{
-                              ...iconBtn(false),
-                              color: "#b91c1c",
-                              borderColor: "#fecaca",
-                            }}
-                            aria-label="Delete"
-                          >
-                            <Trash2 size={12} />
-                          </button>
-                        </Tooltip>
-                      </>
-                    )}
-                  </div>
-                </td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
-    </div>
-  </div>
-);
-
-const iconBtn = (hover: boolean): React.CSSProperties => ({
-  width: 28,
-  height: 28,
-  borderRadius: 7,
-  background: hover ? T.accentBg : T.cardBg,
-  border: `1px solid ${hover ? T.accentBorder : T.border}`,
-  color: hover ? T.accent : T.textMuted,
-  display: "inline-flex",
-  alignItems: "center",
-  justifyContent: "center",
-  cursor: "pointer",
-  transition: "all 120ms ease",
-});
-
-const SourcePill: React.FC<{ uploadedByPortal: boolean }> = ({
-  uploadedByPortal,
-}) => {
-  if (uploadedByPortal) {
-    return (
-      <span
-        style={{
-          display: "inline-flex",
-          alignItems: "center",
-          gap: 4,
-          fontSize: 10.5,
-          fontWeight: 700,
-          padding: "1.5px 7px",
-          background: "#f5f3ff",
-          border: "1px solid #ddd6fe",
-          color: "#6d28d9",
-          borderRadius: 999,
-        }}
-      >
-        <Users size={10} />
-        Client
-      </span>
-    );
-  }
-  return (
-    <span
-      style={{
-        display: "inline-flex",
-        alignItems: "center",
-        gap: 4,
-        fontSize: 10.5,
-        fontWeight: 700,
-        padding: "1.5px 7px",
-        background: "#ccfbf1",
-        border: "1px solid #99f6e4",
-        color: "#0d9488",
-        borderRadius: 999,
-      }}
-    >
-      <Briefcase size={10} />
-      Zukvo
-    </span>
-  );
-};
-
-/* ─────────────────────────────────────────────────────────
- * Grid view
- * ─────────────────────────────────────────────────────── */
-const DocumentsGrid: React.FC<{
-  docs: PortalDocument[];
-  onOpen: (doc: PortalDocument, mode: "view" | "download") => void;
-  onEdit: (doc: PortalDocument) => void;
-  onDelete: (doc: PortalDocument) => void;
-}> = ({ docs, onOpen, onEdit, onDelete }) => (
-  <div
-    style={{
-      display: "grid",
-      gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))",
-      gap: GAP,
-    }}
-  >
-    {docs.map((doc) => (
-      <DocCard
-        key={doc.id}
-        doc={doc}
-        onOpen={onOpen}
-        onEdit={onEdit}
-        onDelete={onDelete}
-      />
-    ))}
-  </div>
-);
-
-const DocCard: React.FC<{
+function DocumentRow({
+  doc,
+  isLast,
+  onOpen,
+  onEdit,
+  onDelete,
+}: {
   doc: PortalDocument;
+  isLast: boolean;
   onOpen: (doc: PortalDocument, mode: "view" | "download") => void;
-  onEdit: (doc: PortalDocument) => void;
-  onDelete: (doc: PortalDocument) => void;
-}> = ({ doc, onOpen, onEdit, onDelete }) => {
-  const [hover, setHover] = useState(false);
-  const { Icon, color } = iconForFile(doc.fileName);
+  onEdit: () => void;
+  onDelete: () => void;
+}) {
+  const { Icon, color, bg } = iconForFile(doc.fileName);
   const looksExternal = isExternalLink(doc.fileUrl);
 
   return (
     <div
-      onMouseEnter={() => setHover(true)}
-      onMouseLeave={() => setHover(false)}
+      onClick={() => onOpen(doc, "view")}
+      className="pm2-table-row"
       style={{
-        padding: 14,
-        background: T.cardBg,
-        border: `1px solid ${hover ? T.borderHover : T.border}`,
-        borderRadius: 12,
-        transition: "border-color 150ms ease, transform 150ms ease",
-        transform: hover ? "translateY(-1px)" : "translateY(0)",
-        display: "flex",
-        flexDirection: "column",
-        gap: 10,
-        minHeight: 178,
+        display: "grid",
+        gridTemplateColumns:
+          "minmax(260px, 2.5fr) 150px 130px 120px 140px 130px",
+        minWidth: 920,
+        gap: 12,
+        padding: "8px 16px",
+        alignItems: "center",
+        borderBottom: isLast ? "none" : "1px solid #f1f5f9",
+        textDecoration: "none",
+        color: "inherit",
+        cursor: "pointer",
       }}
     >
-      <div style={{ display: "flex", gap: 11, alignItems: "flex-start" }}>
+      {/* 1. File Name & Details */}
+      <div style={{ display: "flex", alignItems: "center", gap: 12, minWidth: 0 }}>
         <div
           style={{
-            width: 38,
-            height: 38,
-            borderRadius: 9,
-            background: `${color}14`,
-            color,
-            border: `1px solid ${color}33`,
-            display: "flex",
+            width: 26,
+            height: 26,
+            borderRadius: 6,
+            flexShrink: 0,
+            display: "inline-flex",
             alignItems: "center",
             justifyContent: "center",
-            flexShrink: 0,
+            color: color,
+            background: bg,
+            border: `1px solid ${color}33`,
           }}
         >
-          <Icon size={17} />
+          <Icon size={14} />
         </div>
-        <div style={{ minWidth: 0, flex: 1 }}>
-          <div
+        <div style={{ display: "flex", flexDirection: "column", minWidth: 0 }}>
+          <span
             style={{
               fontSize: 13,
               fontWeight: 700,
-              color: hover ? T.accent : T.text,
-              lineHeight: 1.3,
-              letterSpacing: "-0.01em",
-              display: "-webkit-box",
-              WebkitLineClamp: 2,
-              WebkitBoxOrient: "vertical",
+              color: "#0f172a",
+              lineHeight: 1.25,
               overflow: "hidden",
-              transition: "color 150ms ease",
+              textOverflow: "ellipsis",
+              whiteSpace: "nowrap",
             }}
             title={doc.fileName}
           >
             {doc.fileName}
-          </div>
+          </span>
           <div
             style={{
-              marginTop: 4,
               display: "flex",
-              flexWrap: "wrap",
-              gap: 5,
               alignItems: "center",
+              gap: 6,
+              marginTop: 1,
             }}
           >
-            <span style={{ fontSize: 11, color: T.textSubtle, fontWeight: 500 }}>
-              {doc.documentType}
+            <span
+              style={{
+                fontSize: 10,
+                color: "#64748b",
+                fontWeight: 600,
+              }}
+            >
+              {doc.documentType || "Document"}
             </span>
             {doc.version > 1 && (
               <span
                 style={{
-                  fontSize: 10,
+                  fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
+                  padding: "0 4px",
+                  background: "#eff6ff",
+                  border: "1px solid #bfdbfe",
+                  borderRadius: 4,
+                  color: "#1d4ed8",
                   fontWeight: 700,
-                  padding: "1px 6px",
-                  background: T.accentBg,
-                  border: `1px solid ${T.accentBorder}`,
-                  color: T.accent,
-                  borderRadius: 999,
-                  fontFamily: T.numFont,
+                  fontSize: 9,
                 }}
               >
                 v{doc.version}
               </span>
             )}
+            {doc.tags?.slice(0, 2).map((t) => (
+              <span
+                key={t}
+                style={{
+                  fontSize: 9.5,
+                  padding: "0 4px",
+                  background: "#f1f5f9",
+                  border: "1px solid #e2e8f0",
+                  color: "#475569",
+                  borderRadius: 4,
+                  fontWeight: 500,
+                }}
+              >
+                {t}
+              </span>
+            ))}
           </div>
         </div>
-        <SourcePill uploadedByPortal={!!doc.uploadedByPortal} />
       </div>
 
-      {(doc.category || doc.projectName) && (
+      {/* 2. Project */}
+      <div>
+        {doc.projectName ? (
+          <span
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 4,
+              padding: "2px 8px",
+              borderRadius: 6,
+              background: "#eff6ff",
+              color: "#2563eb",
+              fontSize: 11,
+              fontWeight: 600,
+              maxWidth: "100%",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              whiteSpace: "nowrap",
+            }}
+            title={doc.projectName}
+          >
+            <FolderOpen size={11} />
+            <span
+              style={{
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                whiteSpace: "nowrap",
+              }}
+            >
+              {doc.projectName}
+            </span>
+          </span>
+        ) : (
+          <span style={{ color: "#94a3b8", fontSize: 12 }}>—</span>
+        )}
+      </div>
+
+      {/* 3. Category */}
+      <div>
+        {doc.category ? (
+          <Tag
+            style={{
+              borderRadius: 6,
+              padding: "1px 8px",
+              fontWeight: 700,
+              fontSize: 10,
+              textTransform: "uppercase",
+              border: "none",
+              margin: 0,
+              color: "#475569",
+              background: "#f1f5f9",
+            }}
+          >
+            {doc.category}
+          </Tag>
+        ) : (
+          <span style={{ color: "#94a3b8", fontSize: 12 }}>—</span>
+        )}
+      </div>
+
+      {/* 4. Source */}
+      <div>
+        {doc.uploadedByPortal ? (
+          <span
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 4,
+              fontSize: 10,
+              fontWeight: 700,
+              padding: "1.5px 7px",
+              background: "#f5f3ff",
+              border: "1px solid #ddd6fe",
+              color: "#6d28d9",
+              borderRadius: 999,
+              textTransform: "uppercase",
+            }}
+          >
+            <Users size={10} />
+            Client
+          </span>
+        ) : (
+          <span
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 4,
+              fontSize: 10,
+              fontWeight: 700,
+              padding: "1.5px 7px",
+              background: "#ccfbf1",
+              border: "1px solid #99f6e4",
+              color: "#0d9488",
+              borderRadius: 999,
+              textTransform: "uppercase",
+            }}
+          >
+            <Briefcase size={10} />
+            Zukvo
+          </span>
+        )}
+      </div>
+
+      {/* 5. Uploaded By */}
+      <div
+        style={{
+          fontSize: 12,
+          color: "#0f172a",
+          fontWeight: 500,
+          whiteSpace: "nowrap",
+          overflow: "hidden",
+          textOverflow: "ellipsis",
+        }}
+      >
+        {doc.uploadedByName || "—"}
+      </div>
+
+      {/* 6. Date */}
+      <div
+        style={{
+          display: "inline-flex",
+          alignItems: "center",
+          gap: 6,
+          fontSize: 11.5,
+          color: "#475569",
+        }}
+        title={fmtDate(doc.createdAt)}
+      >
+        <Calendar size={12} color="#94a3b8" />
+        <span>{fmtRelative(doc.createdAt)}</span>
+      </div>
+    </div>
+  );
+}
+
+/* --------------------------------------------------------------- */
+/*  Card Component (Card View)                                     */
+/* --------------------------------------------------------------- */
+
+function DocumentCard({
+  doc,
+  onOpen,
+  onEdit,
+  onDelete,
+}: {
+  doc: PortalDocument;
+  onOpen: (doc: PortalDocument, mode: "view" | "download") => void;
+  onEdit: () => void;
+  onDelete: () => void;
+}) {
+  const { Icon, color, bg } = iconForFile(doc.fileName);
+  const looksExternal = isExternalLink(doc.fileUrl);
+
+  return (
+    <div
+      onClick={() => onOpen(doc, "view")}
+      className="pm2-card"
+      style={{
+        background: "#ffffff",
+        border: "1px solid #e2e8f0",
+        borderRadius: 10,
+        padding: "16px",
+        cursor: "pointer",
+        display: "flex",
+        flexDirection: "column",
+        gap: 12,
+        position: "relative",
+      }}
+    >
+      {/* Card Top */}
+      <div
+        style={{
+          display: "flex",
+          alignItems: "flex-start",
+          justifyContent: "space-between",
+          gap: 10,
+        }}
+      >
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <div
+            style={{
+              width: 32,
+              height: 32,
+              borderRadius: 8,
+              display: "inline-flex",
+              alignItems: "center",
+              justifyContent: "center",
+              color: color,
+              background: bg,
+              border: `1px solid ${color}33`,
+              flexShrink: 0,
+            }}
+          >
+            <Icon size={16} />
+          </div>
+          <div style={{ minWidth: 0 }}>
+            <span
+              style={{
+                fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
+                fontSize: 11,
+                fontWeight: 600,
+                color: "#64748b",
+                background: "#f1f5f9",
+                padding: "2px 6px",
+                borderRadius: 4,
+              }}
+            >
+              {doc.documentType || "FILE"}
+            </span>
+          </div>
+        </div>
+
+        {doc.uploadedByPortal ? (
+          <span
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 4,
+              fontSize: 10,
+              fontWeight: 700,
+              padding: "1.5px 7px",
+              background: "#f5f3ff",
+              border: "1px solid #ddd6fe",
+              color: "#6d28d9",
+              borderRadius: 999,
+              textTransform: "uppercase",
+            }}
+          >
+            <Users size={10} />
+            Client
+          </span>
+        ) : (
+          <span
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 4,
+              fontSize: 10,
+              fontWeight: 700,
+              padding: "1.5px 7px",
+              background: "#ccfbf1",
+              border: "1px solid #99f6e4",
+              color: "#0d9488",
+              borderRadius: 999,
+              textTransform: "uppercase",
+            }}
+          >
+            <Briefcase size={10} />
+            Zukvo
+          </span>
+        )}
+      </div>
+
+      {/* File Name */}
+      <div>
+        <div
+          style={{
+            fontSize: 14,
+            fontWeight: 700,
+            color: "#0f172a",
+            lineHeight: 1.35,
+            letterSpacing: "-0.01em",
+            wordBreak: "break-word",
+          }}
+        >
+          {doc.fileName}
+        </div>
+      </div>
+
+      {/* Project & Category Pills */}
+      {(doc.projectName || doc.category) && (
         <div
           style={{
             display: "flex",
-            gap: 5,
-            flexWrap: "wrap",
             alignItems: "center",
+            gap: 6,
+            flexWrap: "wrap",
           }}
         >
-          {doc.category && (
-            <span
-              style={{
-                fontSize: 10.5,
-                padding: "1.5px 7px",
-                background: T.borderSoft,
-                border: `1px solid ${T.border}`,
-                color: T.textMuted,
-                borderRadius: 6,
-                fontWeight: 600,
-              }}
-            >
-              {doc.category}
-            </span>
-          )}
           {doc.projectName && (
             <span
               style={{
                 display: "inline-flex",
                 alignItems: "center",
-                gap: 3,
-                fontSize: 10.5,
-                padding: "1.5px 7px",
-                background: T.accentBg,
-                border: `1px solid ${T.accentBorder}`,
-                color: T.accent,
+                gap: 4,
+                padding: "2px 7px",
                 borderRadius: 6,
+                background: "#eff6ff",
+                color: "#2563eb",
+                fontSize: 10.5,
                 fontWeight: 600,
               }}
             >
@@ -1656,80 +1702,66 @@ const DocCard: React.FC<{
               {doc.projectName}
             </span>
           )}
-        </div>
-      )}
-
-      {doc.tags && doc.tags.length > 0 && (
-        <div
-          style={{
-            display: "flex",
-            flexWrap: "wrap",
-            gap: 4,
-          }}
-        >
-          {doc.tags.slice(0, 4).map((t) => (
-            <span
-              key={t}
+          {doc.category && (
+            <Tag
               style={{
-                fontSize: 10,
-                fontWeight: 500,
-                padding: "1px 6px",
-                background: "transparent",
-                border: `1px solid ${T.border}`,
-                color: T.textMuted,
-                borderRadius: 999,
-                display: "inline-flex",
-                alignItems: "center",
-                gap: 3,
+                borderRadius: 6,
+                padding: "1px 7px",
+                fontWeight: 700,
+                fontSize: 9.5,
+                textTransform: "uppercase",
+                border: "none",
+                margin: 0,
+                color: "#475569",
+                background: "#f1f5f9",
               }}
             >
-              <TagIcon size={9} color={T.textSubtle} />
-              {t}
-            </span>
-          ))}
-          {doc.tags.length > 4 && (
-            <span style={{ fontSize: 10, color: T.textFaint, fontWeight: 500 }}>
-              +{doc.tags.length - 4}
-            </span>
+              {doc.category}
+            </Tag>
           )}
         </div>
       )}
 
+      {/* Footer Info & Quick Actions */}
       <div
         style={{
-          marginTop: "auto",
-          paddingTop: 10,
-          borderTop: `1px solid ${T.borderSoft}`,
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
-          gap: 8,
+          gap: 12,
+          fontSize: 11.5,
+          color: "#64748b",
+          marginTop: "auto",
+          paddingTop: 8,
+          borderTop: "1px solid #f1f5f9",
+          flexWrap: "wrap",
         }}
       >
-        <div
-          style={{
-            fontSize: 11,
-            color: T.textSubtle,
-            display: "inline-flex",
-            alignItems: "center",
-            gap: 4,
-            fontWeight: 500,
-            overflow: "hidden",
-            textOverflow: "ellipsis",
-            whiteSpace: "nowrap",
-            minWidth: 0,
-          }}
-        >
-          <Clock size={10} />
-          {fmtRelative(doc.createdAt)}
-          {doc.uploadedByName ? ` · ${doc.uploadedByName}` : ""}
+        <div style={{ display: "inline-flex", alignItems: "center", gap: 5 }}>
+          <Clock size={12} color="#94a3b8" />
+          <span>{fmtRelative(doc.createdAt)}</span>
+          {doc.uploadedByName && <span>· {doc.uploadedByName}</span>}
         </div>
-        <div style={{ display: "flex", gap: 5, flexShrink: 0 }}>
+
+        <div
+          style={{ display: "flex", gap: 4 }}
+          onClick={(e) => e.stopPropagation()}
+        >
           <Tooltip title={looksExternal ? "Open link" : "Open"}>
             <button
               onClick={() => onOpen(doc, "view")}
-              style={iconBtn(hover)}
-              aria-label="Open"
+              style={{
+                width: 26,
+                height: 26,
+                borderRadius: 6,
+                border: "1px solid #e2e8f0",
+                background: "#ffffff",
+                color: "#64748b",
+                display: "inline-flex",
+                alignItems: "center",
+                justifyContent: "center",
+                cursor: "pointer",
+              }}
             >
               {looksExternal ? <ExternalLink size={12} /> : <Eye size={12} />}
             </button>
@@ -1738,8 +1770,18 @@ const DocCard: React.FC<{
             <Tooltip title="Download">
               <button
                 onClick={() => onOpen(doc, "download")}
-                style={iconBtn(hover)}
-                aria-label="Download"
+                style={{
+                  width: 26,
+                  height: 26,
+                  borderRadius: 6,
+                  border: "1px solid #e2e8f0",
+                  background: "#ffffff",
+                  color: "#64748b",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  cursor: "pointer",
+                }}
               >
                 <Download size={12} />
               </button>
@@ -1749,22 +1791,38 @@ const DocCard: React.FC<{
             <>
               <Tooltip title="Edit details">
                 <button
-                  onClick={() => onEdit(doc)}
-                  style={iconBtn(hover)}
-                  aria-label="Edit"
+                  onClick={onEdit}
+                  style={{
+                    width: 26,
+                    height: 26,
+                    borderRadius: 6,
+                    border: "1px solid #e2e8f0",
+                    background: "#ffffff",
+                    color: "#64748b",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    cursor: "pointer",
+                  }}
                 >
                   <Pencil size={12} />
                 </button>
               </Tooltip>
               <Tooltip title="Delete">
                 <button
-                  onClick={() => onDelete(doc)}
+                  onClick={onDelete}
                   style={{
-                    ...iconBtn(hover),
-                    color: "#b91c1c",
-                    borderColor: "#fecaca",
+                    width: 26,
+                    height: 26,
+                    borderRadius: 6,
+                    border: "1px solid #fecaca",
+                    background: "#ffffff",
+                    color: "#dc2626",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    cursor: "pointer",
                   }}
-                  aria-label="Delete"
                 >
                   <Trash2 size={12} />
                 </button>
@@ -1775,11 +1833,12 @@ const DocCard: React.FC<{
       </div>
     </div>
   );
-};
+}
 
-/* ─────────────────────────────────────────────────────────
- * Upload modal
- * ─────────────────────────────────────────────────────── */
+/* --------------------------------------------------------------- */
+/*  Upload Modal                                                   */
+/* --------------------------------------------------------------- */
+
 const MAX_FILE_BYTES = 25 * 1024 * 1024;
 
 function fmtBytes(b: number): string {
@@ -1860,7 +1919,6 @@ function UploadModal({
         return;
       }
       try {
-        // eslint-disable-next-line no-new
         new URL(url.trim());
       } catch {
         message.error("That doesn't look like a valid URL");
@@ -1924,7 +1982,7 @@ function UploadModal({
         <div
           style={{
             padding: "18px 22px 14px",
-            borderBottom: `1px solid ${T.border}`,
+            borderBottom: `1px solid ${p.border}`,
             display: "flex",
             alignItems: "flex-start",
             justifyContent: "space-between",
@@ -1937,9 +1995,9 @@ function UploadModal({
                 width: 36,
                 height: 36,
                 borderRadius: 10,
-                background: T.accentBg,
-                border: `1px solid ${T.accentBorder}`,
-                color: T.accent,
+                background: p.accentBg,
+                border: `1px solid ${p.accentBorder}`,
+                color: p.accent,
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
@@ -1953,7 +2011,7 @@ function UploadModal({
                 style={{
                   fontSize: 16,
                   fontWeight: 700,
-                  color: T.text,
+                  color: p.text,
                   letterSpacing: "-0.015em",
                 }}
               >
@@ -1963,7 +2021,7 @@ function UploadModal({
                 style={{
                   marginTop: 2,
                   fontSize: 12,
-                  color: T.textSubtle,
+                  color: p.textSubtle,
                   fontWeight: 500,
                 }}
               >
@@ -1977,9 +2035,9 @@ function UploadModal({
               width: 30,
               height: 30,
               borderRadius: 7,
-              background: T.cardBg,
-              border: `1px solid ${T.border}`,
-              color: T.textMuted,
+              background: p.surface,
+              border: `1px solid ${p.border}`,
+              color: p.textMuted,
               display: "inline-flex",
               alignItems: "center",
               justifyContent: "center",
@@ -2025,9 +2083,9 @@ function UploadModal({
                   tabIndex={0}
                   style={{
                     padding: "32px 20px",
-                    border: `1.5px dashed ${dragging ? T.accent : T.border}`,
+                    border: `1.5px dashed ${dragging ? p.accent : p.border}`,
                     borderRadius: 12,
-                    background: dragging ? T.accentBg : "#fafbfc",
+                    background: dragging ? p.accentBg : "#fafbfc",
                     textAlign: "center",
                     cursor: "pointer",
                     transition: "all 150ms ease",
@@ -2035,20 +2093,26 @@ function UploadModal({
                 >
                   <UploadCloud
                     size={26}
-                    color={dragging ? T.accent : T.textSubtle}
+                    color={dragging ? p.accent : p.textSubtle}
                     style={{ marginBottom: 8 }}
                   />
                   <div
                     style={{
                       fontSize: 13,
                       fontWeight: 600,
-                      color: T.text,
+                      color: p.text,
                       marginBottom: 4,
                     }}
                   >
                     Drop a file or click to browse
                   </div>
-                  <div style={{ fontSize: 11.5, color: T.textSubtle, fontWeight: 500 }}>
+                  <div
+                    style={{
+                      fontSize: 11.5,
+                      color: p.textSubtle,
+                      fontWeight: 500,
+                    }}
+                  >
                     Up to {fmtBytes(MAX_FILE_BYTES)}
                   </div>
                 </div>
@@ -2057,7 +2121,7 @@ function UploadModal({
                   style={{
                     padding: "12px 14px",
                     background: "#fafbfc",
-                    border: `1px solid ${T.border}`,
+                    border: `1px solid ${p.border}`,
                     borderRadius: 10,
                     display: "flex",
                     alignItems: "center",
@@ -2069,9 +2133,9 @@ function UploadModal({
                       width: 32,
                       height: 32,
                       borderRadius: 8,
-                      background: T.accentBg,
-                      color: T.accent,
-                      border: `1px solid ${T.accentBorder}`,
+                      background: p.accentBg,
+                      color: p.accent,
+                      border: `1px solid ${p.accentBorder}`,
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
@@ -2084,7 +2148,7 @@ function UploadModal({
                       style={{
                         fontSize: 13,
                         fontWeight: 600,
-                        color: T.text,
+                        color: p.text,
                         overflow: "hidden",
                         textOverflow: "ellipsis",
                         whiteSpace: "nowrap",
@@ -2092,7 +2156,13 @@ function UploadModal({
                     >
                       {file.name}
                     </div>
-                    <div style={{ fontSize: 11.5, color: T.textSubtle, fontWeight: 500 }}>
+                    <div
+                      style={{
+                        fontSize: 11.5,
+                        color: p.textSubtle,
+                        fontWeight: 500,
+                      }}
+                    >
                       {fmtBytes(file.size)}
                     </div>
                   </div>
@@ -2102,9 +2172,9 @@ function UploadModal({
                       width: 26,
                       height: 26,
                       borderRadius: 6,
-                      background: T.cardBg,
-                      border: `1px solid ${T.border}`,
-                      color: T.textMuted,
+                      background: p.surface,
+                      border: `1px solid ${p.border}`,
+                      color: p.textMuted,
                       cursor: "pointer",
                       display: "inline-flex",
                       alignItems: "center",
@@ -2128,12 +2198,19 @@ function UploadModal({
               value={url}
               onChange={(e) => setUrl(e.target.value)}
               placeholder="https://docs.google.com/…"
-              prefix={<LinkIcon size={13} color={T.textSubtle} />}
+              prefix={<LinkIcon size={13} color={p.textSubtle} />}
               style={{ height: 38 }}
             />
           )}
 
-          <div style={{ marginTop: 12, display: "flex", flexDirection: "column", gap: 10 }}>
+          <div
+            style={{
+              marginTop: 12,
+              display: "flex",
+              flexDirection: "column",
+              gap: 10,
+            }}
+          >
             <FieldLabel label="Display name">
               <Input
                 value={displayName}
@@ -2184,9 +2261,9 @@ function UploadModal({
             disabled={submitting}
             style={{
               padding: "8px 14px",
-              background: T.cardBg,
-              border: `1px solid ${T.border}`,
-              color: T.textMuted,
+              background: p.surface,
+              border: `1px solid ${p.border}`,
+              color: p.textMuted,
               borderRadius: 8,
               fontSize: 12.5,
               fontWeight: 600,
@@ -2204,9 +2281,9 @@ function UploadModal({
               gap: 6,
               padding: "8px 14px",
               background: submitting
-                ? T.borderHover
-                : "linear-gradient(135deg, #4338ca 0%, #6366f1 100%)",
-              border: "1px solid #3730a3",
+                ? p.borderStrong
+                : "#3b82f6",
+              border: "1px solid #2563eb",
               color: "#fff",
               borderRadius: 8,
               fontSize: 12.5,
@@ -2237,9 +2314,9 @@ const ModeTab: React.FC<{
       gap: 6,
       padding: "6px 11px",
       borderRadius: 8,
-      border: `1px solid ${active ? T.accentBorder : T.border}`,
-      background: active ? T.accentBg : T.cardBg,
-      color: active ? T.accent : T.textMuted,
+      border: `1px solid ${active ? p.accentBorder : p.border}`,
+      background: active ? p.accentBg : p.surface,
+      color: active ? p.accentText : p.textMuted,
       fontSize: 12,
       fontWeight: 600,
       cursor: "pointer",
@@ -2262,7 +2339,7 @@ const FieldLabel: React.FC<{
         fontWeight: 600,
         letterSpacing: "0.07em",
         textTransform: "uppercase",
-        color: T.textSubtle,
+        color: p.textSubtle,
         marginBottom: 4,
       }}
     >
@@ -2272,9 +2349,10 @@ const FieldLabel: React.FC<{
   </div>
 );
 
-/* ─────────────────────────────────────────────────────────
- * Edit modal — metadata-only (file is not replaced)
- * ─────────────────────────────────────────────────────── */
+/* --------------------------------------------------------------- */
+/*  Edit Modal                                                     */
+/* --------------------------------------------------------------- */
+
 function EditDocumentModal({
   doc,
   projects,
@@ -2351,7 +2429,7 @@ function EditDocumentModal({
         <div
           style={{
             padding: "18px 22px 14px",
-            borderBottom: `1px solid ${T.border}`,
+            borderBottom: `1px solid ${p.border}`,
             display: "flex",
             alignItems: "center",
             gap: 12,
@@ -2362,9 +2440,9 @@ function EditDocumentModal({
               width: 36,
               height: 36,
               borderRadius: 10,
-              background: T.accentBg,
-              border: `1px solid ${T.accentBorder}`,
-              color: T.accent,
+              background: p.accentBg,
+              border: `1px solid ${p.accentBorder}`,
+              color: p.accent,
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
@@ -2378,7 +2456,7 @@ function EditDocumentModal({
               style={{
                 fontSize: 16,
                 fontWeight: 700,
-                color: T.text,
+                color: p.text,
                 letterSpacing: "-0.015em",
               }}
             >
@@ -2388,11 +2466,11 @@ function EditDocumentModal({
               style={{
                 marginTop: 2,
                 fontSize: 12,
-                color: T.textSubtle,
+                color: p.textSubtle,
                 fontWeight: 500,
               }}
             >
-              Update name and classification. The file itself isn't replaced.
+              Update name and classification. The file itself isn&apos;t replaced.
             </div>
           </div>
           <button
@@ -2401,9 +2479,9 @@ function EditDocumentModal({
               width: 30,
               height: 30,
               borderRadius: 7,
-              background: T.cardBg,
-              border: `1px solid ${T.border}`,
-              color: T.textMuted,
+              background: p.surface,
+              border: `1px solid ${p.border}`,
+              color: p.textMuted,
               cursor: "pointer",
               display: "inline-flex",
               alignItems: "center",
@@ -2416,7 +2494,14 @@ function EditDocumentModal({
           </button>
         </div>
 
-        <div style={{ padding: "16px 22px 4px", display: "flex", flexDirection: "column", gap: 10 }}>
+        <div
+          style={{
+            padding: "16px 22px 4px",
+            display: "flex",
+            flexDirection: "column",
+            gap: 10,
+          }}
+        >
           <FieldLabel label="Display name">
             <Input
               value={fileName}
@@ -2471,9 +2556,9 @@ function EditDocumentModal({
             disabled={saving}
             style={{
               padding: "8px 14px",
-              background: T.cardBg,
-              border: `1px solid ${T.border}`,
-              color: T.textMuted,
+              background: p.surface,
+              border: `1px solid ${p.border}`,
+              color: p.textMuted,
               borderRadius: 8,
               fontSize: 12.5,
               fontWeight: 600,
@@ -2488,9 +2573,9 @@ function EditDocumentModal({
             style={{
               padding: "8px 14px",
               background: saving
-                ? T.borderHover
-                : "linear-gradient(135deg, #4338ca 0%, #6366f1 100%)",
-              border: "1px solid #3730a3",
+                ? p.borderStrong
+                : "#3b82f6",
+              border: "1px solid #2563eb",
               color: "#fff",
               borderRadius: 8,
               fontSize: 12.5,

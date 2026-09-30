@@ -51,7 +51,7 @@ function satisfies(granted: readonly string[], required: readonly string[]): boo
       if (r === "work_playbooks_requested_playbooks" && f.includes("request_playbook")) {
         return false;
       }
-      return f.startsWith(`${r}_`);
+      return f.startsWith(`${r}_`) || r.startsWith(`${f}_`);
     }),
   );
 }

@@ -37,7 +37,21 @@ const FREQ_LABEL: Record<LwfFrequency, string> = { monthly: 'Monthly', half_year
 
 const inr = new Intl.NumberFormat('en-IN', { maximumFractionDigits: 0 });
 const money = (n: number) => `₹${inr.format(Math.round(n))}`;
-const PAGE_SIZE_OPTIONS = [10, 20, 25, 50, 100];
+const PAGE_SIZE_OPTIONS = [10, 15, 20, 25, 50, 100];
+
+const handleNumericKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+  const allowedKeys = [
+    'Backspace', 'Delete', 'Tab', 'Escape', 'Enter',
+    'ArrowLeft', 'ArrowRight', 'Home', 'End',
+  ];
+  if (allowedKeys.includes(e.key) || e.ctrlKey || e.metaKey) {
+    return;
+  }
+  if (!/[\d.]/.test(e.key)) {
+    e.preventDefault();
+  }
+};
+const numericParser = (val?: string): any => (val ? val.replace(/[^\d.]/g, '') : '');
 
 type View = 'pt' | 'lwf';
 type SlabDraft = { fromAmount: number; toAmount: number | null; monthlyAmount: number };
@@ -84,7 +98,7 @@ export default function StateStatutoryPanel() {
   const [debouncedSearch, setDebouncedSearch] = useState('');
 
   const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(20);
+  const [pageSize, setPageSize] = useState(15);
   const [totalPt, setTotalPt] = useState(0);
   const [totalLwf, setTotalLwf] = useState(0);
 
@@ -314,13 +328,13 @@ export default function StateStatutoryPanel() {
         <span className="pvss-count">{total} shown</span>
       </div>
 
-      <div className="pvss-table-wrap">
+      <div className="pv-table-wrap">
         {view === 'pt'
           ? <ZukvoLoadingOverlay loading={loading} message="">
-                  <Table rowKey="id" size="small" className="pvss-table" columns={ptColumns} dataSource={pagedRows} pagination={false} onRow={() => ({ className: 'pvss-row' })} locale={{ emptyText: <NoData /> }} />
+                  <Table rowKey="id" size="small" columns={ptColumns} dataSource={pagedRows} pagination={false} onRow={() => ({ className: 'pvss-row' })} locale={{ emptyText: <NoData /> }} />
                   </ZukvoLoadingOverlay>
           : <ZukvoLoadingOverlay loading={loading} message="">
-                  <Table rowKey="id" size="small" className="pvss-table" columns={lwfColumns} dataSource={pagedRows} pagination={false} onRow={() => ({ className: 'pvss-row' })} locale={{ emptyText: <NoData /> }} />
+                  <Table rowKey="id" size="small" columns={lwfColumns} dataSource={pagedRows} pagination={false} onRow={() => ({ className: 'pvss-row' })} locale={{ emptyText: <NoData /> }} />
                   </ZukvoLoadingOverlay>}
       </div>
 
@@ -369,9 +383,9 @@ export default function StateStatutoryPanel() {
               <div className="pvss-slabs">
                 {slabs.map((s, i) => (
                   <div key={i} className="pvss-slab-row">
-                    <InputNumber size="small" min={0} value={s.fromAmount} onChange={(v) => updateSlab(i, { fromAmount: Number(v ?? 0) })} style={{ width: '100%' }} />
-                    <InputNumber size="small" min={0} value={s.toAmount ?? undefined} placeholder="∞" onChange={(v) => updateSlab(i, { toAmount: v == null ? null : Number(v) })} style={{ width: '100%' }} />
-                    <InputNumber size="small" min={0} value={s.monthlyAmount} onChange={(v) => updateSlab(i, { monthlyAmount: Number(v ?? 0) })} style={{ width: '100%' }} />
+                    <InputNumber size="small" min={0} value={s.fromAmount} onChange={(v) => updateSlab(i, { fromAmount: Number(v ?? 0) })} style={{ width: '100%' }} onKeyDown={handleNumericKeyDown} parser={numericParser} />
+                    <InputNumber size="small" min={0} value={s.toAmount ?? undefined} placeholder="∞" onChange={(v) => updateSlab(i, { toAmount: v == null ? null : Number(v) })} style={{ width: '100%' }} onKeyDown={handleNumericKeyDown} parser={numericParser} />
+                    <InputNumber size="small" min={0} value={s.monthlyAmount} onChange={(v) => updateSlab(i, { monthlyAmount: Number(v ?? 0) })} style={{ width: '100%' }} onKeyDown={handleNumericKeyDown} parser={numericParser} />
                     <Button type="text" size="small" danger icon={<DeleteOutlined />} onClick={() => removeSlab(i)} disabled={slabs.length === 1} />
                   </div>
                 ))}
@@ -409,10 +423,10 @@ export default function StateStatutoryPanel() {
                   value={lState} onChange={(v) => setLState(v as string)} options={lwfStateOptions} style={{ width: '100%', height: 40 }} width={300} />
               </Field>
               <Field label="Employee amount (₹)" hint="Deducted from the employee each period">
-                <InputNumber min={0} value={lEe} onChange={(v) => setLEe(Number(v ?? 0))} style={{ width: '100%' }} size="large" />
+                <InputNumber min={0} value={lEe} onChange={(v) => setLEe(Number(v ?? 0))} style={{ width: '100%' }} size="large" onKeyDown={handleNumericKeyDown} parser={numericParser} />
               </Field>
               <Field label="Employer amount (₹)" hint="Employer's matching contribution">
-                <InputNumber min={0} value={lEr} onChange={(v) => setLEr(Number(v ?? 0))} style={{ width: '100%' }} size="large" />
+                <InputNumber min={0} value={lEr} onChange={(v) => setLEr(Number(v ?? 0))} style={{ width: '100%' }} size="large" onKeyDown={handleNumericKeyDown} parser={numericParser} />
               </Field>
               <Field label="Frequency" hint="How often LWF is collected">
                 <SearchableDropdown className="pvss-dd" placeholder="Frequency" searchPlaceholder="Search" itemNoun="frequencies" allowClear={false}
@@ -433,7 +447,7 @@ export default function StateStatutoryPanel() {
 
       <style jsx global>{`
         .pvss { display: flex; flex-direction: column; flex: 1; min-height: 0; }
-        .pvss-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding-bottom: 14px; margin-bottom: 14px; border-bottom: 1px solid var(--border-slate-200); }
+        .pvss-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding-bottom: 14px; margin-bottom: 0; border-bottom: 1px solid var(--border-slate-200); }
         .pvss-header-about { display: flex; align-items: center; gap: 12px; min-width: 0; }
         .pvss-header-icon { width: 38px; height: 38px; border-radius: 10px; flex-shrink: 0; background: ${TINT.cyan}; color: ${PALETTE.cyan}; display: inline-flex; align-items: center; justify-content: center; font-size: 18px; }
         .pvss-header-title { font-size: 17px; font-weight: 800; color: var(--text-slate-900); letter-spacing: -0.02em; line-height: 1.15; }
@@ -445,7 +459,7 @@ export default function StateStatutoryPanel() {
         .pvss-search { flex: 1; border: none; outline: none; background: transparent; margin-left: 9px; font-size: 13px; color: var(--text-slate-900); }
         .pvss-ghost-btn { width: 34px; height: 34px; border-radius: 8px; border: 1px solid var(--border-slate-200); background: var(--bg-slate-50); color: var(--text-slate-700); cursor: pointer; font-size: 14px; display: inline-flex; align-items: center; justify-content: center; }
         .pvss-add-btn { height: 34px !important; border-radius: 8px !important; font-weight: 600 !important; }
-        .pvss-toolbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+        .pvss-toolbar { display: flex; align-items: center; justify-content: space-between; margin-top: 14px; margin-bottom: 14px; padding-left: 20px; padding-right: 20px; }
         .pvss-count { font-size: 12px; color: var(--text-slate-500); }
         .pvss-tabs { display: inline-flex; gap: 4px; padding: 4px; background: var(--bg-slate-50); border: 1px solid var(--border-slate-200); border-radius: 12px; }
         .pvss-tab { display: inline-flex; align-items: center; gap: 8px; height: 36px; padding: 0 16px; border: none; background: transparent; border-radius: 9px; font-size: 13px; font-weight: 600; line-height: 1; white-space: nowrap; color: var(--text-slate-500); cursor: pointer; transition: color .15s ease, background .15s ease, box-shadow .15s ease; }
@@ -466,14 +480,14 @@ export default function StateStatutoryPanel() {
         .pvss-table .ant-table-tbody > tr:last-child > td { border-bottom: none !important; }
         .pvss-table .ant-table-tbody > tr.pvss-row:hover > td { background: var(--bg-slate-50) !important; }
         .pvss-footer { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; height: 52px; box-sizing: border-box; }
-        .pvss-footer--sticky { position: sticky; bottom: 0; z-index: 20; margin: auto -22px 0; padding: 0 22px; background: var(--bg-pure-white); border-top: 1px solid var(--border-slate-200); box-shadow: 0 -4px 14px rgba(15,23,42,0.05); }
+        .pvss-footer--sticky { position: sticky; bottom: 0; z-index: 20; margin: 0; padding: 0 22px; background: var(--bg-pure-white); border-top: 1px solid var(--border-slate-200); box-shadow: 0 -4px 14px rgba(15,23,42,0.05); }
         .pvss-footer-info { font-size: 12px; color: var(--text-slate-500); }
         .pvss-footer-info strong { color: var(--text-slate-700); font-weight: 700; }
         .pvss-pager { display: flex; align-items: center; gap: 3px; }
         .pvss-pager-btn, .pvss-pager-num { min-width: 28px; height: 28px; border-radius: 7px; border: 1px solid var(--border-slate-200); background: var(--bg-pure-white); color: var(--text-slate-600); cursor: pointer; font-size: 12.5px; font-weight: 600; }
-        .pvss-pager-btn:hover:not(:disabled), .pvss-pager-num:hover { border-color: #67e8f9; color: ${PALETTE.cyan}; }
+        .pvss-pager-btn:hover:not(:disabled), .pvss-pager-num:hover { border-color: #93c5fd; color: #3b82f6; }
         .pvss-pager-btn:disabled { opacity: 0.4; cursor: not-allowed; }
-        .pvss-pager-num.is-active { background: ${PALETTE.cyan}; border-color: ${PALETTE.cyan}; color: #fff; }
+        .pvss-pager-num.is-active { background: #3b82f6; border-color: #3b82f6; color: #fff; }
         .pvss-pagesize { margin-left: 5px; }
         .pvss-pagesize .ant-select-selector { border-radius: 7px !important; height: 28px !important; }
         .pvss-drawer-head { padding: 16px 18px 12px; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 10; background: var(--bg-pure-white); }

@@ -102,6 +102,7 @@ export const initialsFor = (s: string): string => {
 
 /** Deterministic color from string so the same person always gets the same color */
 export const avatarColorFor = (str: string): string => {
+  if (!str) return '#3b82f6';
   const COLORS = [
     '#3b82f6', '#8b5cf6', '#10b981', '#f59e0b', '#ef4444',
     '#06b6d4', '#ec4899', '#84cc16', '#f97316', '#6366f1',

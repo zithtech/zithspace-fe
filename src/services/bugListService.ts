@@ -276,16 +276,18 @@ class BugListService {
     await apiClient.delete(`/api/bug-list/folders/${id}`);
   }
 
-  static async getArchivedFolders(): Promise<BugFolder[]> {
+  static async getArchivedFolders(projectId?: string): Promise<BugFolder[]> {
     const res = await apiClient.get<{ success: boolean; data: BugFolder[] }>(
-      "/api/bug-list/folders/archived"
+      "/api/bug-list/folders/archived",
+      { params: { projectId } }
     );
     return res.data.data;
   }
 
-  static async getTrashedFolders(): Promise<BugFolder[]> {
+  static async getTrashedFolders(projectId?: string): Promise<BugFolder[]> {
     const res = await apiClient.get<{ success: boolean; data: BugFolder[] }>(
-      "/api/bug-list/folders/trashed"
+      "/api/bug-list/folders/trashed",
+      { params: { projectId } }
     );
     return res.data.data;
   }
@@ -334,9 +336,10 @@ class BugListService {
     return res.data.data;
   }
 
-  static async getArchivedSheets(folderId?: string): Promise<BugSheet[]> {
+  static async getArchivedSheets(folderId?: string, projectId?: string): Promise<BugSheet[]> {
     const res = await apiClient.get<{ success: boolean; data: BugSheet[] }>(
-      `/api/bug-list/sheets/archived${folderId ? `?folderId=${folderId}` : ""}`
+      "/api/bug-list/sheets/archived",
+      { params: { folderId, projectId } }
     );
     return res.data.data;
   }
@@ -379,9 +382,10 @@ class BugListService {
     await apiClient.delete(`/api/bug-list/sheets/${id}`);
   }
 
-  static async getTrashedSheets(folderId?: string): Promise<any[]> {
+  static async getTrashedSheets(folderId?: string, projectId?: string): Promise<any[]> {
     const res = await apiClient.get<{ success: boolean; data: any[] }>(
-      `/api/bug-list/sheets/trashed${folderId ? `?folderId=${folderId}` : ""}`
+      "/api/bug-list/sheets/trashed",
+      { params: { folderId, projectId } }
     );
     return res.data.data;
   }
@@ -586,11 +590,16 @@ class BugListService {
   }
 
   // ==================== Config: severity / type ====================
-  static async listSeverityOptions(): Promise<BugConfigOption[]> {
-    const res = await apiClient.get<{ success: boolean; data: BugConfigOption[] }>(
+  static async listSeverityOptions(params?: { page?: number; pageSize?: number; search?: string }): Promise<BugConfigOption[] & { pagination?: { page: number; pageSize: number; total: number; totalPages: number }; total?: number }> {
+    const res = await apiClient.get<{ success: boolean; data: BugConfigOption[]; pagination?: { page: number; pageSize: number; total: number; totalPages: number } }>(
       `/api/bug-list/config/severities`,
+      { params }
     );
-    return res.data.data;
+    const arr = Array.isArray(res.data?.data) ? res.data.data : [];
+    const result: any = [...arr];
+    result.pagination = res.data?.pagination;
+    result.total = res.data?.pagination?.total ?? arr.length;
+    return result;
   }
 
   static async createSeverityOption(input: BugConfigCreateInput): Promise<BugConfigOption> {
@@ -616,11 +625,16 @@ class BugListService {
     await apiClient.delete(`/api/bug-list/config/severities/${id}`);
   }
 
-  static async listTypeOptions(): Promise<BugConfigOption[]> {
-    const res = await apiClient.get<{ success: boolean; data: BugConfigOption[] }>(
+  static async listTypeOptions(params?: { page?: number; pageSize?: number; search?: string }): Promise<BugConfigOption[] & { pagination?: { page: number; pageSize: number; total: number; totalPages: number }; total?: number }> {
+    const res = await apiClient.get<{ success: boolean; data: BugConfigOption[]; pagination?: { page: number; pageSize: number; total: number; totalPages: number } }>(
       `/api/bug-list/config/types`,
+      { params }
     );
-    return res.data.data;
+    const arr = Array.isArray(res.data?.data) ? res.data.data : [];
+    const result: any = [...arr];
+    result.pagination = res.data?.pagination;
+    result.total = res.data?.pagination?.total ?? arr.length;
+    return result;
   }
 
   static async createTypeOption(input: BugConfigCreateInput): Promise<BugConfigOption> {
@@ -647,11 +661,16 @@ class BugListService {
   }
 
   // ==================== Config: Bug List Type options ====================
-  static async listBugListTypeOptions(): Promise<BugConfigOption[]> {
-    const res = await apiClient.get<{ success: boolean; data: BugConfigOption[] }>(
+  static async listBugListTypeOptions(params?: { page?: number; pageSize?: number; search?: string }): Promise<BugConfigOption[] & { pagination?: { page: number; pageSize: number; total: number; totalPages: number }; total?: number }> {
+    const res = await apiClient.get<{ success: boolean; data: BugConfigOption[]; pagination?: { page: number; pageSize: number; total: number; totalPages: number } }>(
       `/api/bug-list/config/bug-types`,
+      { params }
     );
-    return res.data.data;
+    const arr = Array.isArray(res.data?.data) ? res.data.data : [];
+    const result: any = [...arr];
+    result.pagination = res.data?.pagination;
+    result.total = res.data?.pagination?.total ?? arr.length;
+    return result;
   }
 
   static async createBugListTypeOption(input: BugConfigCreateInput): Promise<BugConfigOption> {
@@ -678,11 +697,16 @@ class BugListService {
   }
 
   // ==================== Config: priority (shared with QA Space) ==============
-  static async listPriorityOptions(): Promise<BugConfigOption[]> {
-    const res = await apiClient.get<{ success: boolean; data: BugConfigOption[] }>(
+  static async listPriorityOptions(params?: { page?: number; pageSize?: number; search?: string }): Promise<BugConfigOption[] & { pagination?: { page: number; pageSize: number; total: number; totalPages: number }; total?: number }> {
+    const res = await apiClient.get<{ success: boolean; data: BugConfigOption[]; pagination?: { page: number; pageSize: number; total: number; totalPages: number } }>(
       `/api/bug-list/config/priorities`,
+      { params }
     );
-    return res.data.data;
+    const arr = Array.isArray(res.data?.data) ? res.data.data : [];
+    const result: any = [...arr];
+    result.pagination = res.data?.pagination;
+    result.total = res.data?.pagination?.total ?? arr.length;
+    return result;
   }
 
   static async createPriorityOption(input: BugConfigCreateInput): Promise<BugConfigOption> {

@@ -13,6 +13,7 @@ import { portalApi, PortalTokenManager } from "@/lib/portalAxios";
 export interface PortalUser {
   id: string;
   tenantId: string;
+  tenantName?: string | null;
   clientId: string;
   contactId: string | null;
   username: string;

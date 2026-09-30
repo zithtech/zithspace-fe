@@ -417,4 +417,47 @@ export class ProjectService {
     }
   }
 
+  /**
+   * Get paginated project sprints (loaded on demand for the Sprints tab)
+   */
+  static async getProjectSprints(
+    projectId: string,
+    params: {
+      page?: number;
+      limit?: number;
+      search?: string;
+      status?: string;
+    } = {}
+  ): Promise<PaginatedResponse<any>> {
+    try {
+      return await apiUtils.getPaginated<any>(`/api/projects/${projectId}/sprints`, params);
+    } catch (error) {
+      if (error instanceof ApiError) {
+        throw error;
+      }
+      throw new Error("Failed to fetch project sprints");
+    }
+  }
+
+  /**
+   * Get paginated project team progress (loaded on demand for the Team Progress tab)
+   */
+  static async getProjectTeamProgress(
+    projectId: string,
+    params: {
+      page?: number;
+      limit?: number;
+      search?: string;
+      sortBy?: string;
+    } = {}
+  ): Promise<PaginatedResponse<any>> {
+    try {
+      return await apiUtils.getPaginated<any>(`/api/projects/${projectId}/team`, params);
+    } catch (error) {
+      if (error instanceof ApiError) {
+        throw error;
+      }
+      throw new Error("Failed to fetch project team progress");
+    }
+  }
 }

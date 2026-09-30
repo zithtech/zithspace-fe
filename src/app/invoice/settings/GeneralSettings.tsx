@@ -398,7 +398,14 @@ const GeneralSettings: FC<GeneralSettingsProps> = ({
             rules={[{ required: true, message: "Company name is required" }]}
             style={{ marginBottom: 0 }}
           >
-            <Input placeholder="Enter company name" style={inputBase} />
+            <Input 
+              maxLength={100} 
+              placeholder="Enter company name" 
+              style={inputBase} 
+              onInput={(e: any) => {
+                e.target.value = e.target.value.replace(/[^A-Za-z0-9\s.,'&\-]/g, "");
+              }}
+            />
           </Form.Item>
         </div>
       </Card>
@@ -417,7 +424,14 @@ const GeneralSettings: FC<GeneralSettingsProps> = ({
             label={<FieldLabel>Plot no</FieldLabel>}
             style={{ marginBottom: 0 }}
           >
-            <Input placeholder="Plot #" style={inputBase} />
+            <Input 
+              maxLength={50} 
+              placeholder="Plot #" 
+              style={inputBase} 
+              onInput={(e: any) => {
+                e.target.value = e.target.value.replace(/[^A-Za-z0-9\s\-.,/]/g, "");
+              }}
+            />
           </Form.Item>
           <Form.Item
             className="col-span-4"
@@ -425,7 +439,14 @@ const GeneralSettings: FC<GeneralSettingsProps> = ({
             label={<FieldLabel>Floor</FieldLabel>}
             style={{ marginBottom: 0 }}
           >
-            <Input placeholder="Floor #" style={inputBase} />
+            <Input 
+              maxLength={50} 
+              placeholder="Floor #" 
+              style={inputBase} 
+              onInput={(e: any) => {
+                e.target.value = e.target.value.replace(/[^A-Za-z0-9\s\-.,/]/g, "");
+              }}
+            />
           </Form.Item>
           <Form.Item
             className="col-span-4"
@@ -433,7 +454,14 @@ const GeneralSettings: FC<GeneralSettingsProps> = ({
             label={<FieldLabel>Building</FieldLabel>}
             style={{ marginBottom: 0 }}
           >
-            <Input placeholder="Building name" style={inputBase} />
+            <Input 
+              maxLength={100} 
+              placeholder="Building name" 
+              style={inputBase} 
+              onInput={(e: any) => {
+                e.target.value = e.target.value.replace(/[^A-Za-z0-9\s.,'&\-]/g, "");
+              }}
+            />
           </Form.Item>
           <Form.Item
             className="col-span-12"
@@ -441,7 +469,14 @@ const GeneralSettings: FC<GeneralSettingsProps> = ({
             label={<FieldLabel>Street / area</FieldLabel>}
             style={{ marginBottom: 0 }}
           >
-            <Input placeholder="Street name and locality" style={inputBase} />
+            <Input 
+              maxLength={255} 
+              placeholder="Street name and locality" 
+              style={inputBase} 
+              onInput={(e: any) => {
+                e.target.value = e.target.value.replace(/[^A-Za-z0-9\s.,'&\-]/g, "");
+              }}
+            />
           </Form.Item>
           <Form.Item
             className="col-span-6"
@@ -449,7 +484,14 @@ const GeneralSettings: FC<GeneralSettingsProps> = ({
             label={<FieldLabel>City</FieldLabel>}
             style={{ marginBottom: 0 }}
           >
-            <Input placeholder="City" style={inputBase} />
+            <Input 
+              maxLength={100} 
+              placeholder="City" 
+              style={inputBase} 
+              onInput={(e: any) => {
+                e.target.value = e.target.value.replace(/[^A-Za-z\s\-'.]/g, "");
+              }}
+            />
           </Form.Item>
           <Form.Item
             className="col-span-6"
@@ -473,7 +515,14 @@ const GeneralSettings: FC<GeneralSettingsProps> = ({
             label={<FieldLabel>Country</FieldLabel>}
             style={{ marginBottom: 0 }}
           >
-            <Input placeholder="Enter country" style={inputBase} />
+            <Input 
+              maxLength={100} 
+              placeholder="Enter country" 
+              style={inputBase} 
+              onInput={(e: any) => {
+                e.target.value = e.target.value.replace(/[^A-Za-z\s\-'.]/g, "");
+              }}
+            />
           </Form.Item>
         </div>
       </Card>
@@ -673,7 +722,7 @@ const GeneralSettings: FC<GeneralSettingsProps> = ({
               style={{ ...monoInput, textTransform: "uppercase" }}
               maxLength={15}
               onInput={(e: any) => {
-                e.target.value = e.target.value.toUpperCase();
+                e.target.value = e.target.value.replace(/[^A-Za-z0-9]/g, "").toUpperCase();
               }}
             />
           </Form.Item>
@@ -693,7 +742,7 @@ const GeneralSettings: FC<GeneralSettingsProps> = ({
               style={{ ...monoInput, textTransform: "uppercase" }}
               maxLength={10}
               onInput={(e: any) => {
-                e.target.value = e.target.value.toUpperCase();
+                e.target.value = e.target.value.replace(/[^A-Za-z0-9]/g, "").toUpperCase();
               }}
             />
           </Form.Item>

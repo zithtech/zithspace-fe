@@ -31,9 +31,18 @@ function baseOptions(el: HTMLElement, filename: string) {
       windowWidth: el.scrollWidth,
     },
     jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
-    pagebreak: { mode: ["css"], avoid: ['tr', '.break-inside-avoid', 'li'] },
+    pagebreak: {
+      // ⚠️  Do NOT add 'legacy' here.
+      // Legacy mode scans ahead for elements that would be cut at a page boundary
+      // and injects large blank whitespace to push them down — creating full-page
+      // blank gaps. CSS-only mode respects our explicit page-break-before:always
+      // on continuation card breakers without adding phantom whitespace.
+      mode: ['css'],
+      avoid: ['.rpt-stat-card', '.rpt-tier-card', '.rpt-module-card', '.rpt-section-card'],
+    },
   };
 }
+
 
 export async function downloadReportPdf(sprintIdOrEl: string | HTMLElement, elOrFilename: HTMLElement | string, filename?: string): Promise<void> {
   let sprintId: string | undefined;
@@ -96,6 +105,196 @@ export async function downloadReportPdf(sprintIdOrEl: string | HTMLElement, elOr
     }
   }
 }
+
+// ── splitTablesForPages ─────────────────────────────────────────────────────
+// html2pdf renders the page as one big canvas image then slices it into pages.
+// CSS "display:table-header-group" has ZERO effect on canvas rendering.
+//
+// Strategy:
+//  1. Detect which rows cross an A4 page boundary (≈ 1100 px).
+//  2. Rebuild chunk[0] inside the original rpt-table-wrap in-place.
+//  3. For chunk[1+]: create a brand-new <section> card (mirrors the parent
+//     section visually) and insert it AFTER the parent section in the DOM.
+//     This closes the original card cleanly, and opens a fresh card on the
+//     new page — exactly like an invoice continuation page.
+//  4. A zero-height page-break element placed just before each continuation
+//     card forces the PDF renderer to start a fresh page — no blank gap,
+//     because the continuation card is now a sibling of the parent section
+//     (not nested inside it).
+//
+// A4 height at 96 dpi = 1123px.  We use 900px so each chunk's rows fit
+// inside a continuation card that also has 76px of overhead (16px paddingTop
+// + ~40px thead + 20px paddingBottom).  900 + 76 = 976px < 1123px — safe.
+// At 1100 the card was 1176px > 1123px, causing the last rows to spill to
+// the next page WITHOUT a header (the "no header on page N" bug).
+const A4_PAGE_H = 900;
+
+function splitTablesForPages(root: HTMLElement): void {
+  const wrapperTop = root.getBoundingClientRect().top;
+
+  // Snapshot the list BEFORE we start mutating (insertions would otherwise
+  // cause the live NodeList to pick up new tables we create).
+  const tableWraps = Array.from(
+    root.querySelectorAll<HTMLElement>(".rpt-table-wrap")
+  );
+
+  for (const wrap of tableWraps) {
+    const table = wrap.querySelector<HTMLTableElement>("table");
+    const thead = table?.querySelector<HTMLElement>("thead");
+    const tbody = table?.querySelector<HTMLElement>("tbody");
+    if (!table || !thead || !tbody) continue;
+
+    const rows = Array.from(
+      tbody.querySelectorAll<HTMLTableRowElement>(":scope > tr")
+    );
+    if (rows.length === 0) continue;
+
+    // ── 1. Detect page-break positions ──────────────────────────────────────
+    const breakBeforeRow = new Set<number>();
+
+    let currentPageTop =
+      A4_PAGE_H *
+      Math.floor(
+        (rows[0].getBoundingClientRect().top - wrapperTop) / A4_PAGE_H
+      );
+
+    for (let i = 0; i < rows.length; i++) {
+      const rowBottom = rows[i].getBoundingClientRect().bottom - wrapperTop;
+      const nextPageEnd = currentPageTop + A4_PAGE_H;
+
+      if (rowBottom > nextPageEnd) {
+        breakBeforeRow.add(i);
+        currentPageTop = nextPageEnd;
+        while (rowBottom > currentPageTop + A4_PAGE_H) currentPageTop += A4_PAGE_H;
+      }
+    }
+
+    if (breakBeforeRow.size === 0) continue;
+
+    // ── 2. Build row chunks ──────────────────────────────────────────────────
+    const chunks: HTMLTableRowElement[][] = [];
+    let current: HTMLTableRowElement[] = [];
+    for (let i = 0; i < rows.length; i++) {
+      if (breakBeforeRow.has(i) && current.length > 0) {
+        chunks.push(current);
+        current = [];
+      }
+      current.push(rows[i]);
+    }
+    if (current.length > 0) chunks.push(current);
+
+    // ── 2b. Forward-merge tiny intermediate chunks ──────────────────────────
+    //
+    // A tiny intermediate chunk (1–2 rows) gets its own page-break-before:always
+    // card.  When the NEXT card ALSO has page-break-before, page N shows just
+    // those 1–2 rows at the top and a huge blank below it.
+    //
+    // Fix: forward-merge chunks with < MIN_ROWS rows into the NEXT chunk.
+    // Those rows become the FIRST rows of the next card, so they appear at
+    // the TOP of that card's page (with a header) instead of on a separate
+    // near-empty page.
+    //
+    // We use a SMALL threshold (< 3 = only 1 or 2 rows) so we never add
+    // more than ~140–180 px to the next chunk, keeping its card height safely
+    // below the A4 limit even after the 76 px card overhead is included.
+    const MIN_ROWS_FORWARD = 3;
+
+    let mi = 1;
+    while (mi < chunks.length - 1) {
+      if (chunks[mi].length < MIN_ROWS_FORWARD) {
+        // Prepend this chunk's rows to the NEXT chunk.
+        chunks[mi + 1] = [...chunks[mi], ...chunks[mi + 1]];
+        chunks.splice(mi, 1);
+        // Recheck same index (now pointing at the next chunk)
+      } else {
+        mi++;
+      }
+    }
+
+    if (chunks.length <= 1) continue;
+
+
+    // ── 3. Rebuild chunk[0] inside the original wrap (in-place) ─────────────
+    {
+      const firstTbody = document.createElement("tbody");
+      chunks[0].forEach((r) => firstTbody.appendChild(r.cloneNode(true)));
+      const firstTable = table.cloneNode(false) as HTMLTableElement;
+      firstTable.appendChild(thead.cloneNode(true));
+      firstTable.appendChild(firstTbody);
+      wrap.innerHTML = "";
+      wrap.appendChild(firstTable);
+    }
+
+    // ── 4. Find where to insert continuation cards ───────────────────────────
+    // Insert AFTER the nearest parent <section> (closes the original card).
+    // Fall back to after the wrap itself if no section parent exists.
+    const parentSection = wrap.closest<HTMLElement>("section");
+    const anchor      = parentSection ?? wrap;
+    const anchorParent = anchor.parentNode;
+    if (!anchorParent) continue;
+    const anchorNextSibling = anchor.nextSibling;
+
+    // ── 5. Create one continuation card per remaining chunk ──────────────────
+    // ⚠️  Do NOT add page-break-before:always here.
+    // A forced break pushes the continuation to the top of the next page but
+    // ALSO forces the remaining space on the current page to be blank.
+    // When a chunk has only 1-2 rows (e.g. the last ticket), the forced break
+    // produces a nearly-full blank page.  Instead, just flow continuation cards
+    // sequentially — html2pdf's canvas slicer handles page boundaries, and the
+    // cloned <thead> still appears at the top of each continuation card.
+    const fragment = document.createDocumentFragment();
+
+    for (let ci = 1; ci < chunks.length; ci++) {
+      // ── Continuation card ────────────────────────────────────────────────
+      // page-break-before:always goes on the CARD itself (not a separate
+      // zero-height breaker), so:
+      //  • html2pdf in css mode sees the break and slices the canvas here.
+      //  • The card (with its cloned thead) starts at the very top of the
+      //    next page — header never stuck at the bottom of the previous page.
+      //  • margin-top:0 cancels the space-y-4 sibling gap so there's no
+      //    extra whitespace pushed before the card on the new page.
+      const card = document.createElement("section");
+      if (parentSection) {
+        card.className = parentSection.className;
+      } else {
+        card.style.cssText =
+          "border:1px solid #e2e8f0;border-radius:12px;background:white;padding:20px;";
+      }
+      // Force a new page BEFORE this card, then give the header breathing room.
+      card.style.pageBreakBefore = "always";
+      (card.style as any).breakBefore = "page";
+      card.style.marginTop = "0";          // cancel space-y-4
+      card.style.paddingTop = "16px";      // breathing room above the header row
+
+      const newWrap = document.createElement("div");
+      newWrap.className = wrap.className;
+
+      const newTable = table.cloneNode(false) as HTMLTableElement;
+      const newThead = thead.cloneNode(true) as HTMLElement;
+      const newTbody = document.createElement("tbody");
+      chunks[ci].forEach((r) => newTbody.appendChild(r.cloneNode(true)));
+
+      newTable.appendChild(newThead);
+      newTable.appendChild(newTbody);
+      newWrap.appendChild(newTable);
+      card.appendChild(newWrap);
+
+      fragment.appendChild(card);
+    } // end for ci
+
+
+    // Insert continuation cards after the original section (not inside it).
+    if (anchorNextSibling) {
+      anchorParent.insertBefore(fragment, anchorNextSibling);
+    } else {
+      anchorParent.appendChild(fragment);
+    }
+  } // end for wrap
+}
+
+
+
+
 function isolateClone(el: HTMLElement): { clone: HTMLElement; wrapper: HTMLElement } {
   const clone = el.cloneNode(true) as HTMLElement;
   const wrapper = document.createElement("div");
@@ -106,8 +305,13 @@ function isolateClone(el: HTMLElement): { clone: HTMLElement; wrapper: HTMLEleme
   wrapper.style.pointerEvents = "none";
   wrapper.appendChild(clone);
   document.body.appendChild(wrapper);
+
+  // Must be in DOM before splitting so getBoundingClientRect() returns real values.
+  splitTablesForPages(clone);
+
   return { clone, wrapper };
 }
+
 
 export async function reportToPdfBlob(el: HTMLElement, filename: string): Promise<Blob> {
   const { clone, wrapper } = isolateClone(el);

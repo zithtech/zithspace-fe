@@ -90,12 +90,18 @@ export function InvoiceDocument({
             </div>
 
             {/* Right side - Logo with company name underneath */}
-            {settings?.general?.companyLogo && (
-              <div style={{ textAlign: "right" }}>
-                <img
-                  src={settings.general.companyLogo}
-                  alt="Logo"
-                  style={{ height: 80, width: "auto", objectFit: "contain", marginBottom: 4 }}
+            {settings?.general?.companyLogo && settings.general.companyLogo !== "null" && settings.general.companyLogo !== "undefined" && (
+              <div style={{ textAlign: "right", display: "flex", flexDirection: "column", alignItems: "flex-end" }}>
+                <div
+                  style={{
+                    height: 80,
+                    width: 150,
+                    backgroundImage: `url(${settings.general.companyLogo})`,
+                    backgroundSize: "contain",
+                    backgroundRepeat: "no-repeat",
+                    backgroundPosition: "right center",
+                    marginBottom: 4,
+                  }}
                 />
                 {settings?.general?.companyName && (
                   <div style={{ fontSize: "14px", fontWeight: "bold", color: settings?.general?.primaryColor || "#1890ff", textAlign: "center" }}>
@@ -583,14 +589,15 @@ export function InvoiceDocument({
                   flexShrink: 0,
                 }}
               >
-                {settings?.general?.companyLogo && (
-                  <img
-                    src={settings.general.companyLogo}
-                    alt="Company Logo"
+                {settings?.general?.companyLogo && settings.general.companyLogo !== "null" && settings.general.companyLogo !== "undefined" && (
+                  <div
                     style={{
                       width: 40,
                       height: 30,
-                      objectFit: "contain",
+                      backgroundImage: `url(${settings.general.companyLogo})`,
+                      backgroundSize: "contain",
+                      backgroundRepeat: "no-repeat",
+                      backgroundPosition: "center",
                       marginRight: 2,
                     }}
                   />

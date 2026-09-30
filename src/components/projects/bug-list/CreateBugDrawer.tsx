@@ -32,6 +32,7 @@ import {
 } from "lucide-react";
 import TiptapEditor from "@/components/common/TiptapEditor";
 import { useAuth } from '@/context/AuthContext';
+import { stripHtml } from "@/utils/stringUtils";
 
 const { Text } = Typography;
 import { useProjectMembers } from "@/hooks/useGlobalData";
@@ -540,13 +541,18 @@ const captureDrawerStyles = `
 .hbcap-btn:hover:not(:disabled) { background: var(--cap-hover); }
 .hbcap-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 .hbcap-btn-primary {
-  border-color: transparent;
-  background: linear-gradient(135deg, var(--cap-accent), #6366F1);
-  color: #FFFFFF;
+  border-color: transparent !important;
+  background: linear-gradient(135deg, var(--cap-accent), #6366F1) !important;
+  color: #FFFFFF !important;
   font-weight: 600;
   box-shadow: 0 8px 18px rgba(37,99,235,0.28);
 }
-.hbcap-btn-primary:hover:not(:disabled) { filter: brightness(1.08); transform: translateY(-1px); }
+.hbcap-btn-primary:hover:not(:disabled) {
+  background: linear-gradient(135deg, var(--cap-accent), #6366F1) !important;
+  color: #FFFFFF !important;
+  filter: brightness(1.08);
+  transform: translateY(-1px);
+}
 .hbcap-btn-primary:disabled { box-shadow: none; }
 .hbcap-spin { animation: hbcapSpin 900ms linear infinite; }
 @keyframes hbcapSpin { to { transform: rotate(360deg); } }
@@ -877,15 +883,20 @@ export default function CreateBugDrawer({
     }
   };
 
+  const plainDescriptionText = useMemo(() => stripHtml(description), [description]);
+  const isDescriptionEmpty = plainDescriptionText.length === 0;
+  const isDescriptionOverLimit = plainDescriptionText.length > 5000;
+
   // ─── Submit ────────────────────────────────────────────────────────────
   const isValid =
-    description.trim().length > 0 &&
+    !isDescriptionEmpty &&
+    !isDescriptionOverLimit &&
     (!severityOptions?.filter(s => s.isActive).length || !!severity) &&
     (!typeOptions?.filter(t => t.isActive).length || !!bugType);
 
   /** Drives the header's readiness meter — the three fields the API insists on. */
   const readyChecks = [
-    { label: "Description", done: description.trim().length > 0 },
+    { label: "Description", done: !isDescriptionEmpty && !isDescriptionOverLimit },
     ...(severityOptions?.filter(s => s.isActive).length ? [{ label: "Severity", done: !!severity }] : []),
     ...(typeOptions?.filter(t => t.isActive).length ? [{ label: "Type", done: !!bugType }] : []),
   ];
@@ -894,7 +905,23 @@ export default function CreateBugDrawer({
 
   const handleSubmit = async () => {
     setDescriptionTouched(true);
-    if (!isValid) return;
+    if (isDescriptionOverLimit) {
+      message.warning("Description cannot exceed 5,000 characters");
+      return;
+    }
+    if (!isValid || isDescriptionEmpty) {
+      const missingFields: string[] = [];
+      if (isDescriptionEmpty) missingFields.push("Description");
+      if (severityOptions?.filter(s => s.isActive).length && !severity) missingFields.push("Severity");
+      if (typeOptions?.filter(t => t.isActive).length && !bugType) missingFields.push("Type");
+
+      if (missingFields.length > 0) {
+        message.warning(`Please fill in required field${missingFields.length > 1 ? "s" : ""}: ${missingFields.join(", ")}`);
+      } else {
+        message.warning("Please fill in all required fields");
+      }
+      return;
+    }
 
     let finalLinks = [...links];
     if (linkUrl.trim()) {
@@ -1115,19 +1142,35 @@ export default function CreateBugDrawer({
                     <span className="premium-form-label hbcap-fieldlabel">
                       Description<span className="hbcap-req">*</span>
                     </span>
-                    {hasPrime && (
-                      <Button
-                        size="small"
-                        className="hbcap-ai-btn"
-                        icon={enhancingDescription ? <LoadingOutlined /> : <Sparkles size={11} />}
-                        onClick={(e) => { e.preventDefault(); enhanceDescription(); }}
-                        disabled={enhancingDescription || !description.trim()}
-                      >
-                        {enhancingDescription ? "Polishing…" : "Polish with AI"}
-                      </Button>
-                    )}
+                    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                      <span style={{ fontSize: 11, color: isDescriptionOverLimit ? "#ef4444" : "#94a3b8" }}>
+                        {plainDescriptionText.length.toLocaleString()} / 5,000
+                      </span>
+                      {hasPrime && (
+                        <Button
+                          size="small"
+                          className="hbcap-ai-btn"
+                          icon={enhancingDescription ? <LoadingOutlined /> : <Sparkles size={11} />}
+                          onClick={(e) => { e.preventDefault(); enhanceDescription(); }}
+                          disabled={enhancingDescription || isDescriptionEmpty || isDescriptionOverLimit}
+                        >
+                          {enhancingDescription ? "Polishing…" : "Polish with AI"}
+                        </Button>
+                      )}
+                    </div>
                   </div>
-                  <Form.Item labelCol={{ span: 24 }} wrapperCol={{ span: 24 }} validateStatus={description.trim().length === 0 && descriptionTouched ? 'error' : ''} help={description.trim().length === 0 && descriptionTouched ? 'Description is required' : ''}>
+                  <Form.Item
+                    labelCol={{ span: 24 }}
+                    wrapperCol={{ span: 24 }}
+                    validateStatus={(isDescriptionEmpty && descriptionTouched) || isDescriptionOverLimit ? 'error' : ''}
+                    help={
+                      isDescriptionEmpty && descriptionTouched
+                        ? 'Description is required'
+                        : isDescriptionOverLimit
+                        ? 'Description cannot exceed 5,000 characters'
+                        : ''
+                    }
+                  >
                     <div onBlur={() => setDescriptionTouched(true)}>
                       <TiptapEditor
                         content={description}
@@ -1140,6 +1183,8 @@ export default function CreateBugDrawer({
                 <Form.Item labelCol={{ span: 24 }} wrapperCol={{ span: 24 }} label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: "#64748b" }}>Comments</Text>}>
                   <Input.TextArea
                     rows={2}
+                    maxLength={1000}
+                    showCount
                     placeholder="Any additional internal comments or notes…"
                     value={comments}
                     onChange={(e) => setComments(e.target.value)}
@@ -1384,7 +1429,7 @@ export default function CreateBugDrawer({
               <button
                 className="hbcap-btn hbcap-btn-primary"
                 onClick={handleSubmit}
-                disabled={submitting || !isValid}
+                disabled={submitting}
               >
                 {submitting ? (
                   <Loader2 size={14} className="hbcap-spin" />

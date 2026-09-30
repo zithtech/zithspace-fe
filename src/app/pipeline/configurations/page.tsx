@@ -3,15 +3,17 @@ import NoData from "@/components/common/NoData";
 
 import React, { useEffect, useState } from 'react';
 import { PipelineService as pipelineClient } from '@/services/pipelineService';
-import { Plus, X, GripVertical, Edit2, Trash2, Eye, LayoutGrid, List, MoreVertical, FileText, Settings, AlignLeft, RotateCw } from 'lucide-react';
+import { Plus, X, GripVertical, Edit2, Trash2, Eye, LayoutGrid, List, MoreVertical, FileText, Settings, AlignLeft, RotateCw, Search } from 'lucide-react';
 import { PositionService, Position } from '@/services/positionService';
-import { AutoComplete, Drawer, Table, Dropdown, Button, message } from 'antd';
+import { AutoComplete, Drawer, Table, Dropdown, Button, message, Select } from 'antd';
 import '@/app/proposals/library.css';
 import type { ColumnsType } from 'antd/es/table';
 import type { MenuProps } from 'antd';
 import { commonDrawerProps, drawerFormStyles, SectionCard } from "@/components/common/DrawerSection";
 import ConfirmDialog from '@/components/common/ConfirmDialog';
 import { SearchableDropdown } from "@/components/common/SearchableDropdown";
+
+const PAGE_SIZE_OPTIONS = [10, 15, 20, 25, 50, 100];
 
 export default function ConfigurationsPage() {
   const menuLabel = (title: string, desc: string, icon: React.ReactNode, color: string, tint: string) => (
@@ -31,12 +33,37 @@ export default function ConfigurationsPage() {
   const [viewConfig, setViewConfig] = useState<any>(null);
   const [viewMode, setViewMode] = useState<'card'|'table'>('table');
 
+  const [search, setSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [tablePage, setTablePage] = useState(1);
+  const [tablePageSize, setTablePageSize] = useState(15);
+  const [total, setTotal] = useState(0);
+
+  const pageCount = Math.max(1, Math.ceil(total / tablePageSize));
+  const pageStart = total === 0 ? 0 : (tablePage - 1) * tablePageSize + 1;
+  const pageEnd = Math.min(tablePage * tablePageSize, total);
+
+  useEffect(() => {
+    const t = setTimeout(() => {
+      setDebouncedSearch(search);
+      setTablePage(1);
+    }, 350);
+    return () => clearTimeout(t);
+  }, [search]);
+
   const fetchConfigs = async (silent = false) => {
     if (!silent) setLoading(true);
     try {
-      const res = await pipelineClient.listConfigs();
+      const res = await pipelineClient.listConfigs({
+        page: tablePage,
+        limit: tablePageSize,
+        search: debouncedSearch || undefined,
+      });
       if (res.success) {
-        setConfigs(res.data);
+        const list = Array.isArray(res.data) ? res.data : (res.data?.configs || []);
+        const totalCount = Array.isArray(res.data) ? res.data.length : (res.data?.total || 0);
+        setConfigs(list);
+        setTotal(totalCount);
       }
     } catch (err) {
       console.error(err);
@@ -47,13 +74,22 @@ export default function ConfigurationsPage() {
 
   useEffect(() => {
     fetchConfigs();
-  }, []);
+  }, [debouncedSearch, tablePage, tablePageSize]);
 
   return (
     <>
       <div className="pl-topbar">
+        <div className="pl-search-wrap">
+          <Search className="pl-search-icon" size={14} />
+          <input
+            className="pl-search"
+            placeholder="Search by role..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+        </div>
         <div className="pl-topbar-meta">
-          <span className="pl-meta-item"><span className="pl-pulse" /><strong>{configs.length}</strong> configurations</span>
+          <span className="pl-meta-item"><span className="pl-pulse" /><strong>{total}</strong> configurations</span>
         </div>
         <div className="pl-topbar-actions flex items-center gap-3">
           <div className="pp-segmented">
@@ -271,16 +307,53 @@ export default function ConfigurationsPage() {
         )}
       </div>
 
-      <div className="pl-footer pl-footer--sticky">
-        <div className="pl-footer-info">
-          Showing <strong>1–{configs.length}</strong> of <strong>{configs.length}</strong> configurations
+      {total > 0 && (
+        <div className="pl-footer pl-footer--sticky">
+          <div className="pl-footer-info">
+            Showing <strong>{pageStart}–{pageEnd}</strong> of <strong>{total}</strong> configurations
+          </div>
+          <div className="pl-pager">
+            <button
+              type="button"
+              className="pl-pager-btn"
+              disabled={tablePage <= 1}
+              onClick={() => setTablePage((p) => Math.max(1, p - 1))}
+            >
+              ‹
+            </button>
+            {Array.from({ length: pageCount }, (_, i) => i + 1)
+              .slice(Math.max(0, tablePage - 3), Math.max(0, tablePage - 3) + 5)
+              .map((p) => (
+                <button
+                  key={p}
+                  type="button"
+                  className={`pl-pager-num ${p === tablePage ? 'is-active' : ''}`}
+                  onClick={() => setTablePage(p)}
+                >
+                  {p}
+                </button>
+              ))}
+            <button
+              type="button"
+              className="pl-pager-btn"
+              disabled={tablePage >= pageCount}
+              onClick={() => setTablePage((p) => Math.min(pageCount, p + 1))}
+            >
+              ›
+            </button>
+            <Select
+              className="pl-pagesize"
+              value={tablePageSize}
+              onChange={(v) => {
+                setTablePageSize(v);
+                setTablePage(1);
+              }}
+              options={PAGE_SIZE_OPTIONS.map((n) => ({ value: n, label: `${n} / page` }))}
+              popupMatchSelectWidth={120}
+            />
+          </div>
         </div>
-        <div className="pl-pager">
-          <button type="button" className="pl-pager-btn" disabled>‹</button>
-          <button type="button" className="pl-pager-num is-active">1</button>
-          <button type="button" className="pl-pager-btn" disabled>›</button>
-        </div>
-      </div>
+      )}
 
       {isModalOpen && <AddConfigModal editConfig={editConfig} onClose={(saved) => { setIsModalOpen(false); if (saved) fetchConfigs(true); }} />}
 

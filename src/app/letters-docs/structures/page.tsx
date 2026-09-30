@@ -20,12 +20,12 @@ import { LettersService, DocumentStructure } from '@/services/lettersService';
 import { usePermission } from '@/hooks/usePermission';
 import { toast } from 'react-hot-toast';
 import { Table, Button, Tooltip, Select, Modal, Dropdown, Avatar } from 'antd';
-import { LetterStatsCards, StatCellData } from '@/components/letters/LetterStatsCards';
+import { StatCards, PALETTE, TINT } from '@/components/letters/ui';
 import { SnippetsOutlined, FileTextOutlined, CheckCircleOutlined, StarOutlined, AppstoreOutlined, UnorderedListOutlined, ReloadOutlined, EditOutlined, DeleteOutlined, EyeOutlined, MoreOutlined, EllipsisOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import ZukvoLoader from '@/components/common/ZukvoLoader';
 
-const PAGE_SIZE_OPTIONS = [10, 20, 25, 50, 100];
+const PAGE_SIZE_OPTIONS = [10, 15, 20, 25, 50, 100];
 
 const renderDropdownItem = (icon: React.ReactNode, title: string, subtitle: string, iconBg: string, iconColor: string, isDanger?: boolean) => (
   <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '4px' }}>
@@ -61,16 +61,27 @@ export default function StructuresManagementPage() {
   const [view, setView] = useState<'list' | 'card'>('list');
 
   const [tablePage, setTablePage] = useState(1);
-  const [tablePageSize, setTablePageSize] = useState(20);
+  const [tablePageSize, setTablePageSize] = useState(15);
+  const [total, setTotal] = useState(0);
 
   const [previewStructure, setPreviewStructure] = useState<DocumentStructure | null>(null);
   const [deleteStructId, setDeleteStructId] = useState<string | null>(null);
 
+  const paginatedStructures = structures;
+  const pageCount = Math.max(1, Math.ceil(total / tablePageSize));
+  const pageStart = total === 0 ? 0 : (tablePage - 1) * tablePageSize + 1;
+  const pageEnd = Math.min(tablePage * tablePageSize, total);
+
   const fetchData = async () => {
     try {
       setLoading(true);
-      const structs = await LettersService.getStructures();
-      setStructures(structs);
+      const res = await LettersService.getStructures({
+        search: searchQuery || undefined,
+        limit: tablePageSize,
+        offset: (tablePage - 1) * tablePageSize,
+      });
+      setStructures(res.data || []);
+      setTotal(res.total || 0);
     } catch (err: any) {
       toast.error(err.message || 'Failed to load structures');
     } finally {
@@ -84,8 +95,8 @@ export default function StructuresManagementPage() {
       toast.loading('Deleting structure...', { id: 'del-struct' });
       await LettersService.deleteStructure(deleteStructId);
       toast.success('Structure deleted successfully!', { id: 'del-struct' });
-      setStructures(structures.filter(s => s.id !== deleteStructId));
       setDeleteStructId(null);
+      fetchData();
     } catch (err: any) {
       toast.error(err.message || 'Failed to delete structure', { id: 'del-struct' });
     }
@@ -93,40 +104,31 @@ export default function StructuresManagementPage() {
 
   useEffect(() => {
     fetchData();
-  }, []);
+  }, [tablePage, tablePageSize]);
 
-  const filteredStructures = useMemo(() => {
-    if (!searchQuery) return structures;
-    return structures.filter(s => s.name.toLowerCase().includes(searchQuery.toLowerCase()));
-  }, [structures, searchQuery]);
+  const globalCount = useMemo(() => structures.filter(s => s.tenantId === 'GLOBAL').length, [structures]);
+  const recentCount = useMemo(() => structures.filter(s => {
+    if (!s.createdAt && !s.updatedAt) return false;
+    const d = new Date(s.createdAt || s.updatedAt);
+    return (new Date().getTime() - d.getTime()) < 7 * 24 * 60 * 60 * 1000;
+  }).length, [structures]);
 
-  const total = filteredStructures.length;
-  const pageCount = Math.ceil(total / tablePageSize) || 1;
-  const paginatedStructures = filteredStructures.slice((tablePage - 1) * tablePageSize, tablePage * tablePageSize);
-  const pageStart = total === 0 ? 0 : (tablePage - 1) * tablePageSize + 1;
-  const pageEnd = Math.min(tablePage * tablePageSize, total);
+  const customCount = useMemo(() => Math.max(0, total - globalCount), [total, globalCount]);
 
-  const statCells: StatCellData[] = useMemo(() => {
-    const total = structures.length;
-    const globalCount = structures.filter(s => s.tenantId === 'GLOBAL').length;
-    const recentCount = structures.filter(s => {
-      if (!s.createdAt && !s.updatedAt) return false;
-      const d = new Date(s.createdAt || s.updatedAt);
-      return (new Date().getTime() - d.getTime()) < 7 * 24 * 60 * 60 * 1000;
-    }).length;
-
-    const genericTrend = [0, 2, 4, 3, 5, 4, 7];
-
-    return [
-      { key: 'total', title: 'Total Structures', value: total, suffix: '', icon: <Layers size={18} />, color: '#3b82f6', tint: 'rgba(59,130,246,0.10)', trend: genericTrend, delta: total },
-      { key: 'global', title: 'Global Structures', value: globalCount, suffix: '', icon: <StarOutlined />, color: '#8b5cf6', tint: 'rgba(139,92,246,0.10)', trend: genericTrend, delta: globalCount },
-      { key: 'recent', title: 'New This Week', value: recentCount, suffix: '', icon: <FileTextOutlined />, color: '#f59e0b', tint: 'rgba(245,158,11,0.10)', trend: genericTrend, delta: recentCount },
-      { key: 'active', title: 'Active Structures', value: total, suffix: '', icon: <CheckCircleOutlined />, color: '#10b981', tint: 'rgba(16,185,129,0.10)', trend: genericTrend, delta: total },
-    ];
-  }, [structures]);
+  const statCells = useMemo(() => [
+    { label: 'Total Formats', value: total, icon: <Layers size={15} />, color: PALETTE.blue, tint: TINT.blue },
+    { label: 'Global Formats', value: globalCount, icon: <StarOutlined />, color: PALETTE.violet, tint: TINT.violet },
+    { label: 'Custom Formats', value: customCount, icon: <CheckCircleOutlined />, color: PALETTE.green, tint: TINT.green },
+    { label: 'New This Week', value: recentCount, icon: <FileTextOutlined />, color: PALETTE.amber, tint: TINT.amber },
+  ], [total, globalCount, customCount, recentCount]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
+    if (tablePage === 1) {
+      fetchData();
+    } else {
+      setTablePage(1);
+    }
   };
 
   const columns: ColumnsType<DocumentStructure> = [
@@ -263,16 +265,20 @@ export default function StructuresManagementPage() {
         </div>
       </div>
 
-      <div style={{ padding: '14px 24px 32px', flex: 1, overflow: 'hidden', minWidth: 0, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
+      <StatCards
+        title="Custom Formats Overview"
+        statusText="ACTIVE"
+        progressPct={total > 0 ? Math.round((customCount / total) * 100) : 0}
+        cells={statCells}
+      />
 
-        <LetterStatsCards statCells={statCells} />
-
+      <div className="doc-table-wrap">
         {/* Structures List */}
         {loading ? (
           <div style={{ padding: '60px 0', textAlign: 'center', color: 'var(--text-slate-600)', fontSize: '15px' }}>
             <ZukvoLoader message="Loading custom structures..." size="md" />
           </div>
-        ) : filteredStructures.length === 0 ? (
+        ) : structures.length === 0 ? (
           <NoData description={
             <div className="pp-empty" style={{ padding: '60px 0', textAlign: 'center' }}>
               <div className="pp-empty-orb"><Layers size={48} style={{ color: 'var(--text-slate-300)', margin: '0 auto 16px' }} /></div>
@@ -288,21 +294,20 @@ export default function StructuresManagementPage() {
             </div>
           } />
         ) : view === 'list' ? (
-          <div className="att-table-wrap" style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
-            <Table
-              rowKey="id"
-              size="small"
-              className="att-table flex-table"
-              columns={columns}
-              dataSource={paginatedStructures}
-              pagination={false}
-              onRow={() => ({ className: 'att-row' })}
-              scroll={{ x: 'max-content', y: '100%' }} locale={{ emptyText: <NoData /> }}
-            />
-          </div>
+          <Table
+            rowKey="id"
+            size="small"
+            className="att-table flex-table"
+            columns={columns}
+            dataSource={paginatedStructures}
+            pagination={false}
+            onRow={() => ({ className: 'att-row' })}
+            scroll={{ x: 'max-content', y: '100%' }}
+            locale={{ emptyText: <NoData /> }}
+          />
         ) : (
-          <div style={{ flex: 1, overflowY: 'auto', minHeight: 0, paddingRight: '4px', marginRight: '-4px' }}>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '16px', paddingBottom: '16px' }}>
+          <div style={{ flex: 1, overflowY: 'auto', minHeight: 0 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '16px', padding: '16px' }}>
               {paginatedStructures.map((s) => (
                 <div key={s.id} className="pc-card">
                   <div className="pc-top" style={{ position: 'relative' }}>
@@ -372,29 +377,29 @@ export default function StructuresManagementPage() {
             </div>
           </div>
         )}
-      </div>
 
-      {total > 0 && (
-        <div className="pp-footer pp-footer--sticky">
-          <div className="pp-footer-info">
-            Showing <strong>{pageStart}–{pageEnd}</strong> of <strong>{total}</strong>
+        {total > 0 && (
+          <div className="pp-footer pp-footer--sticky">
+            <div className="pp-footer-info">
+              Showing <strong>{pageStart}–{pageEnd}</strong> of <strong>{total}</strong>
+            </div>
+            <div className="pp-pager">
+              <button type="button" className="pp-pager-btn" disabled={tablePage <= 1} onClick={() => setTablePage((p) => Math.max(1, p - 1))}>‹</button>
+              {Array.from({ length: pageCount }, (_, i) => i + 1).slice(Math.max(0, tablePage - 3), Math.max(0, tablePage - 3) + 5).map((p) => (
+                <button key={p} type="button" className={`pp-pager-num ${p === tablePage ? 'is-active' : ''}`} onClick={() => setTablePage(p)}>{p}</button>
+              ))}
+              <button type="button" className="pp-pager-btn" disabled={tablePage >= pageCount} onClick={() => setTablePage((p) => Math.min(pageCount, p + 1))}>›</button>
+              <Select
+                className="pp-pagesize"
+                value={tablePageSize}
+                onChange={(v) => { setTablePageSize(v); setTablePage(1); }}
+                options={PAGE_SIZE_OPTIONS.map((n) => ({ value: n, label: `${n} / page` }))}
+                popupMatchSelectWidth={120}
+              />
+            </div>
           </div>
-          <div className="pp-pager">
-            <button type="button" className="pp-pager-btn" disabled={tablePage <= 1} onClick={() => setTablePage((p) => Math.max(1, p - 1))}>‹</button>
-            {Array.from({ length: pageCount }, (_, i) => i + 1).slice(Math.max(0, tablePage - 3), Math.max(0, tablePage - 3) + 5).map((p) => (
-              <button key={p} type="button" className={`pp-pager-num ${p === tablePage ? 'is-active' : ''}`} onClick={() => setTablePage(p)}>{p}</button>
-            ))}
-            <button type="button" className="pp-pager-btn" disabled={tablePage >= pageCount} onClick={() => setTablePage((p) => Math.min(pageCount, p + 1))}>›</button>
-            <Select
-              className="pp-pagesize"
-              value={tablePageSize}
-              onChange={(v) => { setTablePageSize(v); setTablePage(1); }}
-              options={PAGE_SIZE_OPTIONS.map((n) => ({ value: n, label: `${n} / page` }))}
-              popupMatchSelectWidth={120}
-            />
-          </div>
-        </div>
-      )}
+        )}
+      </div>
 
       {/* Preview Modal */}
       <Modal

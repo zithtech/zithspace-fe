@@ -242,7 +242,7 @@ function CollectionCard({
 }
 
 export default function CollectionsPage() {
-  useActivitySource({ section: "WORK", module: "QA", page: "Playbook Collections" });
+  useActivitySource({ section: "WORK", module: "Playbooks", page: "PlaybookCollections" });
 
   const router = useRouter();
   const { user } = useAuth();
@@ -260,7 +260,12 @@ export default function CollectionsPage() {
      user.subscriptionFeatures.includes("work_playbooks_qa_playbooks_new_collections"))
   );
 
-  const hasTrashFeature = useSubscriptionFeature("work_playbooks_playbook_trash");
+  const hasTrashFeature = Boolean(
+    user?.subscriptionFeatures &&
+    (user.subscriptionFeatures.includes("work_playbooks_qa_playbooks_upload") ||
+     user.subscriptionFeatures.includes("work_playbooks_collections_new_collections") ||
+     user.subscriptionFeatures.includes("work_playbooks_qa_playbooks_new_playbook"))
+  );
 
   const { data, isLoading } = useQuery<{
     collections: CollectionSummary[];
@@ -393,7 +398,7 @@ export default function CollectionsPage() {
             />
             <div style={{ marginLeft: "auto", display: "inline-flex", gap: 8 }}>
               <Button onClick={() => router.push("/playbooks")}>All playbooks</Button>
-              {canReadPlaybookTrash && (
+              {hasTrashFeature && canReadPlaybookTrash && (
                 <Button
                   icon={<Trash2 size={14} />}
                   onClick={() => router.push("/playbooks/trash?tab=collections")}

@@ -202,12 +202,17 @@ export class LeadService {
   }
 
   /**
-   * Fetch all trashed leads
+   * Fetch trashed leads with optional pagination
    */
-  static async getTrash(): Promise<Lead[]> {
+  static async getTrash(params?: { page?: number; limit?: number; search?: string }): Promise<any> {
     try {
-      const response = await api.get<any>('/api/leads/trash');
-      return response.data || response;
+      const queryParams = new URLSearchParams();
+      if (params?.page) queryParams.append('page', params.page.toString());
+      if (params?.limit) queryParams.append('limit', params.limit.toString());
+      if (params?.search) queryParams.append('search', params.search);
+      const url = `/api/leads/trash${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
+      const response = await api.get<any>(url);
+      return response;
     } catch (error) {
       console.error('Failed to fetch trash leads:', error);
       throw error;

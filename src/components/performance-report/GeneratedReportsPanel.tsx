@@ -2,6 +2,7 @@
 
 import NoData from "@/components/common/NoData";
 import ZukvoLoader from "@/components/common/ZukvoLoader";
+import ConfirmDialog from "@/components/common/ConfirmDialog";
 
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -28,7 +29,6 @@ import {
   Input,
   Modal,
   Pagination,
-  Popconfirm,
   Progress,
   message,
 } from 'antd';
@@ -38,6 +38,11 @@ import {
   DownloadOutlined,
   ThunderboltOutlined,
   SyncOutlined,
+  CalendarOutlined,
+  ArrowLeftOutlined,
+  CheckCircleFilled,
+  InfoCircleOutlined,
+  LoadingOutlined,
 } from '@ant-design/icons';
 import {
   Search,
@@ -49,6 +54,7 @@ import {
   FileSearch,
   Building2,
   Briefcase,
+  Sparkles,
 } from 'lucide-react';
 import dayjs, { Dayjs } from 'dayjs';
 import { SearchableDropdown } from '@/components/common/SearchableDropdown';
@@ -91,6 +97,7 @@ export default function GeneratedReportsPanel() {
   const [member, setMember] = useState<string | undefined>();
   const [monthRange, setMonthRange] = useState<[Dayjs, Dayjs] | null>(null);
   const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(15);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -126,6 +133,7 @@ export default function GeneratedReportsPanel() {
   const [wizProject, setWizProject] = useState<string | undefined>();
   const [wizPosition, setWizPosition] = useState<string | undefined>();
   const [wizMembers, setWizMembers] = useState<string[]>([]);
+  const [wizSearchText, setWizSearchText] = useState('');
   const [excluded, setExcluded] = useState<Set<string>>(new Set());
   const [projects, setProjects] = useState<{ value: string; label: string }[]>([]);
   const [allMembersList, setAllMembersList] = useState<ReportMember[]>([]);
@@ -346,8 +354,12 @@ export default function GeneratedReportsPanel() {
     let list = candidates;
     if (wizPosition) list = list.filter((c) => c.position === wizPosition);
     if (wizMembers.length) list = list.filter((c) => wizMembers.includes(c.id));
+    if (wizSearchText.trim()) {
+      const q = wizSearchText.toLowerCase().trim();
+      list = list.filter((c) => c.name?.toLowerCase().includes(q) || c.position?.toLowerCase().includes(q) || c.department?.toLowerCase().includes(q));
+    }
     return list;
-  }, [candidates, wizPosition, wizMembers]);
+  }, [candidates, wizPosition, wizMembers, wizSearchText]);
   const wizSelected = useMemo(() => wizResolved.filter((c) => !excluded.has(c.id)), [wizResolved, excluded]);
   const alreadyDoneSet = useMemo(
     () => (wizMonth ? new Set(allReports.filter((r) => r.periodKey === wizMonth.key).map((r) => r.userId)) : new Set<string>()),
@@ -400,8 +412,8 @@ export default function GeneratedReportsPanel() {
   }, [search, dept, subDept, member, monthRange]);
 
   const total = filtered.length;
-  const paged = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
-  const rangeInfo = total === 0 ? '0 reports' : `${(page - 1) * PAGE_SIZE + 1}–${Math.min(page * PAGE_SIZE, total)} of ${total}`;
+  const paged = filtered.slice((page - 1) * pageSize, page * pageSize);
+  const rangeInfo = total === 0 ? '0 reports' : `${(page - 1) * pageSize + 1}–${Math.min(page * pageSize, total)} of ${total}`;
 
   // ── header KPIs (computed over the filtered set so they track the filters) ──
   const kpis = useMemo(() => {
@@ -731,9 +743,9 @@ export default function GeneratedReportsPanel() {
                         }}
                       />
                       {canUpdatePerformanceReportSetting && (
-                        <Popconfirm title="Delete this report?" onConfirm={() => onDelete(r.id)} okText="Delete" okButtonProps={{ danger: true }}>
+                        <ConfirmDialog tone="danger" icon={<DeleteOutlined />} title="Delete this report?" confirmText="Delete" onConfirm={() => onDelete(r.id)}>
                           <Button size="small" danger icon={<DeleteOutlined />} title="Delete" />
-                        </Popconfirm>
+                        </ConfirmDialog>
                       )}
                     </div>
                   </div>
@@ -745,111 +757,359 @@ export default function GeneratedReportsPanel() {
       </div>
 
       {/* 4. Fixed bottom pagination */}
-      <div className="gr-footer">
-        <span className="gr-footer-info">{total === 0 ? 'No reports' : `Showing ${rangeInfo}`}</span>
-        <Pagination current={page} pageSize={PAGE_SIZE} total={total} showSizeChanger={false} onChange={setPage} />
-      </div>
+      {total > 0 && (
+        <div className="gr-footer gr-footer--sticky">
+          <Pagination
+            current={page}
+            pageSize={pageSize}
+            total={total}
+            showSizeChanger={true}
+            pageSizeOptions={[10, 15, 20, 25, 50, 100]}
+            onChange={(p, s) => {
+              setPage(p);
+              if (s && s !== pageSize) setPageSize(s);
+            }}
+            showTotal={(t, range) => (
+              <span>
+                Showing <strong>{range[0]}–{range[1]}</strong> of <strong>{t}</strong>
+              </span>
+            )}
+            size="small"
+          />
+        </div>
+      )}
 
       {/* Generate wizard */}
       <Modal
         open={wizardOpen}
         onCancel={() => setWizardOpen(false)}
-        title={wizStep === 'month' ? 'Generate report — pick a month' : `Generate report · ${wizMonth?.label}`}
-        width={wizStep === 'month' ? 560 : 640}
+        title={
+          <div className="wz-modal-header flex flex-col gap-3 pb-2 border-b border-zinc-100 dark:border-zinc-800">
+            <div className="flex items-center justify-between pr-6">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 text-white flex items-center justify-center font-bold text-lg shadow-md shadow-blue-500/20 flex-shrink-0">
+                  <ThunderboltOutlined />
+                </div>
+                <div>
+                  <h3 className="text-base font-extrabold text-zinc-900 dark:text-zinc-100 leading-snug m-0">
+                    {wizStep === 'month' ? 'Generate Performance Reports' : 'Select Team Members'}
+                  </h3>
+                  <p className="text-xs font-normal text-zinc-500 dark:text-zinc-400 m-0">
+                    {wizStep === 'month'
+                      ? 'Choose a reporting period to auto-generate monthly scorecards'
+                      : `Configuring scope for ${wizMonth?.label || 'selected period'}`}
+                  </p>
+                </div>
+              </div>
+              {wizMonth && wizStep === 'scope' && (
+                <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full bg-blue-50 dark:bg-blue-950/50 border border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-300 text-xs font-bold">
+                  <CalendarOutlined className="text-blue-500" />
+                  <span>{wizMonth.label}</span>
+                </div>
+              )}
+            </div>
+
+            {/* Stepper Pill Indicator */}
+            <div className="flex items-center gap-2 pt-1">
+              <button
+                type="button"
+                onClick={() => setWizStep('month')}
+                className={`flex items-center gap-2 px-3 py-1 rounded-lg text-xs font-bold transition-all ${
+                  wizStep === 'month'
+                    ? 'bg-blue-600 text-white shadow-sm'
+                    : 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/80 hover:bg-emerald-100 cursor-pointer'
+                }`}
+              >
+                <span className={`w-4 h-4 rounded-full flex items-center justify-center text-[10px] ${wizStep === 'month' ? 'bg-white/25 text-white' : 'bg-emerald-600 text-white'}`}>
+                  {wizStep === 'month' ? '1' : '✓'}
+                </span>
+                <span>1. Reporting Period</span>
+              </button>
+
+              <span className="text-zinc-300 dark:text-zinc-700 text-xs font-bold">→</span>
+
+              <div
+                className={`flex items-center gap-2 px-3 py-1 rounded-lg text-xs font-bold transition-all ${
+                  wizStep === 'scope'
+                    ? 'bg-blue-600 text-white shadow-sm'
+                    : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-400 dark:text-zinc-500'
+                }`}
+              >
+                <span className={`w-4 h-4 rounded-full flex items-center justify-center text-[10px] ${wizStep === 'scope' ? 'bg-white/25 text-white' : 'bg-zinc-300 dark:bg-zinc-700 text-zinc-600 dark:text-zinc-400'}`}>
+                  2
+                </span>
+                <span>2. Select Team Members</span>
+              </div>
+            </div>
+          </div>
+        }
+        width={wizStep === 'month' ? 620 : 760}
         centered
         footer={
           wizStep === 'month'
             ? null
             : [
-              <Button key="back" onClick={() => setWizStep('month')}>Back</Button>,
-              <Button
-                key="go"
-                type="primary"
-                disabled={wizSelected.length === 0}
-                onClick={() => wizMonth && runGeneration(wizSelected, wizMonth.range, wizMonth.key)}
-              >
-                {wizSelected.length ? `Generate ${wizSelected.length} report${wizSelected.length === 1 ? '' : 's'}` : 'Select members'}
-              </Button>,
-            ]
+                <Button
+                  key="back"
+                  icon={<ArrowLeftOutlined />}
+                  onClick={() => setWizStep('month')}
+                  style={{ height: 42, borderRadius: 12, fontWeight: 700 }}
+                >
+                  Back to Period
+                </Button>,
+                <Button
+                  key="go"
+                  type="primary"
+                  icon={<ThunderboltOutlined />}
+                  disabled={wizSelected.length === 0}
+                  onClick={() => wizMonth && runGeneration(wizSelected, wizMonth.range, wizMonth.key)}
+                  style={{
+                    height: 42,
+                    borderRadius: 12,
+                    fontWeight: 800,
+                    padding: '0 24px',
+                    background: wizSelected.length ? 'linear-gradient(135deg, #3b82f6, #1d4ed8)' : undefined,
+                    boxShadow: wizSelected.length ? '0 4px 14px rgba(37, 99, 235, 0.35)' : undefined,
+                  }}
+                >
+                  {wizSelected.length
+                    ? `Generate ${wizSelected.length} Performance Report${wizSelected.length === 1 ? '' : 's'}`
+                    : 'Select at least 1 member'}
+                </Button>,
+              ]
         }
       >
         {wizStep === 'month' ? (
-          <div className="wz-months">
+          <div className="wz-months py-2">
             {wizMonths.map((m) => {
               const count = allReports.filter((r) => r.periodKey === m.key).length;
+              const isCurrent = m.sub;
               return (
-                <button key={m.key} type="button" className="wz-month" onClick={() => selectMonth(m)}>
-                  {m.sub && <span className="wz-month-badge">This month</span>}
+                <button key={m.key} type="button" className={`wz-month ${isCurrent ? 'wz-month--current' : ''}`} onClick={() => selectMonth(m)}>
+                  {isCurrent && <span className="wz-month-badge">This month</span>}
+                  <div className="wz-month-icon">
+                    <CalendarOutlined />
+                  </div>
                   <span className="wz-month-name">{dayjs(`${m.key}-01`).format('MMMM')}</span>
                   <span className="wz-month-year">{dayjs(`${m.key}-01`).format('YYYY')}</span>
-                  <span className="wz-month-count">{count ? `${count} generated` : 'None yet'}</span>
+                  <span className={`wz-month-count ${count > 0 ? 'wz-month-count--done' : ''}`}>
+                    {count ? `${count} generated` : 'None yet'}
+                  </span>
                 </button>
               );
             })}
           </div>
         ) : (
-          <div className="wz-scope">
-            <div className="wz-filters">
+          <div className="wz-scope pt-2 space-y-3.5">
+            {/* Filter Dropdowns Toolbar */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 bg-zinc-50/80 dark:bg-zinc-900/50 p-2.5 rounded-2xl border border-zinc-200/70 dark:border-zinc-800">
               <SearchableDropdown
-                placeholder="All projects" searchPlaceholder="Search projects" itemNoun="projects"
+                placeholder="All projects"
+                searchPlaceholder="Search projects"
+                itemNoun="projects"
                 value={wizProject}
                 onChange={(v) => { setWizProject(v ?? undefined); loadCandidatesForProject(v ?? undefined); }}
-                options={projects} width={190} allowClear
+                options={projects}
+                width="100%"
+                allowClear
               />
               <SearchableDropdown
-                placeholder="All positions" searchPlaceholder="Search positions" itemNoun="positions"
+                placeholder="All positions"
+                searchPlaceholder="Search positions"
+                itemNoun="positions"
                 value={wizPosition}
                 onChange={(v) => { setWizPosition(v ?? undefined); setWizMembers([]); }}
-                options={wizPositions.map((p) => ({ value: p, label: p }))} width={190} allowClear
+                options={wizPositions.map((p) => ({ value: p, label: p }))}
+                width="100%"
+                allowClear
               />
               <SearchableDropdown
-                mode="multiple"
-                placeholder="All members" searchPlaceholder="Search members" itemNoun="members"
-                value={wizMembers}
-                onChange={(v) => setWizMembers((v as string[]) || [])}
-                options={wizMemberOptions} width={200} allowClear
+                placeholder="All members"
+                searchPlaceholder="Search members"
+                itemNoun="members"
+                value={wizMembers[0]}
+                onChange={(v) => setWizMembers(v ? [v] : [])}
+                options={wizMemberOptions}
+                width="100%"
+                allowClear
+                avatarColor="#3b82f6"
               />
             </div>
 
-            <div className="wz-list-head">
-              <span><strong>{wizSelected.length}</strong> of {wizResolved.length} selected</span>
-              <span className="wz-list-actions">
-                <a onClick={() => setExcluded(new Set())}>Select all</a>
-                <a onClick={() => setExcluded(new Set(wizResolved.map((c) => c.id)))}>None</a>
-              </span>
+            {/* Selection Toolbar Header */}
+            <div className="wz-list-head bg-white dark:bg-zinc-900 px-3.5 py-2.5 rounded-2xl border border-zinc-200/80 dark:border-zinc-800 shadow-xs flex items-center justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <Checkbox
+                  checked={wizResolved.length > 0 && wizSelected.length === wizResolved.length}
+                  indeterminate={wizSelected.length > 0 && wizSelected.length < wizResolved.length}
+                  onChange={(e) => {
+                    if (e.target.checked) {
+                      setExcluded(new Set());
+                    } else {
+                      setExcluded(new Set(wizResolved.map((c) => c.id)));
+                    }
+                  }}
+                />
+                <div className="flex items-center gap-1.5 text-xs font-semibold text-zinc-700 dark:text-zinc-300">
+                  <span className="text-blue-600 dark:text-blue-400 font-extrabold text-sm">{wizSelected.length}</span>
+                  <span className="text-zinc-400">/ {wizResolved.length} members selected</span>
+                  {wizSelected.length > 0 && (
+                    <span className="ml-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-300 border border-blue-200 dark:border-blue-800">
+                      {Math.round((wizSelected.length / (wizResolved.length || 1)) * 100)}%
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              <div className="wz-list-actions flex items-center gap-1.5">
+                <button
+                  type="button"
+                  className="px-2.5 py-1 rounded-lg text-xs font-bold text-blue-600 hover:text-blue-700 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950/40 transition-colors"
+                  onClick={() => setExcluded(new Set())}
+                >
+                  Select all
+                </button>
+                <span className="text-zinc-300 dark:text-zinc-700 text-xs">•</span>
+                <button
+                  type="button"
+                  className="px-2.5 py-1 rounded-lg text-xs font-bold text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 bg-emerald-50/70 dark:bg-emerald-950/30 border border-emerald-200/80 dark:border-emerald-800/80 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 transition-colors flex items-center gap-1"
+                  onClick={() => {
+                    const doneIds = new Set(wizResolved.filter((c) => alreadyDoneSet.has(c.id)).map((c) => c.id));
+                    setExcluded(doneIds);
+                  }}
+                >
+                  <Sparkles className="w-3 h-3 text-emerald-500" />
+                  <span>Un-generated only</span>
+                </button>
+                <span className="text-zinc-300 dark:text-zinc-700 text-xs">•</span>
+                <button
+                  type="button"
+                  className="px-2.5 py-1 rounded-lg text-xs font-bold text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+                  onClick={() => setExcluded(new Set(wizResolved.map((c) => c.id)))}
+                >
+                  Clear all
+                </button>
+              </div>
             </div>
 
+            {/* Candidate Members List */}
             {candidatesLoading ? (
-              <div className="wz-center"><ZukvoLoader size="md" /></div>
+              <div className="wz-center py-14"><ZukvoLoader size="md" /></div>
             ) : wizResolved.length === 0 ? (
-              <div className="wz-center"><NoData description="No members match" /></div>
+              <div className="wz-center py-12 bg-zinc-50/50 dark:bg-zinc-900/30 rounded-2xl border border-dashed border-zinc-200 dark:border-zinc-800">
+                <NoData description="No members match the selected filters" />
+              </div>
             ) : (
-              <div className="wz-list">
-                {wizResolved.map((c) => (
-                  <label key={c.id} className="wz-row">
-                    <Checkbox checked={!excluded.has(c.id)} onChange={() => toggleExclude(c.id)} />
-                    <Avatar size={28} src={c.avatarUrl || undefined} style={{ background: 'var(--bg-blue-50)', color: 'var(--text-blue-700)', fontSize: 12, fontWeight: 700, flexShrink: 0 }}>
-                      {c.name?.charAt(0)?.toUpperCase()}
-                    </Avatar>
-                    <span className="wz-row-name">{c.name}</span>
-                    <span className="wz-row-pos">{c.position || '—'}</span>
-                    {alreadyDoneSet.has(c.id) && <span className="wz-row-done">Generated</span>}
-                  </label>
-                ))}
+              <div className="wz-list max-h-[320px] overflow-y-auto rounded-2xl border border-zinc-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900/40 divide-y divide-zinc-100 dark:divide-zinc-800/60 shadow-xs">
+                {wizResolved.map((c) => {
+                  const isChecked = !excluded.has(c.id);
+                  const isDone = alreadyDoneSet.has(c.id);
+                  return (
+                    <div
+                      key={c.id}
+                      onClick={() => toggleExclude(c.id)}
+                      className={`wz-row flex items-center gap-3 px-3.5 py-2.5 cursor-pointer transition-all duration-150 ${
+                        isChecked
+                          ? 'bg-blue-50/40 dark:bg-blue-950/20'
+                          : 'hover:bg-zinc-50 dark:hover:bg-zinc-900/50'
+                      }`}
+                    >
+                      <Checkbox
+                        checked={isChecked}
+                        onChange={(e) => {
+                          e.stopPropagation();
+                          toggleExclude(c.id);
+                        }}
+                      />
+                      <Avatar
+                        size={36}
+                        src={c.avatarUrl || undefined}
+                        style={{
+                          background: isChecked ? 'linear-gradient(135deg,#3b82f6,#2563eb)' : 'var(--bg-slate-100)',
+                          color: isChecked ? '#fff' : 'var(--text-slate-700)',
+                          fontSize: 14,
+                          fontWeight: 700,
+                          flexShrink: 0,
+                        }}
+                      >
+                        {c.name?.charAt(0)?.toUpperCase()}
+                      </Avatar>
+                      <div className="min-w-0 flex-1">
+                        <div className="text-xs font-bold text-zinc-900 dark:text-zinc-100 leading-tight flex items-center gap-2">
+                          <span>{c.name}</span>
+                          {c.department && (
+                            <span className="text-[10px] font-semibold text-zinc-500 bg-zinc-100 dark:bg-zinc-800 px-2 py-0.5 rounded-md border border-zinc-200/60 dark:border-zinc-700/60">
+                              {c.department}
+                            </span>
+                          )}
+                        </div>
+                        <div className="text-[11px] text-zinc-500 dark:text-zinc-400 mt-0.5 truncate font-normal">
+                          {c.position || '—'}
+                        </div>
+                      </div>
+                      {isDone ? (
+                        <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200 dark:border-emerald-800/80 px-2.5 py-0.5 rounded-full flex-shrink-0">
+                          <CheckCircleFilled className="text-[10px]" /> Generated
+                        </span>
+                      ) : (
+                        <span className="text-[10px] font-semibold text-zinc-400 dark:text-zinc-500 flex-shrink-0">
+                          Pending
+                        </span>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             )}
-            <div className="wz-note">Members already generated for {wizMonth?.label} are unchecked by default — re-check to regenerate (overwrites).</div>
+
+            {/* Note banner */}
+            <div className="wz-note text-xs text-zinc-600 dark:text-zinc-400 flex items-start gap-2 bg-blue-50/50 dark:bg-blue-950/30 p-2.5 rounded-xl border border-blue-100 dark:border-blue-900/40">
+              <InfoCircleOutlined className="text-blue-500 text-sm flex-shrink-0 mt-0.5" />
+              <span>
+                Members with existing reports for <strong className="text-blue-700 dark:text-blue-300 font-bold">{wizMonth?.label}</strong> are unchecked by default to prevent unintentional duplicates. Check them to re-generate.
+              </span>
+            </div>
           </div>
         )}
       </Modal>
 
       {/* Progress while batch-generating */}
-      <Modal open={generating} closable={false} maskClosable={false} footer={null} title="Generating reports for this month" centered>
-        <Progress percent={progress.total ? Math.round((progress.done / progress.total) * 100) : 0} status="active" />
-        <div style={{ fontSize: 12.5, color: 'var(--text-slate-500)', marginTop: 8 }}>
-          {progress.total ? `${progress.done} of ${progress.total}${progress.name ? ` · ${progress.name}` : ''}` : 'Loading members…'}
+      <Modal
+        open={generating}
+        closable={false}
+        maskClosable={false}
+        footer={null}
+        title={
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-blue-50 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400 flex items-center justify-center font-bold text-base flex-shrink-0">
+              <LoadingOutlined spin />
+            </div>
+            <div>
+              <div className="text-base font-extrabold text-zinc-900 dark:text-zinc-100 leading-snug">
+                Generating Reports
+              </div>
+              <div className="text-xs font-normal text-zinc-500">
+                Please wait while performance scorecards are being rendered
+              </div>
+            </div>
+          </div>
+        }
+        centered
+      >
+        <div className="py-3 space-y-3.5">
+          <Progress
+            percent={progress.total ? Math.round((progress.done / progress.total) * 100) : 0}
+            status="active"
+            strokeColor={{ '0%': '#3b82f6', '100%': '#2563eb' }}
+          />
+          <div className="flex items-center justify-between text-xs font-semibold text-zinc-600 dark:text-zinc-400 bg-zinc-50 dark:bg-zinc-900/40 p-3 rounded-lg border border-zinc-200/80 dark:border-zinc-800">
+            <span>Progress: <strong className="text-zinc-900 dark:text-zinc-100">{progress.done}</strong> of <strong className="text-zinc-900 dark:text-zinc-100">{progress.total}</strong></span>
+            {progress.name && <span className="text-blue-600 dark:text-blue-400 font-bold truncate max-w-[200px]">{progress.name}</span>}
+          </div>
+          <div className="text-[11px] text-zinc-400 text-center">
+            Please keep this tab open — each member's PDF report is rendered and saved.
+          </div>
         </div>
-        <div style={{ fontSize: 11.5, color: 'var(--text-slate-400)', marginTop: 6 }}>Please keep this tab open — each member’s PDF is rendered and saved.</div>
       </Modal>
 
       {/* Off-screen printable for the current member being generated */}
@@ -860,12 +1120,12 @@ export default function GeneratedReportsPanel() {
       )}
 
       <style jsx global>{`
-        .gr-wrap { display: flex; flex-direction: column; flex: 1; min-height: 0; }
+        .gr-wrap { display: flex; flex-direction: column; flex: 1; min-height: 100%; position: relative; }
 
         /* ── Hero band (full-bleed via the layout's -header rule) ────────────── */
         .gr-header {
           position: relative; overflow: hidden;
-          margin-top: -12px; padding: 14px 0 13px; margin-bottom: 14px;
+          margin-top: 0; padding: 14px 24px 13px; margin-bottom: 14px;
           border-bottom: 1px solid var(--border-slate-100);
           background:
             linear-gradient(180deg, rgba(59, 130, 246, 0.055), rgba(59, 130, 246, 0) 82%),
@@ -919,7 +1179,7 @@ export default function GeneratedReportsPanel() {
         /* ── Command bar ────────────────────────────────────────────────────── */
         .gr-toolbar {
           display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
-          padding: 10px 12px; margin-bottom: 12px;
+          padding: 10px 12px; margin: 0 24px 12px 24px;
           border: 1px solid var(--border-slate-200); border-radius: 16px;
           background: var(--bg-pure-white);
           box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04), 0 8px 24px rgba(15, 23, 42, 0.035);
@@ -959,7 +1219,7 @@ export default function GeneratedReportsPanel() {
         .gr-filter-group .gr-month .ant-picker-input > input { font-size: 12.5px; font-weight: 600; }
 
         /* ── Active filter chips ────────────────────────────────────────────── */
-        .gr-chips { display: flex; align-items: center; gap: 7px; flex-wrap: wrap; margin-bottom: 14px; }
+        .gr-chips { display: flex; align-items: center; gap: 7px; flex-wrap: wrap; margin: 0 24px 14px 24px; }
         .gr-chip {
           display: inline-flex; align-items: center; gap: 6px;
           padding: 4px 5px 4px 10px; border-radius: 999px;
@@ -988,7 +1248,7 @@ export default function GeneratedReportsPanel() {
         .gr-chip-reset:hover { text-decoration: underline; }
 
         /* ── Cards ──────────────────────────────────────────────────────────── */
-        .gr-body { flex: 1; min-height: 0; overflow-y: auto; padding-bottom: 20px; padding-right: 4px; }
+        .gr-body { flex: 1; min-height: 0; overflow-y: auto; padding: 0 24px 20px 24px; }
         .gr-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(318px, 1fr)); gap: 14px; }
         .gr-card {
           position: relative; overflow: hidden;
@@ -1104,19 +1364,22 @@ export default function GeneratedReportsPanel() {
         }
         .gr-empty-btn:hover { color: #2563eb; border-color: #bfdbfe; }
 
-        /* ── Footer ─────────────────────────────────────────────────────────── */
         .gr-footer {
-          position: sticky; bottom: 0; z-index: 10;
-          display: flex; align-items: center; justify-content: space-between; gap: 12px;
-          padding: 14px 32px; margin: 8px -32px 0;
-          border-top: 1px solid var(--border-slate-100); flex-shrink: 0;
+          display: flex; align-items: center; justify-content: flex-end;
+          padding: 10px 24px; margin-top: auto;
+          border-top: 1px solid var(--border-slate-200); flex-shrink: 0;
           background: var(--bg-pure-white);
-          box-shadow: 0 -6px 18px rgba(15, 23, 42, 0.05);
         }
-        .gr-footer-info { font-size: 12.5px; color: var(--text-slate-500); font-weight: 600; }
-        @media (max-width: 1024px) {
-          .gr-footer { margin-left: -16px; margin-right: -16px; padding-left: 16px; padding-right: 16px; }
+        .gr-footer--sticky {
+          position: sticky; bottom: 0; z-index: 30;
+          box-shadow: 0 -4px 14px rgba(15, 23, 42, 0.08);
         }
+        .gr-footer .ant-pagination {
+          width: 100%; display: flex; align-items: center; justify-content: space-between;
+          margin: 0 !important; padding: 0 !important; border-top: none !important;
+          background: transparent !important; flex-wrap: wrap; gap: 8px;
+        }
+        .gr-footer .ant-pagination-total-text { margin-right: auto; color: var(--text-slate-500); font-size: 12.5px; }
         @media (max-width: 860px) {
           .gr-hero-inner { align-items: flex-start; gap: 12px; }
           .gr-title { font-size: 18px; }
@@ -1133,25 +1396,29 @@ export default function GeneratedReportsPanel() {
         }
 
         /* Generate wizard */
-        .wz-months { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+        .wz-months { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
         .wz-month {
           position: relative; overflow: hidden;
-          display: flex; flex-direction: column; align-items: flex-start; gap: 1px;
+          display: flex; flex-direction: column; align-items: flex-start; gap: 2px;
           padding: 16px 14px; border: 1px solid var(--border-slate-200); border-radius: 14px;
           background: var(--bg-pure-white); cursor: pointer; text-align: left;
-          transition: border-color .14s ease, box-shadow .14s ease, transform .14s ease;
+          transition: border-color .16s ease, box-shadow .16s ease, transform .16s ease;
         }
         .wz-month::before {
-          content: ''; position: absolute; left: 0; right: 0; top: 0; height: 2px;
+          content: ''; position: absolute; left: 0; right: 0; top: 0; height: 3px;
           background: linear-gradient(90deg, #60a5fa, #2563eb);
-          opacity: 0; transition: opacity .14s ease;
+          opacity: 0; transition: opacity .16s ease;
         }
         .wz-month:hover::before { opacity: 1; }
-        .wz-month:hover { border-color: #bfdbfe; box-shadow: 0 8px 20px rgba(30,64,175,0.11); transform: translateY(-2px); }
-        .wz-month-badge { position: absolute; top: 8px; right: 8px; font-size: 9px; font-weight: 800; color: var(--text-blue-700); background: var(--bg-blue-50); border-radius: 999px; padding: 2px 7px; text-transform: uppercase; letter-spacing: 0.04em; }
+        .wz-month:hover { border-color: #93c5fd; box-shadow: 0 10px 24px rgba(30,64,175,0.12); transform: translateY(-2px); }
+        .wz-month--current { border-color: #bfdbfe; background: linear-gradient(180deg, rgba(59, 130, 246, 0.03), transparent); }
+        .wz-month-badge { position: absolute; top: 10px; right: 10px; font-size: 9px; font-weight: 800; color: #2563eb; background: var(--bg-blue-50); border: 1px solid #bfdbfe; border-radius: 999px; padding: 2px 7px; text-transform: uppercase; letter-spacing: 0.04em; }
+        .wz-month-icon { width: 32px; height: 32px; border-radius: 10px; background: var(--bg-slate-50); color: var(--text-slate-500); display: flex; align-items: center; justify-content: center; font-size: 15px; margin-bottom: 6px; transition: background .16s ease, color .16s ease; }
+        .wz-month:hover .wz-month-icon { background: var(--bg-blue-50); color: #2563eb; }
         .wz-month-name { font-size: 15px; font-weight: 800; color: var(--text-slate-900); }
-        .wz-month-year { font-size: 12px; color: var(--text-slate-400); font-weight: 700; }
-        .wz-month-count { font-size: 10.5px; color: var(--text-slate-500); margin-top: 6px; }
+        .wz-month-year { font-size: 11.5px; color: var(--text-slate-400); font-weight: 600; }
+        .wz-month-count { font-size: 10.5px; font-weight: 600; color: var(--text-slate-400); margin-top: 6px; }
+        .wz-month-count--done { color: #16a34a; font-weight: 700; }
 
         .wz-scope { display: flex; flex-direction: column; }
         .wz-filters { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
@@ -1160,8 +1427,7 @@ export default function GeneratedReportsPanel() {
           display: flex; align-items: center; justify-content: space-between;
           font-size: 12.5px; color: var(--text-slate-500); margin-bottom: 7px;
         }
-        .wz-list-actions { display: flex; gap: 12px; }
-        .wz-list-actions a { color: #2563eb; cursor: pointer; font-weight: 700; }
+        .wz-list-actions { display: flex; gap: 8px; align-items: center; }
         .wz-center { display: flex; align-items: center; justify-content: center; padding: 40px 0; }
         .wz-list { max-height: 320px; overflow-y: auto; border: 1px solid var(--border-slate-200); border-radius: 12px; }
         .wz-row { display: flex; align-items: center; gap: 10px; padding: 8px 12px; border-bottom: 1px solid var(--border-slate-100); cursor: pointer; }

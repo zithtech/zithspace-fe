@@ -155,13 +155,11 @@ export default function MyTimePage() {
             </div>
           </div>
 
+          <MyTimeStatsStrip refreshKey={refreshKey} />
+
           <div className="dh-main-scroll">
             <div className="dh-main-body">
-              <div style={{ marginTop: 4 }}>
-                <MyTimeStatsStrip refreshKey={refreshKey} />
-              </div>
-
-              <div style={{ marginTop: 20, display: 'flex', flexDirection: 'column', flex: 1 }}>
+              <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
                 <MyTimeTracker
                   dateRange={dateRange}
                   setDateRange={setDateRange}
@@ -285,7 +283,7 @@ export default function MyTimePage() {
           flex-shrink: 0;
         }
         .dh-main-body {
-          padding: 12px 20px 14px 20px;
+          padding: 0;
           flex: 1;
           display: flex;
           flex-direction: column;

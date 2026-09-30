@@ -44,6 +44,7 @@ import {
 import { usePermission } from '@/hooks/usePermission';
 import { SearchableDropdown } from '@/components/common/SearchableDropdown';
 import ConfirmDialog from '@/components/common/ConfirmDialog';
+import { FilterBar, FilterToggleButton, TicketFilterPill } from '@/components/common/FilterBar';
 import LeaveV2Service, {
   LeavePolicyListItem,
   LeavePolicyDetail,
@@ -57,13 +58,7 @@ import LeaveV2Service, {
 import { drawerFormStyles as formStyles, SectionCard } from "@/components/common/DrawerSection";
 import { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
 
-const PALETTE = { blue: '#3B82F6', green: '#10B981', red: '#EF4444', grey: '#94A3B8' } as const;
-const TINT = {
-  blue: 'rgba(59,130,246,0.10)',
-  green: 'rgba(16,185,129,0.10)',
-  red: 'rgba(239,68,68,0.10)',
-  grey: 'rgba(148,163,184,0.12)',
-} as const;
+import { PALETTE, TINT, StatCards } from '@/components/leaves-v2/ui';
 
 const localLvpStyles = `
   /* Fix layout for drawer form row alignment */
@@ -74,7 +69,7 @@ const localLvpStyles = `
 
 
 
-const PAGE_SIZE_OPTIONS = [10, 20, 25, 50, 100];
+const PAGE_SIZE_OPTIONS = [10, 15, 20, 25, 50, 100];
 
 const SCOPE_TYPES: { value: PolicyScopeType; label: string }[] = [
   { value: 'grade', label: 'Grade' },
@@ -159,10 +154,11 @@ export default function LeavePolicyPanel() {
   // filters
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
+  const [isFilterRowOpen, setIsFilterRowOpen] = useState(false);
 
   // pagination
   const [tablePage, setTablePage] = useState(1);
-  const [tablePageSize, setTablePageSize] = useState(20);
+  const [tablePageSize, setTablePageSize] = useState(15);
 
   // drawer
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -562,6 +558,11 @@ export default function LeavePolicyPanel() {
             <SearchOutlined className="lvp-search-icon" />
             <input className="lvp-search" placeholder="Search name or code…" value={search} onChange={(e) => setSearch(e.target.value)} />
           </div>
+          <FilterToggleButton
+            isOpen={isFilterRowOpen}
+            onToggle={() => setIsFilterRowOpen((prev) => !prev)}
+            activeCount={statusFilter !== 'all' ? 1 : 0}
+          />
           <Tooltip title="Refresh"><button type="button" className="lvp-ghost-btn" onClick={() => load()}><ReloadOutlined spin={loading} /></button></Tooltip>
           {canCreateLeavePolicy && (
             <Button type="primary" icon={<PlusOutlined />} onClick={openCreate} className="lvp-add-btn">New Policy</Button>
@@ -570,48 +571,41 @@ export default function LeavePolicyPanel() {
       </div>
 
       {/* 2) STAT CARDS */}
-      <div className="lvp-stats">
-        {statCells.map((s) => (
-          <div key={s.key} className="lvp-stat-card">
-            <div className="lvp-stat-top">
-              <div className="lvp-stat-left">
-                <span className="lvp-stat-icon" style={{ background: s.tint, color: s.color }}>{s.icon}</span>
-                <span className="lvp-stat-label">{s.title}</span>
-              </div>
-            </div>
-            <div className="lvp-stat-bottom">
-              <div className="lvp-stat-value-wrap">
-                <span className="lvp-stat-value">{s.value}</span>
-                <span className="lvp-stat-period">{s.period}</span>
-              </div>
-              <div className="lvp-stat-spark"><AreaSparkline values={s.trend} color={s.color} /></div>
-            </div>
-          </div>
-        ))}
-      </div>
+      <StatCards
+        title="Leave Overview"
+        statusText="LIVE"
+        progressPct={stats.total > 0 ? Math.round((stats.active / stats.total) * 100) : 0}
+        cells={statCells.map(s => ({
+          label: s.title,
+          value: <>{s.value} <span style={{ fontSize: 11, fontWeight: 500, color: 'var(--text-slate-400)' }}>{s.period}</span></>,
+          icon: s.icon,
+          color: s.color,
+          tint: s.tint
+        }))}
+      />
 
       {/* 3) FILTERS */}
-      <div className="lvp-filters">
-        <span className="lvp-filter-label"><FilterOutlined /> Filter</span>
-        <SearchableDropdown
-          className="lvp-filter-dd"
-          placeholder="Status"
-          searchPlaceholder="Search statuses"
-          itemNoun="statuses"
-          value={statusFilter === 'all' ? undefined : statusFilter}
-          onChange={(v) => setStatusFilter((v as StatusFilter) ?? 'all')}
-          options={[{ value: 'active', label: 'Active' }, { value: 'inactive', label: 'Inactive' }]}
-          style={{ width: 160 }}
-          width={210}
-        />
-        <span className="lvp-filter-count">{total} of {stats.total}</span>
-        {hasActiveFilters && (
-          <button type="button" className="lvp-clear" onClick={clearFilters}><CloseCircleOutlined /> Clear</button>
-        )}
-      </div>
+      {isFilterRowOpen && (
+        <FilterBar
+          activeCount={statusFilter !== 'all' ? 1 : 0}
+          onReset={clearFilters}
+          onClose={() => setIsFilterRowOpen(false)}
+        >
+          <TicketFilterPill
+            label="Status"
+            icon={<CheckCircleOutlined />}
+            value={statusFilter === 'all' ? undefined : statusFilter}
+            options={[
+              { value: 'active', label: 'Active', dotColor: '#10b981' },
+              { value: 'inactive', label: 'Inactive', dotColor: '#ef4444' },
+            ]}
+            onChange={(v) => setStatusFilter((v as StatusFilter) || 'all')}
+          />
+        </FilterBar>
+      )}
 
       {/* 4) TABLE */}
-      <div className="lvp-table-wrap">
+      <div className="lv-table-wrap">
         <ZukvoLoadingOverlay loading={loading} message="">
           <Table
             rowKey="id"

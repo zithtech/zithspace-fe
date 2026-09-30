@@ -409,7 +409,11 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
             label: "Trash",
             icon: I(Trash2),
             path: "/playbooks/trash",
-            requiredSubscriptionFeature: ["work_playbooks_playbook_trash"],
+            requiredSubscriptionFeature: [
+              "work_playbooks_qa_playbooks_upload",
+              "work_playbooks_collections_new_collections",
+              "work_playbooks_qa_playbooks_new_playbook",
+            ],
             requiredPermission: Permissions.PLAYBOOK_TRASH_READ,
           },
         ],
@@ -1251,14 +1255,14 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
     ],
     items: [
       {
-        key: "/accounts",
+        key: "accounts-group",
         label: "Accounts",
         icon: I(Landmark),
         requiredSubscriptionFeature: ["finance_accounts"],
         requiredPermission: Permissions.ACCOUNT_READ,
         children: [
           {
-            key: "/accounts",
+            key: "/accounts/accounts-dashboard",
             label: "Dashboard",
             icon: I(BarChart3),
             path: "/accounts/accounts-dashboard",
@@ -1273,7 +1277,14 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
             requiredSubscriptionFeature: ["finance_accounts_accounts_settings"],
             requiredPermission: Permissions.ACCOUNT_SETTING_READ,
           },
-
+          {
+            key: "/accounts/trash",
+            label: "Trash",
+            icon: I(Trash2),
+            path: "/accounts/trash",
+            requiredSubscriptionFeature: ["finance_accounts_accounts_dashboard"],
+            requiredPermission: Permissions.ACCOUNT_READ,
+          },
         ],
       },
       {

@@ -2,43 +2,39 @@
 
 import NoData from "@/components/common/NoData";
 import React, { useState, useMemo } from "react";
-import { useQueryClient } from "@tanstack/react-query";
 import {
-  Card,
   Table,
   Button,
   Typography,
-  Tag,
   Tooltip,
-  Popconfirm,
-  // message,
-  App,
-  Input,
-  Select,
   Avatar,
-  Progress,
-  Badge,
+  Tag,
+  App,
   Skeleton,
+  Badge,
   DatePicker,
+  Pagination,
+  Progress,
+  Select,
+  Dropdown,
 } from "antd";
+import ConfirmDialog from "@/components/common/ConfirmDialog";
 import {
   DeleteOutlined,
   UndoOutlined,
   SearchOutlined,
-  ClockCircleOutlined,
-  ClearOutlined,
-  ProjectOutlined,
   ReloadOutlined,
-  FireFilled,
-  FilterOutlined,
-  SafetyCertificateFilled,
-  InboxOutlined,
-  ThunderboltFilled,
-  CloseOutlined,
-  CalendarOutlined,
-  TagOutlined,
+  AppstoreOutlined,
+  UnorderedListOutlined,
+  ProjectOutlined,
   UserOutlined,
+  CloseOutlined,
+  TagOutlined,
+  ClockCircleOutlined,
+  CaretRightOutlined,
+  CheckCircleOutlined,
 } from "@ant-design/icons";
+import { Trash2, AlertTriangle, Clock, Ticket, CheckCircle2 } from "lucide-react";
 import {
   useTrashTickets,
   useRestoreFromTrash,
@@ -46,21 +42,20 @@ import {
   useBulkRestoreFromTrash,
   useBulkPermanentlyDelete,
   useEmptyTrash,
-  trashKeys,
 } from "@/hooks/useTrash";
-import { usePermission } from "@/hooks/usePermission";
 import { useUserProjects, useTicketConfig, useMembers } from "@/hooks/useGlobalData";
+import { usePermission } from "@/hooks/usePermission";
 import { useTicketDrawer } from "@/context/TicketDrawerContext";
-import { useActivitySource } from "@/hooks/useActivitySource";
-import dayjs from "dayjs";
+import { useQueryClient } from "@tanstack/react-query";
+import dayjs, { Dayjs } from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
-import { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
+import { useTheme } from "@/context/ThemeContext";
+import StatCards from "@/components/common/StatCards";
+import { FilterBar, FilterToggleButton, TicketFilterPill } from "@/components/common/FilterBar";
 
 dayjs.extend(relativeTime);
 
-const { Title, Text } = Typography;
-const { Option } = Select;
-
+const { Text } = Typography;
 const RETENTION_DAYS = 7;
 
 const calculateDaysRemaining = (deletedAt: string) => {
@@ -78,216 +73,337 @@ const calculatePurgeProgress = (deletedAt: string) => {
 };
 
 export default function TrashManagementPage() {
-  const queryClient = useQueryClient();
-  const { open: openTicketDrawer } = useTicketDrawer();
-  const { canRestoreTicketTrash, canDeleteTicketTrash } = usePermission();
-  useActivitySource({ section: "WORK", module: "Trash", page: "TrashView" });
-  const [page, setPage] = useState(1);
-  const [limit, setLimit] = useState(20);
   const [searchQuery, setSearchQuery] = useState("");
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [viewMode, setViewMode] = useState<"card" | "table">("table");
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const { theme } = useTheme();
+  const isDark = theme === "dark";
+  const [pagination, setPagination] = useState({ current: 1, pageSize: 15 });
+  const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
+
+  // Filter states
   const [projectFilter, setProjectFilter] = useState<string | undefined>(undefined);
   const [statusFilter, setStatusFilter] = useState<string | undefined>(undefined);
   const [deletedByFilter, setDeletedByFilter] = useState<string | undefined>(undefined);
-  const [dateRange, setDateRange] = useState<[dayjs.Dayjs | null, dayjs.Dayjs | null] | null>(null);
-  const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
-  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [dateRange, setDateRange] = useState<[Dayjs | null, Dayjs | null] | null>(null);
 
   const { message } = App.useApp();
+  const queryClient = useQueryClient();
+  const { open: openTicketDrawer } = useTicketDrawer();
+  const { canRestoreTicketTrash, canDeleteTicketTrash } = usePermission();
+
+  // Reference datasets for filter dropdowns
+  const { data: userProjectsData } = useUserProjects();
+  const userProjects: any[] = userProjectsData || [];
+
   const { data: ticketConfig } = useTicketConfig();
   const statusesList = ticketConfig?.statuses || [];
 
   const { data: membersData } = useMembers();
   const membersList = membersData || [];
 
-  const {
-    data: trashData,
-    isLoading,
-    refetch,
-  } = useTrashTickets({
-    page,
-    limit,
+  // Fetch all trashed tickets for stats summary
+  const { data: allTrashRes } = useTrashTickets({ limit: 1000 });
+  // Fetch paginated tickets according to current filters & page
+  const { data: paginatedTrashRes, isLoading, refetch } = useTrashTickets({
+    page: pagination.current,
+    limit: pagination.pageSize,
     projectId: projectFilter,
-    search: searchQuery,
+    search: searchQuery || undefined,
     status: statusFilter,
     deletedBy: deletedByFilter,
     startDate: dateRange?.[0] ? dateRange[0].startOf("day").toISOString() : undefined,
     endDate: dateRange?.[1] ? dateRange[1].endOf("day").toISOString() : undefined,
   });
 
-  const { data: userProjectsData } = useUserProjects();
-  const projects = userProjectsData || [];
-
   const restoreTicket = useRestoreFromTrash();
-  const permanentlyDelete = usePermanentlyDelete();
+  const permanentDelete = usePermanentlyDelete();
   const bulkRestore = useBulkRestoreFromTrash();
   const bulkDelete = useBulkPermanentlyDelete();
   const emptyTrash = useEmptyTrash();
 
+  const allTrashTickets: any[] = allTrashRes?.tickets || [];
+  const paginatedTrashTickets: any[] = paginatedTrashRes?.tickets || [];
+  const totalTrashItems = paginatedTrashRes?.pagination?.total || 0;
+
+  // Stats calculation
   const stats = useMemo(() => {
-    const tickets = trashData?.tickets || [];
+    const total = totalTrashItems;
+    const tickets = allTrashTickets.length > 0 ? allTrashTickets : paginatedTrashTickets;
     const purgingSoon = tickets.filter((t) => {
       const days = calculateDaysRemaining(t.deletedAt || t.createdAt);
       return days <= 2;
     }).length;
-    const recoverable = tickets.length - purgingSoon;
+    const recoverable = Math.max(0, total - purgingSoon);
+    return { total, purgingSoon, recoverable };
+  }, [totalTrashItems, allTrashTickets, paginatedTrashTickets]);
 
-    return {
-      total: trashData?.pagination.total || 0,
-      purgingSoon,
-      recoverable,
+  const projectDropdownOptions: any[] = useMemo(
+    () =>
+      (userProjects || [])
+        .filter((p: any) => p && (p.id || p.value))
+        .map((p: any) => ({
+          value: p.id || p.value,
+          label: p.name || p.label || "Unnamed Project",
+          description: p.code ? `#${p.code}` : undefined,
+        })),
+    [userProjects]
+  );
+
+  const selectedProj = useMemo(
+    () => (userProjects || []).find((p: any) => (p.id || p.value) === projectFilter),
+    [userProjects, projectFilter]
+  );
+  const displayCode = selectedProj
+    ? (selectedProj.code || (selectedProj.name || selectedProj.label || "").slice(0, 3)?.toUpperCase() || "PRJ")
+    : "ALL";
+  const displayName = selectedProj ? (selectedProj.name || selectedProj.label || "Project") : "All Projects";
+
+  const projectMenuItems = useMemo(() => {
+    const allOption = {
+      key: "all",
+      label: (
+        <div className="pp-menu-item" style={{ display: "flex", alignItems: "center", gap: 11, padding: "7px 9px" }}>
+          <span
+            className="pp-menu-ic"
+            style={{
+              width: 30,
+              height: 30,
+              borderRadius: 6,
+              flexShrink: 0,
+              display: "inline-flex",
+              alignItems: "center",
+              justifyContent: "center",
+              fontSize: 10,
+              color: !projectFilter ? "#fff" : "var(--text-slate-500)",
+              background: !projectFilter ? "var(--premium-gradient, #3b82f6)" : "var(--bg-slate-100)",
+              fontWeight: 800,
+            }}
+          >
+            ALL
+          </span>
+          <span className="pp-menu-text" style={{ display: "flex", flexDirection: "column", minWidth: 0, flex: 1 }}>
+            <span className="pp-menu-title" style={{ fontSize: 13, fontWeight: 600, color: "var(--text-slate-900)" }}>
+              All Projects
+            </span>
+            <span className="pp-menu-desc" style={{ fontSize: 11, color: "var(--text-slate-400)", marginTop: 1 }}>
+              Workspace tickets
+            </span>
+          </span>
+          {!projectFilter && <CheckCircleOutlined style={{ color: "#10b981", fontSize: 12, marginLeft: "auto" }} />}
+        </div>
+      ),
+      onClick: () => {
+        setProjectFilter(undefined);
+        setPagination((prev) => ({ ...prev, current: 1 }));
+      },
     };
-  }, [trashData]);
 
-  const handleRestore = async (ticketId: string) => {
-    try {
-      await restoreTicket.mutateAsync([ticketId]);
-      message.success("Ticket restored successfully");
-      refetch();
-    } catch (error) {
-      console.error("Error restoring ticket:", error);
-    }
+    const projectItems = (userProjects || []).map((p: any) => {
+      const pId = p.id || p.value;
+      const pName = p.name || p.label || "Unnamed Project";
+      const isSelected = pId === projectFilter;
+      const pCode = (p.code || pName || "?").slice(0, 3).toUpperCase();
+      return {
+        key: pId,
+        label: (
+          <div className="pp-menu-item" style={{ display: "flex", alignItems: "center", gap: 11, padding: "7px 9px" }}>
+            <span
+              className="pp-menu-ic"
+              style={{
+                width: 30,
+                height: 30,
+                borderRadius: 6,
+                flexShrink: 0,
+                display: "inline-flex",
+                alignItems: "center",
+                justifyContent: "center",
+                fontSize: 10,
+                color: isSelected ? "#fff" : "var(--text-slate-500)",
+                background: isSelected ? "var(--premium-gradient, #3b82f6)" : "var(--bg-slate-100)",
+                fontWeight: 800,
+              }}
+            >
+              {pCode}
+            </span>
+            <span className="pp-menu-text" style={{ display: "flex", flexDirection: "column", minWidth: 0, flex: 1 }}>
+              <span className="pp-menu-title" style={{ fontSize: 13, fontWeight: 600, color: "var(--text-slate-900)" }}>
+                {pName}
+              </span>
+              {p.code && <span className="pp-menu-desc" style={{ fontSize: 11, color: "var(--text-slate-400)", marginTop: 1 }}>#{p.code}</span>}
+            </span>
+            {isSelected && <CheckCircleOutlined style={{ color: "#10b981", fontSize: 12, marginLeft: "auto" }} />}
+          </div>
+        ),
+        onClick: () => {
+          setProjectFilter(pId);
+          setPagination((prev) => ({ ...prev, current: 1 }));
+        },
+      };
+    });
+
+    return [allOption, ...projectItems];
+  }, [userProjects, projectFilter]);
+
+  const activeFilterCount =
+    (projectFilter ? 1 : 0) +
+    (statusFilter ? 1 : 0) +
+    (deletedByFilter ? 1 : 0) +
+    (dateRange ? 1 : 0);
+
+  const handleResetFilters = () => {
+    setProjectFilter(undefined);
+    setStatusFilter(undefined);
+    setDeletedByFilter(undefined);
+    setDateRange(null);
+    setSearchQuery("");
   };
 
-  const handlePermanentDelete = async (ticketId: string) => {
-    try {
-      await permanentlyDelete.mutateAsync([ticketId]);
-      message.success("Ticket deleted successfully");
-      refetch();
-    } catch (error) {
-      console.error("Error permanently deleting ticket:", error);
-    }
-  };
+  const statCells = useMemo(() => {
+    return [
+      {
+        key: "total",
+        label: "Total Trashed Tickets",
+        value: stats.total,
+        icon: <Ticket size={15} />,
+        color: "#3b82f6",
+        tint: "rgba(59,130,246,0.10)",
+      },
+      {
+        key: "purgingSoon",
+        label: "Purging Soon",
+        value: stats.purgingSoon,
+        suffix: stats.purgingSoon > 0 ? " (≤ 2d)" : "",
+        icon: <AlertTriangle size={15} />,
+        color: "#ef4444",
+        tint: "rgba(239,68,68,0.10)",
+      },
+      {
+        key: "recoverable",
+        label: "Recoverable",
+        value: stats.recoverable,
+        icon: <CheckCircle2 size={15} />,
+        color: "#10b981",
+        tint: "rgba(16,185,129,0.10)",
+      },
+      {
+        key: "retention",
+        label: "Retention Period",
+        value: "7 Days",
+        icon: <Clock size={15} />,
+        color: "#f59e0b",
+        tint: "rgba(245,158,11,0.10)",
+      },
+    ];
+  }, [stats]);
 
-  const handleBulkRestore = async () => {
-    if (selectedRowKeys.length === 0) {
-      message.warning("Please select tickets to restore");
-      return;
-    }
-    try {
-      await bulkRestore.mutateAsync(selectedRowKeys as string[]);
-      message.success("Tickets restored successfully");
-      setSelectedRowKeys([]);
-      refetch();
-    } catch (error) {
-      console.error("Error bulk restoring tickets:", error);
-    }
-  };
-
-  const handleBulkDelete = async () => {
-    if (selectedRowKeys.length === 0) {
-      message.warning("Please select tickets to delete");
-      return;
-    }
-    try {
-      await bulkDelete.mutateAsync(selectedRowKeys as string[]);
-      message.success("Tickets deleted successfully");
-      setSelectedRowKeys([]);
-      refetch();
-    } catch (error) {
-      console.error("Error bulk deleting tickets:", error);
-    }
-  };
-
-  const handleEmptyTrash = async () => {
-    try {
-      await emptyTrash.mutateAsync({ projectId: projectFilter, force: true });
-      message.success("Trash emptied successfully");
-      setSelectedRowKeys([]);
-      refetch();
-    } catch (error) {
-      console.error("Error emptying trash:", error);
-    }
-  };
-
+  // Table Columns
   const columns = [
     {
-      title: "Ticket",
+      title: "Ticket Details",
       key: "ticket",
-      render: (_: any, record: any) => {
-        const daysRemaining = calculateDaysRemaining(record.deletedAt || record.createdAt);
-        const isUrgent = daysRemaining <= 2;
-        return (
-          <div className="tr-ticket-cell">
-            <div className="tr-ticket-meta">
-              <span className="tr-ticket-id">{record.ticketNumber}</span>
-              <Text className="tr-ticket-title">{record.title}</Text>
-            </div>
+      width: 320,
+      render: (record: any) => (
+        <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <span
+              className="trs2-ticket-id"
+              style={{
+                fontFamily: "var(--font-mono, monospace)",
+                fontSize: "11px",
+                fontWeight: 700,
+                color: "#1d4ed8",
+                background: "rgba(59,130,246,0.08)",
+                border: "1px solid rgba(59,130,246,0.18)",
+                padding: "1px 6px",
+                borderRadius: "4px",
+              }}
+            >
+              {record.ticketNumber}
+            </span>
+            <Tag color={record.status === "completed" ? "green" : "blue"} style={{ margin: 0, fontSize: 10, fontWeight: 700 }}>
+              {(record.status || "open").replace("_", " ").toUpperCase()}
+            </Tag>
           </div>
-        );
-      },
-    },
-    {
-      title: "Project",
-      key: "project",
-      width: 170,
-      render: (_: any, record: any) => (
-        <div className="tr-project-chip">
-          <span className="tr-project-dot" />
-          <Text className="tr-project-text">{record.project?.name || "Global"}</Text>
+          <span
+            onClick={() => openTicketDrawer(record.id)}
+            style={{
+              fontSize: "13px",
+              fontWeight: 700,
+              color: "var(--text-slate-900)",
+              cursor: "pointer",
+              lineHeight: 1.35,
+            }}
+            className="hover:underline"
+          >
+            {record.title}
+          </span>
         </div>
       ),
     },
     {
-      title: "Status",
-      key: "status",
-      width: 130,
-      render: (_: any, record: any) => (
-        <Tag className={`tr-status-tag ${record.status === "completed" ? "green" : "slate"}`}>
-          {record.status?.replace("_", " ")}
-        </Tag>
+      title: "Project",
+      key: "project",
+      width: 200,
+      render: (record: any) => (
+        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+          <Tag color="geekblue" style={{ margin: 0, fontSize: 11, fontWeight: 600 }}>
+            {record.project?.code || record.project?.name?.slice(0, 3)?.toUpperCase() || "PRJ"}
+          </Tag>
+          <Text style={{ fontSize: "12px", fontWeight: 600, color: "var(--text-slate-700)" }}>
+            {record.project?.name || "Global"}
+          </Text>
+        </div>
       ),
     },
     {
       title: "Deleted By",
       key: "deletedBy",
       width: 200,
-      render: (_: any, record: any) => (
-        <div className="tr-actor-cell">
-          <Avatar
-            size={28}
-            src={record.deletedBy?.avatarUrl}
-            className="tr-actor-avatar"
-          >
-            {record.deletedBy?.name?.charAt(0) || "S"}
-          </Avatar>
-          <div className="tr-actor-meta">
-            <Text className="tr-actor-name">{record.deletedBy?.name || "System"}</Text>
-            <Text className="tr-actor-time">
-              {dayjs(record.deletedAt || record.createdAt).fromNow()}
-            </Text>
+      render: (record: any) => {
+        const actor = record.deletedBy;
+        const actorName = actor?.name || "System";
+        return (
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <Avatar src={actor?.avatarUrl} size="small" style={{ background: "#475569", color: "#fff", fontSize: 10, fontWeight: 800 }}>
+              {actorName.charAt(0).toUpperCase()}
+            </Avatar>
+            <div style={{ display: "flex", flexDirection: "column" }}>
+              <Text style={{ fontSize: "12px", fontWeight: 600, color: "var(--text-slate-800)" }}>{actorName}</Text>
+              <Text style={{ fontSize: "10.5px", color: "var(--text-slate-400)" }}>
+                {dayjs(record.deletedAt || record.createdAt).fromNow()}
+              </Text>
+            </div>
           </div>
-        </div>
-      ),
+        );
+      },
     },
     {
-      title: "Auto-Purge",
+      title: "Auto-Purge Retention",
       key: "purge",
-      width: 200,
-      render: (_: any, record: any) => {
+      width: 220,
+      render: (record: any) => {
         const daysRemaining = calculateDaysRemaining(record.deletedAt || record.createdAt);
         const progress = calculatePurgeProgress(record.deletedAt || record.createdAt);
         const isUrgent = daysRemaining <= 2;
         return (
-          <Tooltip
-            title={`Permanently purged in approx. ${daysRemaining} ${daysRemaining === 1 ? "day" : "days"
-              }`}
-          >
-            <div className="tr-purge-cell">
-              <div className="tr-purge-row">
-                <ClockCircleOutlined
-                  className={`tr-purge-icon ${isUrgent ? "urgent" : "safe"}`}
-                />
-                <Text className={`tr-purge-text ${isUrgent ? "urgent" : "safe"}`}>
+          <Tooltip title={`Permanently purged in approx. ${daysRemaining} ${daysRemaining === 1 ? "day" : "days"}`}>
+            <div style={{ display: "flex", flexDirection: "column", gap: 4, width: "100%", maxWidth: 180 }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                <span style={{ fontSize: 11, fontWeight: 700, color: isUrgent ? "#ef4444" : "#10b981", display: "flex", alignItems: "center", gap: 4 }}>
+                  <ClockCircleOutlined />
                   {daysRemaining === 0 ? "Purging today" : `${daysRemaining}d remaining`}
-                </Text>
+                </span>
+                <span style={{ fontSize: 10, color: "var(--text-slate-400)", fontWeight: 600 }}>{Math.round(progress)}%</span>
               </div>
               <Progress
                 percent={progress}
                 showInfo={false}
                 size="small"
                 strokeColor={isUrgent ? "#ef4444" : "#10b981"}
-                trailColor="var(--bg-slate-100)"
-                className="tr-purge-progress"
+                trailColor={isDark ? "#1f2937" : "#e2e8f0"}
+                style={{ margin: 0 }}
               />
             </div>
           </Tooltip>
@@ -297,1520 +413,844 @@ export default function TrashManagementPage() {
     {
       title: "Actions",
       key: "actions",
-      width: 96,
+      width: 130,
       align: "right" as const,
       fixed: "right" as const,
-      render: (_: any, record: any) => (
-        <div className="tr-action-cell">
+      render: (record: any) => (
+        <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
           {canRestoreTicketTrash && (
-            <Popconfirm
-              title="Restore Ticket"
-              description="Move this ticket back to active status?"
-              onConfirm={() => handleRestore(record.id)}
-              okText="Restore"
-              cancelText="Cancel"
-            >
-              <Tooltip title="Restore">
-                <Button
-                  type="text"
-                  shape="circle"
-                  size="small"
-                  icon={<UndoOutlined />}
-                  loading={restoreTicket.isPending && restoreTicket.variables?.[0] === record.id}
-                  className="tr-icon-btn restore"
-                />
-              </Tooltip>
-            </Popconfirm>
+            <Tooltip title="Restore Ticket">
+              <Button
+                type="text"
+                icon={<UndoOutlined style={{ color: "#10b981" }} />}
+                onClick={() =>
+                  restoreTicket.mutate([record.id], {
+                    onSuccess: () => {
+                      message.success("Ticket restored successfully");
+                      refetch();
+                    },
+                  })
+                }
+                loading={restoreTicket.isPending}
+              />
+            </Tooltip>
           )}
           {canDeleteTicketTrash && (
-            <Popconfirm
-              title="Purge Permanently"
-              description="This action is irreversible. Continue?"
-              onConfirm={() => handlePermanentDelete(record.id)}
-              okText="Purge"
+            <ConfirmDialog
+              tone="danger"
+              title="Permanently delete ticket?"
+              description={`Permanently delete ticket ${record.ticketNumber}? This action cannot be undone.`}
+              onConfirm={() =>
+                new Promise<void>((resolve, reject) => {
+                  permanentDelete.mutate([record.id], {
+                    onSuccess: () => {
+                      message.success("Ticket permanently deleted");
+                      refetch();
+                      resolve();
+                    },
+                    onError: (err) => reject(err),
+                  });
+                })
+              }
+              confirmText="Yes, Delete"
               cancelText="Cancel"
-              okButtonProps={{ danger: true }}
+              placement="left"
+              icon={<AlertTriangle size={16} />}
             >
-              <Tooltip title="Purge Permanently">
+              <Tooltip title="Permanent Delete">
                 <Button
                   type="text"
-                  shape="circle"
-                  size="small"
-                  icon={<DeleteOutlined />}
-                  loading={
-                    permanentlyDelete.isPending &&
-                    permanentlyDelete.variables?.[0] === record.id
-                  }
-                  className="tr-icon-btn purge"
+                  icon={<DeleteOutlined style={{ color: "#ff4d4f" }} />}
+                  loading={permanentDelete.isPending}
                 />
               </Tooltip>
-            </Popconfirm>
+            </ConfirmDialog>
           )}
         </div>
       ),
     },
   ];
 
-  const isFiltered = !!(projectFilter || searchQuery || statusFilter || deletedByFilter || dateRange);
-  const hasItems = (trashData?.pagination.total || 0) > 0;
-
   return (
-    <div className="tr-page">
-      {/* Hero Header */}
-      <div className="tr-hero" style={{
-        position: 'sticky',
-        top: 0,
-        zIndex: 100,
-      }}>
-        <div className="tr-hero-glow" />
-        <div className="tr-hero-inner">
-          <div className="tr-hero-left">
-            <div className="tr-hero-badge">
-              <DeleteOutlined />
-            </div>
-            <div className="tr-hero-text">
-
-              <Title level={3} className="tr-hero-title">
-                Trash Repository
-              </Title>
-              <Text className="tr-hero-sub">
-                Restore deleted tickets within {RETENTION_DAYS} days. After that, items are
-                permanently purged from the workspace.
-              </Text>
-            </div>
+    <div className="pm2-page" style={{ display: "flex", flexDirection: "column", height: "calc(100vh - 60px)", maxHeight: "calc(100vh - 60px)", overflow: "hidden" }}>
+      {/* ── Top Header Toolbar ── */}
+      <div className="pm2-toolbar" style={{ margin: 0, padding: "10px 24px", position: "relative", flexShrink: 0, display: "flex", alignItems: "center", gap: 14 }}>
+        {/* Title & Icon */}
+        <div style={{ display: "flex", alignItems: "center", gap: 10, flexShrink: 0 }}>
+          <div
+            style={{
+              width: 32,
+              height: 32,
+              borderRadius: 8,
+              background: isDark ? "rgba(239, 68, 68, 0.15)" : "#fff1f0",
+              color: "#ff4d4f",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              border: isDark ? "1px solid rgba(239, 68, 68, 0.3)" : "1px solid #ffccc7",
+            }}
+          >
+            <Trash2 size={16} />
           </div>
-
-          <div className="tr-hero-actions">
-            <Tooltip title="Refresh">
-              <Button
-                type="text"
-                icon={<ReloadOutlined spin={isRefreshing} />}
-                onClick={async () => {
-                  setIsRefreshing(true);
-                  await queryClient.invalidateQueries({ queryKey: trashKeys.all });
-                  setIsRefreshing(false);
-                  message.success("Trash refreshed");
-                }}
-                loading={isLoading}
-                className="tr-hero-ghost"
-              />
-            </Tooltip>
-            {canDeleteTicketTrash && (
-              <Popconfirm
-                title="Empty Trash"
-                description="This will permanently purge ALL items. This action cannot be undone."
-                onConfirm={handleEmptyTrash}
-                okText="Purge All"
-                cancelText="Cancel"
-                okButtonProps={{ danger: true }}
-                disabled={!hasItems}
-              >
-                <Button
-                  danger
-                  icon={<ClearOutlined />}
-                  loading={emptyTrash.isPending}
-                  disabled={!hasItems}
-                  className="tr-hero-danger"
-                >
-                  Empty Trash
-                </Button>
-              </Popconfirm>
-            )}
+          <div style={{ display: "flex", flexDirection: "column", lineHeight: 1.15 }}>
+            <span style={{ fontSize: 13.5, fontWeight: 700, color: "var(--text-slate-900)", letterSpacing: "-0.01em" }}>
+              Tickets Trash
+            </span>
+            <span style={{ fontSize: 11, color: "var(--text-slate-400)", fontWeight: 500 }}>
+              Recover or purge tickets
+            </span>
           </div>
         </div>
 
-        {/* Stat Strip */}
-        <div className="tr-stat-strip">
-          <div className="tr-stat">
-            <div className="tr-stat-icon slate">
-              <InboxOutlined />
+        <div style={{ width: 1, height: 22, background: "var(--border-slate-200)", flexShrink: 0 }} />
+
+        {/* Project Switcher Dropdown (identical to TicketList) */}
+        <Dropdown
+          menu={{ items: projectMenuItems }}
+          overlayClassName="project-switch-pop"
+          trigger={["click"]}
+        >
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 8,
+              cursor: "pointer",
+              padding: "2px 6px",
+              borderRadius: 8,
+            }}
+            className="project-switch-trigger transition-colors"
+          >
+            <div
+              style={{
+                padding: "0 6px",
+                height: 26,
+                borderRadius: 6,
+                background: "var(--premium-gradient, #3b82f6)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                color: "#fff",
+                fontSize: 9,
+                fontWeight: 800,
+                boxShadow: "var(--premium-shadow-lg, 0 2px 6px rgba(59,130,246,0.3))",
+                minWidth: 30,
+              }}
+            >
+              {displayCode}
             </div>
-            <div className="tr-stat-body">
-              <Text className="tr-stat-label">Total in Trash</Text>
-              <div className="tr-stat-value">
-                {stats.total}
-                <span className="tr-stat-unit">items</span>
+            <div>
+              <div style={{ fontSize: 12, fontWeight: 700, color: "var(--text-slate-900)", lineHeight: 1.2 }}>
+                {displayName}
+              </div>
+              <div style={{ fontSize: 10, color: "var(--text-slate-500)", fontWeight: 600, display: "flex", alignItems: "center", gap: 3 }}>
+                Switch Project <CaretRightOutlined style={{ fontSize: 7 }} />
               </div>
             </div>
           </div>
+        </Dropdown>
 
-          <div className="tr-stat-divider" />
+        <div style={{ width: 1, height: 22, background: "var(--border-slate-200)", flexShrink: 0 }} />
 
-          <div className="tr-stat">
-            <div className="tr-stat-icon green">
-              <SafetyCertificateFilled />
-            </div>
-            <div className="tr-stat-body">
-              <Text className="tr-stat-label">Recoverable</Text>
-              <div className="tr-stat-value">
-                {stats.recoverable}
-                <span className="tr-stat-unit">safe to restore</span>
-              </div>
-            </div>
+        {/* Search input */}
+        <div className="pp-search-wrap" style={{ maxWidth: 320 }}>
+          <SearchOutlined className="pp-search-icon" />
+          <input
+            className="pp-search"
+            placeholder="Search ticket #, title..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
+        </div>
+
+        {/* Counter */}
+        <div className="pm2-main-stats">
+          <span className="inline-flex items-center gap-1.5" style={{ fontSize: 12, color: "var(--text-slate-500)" }}>
+            <span
+              className="pm2-pulse-dot"
+              style={{ background: "#ff4d4f", boxShadow: "none", animation: "none", width: 6, height: 6, borderRadius: "50%" }}
+            />
+            <span className="font-semibold" style={{ color: "var(--text-slate-700)", fontWeight: 700 }}>
+              {totalTrashItems}
+            </span>{" "}
+            {totalTrashItems === 1 ? "ticket in trash" : "tickets in trash"}
+          </span>
+        </div>
+
+        {/* Header Actions */}
+        <div className="pm2-main-controls" style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 8 }}>
+          <FilterToggleButton
+            isOpen={isFilterOpen}
+            onToggle={() => setIsFilterOpen((prev) => !prev)}
+            activeCount={activeFilterCount}
+          />
+
+          <div className="pp-segmented">
+            <button
+              type="button"
+              className={viewMode === "card" ? "is-active" : ""}
+              onClick={() => setViewMode("card")}
+              aria-label="Grid view"
+              title="Card view"
+            >
+              <AppstoreOutlined />
+            </button>
+            <button
+              type="button"
+              className={viewMode === "table" ? "is-active" : ""}
+              onClick={() => setViewMode("table")}
+              aria-label="List view"
+              title="Table view"
+            >
+              <UnorderedListOutlined />
+            </button>
           </div>
 
-          <div className="tr-stat-divider" />
+          <Tooltip title="Refresh view">
+            <button
+              type="button"
+              className="pp-ghost-btn"
+              onClick={async () => {
+                setIsRefreshing(true);
+                await refetch();
+                setIsRefreshing(false);
+                message.success("Trash view refreshed");
+              }}
+              disabled={isLoading || isRefreshing}
+            >
+              <ReloadOutlined spin={isRefreshing} />
+            </button>
+          </Tooltip>
 
-          <div className="tr-stat">
-            <div className={`tr-stat-icon ${stats.purgingSoon > 0 ? "red pulse" : "slate"}`}>
-              <FireFilled />
-            </div>
-            <div className="tr-stat-body">
-              <Text className="tr-stat-label">Purging Soon</Text>
-              <div
-                className={`tr-stat-value ${stats.purgingSoon > 0 ? "danger" : ""}`}
+          {canDeleteTicketTrash && (
+            <ConfirmDialog
+              tone="danger"
+              title="Empty trash repository?"
+              description="This will permanently delete all tickets currently in the trash. This action cannot be undone."
+              onConfirm={() =>
+                new Promise<void>((resolve, reject) => {
+                  emptyTrash.mutate(
+                    { projectId: projectFilter, force: true },
+                    {
+                      onSuccess: () => {
+                        message.success("Trash emptied successfully");
+                        refetch();
+                        resolve();
+                      },
+                      onError: (err) => reject(err),
+                    }
+                  );
+                })
+              }
+              confirmText="Yes, empty all"
+              cancelText="Cancel"
+              placement="bottomRight"
+              icon={<AlertTriangle size={16} />}
+              disabled={totalTrashItems === 0 || isLoading}
+            >
+              <Button
+                danger
+                type="primary"
+                icon={<DeleteOutlined />}
+                loading={emptyTrash.isPending}
+                disabled={totalTrashItems === 0 || isLoading}
+                style={{
+                  borderRadius: 6,
+                  fontWeight: 600,
+                  height: 36,
+                  backgroundColor:
+                    totalTrashItems === 0 || isLoading
+                      ? isDark
+                        ? "#1f1f1f"
+                        : "#f5f5f5"
+                      : isDark
+                      ? "transparent"
+                      : "#fff2f0",
+                  color: totalTrashItems === 0 || isLoading ? "#8c8c8c" : "#ff4d4f",
+                  borderColor:
+                    totalTrashItems === 0 || isLoading
+                      ? "#d9d9d9"
+                      : isDark
+                      ? "#ff4d4f"
+                      : "transparent",
+                }}
               >
-                {stats.purgingSoon}
-                <span className="tr-stat-unit">≤ 2 days left</span>
-              </div>
-            </div>
-          </div>
-
-          <div className="tr-stat-divider" />
-
-          <div className="tr-stat">
-            <div className="tr-stat-icon blue">
-              <ThunderboltFilled />
-            </div>
-            <div className="tr-stat-body">
-              <Text className="tr-stat-label">Retention Window</Text>
-              <div className="tr-stat-value">
-                {RETENTION_DAYS}
-                <span className="tr-stat-unit">days</span>
-              </div>
-            </div>
-          </div>
+                Empty Trash
+              </Button>
+            </ConfirmDialog>
+          )}
         </div>
       </div>
 
-      {/* Body */}
-      <div className="tr-body">
-        {/* Filter / Search Bar */}
-        <div className="tr-control-bar">
-          <div className="tr-filter-cluster">
-            <div className="tr-filter-label">
-              <FilterOutlined />
-              <span>Filters</span>
-              {isFiltered && (
-                <Badge
-                  count={
-                    (projectFilter ? 1 : 0) +
-                    (searchQuery ? 1 : 0) +
-                    (statusFilter ? 1 : 0) +
-                    (deletedByFilter ? 1 : 0) +
-                    (dateRange ? 1 : 0)
-                  }
-                  color="#3b82f6"
-                  size="small"
-                />
-              )}
-            </div>
+      <div style={{ height: 1, background: "var(--border-slate-200)", margin: 0, flexShrink: 0 }} />
 
-            <div className={`tr-filter-field ${projectFilter ? "active" : ""}`}>
-              <ProjectOutlined className="tr-filter-icon" />
-              <Select
-                placeholder="All projects"
-                variant="borderless"
-                className="tr-filter-select"
-                allowClear
-                value={projectFilter}
-                onChange={setProjectFilter}
-                popupMatchSelectWidth={280}
-              >
-                {projects?.map((project: any) => (
-                  <Option key={project.value} value={project.value} label={project.label}>
-                    <div className="tr-project-option">
-                      <Text className="tr-project-option-label">{project.label}</Text>
-                      <Tag className="tr-project-code-tag">{project.code}</Tag>
-                    </div>
-                  </Option>
-                ))}
-              </Select>
-            </div>
+      {/* ── Stat Cards ── */}
+      <div style={{ flexShrink: 0 }}>
+        <StatCards
+          title="Tickets Trash Overview"
+          statusText="TRASHED"
+          statusColor="#ef4444"
+          statusBorder="rgba(239, 68, 68, 0.32)"
+          progressPct={totalTrashItems > 0 ? Math.round((stats.purgingSoon / totalTrashItems) * 100) : 0}
+          cards={statCells}
+        />
+      </div>
 
-            {/* Status Filter */}
-            <div className={`tr-filter-field ${statusFilter ? "active" : ""}`}>
-              <TagOutlined className="tr-filter-icon" />
-              <Select
-                placeholder="All statuses"
-                variant="borderless"
-                className="tr-filter-select"
-                allowClear
-                value={statusFilter}
-                onChange={setStatusFilter}
-                popupMatchSelectWidth={160}
-                style={{ width: 110 }}
-              >
-                {statusesList.map((statusItem: any) => (
-                  <Option key={statusItem.value} value={statusItem.value}>
-                    {statusItem.label}
-                  </Option>
-                ))}
-              </Select>
-            </div>
+      {/* ── Collapsible FilterBar (with Project select retained) ── */}
+      {isFilterOpen && (
+        <div style={{ flexShrink: 0 }}>
+          <FilterBar
+            activeCount={activeFilterCount}
+            onReset={handleResetFilters}
+            onClose={() => setIsFilterOpen(false)}
+            actions={
+              <span style={{ fontSize: 12, color: "var(--text-slate-500)", whiteSpace: "nowrap" }}>
+                <b>{paginatedTrashTickets.length}</b> of <b>{totalTrashItems}</b> tickets
+              </span>
+            }
+          >
+            {/* Project Select Filter Pill */}
+            <TicketFilterPill
+              label="Project"
+              icon={<ProjectOutlined />}
+              value={projectFilter || ""}
+              options={userProjects.map((p: any) => ({
+                value: p.id as string,
+                label: p.name as string,
+              }))}
+              onChange={(val) => {
+                setProjectFilter(val ? String(val) : undefined);
+                setPagination((prev) => ({ ...prev, current: 1 }));
+              }}
+              itemNoun="projects"
+              multiple={false}
+            />
 
-            {/* Deleted By Filter */}
-            <div className={`tr-filter-field ${deletedByFilter ? "active" : ""}`}>
-              <UserOutlined className="tr-filter-icon" />
-              <Select
-                placeholder="Deleted by"
-                variant="borderless"
-                className="tr-filter-select"
-                allowClear
-                value={deletedByFilter}
-                onChange={setDeletedByFilter}
-                popupMatchSelectWidth={200}
-                style={{ width: 110 }}
-                showSearch
-                optionFilterProp="label"
-              >
-                {membersList.map((member: any) => (
-                  <Option key={member.value} value={member.value} label={member.label}>
-                    {member.label}
-                  </Option>
-                ))}
-              </Select>
-            </div>
+            {/* Status Filter Pill */}
+            <TicketFilterPill
+              label="Status"
+              icon={<TagOutlined />}
+              value={statusFilter || ""}
+              options={statusesList.map((st: any) => {
+                const val = typeof st === "string" ? st : st?.key || st?.value || st?.id || String(st || "");
+                const rawLabel = typeof st === "string" ? st : st?.name || st?.label || st?.key || String(st || "");
+                const labelStr = typeof rawLabel === "string" ? rawLabel.replace(/_/g, " ") : String(rawLabel);
+                return { value: val, label: labelStr };
+              })}
+              onChange={(val) => {
+                setStatusFilter(val ? String(val) : undefined);
+                setPagination((prev) => ({ ...prev, current: 1 }));
+              }}
+              itemNoun="statuses"
+              multiple={false}
+            />
 
-            {/* Date Range Filter */}
-            <div className={`tr-filter-field ${dateRange ? "active" : ""}`} style={{ paddingRight: 4 }}>
-              <CalendarOutlined className="tr-filter-icon" />
-              <DatePicker.RangePicker
-                placeholder={["From", "To"]}
-                variant="borderless"
-                value={dateRange}
-                onChange={setDateRange}
-                style={{ fontSize: 12, padding: 0 }}
-                className="tr-filter-datepicker"
-              />
-            </div>
+            {/* Deleted By Filter Pill */}
+            <TicketFilterPill
+              label="Deleted By"
+              icon={<UserOutlined />}
+              value={deletedByFilter || ""}
+              options={membersList.map((m: any) => ({
+                value: m.id,
+                label: m.name || m.email,
+                avatarUrl: m.avatarUrl || undefined,
+              }))}
+              onChange={(val) => {
+                setDeletedByFilter(val ? String(val) : undefined);
+                setPagination((prev) => ({ ...prev, current: 1 }));
+              }}
+              itemNoun="members"
+              width={240}
+              multiple={false}
+              showAvatar
+            />
 
-            <div className={`tr-filter-field tr-filter-search ${searchQuery ? "active" : ""}`}>
-              <SearchOutlined className="tr-filter-icon" />
-              <Input
-                placeholder="Search deleted tickets…"
-                variant="borderless"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                allowClear
-              />
-            </div>
+            {/* Date Range Picker */}
+            <DatePicker.RangePicker
+              className="premium-range-picker"
+              size="small"
+              style={{ height: 28, borderRadius: 6 }}
+              placeholder={["Start", "End"]}
+              value={dateRange}
+              onChange={(dates) => {
+                setDateRange(dates as any);
+                setPagination((prev) => ({ ...prev, current: 1 }));
+              }}
+              format="MMM D, YYYY"
+              allowEmpty={[true, true]}
+            />
+          </FilterBar>
+        </div>
+      )}
 
-            {isFiltered && (
-              <Button
-                size="small"
-                type="text"
-                className="tr-filter-reset"
-                icon={<CloseOutlined />}
-                onClick={() => {
-                  setSearchQuery("");
-                  setProjectFilter(undefined);
-                  setStatusFilter(undefined);
-                  setDeletedByFilter(undefined);
-                  setDateRange(null);
-                  refetch();
+      {/* ── Main Content Area (Table and Card Views) ── */}
+      <div
+        className="pm2-main-content"
+        style={{
+          padding: 0,
+          flex: 1,
+          minHeight: 0,
+          overflowY: "auto",
+          overflowX: "auto",
+          width: "100%",
+          display: "flex",
+          flexDirection: "column",
+        }}
+      >
+        {/* Single-line Inline Bulk Selection Bar */}
+        {selectedRowKeys.length > 0 && (
+          <div
+            className="saas-bulk-actions"
+            style={{
+              margin: "8px 24px",
+              padding: "4px 14px",
+              height: 38,
+              borderRadius: 8,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              boxSizing: "border-box",
+            }}
+          >
+            <div className="saas-bulk-content" style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <span
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  minWidth: 20,
+                  height: 20,
+                  borderRadius: 10,
+                  background: "#3b82f6",
+                  color: "#fff",
+                  fontSize: 11,
+                  fontWeight: 800,
+                  padding: "0 5px",
                 }}
               >
-                Clear
-              </Button>
-            )}
-          </div>
-
-          <div className="tr-result-count">
-            <Text className="tr-result-count-text">
-              <strong>{trashData?.pagination.total || 0}</strong>{" "}
-              {(trashData?.pagination.total || 0) === 1 ? "item" : "items"}
-            </Text>
-          </div>
-        </div>
-
-        {/* Bulk Action Belt */}
-        {selectedRowKeys.length > 0 && (
-          <div className="tr-bulk-belt">
-            <div className="tr-bulk-left">
-              <span className="tr-bulk-count-pill">{selectedRowKeys.length}</span>
-              <Text className="tr-bulk-label">
-                {selectedRowKeys.length === 1 ? "ticket" : "tickets"} selected
+                {selectedRowKeys.length}
+              </span>
+              <Text style={{ fontSize: 12.5, fontWeight: 700, color: "var(--text-slate-900)" }}>
+                {selectedRowKeys.length === 1 ? "1 Ticket Selected" : `${selectedRowKeys.length} Tickets Selected`}
               </Text>
             </div>
-            <div className="tr-bulk-actions">
+            <div className="saas-bulk-buttons" style={{ display: "flex", alignItems: "center", gap: 6 }}>
               {canRestoreTicketTrash && (
                 <Button
+                  type="text"
                   size="small"
-                  type="primary"
-                  icon={<UndoOutlined />}
-                  onClick={handleBulkRestore}
+                  icon={<UndoOutlined style={{ color: "#10b981" }} />}
+                  onClick={() => {
+                    bulkRestore.mutate(selectedRowKeys as string[], {
+                      onSuccess: () => {
+                        message.success("Tickets restored successfully");
+                        setSelectedRowKeys([]);
+                        refetch();
+                      },
+                    });
+                  }}
                   loading={bulkRestore.isPending}
-                  className="tr-bulk-btn restore"
+                  style={{
+                    borderRadius: 6,
+                    fontWeight: 600,
+                    fontSize: 12,
+                    color: "#059669",
+                    background: "rgba(16,185,129,0.1)",
+                    border: "1px solid rgba(16,185,129,0.25)",
+                    height: 28,
+                    padding: "0 10px",
+                  }}
                 >
                   Restore
                 </Button>
               )}
               {canDeleteTicketTrash && (
-                <Popconfirm
-                  title="Purge Selected?"
-                  description="This action is irreversible."
-                  onConfirm={handleBulkDelete}
-                  okText="Purge"
-                  okButtonProps={{ danger: true }}
+                <ConfirmDialog
+                  tone="danger"
+                  title={`Purge ${selectedRowKeys.length} ticket${selectedRowKeys.length === 1 ? "" : "s"}?`}
+                  description="This will permanently delete the selected tickets. This action cannot be undone."
+                  onConfirm={() =>
+                    new Promise<void>((resolve, reject) => {
+                      bulkDelete.mutate(selectedRowKeys as string[], {
+                        onSuccess: () => {
+                          message.success("Tickets permanently deleted");
+                          setSelectedRowKeys([]);
+                          refetch();
+                          resolve();
+                        },
+                        onError: (err) => reject(err),
+                      });
+                    })
+                  }
+                  confirmText="Purge Selected"
+                  cancelText="Cancel"
+                  placement="bottomRight"
+                  icon={<AlertTriangle size={16} />}
                 >
                   <Button
+                    type="text"
                     size="small"
-                    danger
-                    icon={<DeleteOutlined />}
+                    icon={<DeleteOutlined style={{ color: "#ef4444" }} />}
                     loading={bulkDelete.isPending}
-                    className="tr-bulk-btn purge"
+                    style={{
+                      borderRadius: 6,
+                      fontWeight: 600,
+                      fontSize: 12,
+                      color: "#dc2626",
+                      background: "rgba(239,68,68,0.1)",
+                      border: "1px solid rgba(239,68,68,0.25)",
+                      height: 28,
+                      padding: "0 10px",
+                    }}
                   >
                     Purge
                   </Button>
-                </Popconfirm>
+                </ConfirmDialog>
               )}
-              <Button
-                type="text"
-                size="small"
-                icon={<CloseOutlined />}
-                onClick={() => setSelectedRowKeys([])}
-                className="tr-bulk-btn cancel"
-              />
+              <Tooltip title="Clear selection">
+                <button
+                  type="button"
+                  onClick={() => setSelectedRowKeys([])}
+                  style={{
+                    border: "none",
+                    background: "transparent",
+                    cursor: "pointer",
+                    color: "var(--text-slate-400)",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    padding: 4,
+                    borderRadius: 4,
+                    marginLeft: 2,
+                  }}
+                >
+                  <CloseOutlined style={{ fontSize: 12 }} />
+                </button>
+              </Tooltip>
             </div>
           </div>
         )}
 
-        <Card
-          styles={{ body: { padding: 0 } }}
-          className="tr-table-card"
-        >
-          <ZukvoLoadingOverlay loading={false} message="">
-                  <Table
-                              rowSelection={(isLoading || isRefreshing) ? undefined : { selectedRowKeys, onChange: (keys) => setSelectedRowKeys(keys) }}
-                              onRow={(record) => ({
-                                onClick: (e) => {
-                                  const target = e.target as HTMLElement;
-                                  if (
-                                    target.closest(".ant-checkbox-wrapper") ||
-                                    target.closest(".tr-action-cell") ||
-                                    target.closest(".ant-popconfirm") ||
-                                    target.closest("button")
-                                  ) {
-                                    return;
-                                  }
-                                  if (record.id) {
-                                    openTicketDrawer(record.id);
-                                  }
-                                },
-                                style: { cursor: "pointer" }
-                              })}
-                              columns={columns.map(col => ({
-                                ...col,
-                                render: (text: any, record: any, index: number) => {
-                                  if (isLoading || isRefreshing) {
-                                    return <Skeleton.Input active size="small" block style={{ height: 24 }} />;
-                                  }
-                                  return col.render ? (col.render as any)(text, record, index) : text;
-                                }
-                              }))}
-                              dataSource={(isLoading || isRefreshing) ? Array(5).fill({}) : (trashData?.tickets || [])}
-                              rowKey={(record: any) => record.id || Math.random()}
-                              className="tr-table"
-                              locale={{
-                                emptyText: <NoData description={isLoading ? null : (
-                                                                        <div className="tr-empty">
-                                                                          <div className="tr-empty-icon">
-                                                                            <InboxOutlined />
-                                                                          </div>
-                                                                          <Text className="tr-empty-title">
-                                                                            {isFiltered ? "No matching tickets" : "Trash is empty"}
-                                                                          </Text>
-                                                                          <Text className="tr-empty-sub">
-                                                                            {isFiltered
-                                                                              ? "Try adjusting your filters or search query."
-                                                                              : "Deleted tickets appear here for 7 days before permanent purge."}
-                                                                          </Text>
-                                                                          {isFiltered && (
-                                                                            <Button
-                                                                              size="small"
-                                                                              onClick={() => {
-                                                                                setSearchQuery("");
-                                                                                setProjectFilter(undefined);
-                                                                                setStatusFilter(undefined);
-                                                                                setDeletedByFilter(undefined);
-                                                                                setDateRange(null);
-                                                                              }}
-                                                                              className="tr-empty-action"
-                                                                            >
-                                                                              Clear filters
-                                                                            </Button>
-                                                                          )}
-                                                                        </div>
-                                                                      )} />,
-                              }}
-                              pagination={false}
-                              scroll={{ x: 1100 }}
-                            />
-                  </ZukvoLoadingOverlay>
-        </Card>
+        {/* Table View */}
+        {viewMode === "table" ? (
+          <div
+            className="pm2-table-shell"
+            style={{
+              background: "var(--bg-pure-white)",
+              border: "1px solid var(--border-slate-200)",
+              borderLeft: "none",
+              borderRight: "none",
+              borderTop: "none",
+              borderRadius: 0,
+              overflowX: "auto",
+              width: "100%",
+              boxSizing: "border-box",
+            }}
+          >
+            <Table
+              size="small"
+              className="premium-table"
+              sticky={{ offsetHeader: 0 }}
+              rowSelection={
+                isLoading || isRefreshing
+                  ? undefined
+                  : {
+                      selectedRowKeys,
+                      onChange: (keys) => setSelectedRowKeys(keys),
+                    }
+              }
+              dataSource={isLoading || isRefreshing ? Array(5).fill({}) : paginatedTrashTickets}
+              columns={columns.map((col) => ({
+                ...col,
+                render: (text: any, record: any, index: number) => {
+                  if (isLoading || isRefreshing) {
+                    return <Skeleton.Input active size="small" block style={{ height: 20 }} />;
+                  }
+                  return col.render ? (col.render as any)(text, record, index) : text;
+                },
+              }))}
+              loading={false}
+              rowKey={(record: any) => record.id || Math.random()}
+              pagination={false}
+              scroll={{ x: "max-content" }}
+              locale={{
+                emptyText: <NoData description={<Text type="secondary">No tickets found in trash</Text>} />,
+              }}
+            />
+          </div>
+        ) : (
+          /* Card / Grid View */
+          <div className="pm2-grid" style={{ padding: "16px 24px" }}>
+            {isLoading || isRefreshing ? (
+              [1, 2, 3, 4, 5, 6].map((i) => (
+                <div key={i} className="pm2-list-card pm2-list-card-skel" style={{ borderRadius: 0 }}>
+                  <Skeleton active paragraph={{ rows: 2 }} />
+                </div>
+              ))
+            ) : paginatedTrashTickets.length === 0 ? (
+              <div style={{ gridColumn: "1 / -1", padding: "40px 0" }}>
+                <NoData description={<Text type="secondary">No tickets found in trash</Text>} />
+              </div>
+            ) : (
+              paginatedTrashTickets.map((ticket: any) => {
+                const daysRemaining = calculateDaysRemaining(ticket.deletedAt || ticket.createdAt);
+                const progress = calculatePurgeProgress(ticket.deletedAt || ticket.createdAt);
+                const isUrgent = daysRemaining <= 2;
+                const actor = ticket.deletedBy;
+                const actorName = actor?.name || "System";
 
-        {/* ── Sticky pagination footer ── */}
-        {hasItems && (() => {
-          const total = trashData?.pagination.total || 0;
-          const pageCount = Math.max(1, Math.ceil(total / limit));
-          const pageStart = total === 0 ? 0 : (page - 1) * limit + 1;
-          const pageEnd = Math.min(page * limit, total);
-          const visiblePages = Array.from({ length: pageCount }, (_, i) => i + 1)
-            .slice(Math.max(0, page - 3), Math.max(0, page - 3) + 5);
-          return (
-            <div className="tr-footer tr-footer--sticky">
-              <div className="tr-footer-info">
-                Showing <strong>{pageStart}–{pageEnd}</strong> of <strong>{total}</strong>
-                {selectedRowKeys.length > 0 && (
-                  <span className="tr-footer-sel"> · {selectedRowKeys.length} selected</span>
-                )}
-              </div>
-              <div className="tr-pager">
-                <button
-                  type="button"
-                  className="tr-pager-btn"
-                  disabled={page <= 1}
-                  onClick={() => setPage((p) => Math.max(1, p - 1))}
-                >
-                  ‹
-                </button>
-                {visiblePages.map((p) => (
-                  <button
-                    key={p}
-                    type="button"
-                    className={`tr-pager-num ${p === page ? "is-active" : ""}`}
-                    onClick={() => setPage(p)}
+                return (
+                  <article
+                    key={ticket.id}
+                    className="pm2-list-card"
+                    style={{ ["--row-accent" as any]: isUrgent ? "#ef4444" : "#3b82f6", borderRadius: 0 }}
                   >
-                    {p}
-                  </button>
-                ))}
-                <button
-                  type="button"
-                  className="tr-pager-btn"
-                  disabled={page >= pageCount}
-                  onClick={() => setPage((p) => Math.min(pageCount, p + 1))}
-                >
-                  ›
-                </button>
-                <Select
-                  className="tr-pagesize"
-                  value={limit}
-                  onChange={(v) => { setLimit(v); setPage(1); }}
-                  options={[10, 20, 25, 50].map((n) => ({ value: n, label: `${n} / page` }))}
-                  popupMatchSelectWidth={120}
-                />
-              </div>
-            </div>
-          );
-        })()}
+                    <header className="pm2-list-head" style={{ padding: "10px 14px" }}>
+                      <div className="pm2-list-row" style={{ flex: 1, display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
+                        <span
+                          style={{
+                            fontFamily: "var(--font-mono, monospace)",
+                            fontSize: 11,
+                            fontWeight: 700,
+                            color: "#1d4ed8",
+                            background: "rgba(59,130,246,0.08)",
+                            padding: "2px 6px",
+                            borderRadius: 4,
+                            flexShrink: 0,
+                          }}
+                        >
+                          {ticket.ticketNumber}
+                        </span>
+                        <div style={{ display: "flex", flexDirection: "column", minWidth: 0, flex: 1 }}>
+                          <span
+                            onClick={() => openTicketDrawer(ticket.id)}
+                            style={{
+                              fontWeight: 700,
+                              fontSize: 14,
+                              color: "var(--text-slate-900)",
+                              whiteSpace: "nowrap",
+                              overflow: "hidden",
+                              textOverflow: "ellipsis",
+                              cursor: "pointer",
+                            }}
+                          >
+                            {ticket.title}
+                          </span>
+                          <span style={{ fontSize: 11.5, color: "var(--text-slate-500)", marginTop: 2 }}>
+                            {ticket.project?.name || "Global"}
+                          </span>
+                        </div>
+                      </div>
+                    </header>
+                    <div className="pm2-list-foot" style={{ padding: "10px 14px" }}>
+                      <div className="pm2-list-foot-row" style={{ marginBottom: 8 }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 6, flex: 1 }}>
+                          <Avatar src={actor?.avatarUrl} size={18} style={{ fontSize: 9, background: "#475569", color: "#fff" }}>
+                            {actorName.charAt(0).toUpperCase()}
+                          </Avatar>
+                          <span style={{ fontSize: 11.5, fontWeight: 500, color: "var(--text-slate-600)" }}>
+                            Deleted by {actorName} ({dayjs(ticket.deletedAt || ticket.createdAt).fromNow()})
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="pm2-list-foot-row" style={{ gap: 8, alignItems: "center" }}>
+                        <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 3 }}>
+                          <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10.5 }}>
+                            <span style={{ color: isUrgent ? "#ef4444" : "#10b981", fontWeight: 700 }}>
+                              {daysRemaining === 0 ? "Purging today" : `${daysRemaining}d remaining`}
+                            </span>
+                            <span style={{ color: "var(--text-slate-400)", fontWeight: 600 }}>{Math.round(progress)}%</span>
+                          </div>
+                          <Progress
+                            percent={progress}
+                            showInfo={false}
+                            size="small"
+                            strokeColor={isUrgent ? "#ef4444" : "#10b981"}
+                            trailColor={isDark ? "#1f2937" : "#e2e8f0"}
+                          />
+                        </div>
+
+                        <div style={{ display: "flex", gap: 4 }}>
+                          {canRestoreTicketTrash && (
+                            <ConfirmDialog
+                              tone="success"
+                              title="Restore ticket?"
+                              description="This will restore the ticket back to active status."
+                              onConfirm={() =>
+                                new Promise<void>((resolve, reject) => {
+                                  restoreTicket.mutate([ticket.id], {
+                                    onSuccess: () => {
+                                      message.success("Ticket restored successfully");
+                                      refetch();
+                                      resolve();
+                                    },
+                                    onError: (err) => reject(err),
+                                  });
+                                })
+                              }
+                              confirmText="Yes, restore"
+                              cancelText="Cancel"
+                              placement="topRight"
+                              icon={<UndoOutlined />}
+                            >
+                              <button
+                                type="button"
+                                className="pc-view-btn"
+                                style={{ color: "#10b981", display: "flex", alignItems: "center", gap: 4 }}
+                              >
+                                <UndoOutlined />
+                                Restore
+                              </button>
+                            </ConfirmDialog>
+                          )}
+
+                          {canDeleteTicketTrash && (
+                            <ConfirmDialog
+                              tone="danger"
+                              title="Permanently delete ticket?"
+                              description="This action cannot be undone."
+                              onConfirm={() =>
+                                new Promise<void>((resolve, reject) => {
+                                  permanentDelete.mutate([ticket.id], {
+                                    onSuccess: () => {
+                                      message.success("Ticket permanently deleted");
+                                      refetch();
+                                      resolve();
+                                    },
+                                    onError: (err) => reject(err),
+                                  });
+                                })
+                              }
+                              confirmText="Yes, Delete"
+                              cancelText="Cancel"
+                              placement="topRight"
+                              icon={<AlertTriangle size={16} />}
+                            >
+                              <button
+                                type="button"
+                                className="pc-view-btn"
+                                style={{ color: "#ff4d4f", display: "flex", alignItems: "center", gap: 4 }}
+                              >
+                                <DeleteOutlined />
+                                Purge
+                              </button>
+                            </ConfirmDialog>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </article>
+                );
+              })
+            )}
+          </div>
+        )}
       </div>
 
-      <style jsx global>{`
-        /* ── Page ────────────────────────────────────────────────── */
-        .tr-page {
-          background: var(--bg-pure-white);
-          min-height: 100vh;
-          margin: 0 -8px;
-        }
+      {/* ── Pagination Footer ── */}
+      {totalTrashItems > 0 && (
+        <div className="pm2-pagination" style={{ marginTop: "auto", flexShrink: 0 }}>
+          <Typography.Text style={{ fontSize: 13, color: "var(--text-slate-500)" }}>
+            Showing{" "}
+            <span style={{ color: "var(--text-slate-700)", fontWeight: 700 }}>
+              {(pagination.current - 1) * pagination.pageSize + 1}–
+              {Math.min(pagination.current * pagination.pageSize, totalTrashItems)}
+            </span>{" "}
+            of <span style={{ color: "var(--text-slate-700)", fontWeight: 700 }}>{totalTrashItems}</span> ticket
+            {totalTrashItems !== 1 ? "s" : ""}
+          </Typography.Text>
+          <Pagination
+            current={pagination.current}
+            pageSize={pagination.pageSize}
+            total={totalTrashItems}
+            onChange={(page, pageSize) => setPagination({ current: page, pageSize })}
+            showSizeChanger
+            pageSizeOptions={[10, 15, 20, 25, 50, 100]}
+          />
+        </div>
+      )}
 
-        /* ── Hero ────────────────────────────────────────────────── */
-        .tr-hero {
-          position: relative;
-          margin-bottom: 20px;
-          padding: 14px 32px 0;
-          background:
-            linear-gradient(180deg, rgba(239, 68, 68, 0.04) 0%, rgba(239, 68, 68, 0) 60%),
-            var(--bg-pure-white);
-          border-bottom: 1px solid var(--border-slate-200);
+      <style jsx global>{`
+        .pp-segmented {
+          display: inline-flex;
+          border: 1px solid var(--border-slate-200);
+          border-radius: 9px;
           overflow: hidden;
+          background: var(--bg-pure-white);
         }
-        [data-theme='dark'] .tr-hero {
-          background:
-            linear-gradient(180deg, rgba(239, 68, 68, 0.07) 0%, rgba(239, 68, 68, 0) 60%),
-            var(--bg-pure-white);
-          border-bottom-color: #1f2937;
-        }
-        .tr-hero-glow {
-          position: absolute;
-          top: -160px;
-          right: -80px;
-          width: 320px;
-          height: 320px;
-          background: radial-gradient(circle, rgba(239, 68, 68, 0.10) 0%, transparent 70%);
-          pointer-events: none;
-          z-index: 0;
-        }
-        [data-theme='dark'] .tr-hero-glow {
-          background: radial-gradient(circle, rgba(239, 68, 68, 0.16) 0%, transparent 70%);
-        }
-        .tr-hero-inner {
-          position: relative;
-          z-index: 1;
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          gap: 24px;
-          padding-bottom: 7px;
-        }
-        .tr-hero-left {
-          display: flex;
-          gap: 14px;
-          align-items: center;
-        }
-        .tr-hero-badge {
-          width: 36px;
-          height: 36px;
-          border-radius: 10px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          background: linear-gradient(135deg, rgba(239, 68, 68, 0.12), rgba(239, 68, 68, 0.04));
-          border: 1px solid rgba(239, 68, 68, 0.2);
-          color: #ef4444;
-          font-size: 16px;
-          box-shadow: 0 6px 16px -8px rgba(239, 68, 68, 0.3);
-          flex-shrink: 0;
-        }
-        [data-theme='dark'] .tr-hero-badge {
-          background: linear-gradient(135deg, rgba(239, 68, 68, 0.20), rgba(239, 68, 68, 0.06));
-          border-color: rgba(239, 68, 68, 0.30);
-          box-shadow: 0 8px 24px -8px rgba(239, 68, 68, 0.5);
-        }
-        .tr-hero-text {
-          display: flex;
-          align-items: center;
-          gap: 12px;
-          flex-wrap: wrap;
-        }
-        .tr-hero-eyebrow {
+        .pp-segmented button {
+          width: 32px;
+          height: 32px;
+          border: none;
+          background: transparent;
+          cursor: pointer;
+          color: var(--text-slate-400);
+          font-size: 14px;
           display: inline-flex;
           align-items: center;
-          gap: 6px;
-          font-size: 9px;
-          font-weight: 700;
-          letter-spacing: 0.12em;
-          color: var(--text-slate-500);
-          padding: 3px 8px;
-          background: var(--bg-slate-50);
-          border: 1px solid var(--border-slate-200);
-          border-radius: 4px;
+          justify-content: center;
         }
-        [data-theme='dark'] .tr-hero-eyebrow {
-          background: #1f2937;
-          border-color: #374151;
+        .pp-segmented button.is-active {
+          background: var(--bg-blue-50);
+          color: #3b82f6;
         }
-        .tr-hero-eyebrow-dot {
-          width: 5px;
-          height: 5px;
-          border-radius: 50%;
-          background: #ef4444;
-          box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.15);
-        }
-        .tr-hero-title {
-          margin: 0 !important;
-          font-weight: 700 !important;
-          color: var(--text-slate-900) !important;
-          letter-spacing: -0.02em !important;
-          font-size: 16px !important;
-          line-height: 1.2 !important;
-        }
-        .tr-hero-sub {
-          font-size: 12px;
-          color: var(--text-slate-500);
-          line-height: 1.4;
-          padding-left: 12px;
-          border-left: 1px solid var(--border-slate-200);
-        }
-        [data-theme='dark'] .tr-hero-sub {
-          border-left-color: #1f2937;
-        }
-        .tr-hero-actions {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-        }
-        .tr-hero-ghost {
-          height: 30px !important;
-          width: 30px !important;
-          border-radius: 6px !important;
-          color: var(--text-slate-500) !important;
-          border: 1px solid var(--border-slate-200) !important;
-        }
-        .tr-hero-ghost:hover {
-          color: var(--text-slate-900) !important;
-          background: var(--bg-slate-50) !important;
-        }
-        [data-theme='dark'] .tr-hero-ghost {
-          border-color: #1f2937 !important;
-        }
-        [data-theme='dark'] .tr-hero-ghost:hover {
-          background: #1f2937 !important;
-        }
-        .tr-hero-danger {
-          height: 30px !important;
-          font-weight: 600 !important;
-          font-size: 12px !important;
-          border-radius: 6px !important;
-          padding: 0 12px !important;
-          box-shadow: 0 1px 2px rgba(239, 68, 68, 0.05);
-        }
-
-        /* ── Stat Strip ──────────────────────────────────────────── */
-        .tr-stat-strip {
+        .pp-search-wrap {
           position: relative;
-          z-index: 1;
-          display: grid;
-          grid-template-columns: 1fr auto 1fr auto 1fr auto 1fr;
-          align-items: center;
-          gap: 0;
-          padding: 10px 32px;
-          margin: 0 -32px;
-          border-top: 1px solid var(--border-slate-200);
-        }
-        [data-theme='dark'] .tr-stat-strip {
-          border-top-color: #1f2937;
-        }
-        .tr-stat {
+          flex: 1 1 auto;
           display: flex;
           align-items: center;
-          gap: 10px;
-          padding: 0 16px;
+          max-width: 480px;
+          width: 100%;
+          height: 38px;
+          min-height: 38px;
+          border-radius: 8px;
+          background: var(--bg-pure-white);
+          border: 1px solid var(--border-slate-200);
+          padding: 0 12px;
+          transition: all 0.2s;
+        }
+        .pp-search-wrap:focus-within {
+          border-color: #93c5fd;
+          box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+          max-width: 520px;
+        }
+        .pp-search-icon {
+          color: var(--text-slate-400);
+          font-size: 14px;
+        }
+        .pp-search {
+          flex: 1;
+          border: none;
+          outline: none;
+          background: transparent;
+          margin-left: 9px;
+          font-size: 13px;
+          color: var(--text-slate-900);
           min-width: 0;
         }
-        .tr-stat:first-child {
-          padding-left: 0;
+        .pp-search::placeholder {
+          color: var(--text-slate-400);
         }
-        .tr-stat-icon {
+        .pp-ghost-btn {
           width: 32px;
           height: 32px;
           border-radius: 8px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          font-size: 13px;
-          flex-shrink: 0;
-        }
-        .tr-stat-icon.slate {
-          background: var(--bg-slate-50);
-          color: var(--text-slate-500);
           border: 1px solid var(--border-slate-200);
-        }
-        .tr-stat-icon.green {
-          background: rgba(16, 185, 129, 0.08);
-          color: #10b981;
-          border: 1px solid rgba(16, 185, 129, 0.2);
-        }
-        .tr-stat-icon.red {
-          background: rgba(239, 68, 68, 0.08);
-          color: #ef4444;
-          border: 1px solid rgba(239, 68, 68, 0.2);
-        }
-        .tr-stat-icon.blue {
-          background: rgba(59, 130, 246, 0.08);
-          color: #3b82f6;
-          border: 1px solid rgba(59, 130, 246, 0.2);
-        }
-        .tr-stat-icon.pulse {
-          animation: trPulse 2s ease-in-out infinite;
-        }
-        [data-theme='dark'] .tr-stat-icon.slate {
-          background: #1f2937;
-          border-color: #374151;
-          color: #94a3b8;
-        }
-        [data-theme='dark'] .tr-stat-icon.green {
-          background: rgba(16, 185, 129, 0.15);
-          border-color: rgba(16, 185, 129, 0.25);
-        }
-        [data-theme='dark'] .tr-stat-icon.red {
-          background: rgba(239, 68, 68, 0.15);
-          border-color: rgba(239, 68, 68, 0.25);
-        }
-        [data-theme='dark'] .tr-stat-icon.blue {
-          background: rgba(59, 130, 246, 0.15);
-          border-color: rgba(59, 130, 246, 0.25);
-        }
-        @keyframes trPulse {
-          0%, 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); }
-          50% { box-shadow: 0 0 0 8px rgba(239, 68, 68, 0); }
-        }
-        .tr-stat-body {
-          display: flex;
-          flex-direction: column;
-          gap: 2px;
-          min-width: 0;
-        }
-        .tr-stat-label {
-          font-size: 10px !important;
-          font-weight: 600 !important;
-          color: var(--text-slate-500) !important;
-          text-transform: uppercase;
-          letter-spacing: 0.06em;
-        }
-        .tr-stat-value {
-          font-size: 17px;
-          font-weight: 700;
-          color: var(--text-slate-900);
-          letter-spacing: -0.02em;
-          line-height: 1.1;
-          display: flex;
-          align-items: baseline;
-          gap: 6px;
-          font-variant-numeric: tabular-nums;
-        }
-        .tr-stat-value.danger {
-          color: #ef4444;
-        }
-        .tr-stat-unit {
-          font-size: 10px;
-          font-weight: 500;
-          color: var(--text-slate-400);
-          text-transform: none;
-          letter-spacing: 0;
-        }
-        .tr-stat-divider {
-          width: 1px;
-          height: 28px;
-          background: var(--border-slate-200);
-        }
-        [data-theme='dark'] .tr-stat-divider {
-          background: #1f2937;
-        }
-
-        /* ── Body ────────────────────────────────────────────────── */
-        .tr-body {
-          padding: 0 32px 80px;
-        }
-
-        /* ── Control bar ─────────────────────────────────────────── */
-        .tr-control-bar {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          gap: 16px;
-          margin-bottom: 16px;
-        }
-        .tr-filter-cluster {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          padding: 4px;
           background: var(--bg-slate-50);
-          border: 1px solid var(--border-slate-100);
-          border-radius: 10px;
-        }
-        [data-theme='dark'] .tr-filter-cluster {
-          background: #0f1620;
-          border-color: #1f2937;
-        }
-        .tr-filter-label {
-          display: flex;
-          align-items: center;
-          gap: 6px;
-          padding: 0 10px 0 8px;
-          height: 32px;
-          font-size: 11px;
-          font-weight: 700;
-          color: var(--text-slate-500);
-          text-transform: uppercase;
-          letter-spacing: 0.06em;
-          border-right: 1px solid var(--border-slate-200);
-        }
-        [data-theme='dark'] .tr-filter-label {
-          border-right-color: #1f2937;
-        }
-        .tr-filter-field {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          height: 32px;
-          padding: 0 10px;
-          background: transparent !important;
-          border: 1px solid var(--border-slate-100);
-          border-radius: 7px;
-          transition: all 0.15s ease;
-        }
-        .tr-filter-field:hover {
-          border-color: var(--border-slate-200);
-        }
-        .tr-filter-field.active {
-          border-color: #3b82f6;
-          box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.08);
-        }
-        [data-theme='dark'] .tr-filter-field {
-          background: transparent !important;
-          border-color: #1f2937;
-        }
-        [data-theme='dark'] .tr-filter-field:hover {
-          border-color: #374151;
-        }
-        [data-theme='dark'] .tr-filter-field.active {
-          border-color: #3b82f6;
-          box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.12);
-        }
-        .tr-filter-icon {
-          font-size: 12px;
-          color: var(--text-slate-400);
-        }
-        .tr-filter-field.active .tr-filter-icon {
-          color: #3b82f6;
-        }
-        .tr-filter-search {
-          width: 200px;
-        }
-
-        @media (max-width: 800px) {
-          .tr-control-bar {
-            flex-wrap: wrap;
-            gap: 10px;
-          }
-          .tr-filter-cluster {
-            flex-wrap: wrap;
-            width: 100%;
-          }
-          .tr-filter-search {
-            width: 100%;
-            flex: 1;
-            min-width: 160px;
-          }
-          .tr-result-count {
-            width: 100%;
-          }
-        }
-        .tr-filter-search .ant-input,
-        .tr-filter-search .ant-input-affix-wrapper,
-        .tr-filter-search .ant-input-affix-wrapper-focused,
-        .tr-filter-search .ant-input-affix-wrapper:hover {
-          font-size: 12px;
-          font-weight: 500;
-          padding: 0;
-          background: transparent !important;
-          border: none !important;
-          box-shadow: none !important;
-        }
-        .tr-filter-select {
-          width: 120px;
-        }
-        .tr-filter-select .ant-select-selector {
-          background: transparent !important;
-          border: none !important;
-          box-shadow: none !important;
-          padding: 0 !important;
-          height: 30px !important;
-        }
-        .tr-filter-select .ant-select-selection-item,
-        .tr-filter-select .ant-select-selection-placeholder {
-          font-size: 12px !important;
-          font-weight: 500 !important;
-          line-height: 30px !important;
-        }
-        .tr-project-option {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          width: 100%;
-        }
-        .tr-project-option-label {
-          font-size: 12px !important;
-          font-weight: 600 !important;
-        }
-        .tr-project-code-tag {
-          margin: 0;
-          font-size: 10px;
-          font-weight: 700;
-          background: var(--bg-slate-100);
-          border: none;
-          color: var(--text-slate-600);
-        }
-        [data-theme='dark'] .tr-project-code-tag {
-          background: #374151;
-          color: #94a3b8;
-        }
-        .tr-filter-reset {
-          height: 32px !important;
-          color: var(--text-slate-500) !important;
-          font-weight: 600 !important;
-          font-size: 11px !important;
-          border-radius: 6px !important;
-        }
-        .tr-filter-reset:hover {
-          color: #ef4444 !important;
-          background: rgba(239, 68, 68, 0.06) !important;
-        }
-        .tr-result-count-text {
-          font-size: 12px !important;
-          color: var(--text-slate-500) !important;
-          font-weight: 500;
-        }
-        .tr-result-count {
-          flex-shrink: 0;
-          white-space: nowrap;
-        }
-        .tr-result-count-text strong {
-          color: var(--text-slate-900);
-          font-weight: 700;
-        }
-
-        /* ── Bulk action belt ────────────────────────────────────── */
-        .tr-bulk-belt {
-          margin-bottom: 12px;
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          gap: 16px;
-          background: linear-gradient(135deg, rgba(59, 130, 246, 0.06), rgba(59, 130, 246, 0.02));
-          padding: 8px 14px 8px 12px;
-          border-radius: 10px;
-          border: 1px solid rgba(59, 130, 246, 0.2);
-          animation: trSlideDown 0.2s ease-out;
-        }
-        [data-theme='dark'] .tr-bulk-belt {
-          background: linear-gradient(135deg, rgba(59, 130, 246, 0.12), rgba(59, 130, 246, 0.04));
-          border-color: rgba(59, 130, 246, 0.3);
-        }
-        @keyframes trSlideDown {
-          from { transform: translateY(-4px); opacity: 0; }
-          to { transform: translateY(0); opacity: 1; }
-        }
-        .tr-bulk-left {
-          display: flex;
-          align-items: center;
-          gap: 10px;
-        }
-        .tr-bulk-count-pill {
-          display: inline-flex;
-          align-items: center;
-          justify-content: center;
-          min-width: 26px;
-          height: 26px;
-          padding: 0 8px;
-          background: #3b82f6;
-          color: #fff;
-          font-size: 12px;
-          font-weight: 700;
-          border-radius: 7px;
-          font-variant-numeric: tabular-nums;
-          box-shadow: 0 2px 6px rgba(59, 130, 246, 0.3);
-        }
-        .tr-bulk-label {
-          font-size: 13px !important;
-          font-weight: 600 !important;
-          color: #1d4ed8 !important;
-        }
-        [data-theme='dark'] .tr-bulk-label {
-          color: #93c5fd !important;
-        }
-        .tr-bulk-actions {
-          display: flex;
-          gap: 6px;
-          align-items: center;
-        }
-        .tr-bulk-btn.restore {
-          height: 30px !important;
-          font-weight: 600 !important;
-          font-size: 12px !important;
-          border-radius: 7px !important;
-          padding: 0 12px !important;
-        }
-        .tr-bulk-btn.purge {
-          height: 30px !important;
-          font-weight: 600 !important;
-          font-size: 12px !important;
-          border-radius: 7px !important;
-          padding: 0 12px !important;
-        }
-        .tr-bulk-btn.cancel {
-          height: 30px !important;
-          width: 30px !important;
-          border-radius: 7px !important;
-          color: var(--text-slate-500) !important;
-        }
-        .tr-bulk-btn.cancel:hover {
-          background: rgba(59, 130, 246, 0.1) !important;
-        }
-
-        /* ── Table Card ──────────────────────────────────────────── */
-        .tr-table-card {
-          border-radius: 12px !important;
-          overflow: hidden !important;
-          border: 1px solid var(--border-slate-200) !important;
-          background: var(--bg-pure-white) !important;
-          box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04), 0 1px 2px rgba(15, 23, 42, 0.02) !important;
-        }
-        [data-theme='dark'] .tr-table-card {
-          border-color: #1f2937 !important;
-          background: #161b22 !important;
-        }
-
-        /* ── Premium table ───────────────────────────────────────── */
-        .tr-table .ant-table {
-          background: var(--bg-pure-white);
-        }
-        [data-theme='dark'] .tr-table .ant-table {
-          background: #161b22;
-        }
-        .tr-table .ant-table-thead > tr > th {
-          background: var(--bg-slate-50);
-          font-weight: 600;
-          color: var(--text-slate-500);
-          font-size: 11px;
-          text-transform: uppercase;
-          letter-spacing: 0.06em;
-          padding: 12px 16px;
-          border-bottom: 1px solid var(--border-slate-200);
-        }
-        [data-theme='dark'] .tr-table .ant-table-thead > tr > th {
-          background: #0f1620;
-          border-bottom-color: #1f2937;
-          color: #94a3b8;
-        }
-        .tr-table .ant-table-thead > tr > th::before {
-          display: none;
-        }
-        .tr-table .ant-table-tbody > tr > td {
-          padding: 14px 16px;
-          border-bottom: 1px solid var(--border-slate-100);
-          transition: background-color 0.15s ease;
-        }
-        [data-theme='dark'] .tr-table .ant-table-tbody > tr > td {
-          background: #161b22;
-          border-bottom-color: #1f2937;
-        }
-        .tr-table .ant-table-tbody > tr:hover > td {
-          background: var(--bg-slate-50) !important;
-        }
-        [data-theme='dark'] .tr-table .ant-table-tbody > tr:hover > td {
-          background: #1a2230 !important;
-        }
-        .tr-table .ant-table-tbody > tr.ant-table-row-selected > td {
-          background: rgba(59, 130, 246, 0.04) !important;
-        }
-        [data-theme='dark'] .tr-table .ant-table-tbody > tr.ant-table-row-selected > td {
-          background: rgba(59, 130, 246, 0.08) !important;
-        }
-
-        /* ── Ticket cell ─────────────────────────────────────────── */
-        .tr-ticket-cell {
-          position: relative;
-          display: flex;
-          flex-direction: column;
-          padding-left: 0;
-        }
-        .tr-ticket-meta {
-          display: flex;
-          flex-direction: column;
-          gap: 4px;
-          min-width: 0;
-        }
-        .tr-ticket-id {
-          display: inline-block;
-          font-family: 'JetBrains Mono', ui-monospace, monospace;
-          font-size: 11px;
-          font-weight: 600;
-          color: var(--premium-blue);
-          background: rgba(59, 130, 246, 0.06);
-          padding: 2px 7px;
-          border-radius: 5px;
-          border: 1px solid rgba(59, 130, 246, 0.15);
-          width: fit-content;
-          letter-spacing: -0.01em;
-          cursor: pointer;
-          transition: all 0.2s ease;
-        }
-        .tr-ticket-id:hover {
-          background: rgba(59, 130, 246, 0.12);
-          border-color: rgba(59, 130, 246, 0.3);
-          transform: translateY(-0.5px);
-        }
-        [data-theme='dark'] .tr-ticket-id {
-          background: rgba(59, 130, 246, 0.12);
-          border-color: rgba(59, 130, 246, 0.25);
-        }
-        .tr-ticket-title {
-          font-size: 13px !important;
-          font-weight: 600 !important;
-          color: var(--text-slate-900) !important;
-          letter-spacing: -0.01em !important;
-          line-height: 1.4 !important;
-        }
-
-        /* ── Project chip ────────────────────────────────────────── */
-        .tr-project-chip {
-          display: inline-flex;
-          align-items: center;
-          gap: 8px;
-          background: var(--bg-slate-50);
-          padding: 4px 10px;
-          border-radius: 6px;
-          border: 1px solid var(--border-slate-200);
-          width: fit-content;
-        }
-        [data-theme='dark'] .tr-project-chip {
-          background: #1f2937;
-          border-color: #374151;
-        }
-        .tr-project-dot {
-          width: 6px;
-          height: 6px;
-          border-radius: 50%;
-          background: var(--text-slate-400);
-        }
-        .tr-project-text {
-          font-size: 11px !important;
-          font-weight: 600 !important;
-          color: var(--text-slate-700) !important;
-          letter-spacing: 0.01em;
-        }
-        [data-theme='dark'] .tr-project-text {
-          color: #cbd5e1 !important;
-        }
-
-        /* ── Status tags ─────────────────────────────────────────── */
-        .tr-status-tag {
-          font-size: 10px !important;
-          font-weight: 700 !important;
-          margin: 0 !important;
-          border-radius: 5px !important;
-          padding: 3px 8px !important;
-          text-transform: uppercase;
-          letter-spacing: 0.04em;
-          line-height: 1.4;
-        }
-        .tr-status-tag.green {
-          background: rgba(16, 185, 129, 0.08) !important;
-          color: #10b981 !important;
-          border: 1px solid rgba(16, 185, 129, 0.2) !important;
-        }
-        .tr-status-tag.slate {
-          background: var(--bg-slate-100) !important;
-          color: var(--text-slate-600) !important;
-          border: 1px solid var(--border-slate-200) !important;
-        }
-        [data-theme='dark'] .tr-status-tag.green {
-          background: rgba(16, 185, 129, 0.15) !important;
-          color: #34d399 !important;
-          border-color: rgba(16, 185, 129, 0.25) !important;
-        }
-        [data-theme='dark'] .tr-status-tag.slate {
-          background: #1f2937 !important;
-          color: #94a3b8 !important;
-          border-color: #374151 !important;
-        }
-
-        /* ── Actor cell ──────────────────────────────────────────── */
-        .tr-actor-cell {
-          display: flex;
-          align-items: center;
-          gap: 10px;
-        }
-        .tr-actor-avatar {
-          background: linear-gradient(135deg, #6366f1, #8b5cf6) !important;
-          font-weight: 700 !important;
-          font-size: 11px !important;
-          color: #fff !important;
-          flex-shrink: 0;
-        }
-        .tr-actor-meta {
-          display: flex;
-          flex-direction: column;
-          gap: 1px;
-          min-width: 0;
-        }
-        .tr-actor-name {
-          font-size: 12px !important;
-          font-weight: 600 !important;
-          color: var(--text-slate-700) !important;
-          white-space: nowrap;
-          overflow: hidden;
-          text-overflow: ellipsis;
-        }
-        [data-theme='dark'] .tr-actor-name {
-          color: #cbd5e1 !important;
-        }
-        .tr-actor-time {
-          font-size: 11px !important;
-          color: var(--text-slate-400) !important;
-          font-weight: 500;
-        }
-
-        /* ── Purge cell ──────────────────────────────────────────── */
-        .tr-purge-cell {
-          display: flex;
-          flex-direction: column;
-          gap: 6px;
-        }
-        .tr-purge-row {
-          display: flex;
-          align-items: center;
-          gap: 6px;
-        }
-        .tr-purge-icon {
-          font-size: 12px;
-        }
-        .tr-purge-icon.urgent {
-          color: #ef4444;
-        }
-        .tr-purge-icon.safe {
-          color: #10b981;
-        }
-        .tr-purge-text {
-          font-size: 11px !important;
-          font-weight: 700 !important;
-          letter-spacing: 0.02em;
-        }
-        .tr-purge-text.urgent {
-          color: #ef4444 !important;
-        }
-        .tr-purge-text.safe {
-          color: #10b981 !important;
-        }
-        .tr-purge-progress .ant-progress-inner {
-          background: var(--bg-slate-100) !important;
-          height: 4px !important;
-          border-radius: 4px !important;
-        }
-        [data-theme='dark'] .tr-purge-progress .ant-progress-inner {
-          background: #1f2937 !important;
-        }
-        .tr-purge-progress .ant-progress-bg {
-          height: 4px !important;
-          border-radius: 4px !important;
-        }
-
-        /* ── Action cell ─────────────────────────────────────────── */
-        .tr-action-cell {
-          display: flex;
-          gap: 4px;
-          justify-content: flex-end;
-          align-items: center;
-        }
-        .tr-icon-btn {
-          width: 28px !important;
-          height: 28px !important;
-          min-width: 28px !important;
-          transition: all 0.15s ease;
-        }
-        .tr-icon-btn.restore {
-          color: #10b981 !important;
-        }
-        .tr-icon-btn.restore:hover {
-          background: rgba(16, 185, 129, 0.1) !important;
-          color: #059669 !important;
-        }
-        .tr-icon-btn.purge {
-          color: var(--text-slate-400) !important;
-        }
-        .tr-icon-btn.purge:hover {
-          background: rgba(239, 68, 68, 0.1) !important;
-          color: #ef4444 !important;
-        }
-
-        /* ── Empty state ─────────────────────────────────────────── */
-        .tr-empty {
-          padding: 64px 24px;
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          gap: 8px;
-          text-align: center;
-        }
-        .tr-empty-icon {
-          width: 64px;
-          height: 64px;
-          border-radius: 16px;
-          background: var(--bg-slate-50);
-          color: var(--text-slate-400);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          font-size: 28px;
-          margin-bottom: 8px;
-          border: 1px solid var(--border-slate-200);
-        }
-        [data-theme='dark'] .tr-empty-icon {
-          background: #1f2937;
-          border-color: #374151;
-        }
-        .tr-empty-title {
-          font-size: 15px !important;
-          font-weight: 700 !important;
-          color: var(--text-slate-700) !important;
-        }
-        [data-theme='dark'] .tr-empty-title {
-          color: #cbd5e1 !important;
-        }
-        .tr-empty-sub {
-          font-size: 13px !important;
-          color: var(--text-slate-500) !important;
-          max-width: 360px;
-          line-height: 1.5;
-        }
-        .tr-empty-action {
-          margin-top: 12px;
-          height: 32px !important;
-          font-size: 12px !important;
-          font-weight: 600 !important;
-          border-radius: 7px !important;
-        }
-
-        /* ── Sticky footer pagination ────────────────────────────── */
-        .tr-footer {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          flex-wrap: wrap;
-          gap: 10px;
-          padding: 0 14px;
-          border-top: 1px solid var(--border-slate-200);
-          height: 52px;
-          box-sizing: border-box;
-        }
-        [data-theme='dark'] .tr-footer {
-          border-top-color: #1f2937;
-        }
-        .tr-footer--sticky {
-          position: fixed;
-          bottom: 0;
-          left: 0;
-          right: 0;
-          z-index: 200;
-          padding: 0 32px;
-          background: var(--bg-pure-white);
-          box-shadow: 0 -4px 14px rgba(15, 23, 42, 0.07);
-          border-top: 1px solid var(--border-slate-200);
-          height: 52px;
-          box-sizing: border-box;
-          margin: 0;
-        }
-        [data-theme='dark'] .tr-footer--sticky {
-          background: #0d1117;
-          border-top-color: #1f2937;
-          box-shadow: 0 -4px 14px rgba(0, 0, 0, 0.4);
-        }
-        .tr-footer-info {
-          font-size: 12px;
-          color: var(--text-slate-500);
-        }
-        .tr-footer-info strong {
           color: var(--text-slate-700);
-          font-weight: 700;
-        }
-        .tr-footer-sel {
-          color: #3b82f6;
-          font-weight: 600;
-        }
-        .tr-pager {
-          display: flex;
-          align-items: center;
-          gap: 3px;
-        }
-        .tr-pager-btn,
-        .tr-pager-num {
-          min-width: 28px;
-          height: 28px;
-          border-radius: 7px;
-          border: 1px solid var(--border-slate-200);
-          background: var(--bg-pure-white);
-          color: var(--text-slate-600);
           cursor: pointer;
-          font-size: 12.5px;
-          font-weight: 600;
+          font-size: 14px;
           display: inline-flex;
           align-items: center;
           justify-content: center;
-          transition: all 0.12s ease;
+          transition: all 0.2s;
         }
-        .tr-pager-btn:hover:not(:disabled),
-        .tr-pager-num:hover:not(.is-active) {
-          background: var(--bg-slate-50);
+        .pp-ghost-btn:hover {
+          background: var(--bg-slate-100);
           border-color: var(--border-slate-300);
         }
-        [data-theme='dark'] .tr-pager-btn,
-        [data-theme='dark'] .tr-pager-num {
-          background: #161b22;
-          border-color: #1f2937;
-          color: #94a3b8;
-        }
-        [data-theme='dark'] .tr-pager-btn:hover:not(:disabled),
-        [data-theme='dark'] .tr-pager-num:hover:not(.is-active) {
-          background: #1f2937;
-          border-color: #374151;
-        }
-        .tr-pager-btn:disabled {
-          opacity: 0.4;
-          cursor: not-allowed;
-        }
-        .tr-pager-num.is-active {
-          background: #3b82f6;
-          border-color: #3b82f6;
-          color: #fff;
-        }
-        .tr-pagesize {
-          margin-left: 5px;
-        }
-        .tr-pagesize .ant-select-selector {
-          border-radius: 7px !important;
-          height: 28px !important;
-        }
-
-        .tr-filter-datepicker {
-          width: 170px;
-        }
-        .tr-filter-datepicker .ant-picker-input > input {
-          font-size: 12px !important;
-          font-weight: 500 !important;
-          color: var(--text-slate-900) !important;
-        }
-        [data-theme='dark'] .tr-filter-datepicker .ant-picker-input > input {
-          color: #f3f4f6 !important;
-        }
-        .tr-filter-datepicker .ant-picker-active-bar {
-          display: none !important;
-        }
-
-        /* ── Responsive ──────────────────────────────────────────── */
-        @media (max-width: 1100px) {
-          .tr-stat-strip {
-            grid-template-columns: 1fr 1fr;
-            gap: 16px;
-          }
-          .tr-stat-divider {
-            display: none;
-          }
-          .tr-stat {
-            padding: 0;
-          }
-        }
-        @media (max-width: 768px) {
-          .tr-hero {
-            padding: 20px 24px 0;
-          }
-          .tr-hero-inner {
-            flex-direction: column;
-            align-items: stretch;
-          }
-          .tr-stat-strip {
-            grid-template-columns: 1fr;
-          }
-          .tr-control-bar {
-            flex-direction: column;
-            align-items: stretch;
-          }
-          .tr-filter-cluster {
-            flex-wrap: wrap;
-          }
-          .tr-filter-search {
-            width: 100%;
-          }
-        }
-      `
-      }</style>
-
+      `}</style>
     </div>
   );
 }
-
-
-
-// comments added for testing

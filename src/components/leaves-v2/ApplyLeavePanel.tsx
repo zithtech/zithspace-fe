@@ -51,9 +51,9 @@ import { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
 const { TextArea } = Input;
 const { RangePicker } = DatePicker;
 
-const PALETTE = { blue: '#3B82F6', green: '#10B981', red: '#EF4444', grey: '#94A3B8' } as const;
-const TINT = { blue: 'rgba(59,130,246,0.10)', green: 'rgba(16,185,129,0.10)', red: 'rgba(239,68,68,0.10)', grey: 'rgba(148,163,184,0.12)' } as const;
-const PAGE_SIZE_OPTIONS = [10, 20, 25, 50, 100];
+import { FilterBar, FilterToggleButton, TicketFilterPill } from '@/components/common/FilterBar';
+import { PALETTE, TINT, StatCards } from '@/components/leaves-v2/ui';
+const PAGE_SIZE_OPTIONS = [10, 15, 20, 25, 50, 100];
 
 const DAY_PORTION_OPTIONS: { value: DayPortion; label: string }[] = [
   { value: 'full', label: 'Full day' },
@@ -95,7 +95,6 @@ function computeUnits(from: Dayjs | null, to: Dayjs | null, portion: DayPortion,
 
 export default function ApplyLeavePanel({ hideSidebarToggle }: { hideSidebarToggle?: boolean } = {}) {
   const { canReadLeave, canCreateLeave, canUpdateLeave, canReadMyHubApplyLeave } = usePermission();
-  console.log("Forcing HMR reload for ApplyLeavePanel");
   const { message } = App.useApp(); // contextual toasts (static `message` ignores the <App> holder)
 
   const [balances, setBalances] = useState<LeaveBalanceItem[]>([]);
@@ -107,9 +106,10 @@ export default function ApplyLeavePanel({ hideSidebarToggle }: { hideSidebarTogg
 
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
+  const [isFilterRowOpen, setIsFilterRowOpen] = useState(false);
 
   const [tablePage, setTablePage] = useState(1);
-  const [tablePageSize, setTablePageSize] = useState(20);
+  const [tablePageSize, setTablePageSize] = useState(15);
 
   // drawer
   const [open, setOpen] = useState(false);
@@ -412,66 +412,70 @@ export default function ApplyLeavePanel({ hideSidebarToggle }: { hideSidebarTogg
             <SearchOutlined className="lva-search-icon" />
             <input className="lva-search" placeholder="Search leave type…" value={search} onChange={(e) => setSearch(e.target.value)} />
           </div>
+          <FilterToggleButton
+            isOpen={isFilterRowOpen}
+            onToggle={() => setIsFilterRowOpen((prev) => !prev)}
+            activeCount={statusFilter !== 'all' ? 1 : 0}
+          />
           <Tooltip title="Refresh"><button type="button" className="lva-ghost-btn" onClick={load}><ReloadOutlined spin={loading} /></button></Tooltip>
           {(canCreateLeave || canReadMyHubApplyLeave) && <Button type="primary" icon={<PlusOutlined />} onClick={openApply} className="lva-add-btn">Apply Leave</Button>}
         </div>
       </div>
 
       {/* STAT CARDS */}
-      <div className="lva-stats">
-        {statCells.map((s) => (
-          <div key={s.key} className="lva-stat-card">
-            <div className="lva-stat-top">
-              <span className="lva-stat-icon" style={{ background: s.tint, color: s.color }}>{s.icon}</span>
-              <span className="lva-stat-label">{s.title}</span>
+      <StatCards
+        title="Leave Overview"
+        statusText="LIVE"
+        progressPct={(() => {
+          const totalReqs = requests.length;
+          return totalReqs > 0 ? Math.round((stats.approved / totalReqs) * 100) : 0;
+        })()}
+        cells={statCells.map(s => ({
+          label: s.title,
+          value: <>{s.value} <span style={{ fontSize: 11, fontWeight: 500, color: 'var(--text-slate-400)' }}>{s.period}</span></>,
+          icon: s.icon,
+          color: s.color,
+          tint: s.tint
+        }))}
+        extra={
+          balances.length > 0 && (
+            <div className="lva-balances">
+              {balances.map((b) => (
+                <div key={b.leaveTypeId} className="lva-bal">
+                  <span className="lva-bal-dot" style={{ background: b.color || PALETTE.grey }} />
+                  <span className="lva-bal-name">{b.name}</span>
+                  <span className="lva-bal-val">{b.available}</span>
+                </div>
+              ))}
             </div>
-            <div className="lva-stat-bottom">
-              <span className="lva-stat-value">{s.value}</span>
-              <span className="lva-stat-period">{s.period}</span>
-            </div>
-          </div>
-        ))}
-      </div>
+          )
+        }
+      />
 
-      {/* BALANCES STRIP */}
-      {balances.length > 0 && (
-        <div className="lva-balances">
-          {balances.map((b) => (
-            <div key={b.leaveTypeId} className="lva-bal">
-              <span className="lva-bal-dot" style={{ background: b.color || PALETTE.grey }} />
-              <span className="lva-bal-name">{b.name}</span>
-              <span className="lva-bal-val">{b.available}</span>
-            </div>
-          ))}
-        </div>
+      {isFilterRowOpen && (
+        <FilterBar
+          activeCount={statusFilter !== 'all' ? 1 : 0}
+          onReset={() => { setSearch(''); setStatusFilter('all'); }}
+          onClose={() => setIsFilterRowOpen(false)}
+        >
+          <TicketFilterPill
+            label="Status"
+            icon={<CheckCircleOutlined />}
+            value={statusFilter === 'all' ? undefined : statusFilter}
+            options={[
+              { value: 'pending', label: 'Pending', dotColor: '#3b82f6' },
+              { value: 'approved', label: 'Approved', dotColor: '#10b981' },
+              { value: 'rejected', label: 'Rejected', dotColor: '#ef4444' },
+              { value: 'cancelled', label: 'Cancelled', dotColor: '#64748b' },
+              { value: 'withdrawn', label: 'Withdrawn', dotColor: '#f59e0b' },
+            ]}
+            onChange={(v) => setStatusFilter((v as StatusFilter) || 'all')}
+          />
+        </FilterBar>
       )}
 
-      {/* FILTERS */}
-      <div className="lva-filters">
-        <span className="lva-filter-label"><FilterOutlined /> Filter</span>
-        <SearchableDropdown
-          className="lva-filter-dd"
-          placeholder="Status"
-          searchPlaceholder="Search statuses"
-          itemNoun="statuses"
-          value={statusFilter === 'all' ? undefined : statusFilter}
-          onChange={(v) => setStatusFilter((v as StatusFilter) ?? 'all')}
-          options={[
-            { value: 'pending', label: 'Pending' },
-            { value: 'approved', label: 'Approved' },
-            { value: 'rejected', label: 'Rejected' },
-            { value: 'cancelled', label: 'Cancelled' },
-            { value: 'withdrawn', label: 'Withdrawn' },
-          ]}
-          style={{ width: 160 }}
-          width={210}
-        />
-        <span className="lva-filter-count">{totalCount} of {requests.length}</span>
-        {hasFilters && <button type="button" className="lva-clear" onClick={() => { setSearch(''); setStatusFilter('all'); }}><CloseCircleOutlined /> Clear</button>}
-      </div>
-
       {/* TABLE */}
-      <div className="lva-table-wrap">
+      <div className="lv-table-wrap">
         <ZukvoLoadingOverlay loading={loading} message="">
           <Table
             rowKey="id"
@@ -480,7 +484,7 @@ export default function ApplyLeavePanel({ hideSidebarToggle }: { hideSidebarTogg
             columns={columns}
             dataSource={paged}
             pagination={false}
-            scroll={{ x: 'max-content', y: 'calc(100vh - 320px)' }}
+            scroll={{ x: 'max-content' }}
             expandable={{ expandedRowRender: expandedRow, expandRowByClick: true, columnWidth: 32 }}
             onRow={() => ({ className: 'lva-row' })} locale={{ emptyText: <NoData /> }}
           />
@@ -672,7 +676,7 @@ export default function ApplyLeavePanel({ hideSidebarToggle }: { hideSidebarTogg
 
       <style jsx global>{`
         .lva { display: flex; flex-direction: column; flex: 1; min-height: 0; }
-        .lva-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding-bottom: 14px; margin-bottom: 14px; border-bottom: 1px solid var(--border-slate-200); flex-wrap: wrap; }
+        .lva-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 14px 22px; margin-bottom: 0; border-bottom: 1px solid var(--border-slate-200); flex-wrap: wrap; background: var(--bg-pure-white); }
         .lva-header-about { display: flex; align-items: center; gap: 12px; min-width: 200px; }
         .lva-header-icon { width: 38px; height: 38px; border-radius: 10px; background: ${TINT.green}; color: ${PALETTE.green}; display: inline-flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; }
         .lva-header-title { font-size: 17px; font-weight: 800; color: var(--text-slate-900); letter-spacing: -0.02em; }
@@ -693,17 +697,17 @@ export default function ApplyLeavePanel({ hideSidebarToggle }: { hideSidebarTogg
         .lva-stat-bottom { display: flex; align-items: baseline; gap: 6px; }
         .lva-stat-value { font-size: 23px; font-weight: 800; color: var(--text-slate-900); }
         .lva-stat-period { font-size: 11px; color: var(--text-slate-400); }
-        .lva-balances { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; }
+        .lva-balances { display: flex; flex-wrap: wrap; gap: 8px; }
         .lva-bal { display: inline-flex; align-items: center; gap: 7px; border: 1px solid var(--border-slate-200); border-radius: 8px; padding: 5px 10px; background: var(--bg-pure-white); }
         .lva-bal-dot { width: 8px; height: 8px; border-radius: 2px; }
         .lva-bal-name { font-size: 12px; color: var(--text-slate-600); }
         .lva-bal-val { font-size: 13px; font-weight: 800; color: var(--text-slate-900); }
-        .lva-filters { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; flex-wrap: wrap; }
+        .lva-filters { display: flex; align-items: center; gap: 10px; margin-top: 2px; margin-bottom: 8px; flex-wrap: wrap; }
         .lva-filter-label { display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 600; color: var(--text-slate-600); }
         .lva-filter-label .anticon { color: var(--text-slate-400); }
         .lva-filter-count { font-size: 12px; color: var(--text-slate-500); }
         .lva-clear { display: inline-flex; align-items: center; gap: 5px; background: none; border: none; cursor: pointer; padding: 3px 6px; font-size: 12px; font-weight: 600; color: ${PALETTE.red}; margin-left: auto; }
-        .lva-table-wrap { background: var(--bg-pure-white); border: 1px solid var(--border-slate-200); border-radius: 0; overflow: hidden; margin-bottom: 24px; }
+        .lva-table-wrap { background: var(--bg-pure-white); border: 1px solid var(--border-slate-200); border-radius: 0; overflow: hidden; margin-bottom: 0; }
         .lva-table, .lva-table.ant-table-wrapper, .lva-table .ant-table, .lva-table .ant-table-container, .lva-table .ant-table-content, .lva-table .ant-table-header, .lva-table .ant-table-body { background: transparent; font-size: 12px; border-radius: 0 !important; }
         .lva-table .ant-table-body { min-height: 200px; scrollbar-width: none; -ms-overflow-style: none; }
         .lva-table .ant-table-body::-webkit-scrollbar, .lva-table .ant-table-content::-webkit-scrollbar, .lva-table .ant-table-container::-webkit-scrollbar { display: none; }
@@ -723,8 +727,8 @@ export default function ApplyLeavePanel({ hideSidebarToggle }: { hideSidebarTogg
         .lva-detail { display: flex; flex-wrap: wrap; gap: 10px 40px; padding: 12px 16px 12px 46px; }
         .lva-detail-item { display: flex; flex-direction: column; gap: 4px; min-width: 120px; }
         .lva-detail-label { font-size: 10px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: var(--text-slate-400); }
-        .lva-footer { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; height: 52px; box-sizing: border-box; }
-        .lva-footer--sticky { position: sticky; bottom: 0; z-index: 20; margin: 20px -32px 0; padding: 0 32px; background: var(--bg-pure-white); border-top: 1px solid var(--border-slate-200); box-shadow: 0 -4px 14px rgba(15,23,42,0.05); }
+        .lva-footer { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; height: 52px; box-sizing: border-box; padding: 0 22px; }
+        .lva-footer--sticky { position: sticky; bottom: 0; z-index: 20; margin: auto 0 0 0; padding: 0 22px; background: var(--bg-pure-white); border-top: 1px solid var(--border-slate-200); box-shadow: 0 -4px 14px rgba(15,23,42,0.05); }
         .lva-footer-info { font-size: 12px; color: var(--text-slate-500); }
         .lva-footer-info strong { color: var(--text-slate-700); font-weight: 700; }
         .lva-pager { display: flex; align-items: center; gap: 3px; }

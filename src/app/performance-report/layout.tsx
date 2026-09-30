@@ -161,16 +161,33 @@ export default function PerformanceReportLayout({ children }: { children: React.
           .pr-view-icon { width: 16px; display: inline-flex; justify-content: center; align-items: center; }
           .pr-view-label { flex: 1; font-size: 13px; font-weight: 500; color: var(--text-slate-700); }
           /* ---------------- Main ---------------- */
-          .pr-main { flex: 1; min-width: 0; padding: 8px 0 0; display: flex; flex-direction: column; }
-          .pr-content { flex: 1; min-height: 0; padding: 4px 32px 0; display: flex; flex-direction: column; }
+          .pr-main { flex: 1; min-width: 0; padding: 0; display: flex; flex-direction: column; }
+          .pr-content { flex: 1; min-height: 0; padding: 0; display: flex; flex-direction: column; position: relative; }
+          .pr-content > div { flex: 1; display: flex; flex-direction: column; min-height: 0; }
           
-          /* Stretch panel headers and footers to the edges (overriding content padding) */
-          .pr-content > * > [class*="-header"],
-          .pr-content > * > [class*="-footer"] {
-            margin-left: -32px !important;
-            margin-right: -32px !important;
-            padding-left: 32px !important;
-            padding-right: 32px !important;
+          /* Stretch panel headers to the edges and make them sticky/flush */
+          .pr-content > * > [class*="-header"]:not([class*="-header-"]),
+          .pr-content [class*="-header"]:not([class*="-header-"]) {
+            margin-top: 0 !important;
+            margin-bottom: 0 !important;
+            margin-left: 0 !important;
+            margin-right: 0 !important;
+            padding-left: 24px !important;
+            padding-right: 24px !important;
+            padding-top: 14px !important;
+            padding-bottom: 14px !important;
+            position: sticky;
+            top: 0;
+            z-index: 20;
+            background: var(--bg-pure-white);
+            border-bottom: 1px solid var(--border-slate-200);
+          }
+          .pr-content > * > [class*="-footer"],
+          .pr-content [class*="-footer"] {
+            margin-left: 0 !important;
+            margin-right: 0 !important;
+            padding-left: 24px !important;
+            padding-right: 24px !important;
           }
 
           /* ---------------- Responsive Styles ---------------- */
@@ -240,15 +257,24 @@ export default function PerformanceReportLayout({ children }: { children: React.
               display: flex;
             }
             .pr-main {
-              padding: 4px 0 0;
+              padding: 0;
             }
             .pr-content {
-              padding: 4px 16px 0;
+              padding: 0;
             }
-            .pr-content > * > [class*="-header"],
-            .pr-content > * > [class*="-footer"] {
-              margin-left: -16px !important;
-              margin-right: -16px !important;
+            .pr-content > * > [class*="-header"]:not([class*="-header-"]),
+            .pr-content [class*="-header"]:not([class*="-header-"]) {
+              margin-left: 0 !important;
+              margin-right: 0 !important;
+              padding-left: 16px !important;
+              padding-right: 16px !important;
+              padding-top: 12px !important;
+              padding-bottom: 12px !important;
+            }
+            .pr-content > * > [class*="-footer"],
+            .pr-content [class*="-footer"] {
+              margin-left: 0 !important;
+              margin-right: 0 !important;
               padding-left: 16px !important;
               padding-right: 16px !important;
             }

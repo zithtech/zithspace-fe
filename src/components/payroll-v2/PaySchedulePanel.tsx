@@ -36,7 +36,51 @@ const ordinal = (n: number) => {
   switch (n % 10) { case 1: return `${n}st`; case 2: return `${n}nd`; case 3: return `${n}rd`; default: return `${n}th`; }
 };
 const slugifyCode = (s: string) => (s || '').trim().toUpperCase().replace(/[^A-Z0-9]+/g, '_').replace(/^_+|_+$/g, '').slice(0, 40);
-const PAGE_SIZE_OPTIONS = [10, 20, 25, 50, 100];
+const PAGE_SIZE_OPTIONS = [10, 15, 20, 25, 50, 100];
+
+const ALLOWED_NAME_KEY_REGEX = /^[a-zA-Z\s\-]$/;
+const handleNameKeyDown = (e: React.KeyboardEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  const allowedKeys = [
+    'Backspace', 'Delete', 'Tab', 'Escape', 'Enter',
+    'ArrowLeft', 'ArrowRight', 'Home', 'End',
+  ];
+  if (allowedKeys.includes(e.key) || e.ctrlKey || e.metaKey) {
+    return;
+  }
+  if (e.key.length === 1 && !ALLOWED_NAME_KEY_REGEX.test(e.key)) {
+    e.preventDefault();
+  }
+};
+const sanitizeNameInput = (val: string) => val.replace(/[^a-zA-Z\s\-]/g, '');
+
+const ALLOWED_CODE_KEY_REGEX = /^[a-zA-Z0-9_-]$/;
+const handleCodeKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+  const allowedKeys = [
+    'Backspace', 'Delete', 'Tab', 'Escape', 'Enter',
+    'ArrowLeft', 'ArrowRight', 'Home', 'End',
+  ];
+  if (allowedKeys.includes(e.key) || e.ctrlKey || e.metaKey) {
+    return;
+  }
+  if (e.key.length === 1 && !ALLOWED_CODE_KEY_REGEX.test(e.key)) {
+    e.preventDefault();
+  }
+};
+const sanitizeCodeInput = (val: string) => val.replace(/[^a-zA-Z0-9_-]/g, '').toUpperCase();
+
+const handleNumericKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+  const allowedKeys = [
+    'Backspace', 'Delete', 'Tab', 'Escape', 'Enter',
+    'ArrowLeft', 'ArrowRight', 'Home', 'End',
+  ];
+  if (allowedKeys.includes(e.key) || e.ctrlKey || e.metaKey) {
+    return;
+  }
+  if (!/[\d]/.test(e.key)) {
+    e.preventDefault();
+  }
+};
+const numericParser = (val?: string): any => (val ? val.replace(/[^\d]/g, '') : '');
 
 type View = 'schedules' | 'groups';
 
@@ -82,7 +126,7 @@ export default function PaySchedulePanel() {
   const [debouncedSearch, setDebouncedSearch] = useState('');
 
   const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(20);
+  const [pageSize, setPageSize] = useState(15);
   const [totalSchedules, setTotalSchedules] = useState(0);
   const [totalGroups, setTotalGroups] = useState(0);
 
@@ -143,7 +187,9 @@ export default function PaySchedulePanel() {
   };
   const submitSchedule = async () => {
     if (!sName.trim()) { message.error('Name is required'); return; }
-    if (!/^[a-zA-Z0-9_-]+$/.test(sCode)) { message.error('Code may only contain letters, numbers, - and _'); return; }
+    if (!/^[a-zA-Z\s\-]+$/.test(sName.trim())) { message.error('Only letters and spaces are allowed in schedule name'); return; }
+    if (!/^[a-zA-Z0-9_-]+$/.test(sCode)) { message.error('Special characters are not allowed in code'); return; }
+    if (sDesc && !/^[a-zA-Z0-9\s&()_".,\-'/—–]*$/.test(sDesc.trim())) { message.error('Special characters are not allowed in description'); return; }
     const payload = {
       name: sName.trim(), code: sCode.trim(), frequency: sFreq, cycleStartDay: sStart, cycleEndDay: sEnd,
       payDay: sPayDay, payInNextMonth: sNextMonth, isDefault: sDefault, description: sDesc.trim() || null, isActive: sActive,
@@ -181,7 +227,10 @@ export default function PaySchedulePanel() {
   };
   const submitGroup = async () => {
     if (!gName.trim()) { message.error('Name is required'); return; }
-    if (!/^[a-zA-Z0-9_-]+$/.test(gCode)) { message.error('Code may only contain letters, numbers, - and _'); return; }
+    if (!/^[a-zA-Z\s\-]+$/.test(gName.trim())) { message.error('Only letters and spaces are allowed in group name'); return; }
+    if (!/^[a-zA-Z0-9_-]+$/.test(gCode)) { message.error('Special characters are not allowed in code'); return; }
+    if (gLegal && !/^[a-zA-Z0-9\s&()_".,\-'/—–]*$/.test(gLegal.trim())) { message.error('Special characters are not allowed in legal entity'); return; }
+    if (gDesc && !/^[a-zA-Z0-9\s&()_".,\-'/—–]*$/.test(gDesc.trim())) { message.error('Special characters are not allowed in description'); return; }
     if (!gSchedule) { message.error('Select a pay schedule'); return; }
     const payload = { name: gName.trim(), code: gCode.trim(), scheduleId: gSchedule, legalEntity: gLegal.trim() || null, description: gDesc.trim() || null, isActive: gActive };
     setGSaving(true);
@@ -316,13 +365,13 @@ export default function PaySchedulePanel() {
       </div>
 
       {/* TABLE */}
-      <div className="pvg-table-wrap">
+      <div className="pv-table-wrap">
         {view === 'schedules'
           ? <ZukvoLoadingOverlay loading={loading} message="">
-                  <Table rowKey="id" size="small" className="pvg-table" columns={scheduleColumns} dataSource={pagedRows} pagination={false} onRow={() => ({ className: 'pvg-row' })} scroll={{ x: 'max-content' }} locale={{ emptyText: <NoData /> }} />
+                  <Table rowKey="id" size="small" columns={scheduleColumns} dataSource={pagedRows} pagination={false} onRow={() => ({ className: 'pvg-row' })} scroll={{ x: 'max-content' }} locale={{ emptyText: <NoData /> }} />
                   </ZukvoLoadingOverlay>
           : <ZukvoLoadingOverlay loading={loading} message="">
-                  <Table rowKey="id" size="small" className="pvg-table" columns={groupColumns} dataSource={pagedRows} pagination={false} onRow={() => ({ className: 'pvg-row' })} scroll={{ x: 'max-content' }} locale={{ emptyText: <NoData /> }} />
+                  <Table rowKey="id" size="small" columns={groupColumns} dataSource={pagedRows} pagination={false} onRow={() => ({ className: 'pvg-row' })} scroll={{ x: 'max-content' }} locale={{ emptyText: <NoData /> }} />
                   </ZukvoLoadingOverlay>}
       </div>
 
@@ -356,19 +405,19 @@ export default function PaySchedulePanel() {
           </div>
           <div className="pvg-drawer-body">
             <DrawerCard icon={<CalendarOutlined />} tint={TINT.amber} color={PALETTE.amber} title="Schedule Details" subtitle="Payroll calendar timing and cycle">
-              <Field label="Schedule name" hint="Shown when assigning groups to this calendar"><Input size="large" maxLength={120} placeholder="e.g. Monthly — India" value={sName} onChange={(e) => { setSName(e.target.value); if (!sEditing && !sCodeTouched) setSCode(slugifyCode(e.target.value)); }} /></Field>
-              <Field label="Code" hint="Auto-generated from the name — override if needed"><Input size="large" maxLength={40} placeholder="MON_IN" value={sCode} disabled={!!sEditing} onChange={(e) => { setSCodeTouched(true); setSCode(e.target.value); }} style={{ fontFamily: 'monospace' }} /></Field>
+              <Field label="Schedule name" hint="Shown when assigning groups to this calendar"><Input size="large" maxLength={120} placeholder="e.g. Monthly — India" value={sName} onKeyDown={handleNameKeyDown} onChange={(e) => { const val = sanitizeNameInput(e.target.value); setSName(val); if (!sEditing && !sCodeTouched) setSCode(slugifyCode(val)); }} /></Field>
+              <Field label="Code" hint="Auto-generated from the name — override if needed"><Input size="large" maxLength={40} placeholder="MON_IN" value={sCode} disabled={!!sEditing} onKeyDown={handleCodeKeyDown} onChange={(e) => { setSCodeTouched(true); setSCode(sanitizeCodeInput(e.target.value)); }} style={{ fontFamily: 'monospace' }} /></Field>
               <Field label="Frequency" hint="How often payroll runs on this calendar">
                 <SearchableDropdown className="pvg-dd" placeholder="Frequency" searchPlaceholder="Search" itemNoun="frequencies" allowClear={false}
                   value={sFreq} onChange={(v) => setSFreq((v as PayFrequency) ?? 'monthly')} options={FREQUENCY_OPTIONS} style={{ width: '100%', height: 40 }} width={240} />
               </Field>
-              <Field label="Cycle start day" hint="Day of month the pay cycle begins"><InputNumber min={1} max={31} value={sStart} onChange={(v) => setSStart(Number(v ?? 1))} style={{ width: '100%' }} size="large" /></Field>
-              <Field label="Cycle end day" hint="Day the cycle ends (31 = last day)"><InputNumber min={1} max={31} value={sEnd} onChange={(v) => setSEnd(Number(v ?? 31))} style={{ width: '100%' }} size="large" /></Field>
-              <Field label="Pay day" hint="Day of month salary is disbursed"><InputNumber min={1} max={31} value={sPayDay} onChange={(v) => setSPayDay(Number(v ?? 1))} style={{ width: '100%' }} size="large" /></Field>
+              <Field label="Cycle start day" hint="Day of month the pay cycle begins"><InputNumber min={1} max={31} value={sStart} onChange={(v) => setSStart(Number(v ?? 1))} style={{ width: '100%' }} size="large" onKeyDown={handleNumericKeyDown} parser={numericParser} /></Field>
+              <Field label="Cycle end day" hint="Day the cycle ends (31 = last day)"><InputNumber min={1} max={31} value={sEnd} onChange={(v) => setSEnd(Number(v ?? 31))} style={{ width: '100%' }} size="large" onKeyDown={handleNumericKeyDown} parser={numericParser} /></Field>
+              <Field label="Pay day" hint="Day of month salary is disbursed"><InputNumber min={1} max={31} value={sPayDay} onChange={(v) => setSPayDay(Number(v ?? 1))} style={{ width: '100%' }} size="large" onKeyDown={handleNumericKeyDown} parser={numericParser} /></Field>
               <Field label="Pay in next month" hint="Pay day falls after the cycle ends" inline><Switch checked={sNextMonth} onChange={setSNextMonth} /></Field>
               <Field label="Default schedule" hint="Used when a group has no schedule set" inline><Switch checked={sDefault} onChange={setSDefault} /></Field>
               <Field label="Active" hint="Available for new pay groups" inline><Switch checked={sActive} onChange={setSActive} /></Field>
-              <Field label="Description" hint="Notes about this calendar"><Input.TextArea rows={2} maxLength={500} value={sDesc} onChange={(e) => setSDesc(e.target.value)} placeholder="Notes about this calendar" /></Field>
+              <Field label="Description" hint="Notes about this calendar"><Input.TextArea rows={2} maxLength={500} value={sDesc} onKeyDown={handleNameKeyDown} onChange={(e) => setSDesc(sanitizeNameInput(e.target.value))} placeholder="Notes about this calendar" /></Field>
             </DrawerCard>
           </div>
           <div className="pvg-drawer-foot">
@@ -397,17 +446,17 @@ export default function PaySchedulePanel() {
           </div>
           <div className="pvg-drawer-body">
             <DrawerCard icon={<TeamOutlined />} tint={TINT.violet} color={PALETTE.violet} title="Group Details" subtitle="Employees and the schedule they run on">
-              <Field label="Group name" hint="Shown when assigning employees"><Input size="large" maxLength={120} placeholder="e.g. India Full-time" value={gName} onChange={(e) => { setGName(e.target.value); if (!gEditing && !gCodeTouched) setGCode(slugifyCode(e.target.value)); }} /></Field>
-              <Field label="Code" hint="Auto-generated from the name — override if needed"><Input size="large" maxLength={40} placeholder="IND_FT" value={gCode} disabled={!!gEditing} onChange={(e) => { setGCodeTouched(true); setGCode(e.target.value); }} style={{ fontFamily: 'monospace' }} /></Field>
+              <Field label="Group name" hint="Shown when assigning employees"><Input size="large" maxLength={120} placeholder="e.g. India Full-time" value={gName} onKeyDown={handleNameKeyDown} onChange={(e) => { const val = sanitizeNameInput(e.target.value); setGName(val); if (!gEditing && !gCodeTouched) setGCode(slugifyCode(val)); }} /></Field>
+              <Field label="Code" hint="Auto-generated from the name — override if needed"><Input size="large" maxLength={40} placeholder="IND_FT" value={gCode} disabled={!!gEditing} onKeyDown={handleCodeKeyDown} onChange={(e) => { setGCodeTouched(true); setGCode(sanitizeCodeInput(e.target.value)); }} style={{ fontFamily: 'monospace' }} /></Field>
               <Field label="Pay schedule" hint="Which calendar this group is paid on">
                 <SearchableDropdown className="pvg-dd" placeholder="Select schedule" searchPlaceholder="Search schedules" itemNoun="schedules" allowClear={false}
                   value={gSchedule} onChange={(v) => setGSchedule(v as string)}
                   options={activeSchedules.map((s) => ({ value: s.id, label: `${s.name}${s.isDefault ? ' · default' : ''}` }))}
                   style={{ width: '100%', height: 40 }} width={300} />
               </Field>
-              <Field label="Legal entity" hint="Registered entity that employs this group"><Input size="large" maxLength={160} prefix={<BankOutlined style={{ color: 'var(--text-slate-400)' }} />} placeholder="e.g. Acme India Pvt Ltd" value={gLegal} onChange={(e) => setGLegal(e.target.value)} /></Field>
+              <Field label="Legal entity" hint="Registered entity that employs this group"><Input size="large" maxLength={160} prefix={<BankOutlined style={{ color: 'var(--text-slate-400)' }} />} placeholder="e.g. Acme India Pvt Ltd" value={gLegal} onKeyDown={handleNameKeyDown} onChange={(e) => setGLegal(sanitizeNameInput(e.target.value))} /></Field>
               <Field label="Active" hint="Available for employee assignment" inline><Switch checked={gActive} onChange={setGActive} /></Field>
-              <Field label="Description" hint="Who belongs to this group?"><Input.TextArea rows={2} maxLength={500} value={gDesc} onChange={(e) => setGDesc(e.target.value)} placeholder="Who belongs to this group?" /></Field>
+              <Field label="Description" hint="Who belongs to this group?"><Input.TextArea rows={2} maxLength={500} value={gDesc} onKeyDown={handleNameKeyDown} onChange={(e) => setGDesc(sanitizeNameInput(e.target.value))} placeholder="Who belongs to this group?" /></Field>
             </DrawerCard>
           </div>
           <div className="pvg-drawer-foot">
@@ -422,7 +471,7 @@ export default function PaySchedulePanel() {
 
       <style jsx global>{`
         .pvg { display: flex; flex-direction: column; flex: 1; min-height: 0; }
-        .pvg-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding-bottom: 14px; margin-bottom: 14px; border-bottom: 1px solid var(--border-slate-200); flex-wrap: wrap; }
+        .pvg-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding-bottom: 14px; margin-bottom: 0; border-bottom: 1px solid var(--border-slate-200); flex-wrap: wrap; }
         .pvg-header-about { display: flex; align-items: center; gap: 12px; flex: 1 1 auto; min-width: 250px; }
         .pvg-header-icon { width: 38px; height: 38px; border-radius: 10px; flex-shrink: 0; background: ${TINT.amber}; color: ${PALETTE.amber}; display: inline-flex; align-items: center; justify-content: center; font-size: 18px; }
         .pvg-header-title { font-size: 17px; font-weight: 800; color: var(--text-slate-900); letter-spacing: -0.02em; line-height: 1.15; }
@@ -435,7 +484,7 @@ export default function PaySchedulePanel() {
         .pvg-ghost-btn { width: 34px; height: 34px; border-radius: 8px; border: 1px solid var(--border-slate-200); background: var(--bg-slate-50); color: var(--text-slate-700); cursor: pointer; font-size: 14px; display: inline-flex; align-items: center; justify-content: center; }
         .pvg-add-btn { height: 34px !important; border-radius: 8px !important; font-weight: 600 !important; }
 
-        .pvg-toolbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+        .pvg-toolbar { display: flex; align-items: center; justify-content: space-between; margin-top: 14px; margin-bottom: 14px; padding-left: 20px; padding-right: 20px; }
         .pvg-count { font-size: 12px; color: var(--text-slate-500); }
         .pvg-tabs { display: inline-flex; gap: 4px; padding: 4px; background: var(--bg-slate-50); border: 1px solid var(--border-slate-200); border-radius: 12px; }
         .pvg-tab { display: inline-flex; align-items: center; gap: 8px; height: 36px; padding: 0 16px; border: none; background: transparent; border-radius: 9px; font-size: 13px; font-weight: 600; line-height: 1; white-space: nowrap; color: var(--text-slate-500); cursor: pointer; transition: color .15s ease, background .15s ease, box-shadow .15s ease; }
@@ -458,14 +507,14 @@ export default function PaySchedulePanel() {
         .pvg-table .ant-table-tbody > tr.pvg-row:hover > td { background: var(--bg-slate-50) !important; }
 
         .pvg-footer { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; height: 52px; box-sizing: border-box; }
-        .pvg-footer--sticky { position: sticky; bottom: 0; z-index: 20; margin: auto -22px 0; padding: 0 22px; background: var(--bg-pure-white); border-top: 1px solid var(--border-slate-200); box-shadow: 0 -4px 14px rgba(15,23,42,0.05); }
+        .pvg-footer--sticky { position: sticky; bottom: 0; z-index: 20; margin: 0; padding: 0 22px; background: var(--bg-pure-white); border-top: 1px solid var(--border-slate-200); box-shadow: 0 -4px 14px rgba(15,23,42,0.05); }
         .pvg-footer-info { font-size: 12px; color: var(--text-slate-500); }
         .pvg-footer-info strong { color: var(--text-slate-700); font-weight: 700; }
         .pvg-pager { display: flex; align-items: center; gap: 3px; }
         .pvg-pager-btn, .pvg-pager-num { min-width: 28px; height: 28px; border-radius: 7px; border: 1px solid var(--border-slate-200); background: var(--bg-pure-white); color: var(--text-slate-600); cursor: pointer; font-size: 12.5px; font-weight: 600; }
-        .pvg-pager-btn:hover:not(:disabled), .pvg-pager-num:hover { border-color: #fcd34d; color: ${PALETTE.amber}; }
+        .pvg-pager-btn:hover:not(:disabled), .pvg-pager-num:hover { border-color: #93c5fd; color: #3b82f6; }
         .pvg-pager-btn:disabled { opacity: 0.4; cursor: not-allowed; }
-        .pvg-pager-num.is-active { background: ${PALETTE.amber}; border-color: ${PALETTE.amber}; color: #fff; }
+        .pvg-pager-num.is-active { background: #3b82f6; border-color: #3b82f6; color: #fff; }
         .pvg-pagesize { margin-left: 5px; }
         .pvg-pagesize .ant-select-selector { border-radius: 7px !important; height: 28px !important; }
 

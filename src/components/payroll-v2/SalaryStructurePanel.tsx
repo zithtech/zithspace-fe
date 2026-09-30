@@ -35,8 +35,9 @@ import {
   CheckOutlined,
 } from '@ant-design/icons';
 import { usePermission } from '@/hooks/usePermission';
-import { SearchableDropdown } from '@/components/common/SearchableDropdown';
+import { StatCards } from '@/components/payroll-v2/ui';
 import ConfirmDialog from '@/components/common/ConfirmDialog';
+import SearchableDropdown from '@/components/common/SearchableDropdown';
 import PayrollV2Service, {
   PayComponent,
   PayStructureListItem,
@@ -47,6 +48,7 @@ import PayrollV2Service, {
   ComponentPercentageOf,
 } from '@/services/payrollV2Service';
 import { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
+import { FilterBar, FilterToggleButton, TicketFilterPill, FilterPillOption } from '@/components/common/FilterBar';
 
 const PALETTE = { blue: '#3B82F6', green: '#10B981', red: '#EF4444', violet: '#8B5CF6', amber: '#F59E0B', grey: '#94A3B8' } as const;
 const TINT = {
@@ -69,7 +71,7 @@ const money = (n: number) => `₹${inr.format(Math.round(n))}`;
 const slugifyCode = (name: string): string =>
   (name || '').trim().toUpperCase().replace(/[^A-Z0-9]+/g, '_').replace(/^_+|_+$/g, '').slice(0, 40);
 
-const PAGE_SIZE_OPTIONS = [10, 20, 25, 50, 100];
+const PAGE_SIZE_OPTIONS = [10, 15, 20, 25, 50, 100];
 
 // A draft line in the drawer editor (carries component meta for display).
 interface DraftLine {
@@ -133,11 +135,12 @@ export default function SalaryStructurePanel() {
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('active');
+  const [isFilterRowOpen, setIsFilterRowOpen] = useState(false);
 
   // pagination
   const [total, setTotal] = useState(0);
   const [tablePage, setTablePage] = useState(1);
-  const [tablePageSize, setTablePageSize] = useState(20);
+  const [tablePageSize, setTablePageSize] = useState(15);
 
   // drawer
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -299,7 +302,10 @@ export default function SalaryStructurePanel() {
 
   const submit = async () => {
     if (!name.trim()) { message.error('Structure name is required'); return; }
-    if (!/^[a-zA-Z0-9_-]+$/.test(code)) { message.error('Code may only contain letters, numbers, - and _'); return; }
+    if (!/[a-zA-Z]/.test(name.trim())) { message.error('Structure name must contain at least one letter'); return; }
+    if (!/^[a-zA-Z0-9\s&()_".,\-'/—–]*$/.test(name.trim())) { message.error('Special characters are not allowed in structure name'); return; }
+    if (!/^[a-zA-Z0-9_-]+$/.test(code)) { message.error('Special characters are not allowed in code'); return; }
+    if (description && !/^[a-zA-Z0-9\s\-_.,()&/'"—–]*$/.test(description.trim())) { message.error('Special characters are not allowed in description'); return; }
     if (lines.length === 0) { message.error('Add at least one component'); return; }
     for (const l of lines) {
       if (l.calculationType === 'percentage' && !l.percentageOf) {
@@ -406,45 +412,43 @@ export default function SalaryStructurePanel() {
             <SearchOutlined className="pvs-search-icon" />
             <input className="pvs-search" placeholder="Search name or code…" value={search} onChange={(e) => setSearch(e.target.value)} />
           </div>
+          <FilterToggleButton
+            isOpen={isFilterRowOpen}
+            onToggle={() => setIsFilterRowOpen((prev) => !prev)}
+            activeCount={statusFilter !== 'all' ? 1 : 0}
+          />
           <Tooltip title="Refresh"><button type="button" className="pvs-ghost-btn" onClick={() => load()}><ReloadOutlined spin={loading} /></button></Tooltip>
           {canCreatePayrollStructures && <Button type="primary" icon={<PlusOutlined />} onClick={openCreate} className="pvs-add-btn">New Structure</Button>}
         </div>
       </div>
 
       {/* STAT CARDS */}
-      <div className="pvs-stats">
-        {statCells.map((s) => (
-          <div key={s.key} className="pvs-stat-card">
-            <div className="pvs-stat-left">
-              <span className="pvs-stat-icon" style={{ background: s.tint, color: s.color }}>{s.icon}</span>
-              <span className="pvs-stat-label">{s.title}</span>
-            </div>
-            <div className="pvs-stat-value-wrap">
-              <span className="pvs-stat-value">{s.value}</span>
-              <span className="pvs-stat-period">{s.period}</span>
-            </div>
-          </div>
-        ))}
-      </div>
+      <StatCards cells={statCells.map(s => ({ label: s.title, value: s.value, icon: s.icon, color: s.color, tint: s.tint }))} />
 
       {/* FILTERS */}
-      <div className="pvs-filters">
-        <span className="pvs-filter-label"><FilterOutlined /> Filter</span>
-        <SearchableDropdown
-          className="pvs-filter-dd" placeholder="Status" searchPlaceholder="Search statuses" itemNoun="statuses"
-          value={statusFilter === 'all' ? undefined : statusFilter}
-          onChange={(v) => setStatusFilter((v as StatusFilter) ?? 'all')}
-          options={[{ value: 'active', label: 'Active' }, { value: 'inactive', label: 'Inactive' }]}
-          style={{ width: 160 }} width={210}
-        />
-        <span className="pvs-filter-count">{total} structures</span>
-        {hasActiveFilters && <button type="button" className="pvs-clear" onClick={clearFilters}><CloseCircleOutlined /> Clear</button>}
-      </div>
+      {isFilterRowOpen && (
+        <FilterBar
+          activeCount={statusFilter !== 'all' ? 1 : 0}
+          onReset={() => setStatusFilter('all')}
+          onClose={() => setIsFilterRowOpen(false)}
+        >
+          <TicketFilterPill
+            label="Status"
+            icon={<CheckCircleOutlined />}
+            value={statusFilter === 'all' ? undefined : statusFilter}
+            options={[
+              { value: 'active', label: 'Active', dotColor: '#10b981' },
+              { value: 'inactive', label: 'Inactive', dotColor: '#ef4444' },
+            ]}
+            onChange={(v) => setStatusFilter((v as StatusFilter) || 'all')}
+          />
+        </FilterBar>
+      )}
 
       {/* TABLE */}
-      <div className="pvs-table-wrap">
+      <div className="pv-table-wrap">
         <ZukvoLoadingOverlay loading={loading} message="">
-              <Table rowKey="id" size="small" className="pvs-table" columns={columns} dataSource={pagedRows} pagination={false} onRow={() => ({ className: 'pvs-row' })} scroll={{ x: 'max-content' }} locale={{ emptyText: <NoData /> }} />
+              <Table rowKey="id" size="small" columns={columns} dataSource={pagedRows} pagination={false} onRow={() => ({ className: 'pvs-row' })} scroll={{ x: 'max-content' }} locale={{ emptyText: <NoData /> }} />
               </ZukvoLoadingOverlay>
       </div>
 
@@ -487,23 +491,89 @@ export default function SalaryStructurePanel() {
             {/* STEP 1 — Details */}
             <SectionCard icon={<InfoCircleOutlined />} tint={TINT.blue} color={PALETTE.blue} title="Structure Details" subtitle="Identify this grade and its reference CTC" step="STEP 1">
               <DrawerRow label="Structure name" hint="Grade / template name shown when assigning">
-                <Input size="large" maxLength={160} placeholder="e.g. Grade A — Engineering" value={name}
-                  onChange={(e) => { const v = e.target.value; setName(v); if (!editing && !codeTouched) setCode(slugifyCode(v)); }} />
+                <Input
+                  size="large"
+                  maxLength={160}
+                  placeholder="e.g. Grade A — Engineering"
+                  value={name}
+                  onKeyDown={(e) => {
+                    if (['Backspace', 'Delete', 'Tab', 'Escape', 'Enter', 'ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(e.key) || e.ctrlKey || e.metaKey) {
+                      return;
+                    }
+                    if (!/^[a-zA-Z\s\-]$/.test(e.key)) {
+                      e.preventDefault();
+                    }
+                  }}
+                  onChange={(e) => {
+                    const v = e.target.value.replace(/[^a-zA-Z\s\-]/g, '');
+                    setName(v);
+                    if (!editing && !codeTouched) setCode(slugifyCode(v));
+                  }}
+                />
               </DrawerRow>
               <DrawerRow label="Code" hint="Auto-generated from the name — override if needed">
-                <Input size="large" maxLength={40} placeholder="GRADE_A" value={code} disabled={!!editing}
-                  onChange={(e) => { setCodeTouched(true); setCode(e.target.value); }} style={{ fontFamily: 'monospace', color: 'var(--text-slate-600)' }} />
+                <Input
+                  size="large"
+                  maxLength={40}
+                  placeholder="GRADE_A"
+                  value={code}
+                  disabled={!!editing}
+                  onKeyDown={(e) => {
+                    if (['Backspace', 'Delete', 'Tab', 'Escape', 'Enter', 'ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(e.key) || e.ctrlKey || e.metaKey) {
+                      return;
+                    }
+                    if (!/^[a-zA-Z0-9_-]$/.test(e.key)) {
+                      e.preventDefault();
+                    }
+                  }}
+                  onChange={(e) => {
+                    setCodeTouched(true);
+                    const sanitized = e.target.value.replace(/[^a-zA-Z0-9_-]/g, '');
+                    setCode(sanitized);
+                  }}
+                  style={{ fontFamily: 'monospace', color: 'var(--text-slate-600)' }}
+                />
               </DrawerRow>
               <DrawerRow label="Reference monthly gross" hint="Used to preview each component's amount">
-                <InputNumber size="large" min={0} max={100000000} step={1000} style={{ width: '100%' }} value={monthlyCtc}
-                  formatter={(v) => `₹ ${v}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')} parser={(v) => Number((v || '').replace(/[^\d.]/g, '')) as any}
-                  onChange={(v) => setMonthlyCtc(Number(v ?? 0))} />
+                <InputNumber
+                  size="large"
+                  min={0}
+                  max={100000000}
+                  step={1000}
+                  style={{ width: '100%' }}
+                  value={monthlyCtc}
+                  formatter={(v) => `₹ ${v}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
+                  parser={(v) => {
+                    if (!v) return 0 as any;
+                    const clean = String(v).replace(/[^\d.]/g, '');
+                    const parts = clean.split('.');
+                    return Number(parts.length > 2 ? `${parts[0]}.${parts.slice(1).join('')}` : clean) as any;
+                  }}
+                  onKeyDown={(e) => {
+                    if (['Backspace', 'Delete', 'Tab', 'Escape', 'Enter', 'ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(e.key) || e.ctrlKey || e.metaKey) {
+                      return;
+                    }
+                    if (!/^[0-9.]$/.test(e.key)) {
+                      e.preventDefault();
+                    }
+                  }}
+                  onChange={(v) => setMonthlyCtc(Number(v ?? 0))}
+                />
               </DrawerRow>
               <DrawerRow label="Active" hint="Available for assignment to employees" inlineControl>
                 <Switch checked={isActive} onChange={setIsActive} />
               </DrawerRow>
               <DrawerRow label="Description" hint="A short note on who this grade is for">
-                <Input.TextArea rows={2} maxLength={500} placeholder="Who is this grade for?" value={description} onChange={(e) => setDescription(e.target.value)} />
+                <Input.TextArea
+                  rows={2}
+                  maxLength={500}
+                  placeholder="Who is this grade for?"
+                  value={description}
+                  onChange={(e) => {
+                    const v = e.target.value.replace(/[^a-zA-Z0-9\s\-_.,()&/'"—–]/g, '');
+                    setDescription(v);
+                  }}
+                />
               </DrawerRow>
             </SectionCard>
 
@@ -513,7 +583,7 @@ export default function SalaryStructurePanel() {
                 <SearchableDropdown
                   className="pvs-add-dd" placeholder="+ Add a component" searchPlaceholder="Search components" itemNoun="components"
                   value={undefined}
-                  onChange={(v) => v && addComponent(v as string)}
+                  onChange={(v: any) => v && addComponent(v as string)}
                   options={availableComponents.map((c) => ({ value: c.id, label: `${c.name} · ${CATEGORY_META[c.category].label}` }))}
                   style={{ width: '100%', height: 40 }} width={360}
                 />
@@ -548,7 +618,22 @@ export default function SalaryStructurePanel() {
                       )}
                       <InputNumber
                         size="small" min={0} max={l.calculationType === 'percentage' ? 100 : 100000000}
-                        value={l.value} onChange={(v) => updateLine(l.componentId, { value: Number(v ?? 0) })}
+                        value={l.value}
+                        onKeyDown={(e) => {
+                          if (['Backspace', 'Delete', 'Tab', 'Escape', 'Enter', 'ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(e.key) || e.ctrlKey || e.metaKey) {
+                            return;
+                          }
+                          if (!/^[0-9.]$/.test(e.key)) {
+                            e.preventDefault();
+                          }
+                        }}
+                        parser={(v) => {
+                          if (!v) return '' as any;
+                          const clean = String(v).replace(/[^\d.]/g, '');
+                          const parts = clean.split('.');
+                          return (parts.length > 2 ? `${parts[0]}.${parts.slice(1).join('')}` : clean) as any;
+                        }}
+                        onChange={(v) => updateLine(l.componentId, { value: Number(v ?? 0) })}
                         style={{ width: 92 }} placeholder={l.calculationType === 'percentage' ? '%' : '₹'}
                       />
                       <div className="pvs-line-amount">{money(amountById[l.componentId] ?? 0)}</div>
@@ -588,7 +673,7 @@ export default function SalaryStructurePanel() {
 
       <style jsx global>{`
         .pvs { display: flex; flex-direction: column; flex: 1; min-height: 0; }
-        .pvs-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding-bottom: 14px; margin-bottom: 14px; border-bottom: 1px solid var(--border-slate-200); flex-wrap: wrap; }
+        .pvs-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding-bottom: 14px; margin-bottom: 0; border-bottom: 1px solid var(--border-slate-200); flex-wrap: wrap; }
         .pvs-header-about { display: flex; align-items: center; gap: 12px; flex: 1 1 auto; min-width: 250px; }
         .pvs-header-icon { width: 38px; height: 38px; border-radius: 10px; flex-shrink: 0; background: ${TINT.violet}; color: ${PALETTE.violet}; display: inline-flex; align-items: center; justify-content: center; font-size: 18px; }
         .pvs-header-title { font-size: 17px; font-weight: 800; color: var(--text-slate-900); letter-spacing: -0.02em; line-height: 1.15; }
@@ -633,14 +718,14 @@ export default function SalaryStructurePanel() {
         .pvs-table .ant-table-tbody > tr.pvs-row:hover > td { background: var(--bg-slate-50) !important; }
 
         .pvs-footer { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; height: 52px; box-sizing: border-box; }
-        .pvs-footer--sticky { position: sticky; bottom: 0; z-index: 20; margin: auto -22px 0; padding: 0 22px; background: var(--bg-pure-white); border-top: 1px solid var(--border-slate-200); box-shadow: 0 -4px 14px rgba(15,23,42,0.05); }
+        .pvs-footer--sticky { position: sticky; bottom: 0; z-index: 20; margin: 0; padding: 0 22px; background: var(--bg-pure-white); border-top: 1px solid var(--border-slate-200); box-shadow: 0 -4px 14px rgba(15,23,42,0.05); }
         .pvs-footer-info { font-size: 12px; color: var(--text-slate-500); }
         .pvs-footer-info strong { color: var(--text-slate-700); font-weight: 700; }
         .pvs-pager { display: flex; align-items: center; gap: 3px; }
         .pvs-pager-btn, .pvs-pager-num { min-width: 28px; height: 28px; border-radius: 7px; border: 1px solid var(--border-slate-200); background: var(--bg-pure-white); color: var(--text-slate-600); cursor: pointer; font-size: 12.5px; font-weight: 600; }
-        .pvs-pager-btn:hover:not(:disabled), .pvs-pager-num:hover { border-color: #c4b5fd; color: ${PALETTE.violet}; }
+        .pvs-pager-btn:hover:not(:disabled), .pvs-pager-num:hover { border-color: #93c5fd; color: #3b82f6; }
         .pvs-pager-btn:disabled { opacity: 0.4; cursor: not-allowed; }
-        .pvs-pager-num.is-active { background: ${PALETTE.violet}; border-color: ${PALETTE.violet}; color: #fff; }
+        .pvs-pager-num.is-active { background: #3b82f6; border-color: #3b82f6; color: #fff; }
         .pvs-pagesize { margin-left: 5px; }
         .pvs-pagesize .ant-select-selector { border-radius: 7px !important; height: 28px !important; }
 

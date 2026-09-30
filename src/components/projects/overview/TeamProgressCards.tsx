@@ -1,10 +1,11 @@
-"use client";
-
 import NoData from "@/components/common/NoData";
 import React, { useEffect, useMemo, useState } from "react";
 import { Typography, Avatar, Empty, Tooltip } from "antd";
 import { OverviewPager } from "./OverviewPager";
 import { TeamOutlined, TrophyOutlined } from "@ant-design/icons";
+import { useQuery } from "@tanstack/react-query";
+import { ProjectService } from "@/services/projectService";
+import ZukvoLoader from "@/components/common/ZukvoLoader";
 
 const { Text } = Typography;
 
@@ -21,7 +22,8 @@ interface TeamMember {
 }
 
 interface TeamProgressCardsProps {
-  members: TeamMember[];
+  members?: TeamMember[];
+  projectId?: string;
 }
 
 // Palette: blue / green / red / grey only
@@ -45,146 +47,168 @@ const Stat: React.FC<{ label: string; value: number | string; color: string }> =
   </div>
 );
 
-export const TeamProgressCards: React.FC<TeamProgressCardsProps> = ({ members = [] }) => {
+export const TeamProgressCards: React.FC<TeamProgressCardsProps> = ({ members = [], projectId }) => {
   const [sortBy, setSortBy] = useState<string>("Contribution");
   const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(20);
+  const [pageSize, setPageSize] = useState(15);
 
-  const sorted = useMemo(() => {
-    const copy = [...members];
-    if (sortBy === "Hours") copy.sort((a, b) => b.totalHours - a.totalHours);
-    else copy.sort((a, b) => b.contribution - a.contribution);
-    return copy;
-  }, [members, sortBy]);
+  const { data: teamResponse, isLoading } = useQuery({
+    queryKey: ["projectTeamProgress", projectId, page, pageSize, sortBy],
+    queryFn: () => ProjectService.getProjectTeamProgress(projectId!, { page, limit: pageSize, sortBy }),
+    enabled: !!projectId,
+  });
 
   // Reset to first page when the ordering or data set changes.
   useEffect(() => {
     setPage(1);
-  }, [sortBy, members.length]);
+  }, [sortBy]);
 
-  const topContribution = sorted[0]?.contribution ?? 0;
-  const pagedSorted = sorted.slice((page - 1) * pageSize, page * pageSize);
+  const displayMembers: TeamMember[] = projectId
+    ? (teamResponse?.data ?? [])
+    : members.slice((page - 1) * pageSize, page * pageSize);
+
+  const total = projectId
+    ? (teamResponse?.pagination?.total ?? 0)
+    : members.length;
+
+  const topContribution = displayMembers[0]?.contribution ?? 0;
 
   return (
-    <div className="po-tm-wrap">
-      <div className="po-tm-header">
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <div className="po-tm-header-ic">
-            <TeamOutlined />
+    <div className="po-tm-container">
+      <div className="po-tm-wrap">
+        <div className="po-tm-header">
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <div className="po-tm-header-ic">
+              <TeamOutlined />
+            </div>
+            <div>
+              <Text style={{ fontSize: 14, fontWeight: 700, color: "var(--text-slate-900)" }}>Team Progress</Text>
+              <div style={{ fontSize: 11.5, color: "var(--text-slate-400)", fontWeight: 500 }}>
+                {total} {total === 1 ? "member" : "members"} contributing
+              </div>
+            </div>
           </div>
-          <div>
-            <Text style={{ fontSize: 14, fontWeight: 700, color: "var(--text-slate-900)" }}>Team Progress</Text>
-            <div style={{ fontSize: 11.5, color: "var(--text-slate-400)", fontWeight: 500 }}>
-              {members.length} {members.length === 1 ? "member" : "members"} contributing
+          <div className="po-tm-toggle">
+            <span className="po-tm-toggle-label">Sort by</span>
+            <div className="po-tm-seg">
+              <button
+                className={sortBy === "Contribution" ? "is-active" : ""}
+                onClick={() => setSortBy("Contribution")}
+              >
+                Contribution
+              </button>
+              <button
+                className={sortBy === "Hours" ? "is-active" : ""}
+                onClick={() => setSortBy("Hours")}
+              >
+                Hours
+              </button>
             </div>
           </div>
         </div>
-        <div className="po-tm-toggle">
-          <span className="po-tm-toggle-label">Sort by</span>
-          <div className="po-tm-seg">
-            <button
-              className={sortBy === "Contribution" ? "is-active" : ""}
-              onClick={() => setSortBy("Contribution")}
-            >
-              Contribution
-            </button>
-            <button
-              className={sortBy === "Hours" ? "is-active" : ""}
-              onClick={() => setSortBy("Hours")}
-            >
-              Hours
-            </button>
+
+        {isLoading ? (
+          <div className="po-tm-empty">
+            <ZukvoLoader size="md" message="Loading team progress..." />
           </div>
-        </div>
+        ) : total === 0 ? (
+          <div className="po-tm-empty">
+            <NoData description={<Text style={{ fontSize: 12, color: "var(--text-slate-500)" }}>No team members</Text>} />
+          </div>
+        ) : (
+          <div className="po-tm-list">
+            {displayMembers.map((m, i) => {
+              const rank = (page - 1) * pageSize + i + 1;
+              const isTop = sortBy === "Contribution" && page === 1 && i === 0 && topContribution > 0;
+              return (
+                <div key={m.id} className={`po-tm-row ${isTop ? "is-top" : ""}`}>
+                  <span className="po-tm-rank">{rank}</span>
+
+                  {/* Identity */}
+                  <div className="po-tm-identity">
+                    <span className={`po-tm-ava ${isTop ? "is-top" : ""}`}>
+                      <Avatar
+                        shape="square"
+                        size={36}
+                        src={m.avatarUrl}
+                        style={{
+                          background: C.blue,
+                          color: "#fff",
+                          fontWeight: 800,
+                          fontSize: 13,
+                          borderRadius: 8,
+                        }}
+                      >
+                        {m.name?.substring(0, 2).toUpperCase() || "UN"}
+                      </Avatar>
+                    </span>
+                    <div style={{ minWidth: 0 }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
+                        <Text strong ellipsis style={{ fontSize: 13.5, color: "var(--text-slate-900)" }}>
+                          {m.name || "Unknown Member"}
+                        </Text>
+                        {isTop && (
+                          <Tooltip title="Top contributor">
+                            <span className="po-tm-top">
+                              <TrophyOutlined style={{ fontSize: 9 }} /> Top
+                            </span>
+                          </Tooltip>
+                        )}
+                      </div>
+                      <Text style={{ fontSize: 10.5, color: "var(--text-slate-400)", fontWeight: 500 }}>
+                        {m.assigned} {m.assigned === 1 ? "ticket" : "tickets"} assigned
+                      </Text>
+                    </div>
+                  </div>
+
+                  {/* Contribution bar */}
+                  <div className="po-tm-contrib">
+                    <div className="po-tm-bar">
+                      <span style={{ width: `${Math.min(m.contribution || 0, 100)}%`, background: C.blue }} />
+                    </div>
+                    <span className="po-tm-pct">{m.contribution || 0}%</span>
+                  </div>
+
+                  {/* Stats */}
+                  <div className="po-tm-stats">
+                    <Stat label="Total" value={m.assigned || 0} color={C.grey} />
+                    <Stat label="Done" value={m.done || 0} color={C.green} />
+                    <Stat label="Active" value={m.active || 0} color={C.blue} />
+                    <Stat label="To do" value={m.todo || 0} color={C.red} />
+                    <Stat label="Hours" value={`${m.totalHours || 0}h`} color={C.grey} />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
 
-      {members.length === 0 ? (
-        <div className="po-tm-empty">
-          <NoData description={<Text style={{ fontSize: 12, color: "var(--text-slate-500)" }}>No team members</Text>} />
-        </div>
-      ) : (
-        <div className="po-tm-list">
-          {pagedSorted.map((m, i) => {
-            const rank = (page - 1) * pageSize + i + 1;
-            const isTop = sortBy === "Contribution" && page === 1 && i === 0 && topContribution > 0;
-            return (
-              <div key={m.id} className={`po-tm-row ${isTop ? "is-top" : ""}`}>
-                <span className="po-tm-rank">{rank}</span>
-
-                {/* Identity */}
-                <div className="po-tm-identity">
-                  <span className={`po-tm-ava ${isTop ? "is-top" : ""}`}>
-                    <Avatar
-                      shape="square"
-                      size={36}
-                      src={m.avatarUrl}
-                      style={{
-                        background: C.blue,
-                        color: "#fff",
-                        fontWeight: 800,
-                        fontSize: 13,
-                        borderRadius: 8,
-                      }}
-                    >
-                      {m.name?.substring(0, 2).toUpperCase() || "UN"}
-                    </Avatar>
-                  </span>
-                  <div style={{ minWidth: 0 }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
-                      <Text strong ellipsis style={{ fontSize: 13.5, color: "var(--text-slate-900)" }}>
-                        {m.name || "Unknown Member"}
-                      </Text>
-                      {isTop && (
-                        <Tooltip title="Top contributor">
-                          <span className="po-tm-top">
-                            <TrophyOutlined style={{ fontSize: 9 }} /> Top
-                          </span>
-                        </Tooltip>
-                      )}
-                    </div>
-                    <Text style={{ fontSize: 10.5, color: "var(--text-slate-400)", fontWeight: 500 }}>
-                      {m.assigned} {m.assigned === 1 ? "ticket" : "tickets"} assigned
-                    </Text>
-                  </div>
-                </div>
-
-                {/* Contribution bar */}
-                <div className="po-tm-contrib">
-                  <div className="po-tm-bar">
-                    <span style={{ width: `${Math.min(m.contribution || 0, 100)}%`, background: C.blue }} />
-                  </div>
-                  <span className="po-tm-pct">{m.contribution || 0}%</span>
-                </div>
-
-                {/* Stats */}
-                <div className="po-tm-stats">
-                  <Stat label="Total" value={m.assigned || 0} color={C.grey} />
-                  <Stat label="Done" value={m.done || 0} color={C.green} />
-                  <Stat label="Active" value={m.active || 0} color={C.blue} />
-                  <Stat label="To do" value={m.todo || 0} color={C.red} />
-                  <Stat label="Hours" value={`${m.totalHours || 0}h`} color={C.grey} />
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      )}
-
-      {members.length > 0 && (
+      {/* Sticky footer detached from table box */}
+      {total > 0 && (
         <OverviewPager
-          total={members.length}
+          total={total}
           page={page}
           pageSize={pageSize}
+          pageSizeOptions={[10, 15, 20, 25, 50, 100]}
           onPageChange={setPage}
           onPageSizeChange={(s) => {
             setPageSize(s);
             setPage(1);
           }}
           noun="members"
+          sticky={true}
         />
       )}
 
       <style jsx global>{`
+        .po-tm-container {
+          display: flex;
+          flex-direction: column;
+          flex: 1;
+          min-height: calc(100vh - 280px);
+          position: relative;
+        }
         .po-tm-wrap {
           display: flex;
           flex-direction: column;

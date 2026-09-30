@@ -7,7 +7,7 @@ import type { ColumnsType } from 'antd/es/table';
 import { BankOutlined, DollarOutlined } from '@ant-design/icons';
 import { usePermission } from '@/hooks/usePermission';
 import ReimbursementV2Service, { ApprovalInboxItem, AdvanceInboxItem } from '@/services/reimbursementV2Service';
-import { PALETTE, TINT, PanelHeader, RmbStyles, money, fmtDate } from './ui';
+import { PALETTE, TINT, PanelHeader, RmbStyles, money, fmtDate, tablePaginationConfig } from './ui';
 
 type PayTarget = { kind: 'claim' | 'advance'; id: string; label: string } | null;
 
@@ -18,12 +18,12 @@ export default function FinancePanel() {
   const [claims, setClaims] = useState<ApprovalInboxItem[]>([]);
   const [claimsTotal, setClaimsTotal] = useState(0);
   const [claimsPage, setClaimsPage] = useState(1);
-  const [claimsSize, setClaimsSize] = useState(20);
+  const [claimsSize, setClaimsSize] = useState(15);
 
   const [advances, setAdvances] = useState<AdvanceInboxItem[]>([]);
   const [advancesTotal, setAdvancesTotal] = useState(0);
   const [advancesPage, setAdvancesPage] = useState(1);
-  const [advancesSize, setAdvancesSize] = useState(20);
+  const [advancesSize, setAdvancesSize] = useState(15);
 
   const [loading, setLoading] = useState(false);
   const [target, setTarget] = useState<PayTarget>(null);
@@ -111,11 +111,10 @@ export default function FinancePanel() {
                 <Table rowKey="id" size="middle" loading={loading} columns={claimCols} dataSource={claims}
                   locale={{ emptyText: <NoData description="Nothing to pay" /> }}
                   pagination={{
+                    ...tablePaginationConfig,
                     current: claimsPage,
                     pageSize: claimsSize,
                     total: claimsTotal,
-                    showSizeChanger: true,
-                    pageSizeOptions: ['10', '20', '50', '100'],
                     showTotal: (t) => `${t} claims`,
                     onChange: (page, size) => {
                       setClaimsPage(page);
@@ -133,11 +132,10 @@ export default function FinancePanel() {
                 <Table rowKey="id" size="middle" loading={loading} columns={advanceCols} dataSource={advances}
                   locale={{ emptyText: <NoData description="Nothing to pay" /> }}
                   pagination={{
+                    ...tablePaginationConfig,
                     current: advancesPage,
                     pageSize: advancesSize,
                     total: advancesTotal,
-                    showSizeChanger: true,
-                    pageSizeOptions: ['10', '20', '50', '100'],
                     showTotal: (t) => `${t} advances`,
                     onChange: (page, size) => {
                       setAdvancesPage(page);

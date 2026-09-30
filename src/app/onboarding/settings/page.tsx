@@ -688,7 +688,7 @@ function DocumentsNeededTab() {
             className="docn-table"
             columns={columns}
             dataSource={rows}
-            pagination={{ pageSizeOptions: [10, 20, 25, 50, 100], pageSize: 10, hideOnSinglePage: true, size: "small" }}
+            pagination={{ pageSizeOptions: [10, 15, 20, 25, 50, 100], pageSize: 15, showSizeChanger: true, hideOnSinglePage: true, size: "small" }}
             scroll={{ x: 'max-content' }}
             locale={{ emptyText: <NoData description={"No documents yet — add the ones you need from new hires."} /> }}
           />
@@ -826,11 +826,11 @@ const Settings = () => {
       </div>
 
       <style jsx global>{`
-        .onbs { display: flex; flex-direction: column; flex: 1; min-height: 0; }
+        .onbs { display: flex; flex-direction: column; flex: 1; min-height: 0; padding: 0 20px 20px 20px; }
         
         .onbs-header {
           display: flex; align-items: center; justify-content: space-between; gap: 16px;
-          margin: -12px -22px 14px; padding: 12px 24px 14px 28px; border-bottom: 1px solid var(--border-slate-200);
+          margin: 0 0 14px 0; padding: 14px 0; border-bottom: 1px solid var(--border-slate-200);
           background: var(--bg-pure-white);
           position: sticky; top: 0; z-index: 30;
         }
@@ -843,7 +843,8 @@ const Settings = () => {
         .onbs-header-title { font-size: 17px; font-weight: 800; color: var(--text-slate-900); letter-spacing: -0.02em; line-height: 1.15; margin: 0; }
         .onbs-header-sub { font-size: 12.5px; color: var(--text-slate-500); margin-top: 2px; }
 
-        .onb-settings-tabs .ant-tabs-nav { margin-bottom: 22px; }
+        .onb-settings-tabs .ant-tabs-nav { margin-bottom: 22px; padding: 0; }
+        .onb-settings-tabs .ant-tabs-content-holder { padding: 0; }
         .onb-settings-tabs .ant-tabs-tab { padding: 12px 2px !important; font-weight: 600; color: var(--text-slate-500); }
         .onb-settings-tabs .ant-tabs-tab + .ant-tabs-tab { margin-left: 28px !important; }
         .onb-settings-tabs .ant-tabs-tab-active .ant-tabs-tab-btn { color: #2563eb !important; }

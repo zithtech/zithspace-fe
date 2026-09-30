@@ -17,6 +17,8 @@ import {
   App,
   Tag,
   Avatar,
+  Pagination,
+  Typography,
 } from "antd";
 import dayjs from "dayjs";
 import {
@@ -163,30 +165,30 @@ export default function PortalAccessTab({ clientId, contacts, onCountChange, onR
       }));
   }, [contacts, users]);
 
-  const filteredUsers = useMemo(() => {
-    if (!search.trim()) return users;
-    const q = search.toLowerCase();
-    return users.filter(
-      (u) =>
-        u.username.toLowerCase().includes(q) ||
-        u.email.toLowerCase().includes(q) ||
-        (u.displayName || "").toLowerCase().includes(q),
-    );
-  }, [users, search]);
+  const [totalCount, setTotalCount] = useState(0);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(15);
+
+  const paginatedUsers = users;
 
   const stats = useMemo(() => {
     const active = users.filter((u) => u.status === "active").length;
     const disabled = users.filter((u) => u.status === "disabled").length;
     const pending = users.filter((u) => u.mustChangePassword).length;
-    return { total: users.length, active, disabled, pending };
-  }, [users]);
+    return { total: totalCount || users.length, active, disabled, pending };
+  }, [users, totalCount]);
 
-  const load = async () => {
+  const load = async (page = currentPage, size = pageSize, query = search) => {
     setLoading(true);
     try {
-      const data = await clientPortalService.listForClient(clientId);
-      setUsers(data || []);
-      onCountChange?.((data || []).length);
+      const res = await clientPortalService.listForClient(clientId, {
+        page,
+        limit: size,
+        search: query.trim() || undefined,
+      });
+      setUsers(res.data || []);
+      setTotalCount(res.meta.total);
+      onCountChange?.(res.meta.total);
     } catch (err: any) {
       messageApi.error(`Failed to load portal users: ${err?.message}`);
     } finally {
@@ -199,7 +201,7 @@ export default function PortalAccessTab({ clientId, contacts, onCountChange, onR
     try {
       setRefreshing(true);
       await Promise.all([
-        load(),
+        load(currentPage, pageSize, search),
         onRefresh ? onRefresh() : Promise.resolve(),
       ]);
     } catch (err) {
@@ -210,9 +212,18 @@ export default function PortalAccessTab({ clientId, contacts, onCountChange, onR
   };
 
   useEffect(() => {
-    load();
+    load(currentPage, pageSize, search);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [clientId]);
+  }, [clientId, currentPage, pageSize]);
+
+  useEffect(() => {
+    const t = setTimeout(() => {
+      setCurrentPage(1);
+      load(1, pageSize, search);
+    }, 300);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [search]);
 
   // Real-time: another staff tab/window changes credentials → reload here.
   const { socket, connected } = useSocket();
@@ -546,7 +557,7 @@ export default function PortalAccessTab({ clientId, contacts, onCountChange, onR
   ];
 
   return (
-    <div style={{ padding: "4px 0 24px", color: c.text }}>
+    <div style={{ color: c.text }} className="portalaccess-tab-container">
 
       {/* ---------------- Header card ---------------- */}
       <div className="cd-tab-sticky-head">
@@ -659,57 +670,89 @@ export default function PortalAccessTab({ clientId, contacts, onCountChange, onR
       </div>
 
       {/* ---------------- List ---------------- */}
-      {loading ? (
-        <div
-          style={{
-            padding: 48,
-            textAlign: "center",
-            border: `1px solid ${c.border}`,
-            borderRadius: 12,
-            background: c.surfaceElevated,
-            color: c.textSubtle,
-          }}
-        >
-          Loading…
-        </div>
-      ) : users.length === 0 ? (
-        <EmptyState c={c} onCreate={() => setCreateOpen(true)} />
-      ) : filteredUsers.length === 0 ? (
-        <div
-          style={{
-            padding: 32,
-            textAlign: "center",
-            border: `1px dashed ${c.border}`,
-            borderRadius: 12,
-            background: c.surfaceMuted,
-            color: c.textSubtle,
-            fontSize: 13,
-          }}
-        >
-          No portal users match “{search}”.
-        </div>
-      ) : viewMode === "list" ? (
-        <Table
-          dataSource={filteredUsers}
-          columns={columns}
-          rowKey="id"
-          pagination={false}
-          scroll={{ x: "max-content" }}
-          className="premium-table"
-          locale={{ emptyText: <NoData description={<div style={{ color: c.textSubtle }}>No portal users found</div>} /> }}
-        />
-      ) : (
-        <div className="pp-grid">
-          {filteredUsers.map((u) => (
-            <UserCard
-              key={u.id}
-              user={u}
-              c={c}
-              onReset={() => handleReset(u)}
-              onToggle={() => handleToggleStatus(u)}
-              onDelete={() => handleDelete(u)}
-            />
-          ))}
+      <div className="portalaccess-tab-body">
+        {loading ? (
+          <div
+            style={{
+              padding: 48,
+              textAlign: "center",
+              border: `1px solid ${c.border}`,
+              borderRadius: 12,
+              background: c.surfaceElevated,
+              color: c.textSubtle,
+            }}
+          >
+            Loading…
+          </div>
+        ) : users.length === 0 ? (
+          search ? (
+            <div
+              style={{
+                padding: 32,
+                textAlign: "center",
+                border: `1px dashed ${c.border}`,
+                borderRadius: 12,
+                background: c.surfaceMuted,
+                color: c.textSubtle,
+                fontSize: 13,
+              }}
+            >
+              No portal users match “{search}”.
+            </div>
+          ) : (
+            <EmptyState c={c} onCreate={() => setCreateOpen(true)} />
+          )
+        ) : viewMode === "list" ? (
+          <Table
+            dataSource={paginatedUsers}
+            columns={columns}
+            rowKey="id"
+            pagination={false}
+            scroll={{ x: "max-content" }}
+            className="premium-table"
+            locale={{ emptyText: <NoData description={<div style={{ color: c.textSubtle }}>No portal users found</div>} /> }}
+          />
+        ) : (
+          <div className="pp-grid">
+            {paginatedUsers.map((u) => (
+              <UserCard
+                key={u.id}
+                user={u}
+                c={c}
+                onReset={() => handleReset(u)}
+                onToggle={() => handleToggleStatus(u)}
+                onDelete={() => handleDelete(u)}
+              />
+            ))}
+          </div>
+        )}
+      </div>
+
+      {totalCount > 0 && (
+        <div className="pm2-pagination portalaccess-pagination-footer">
+          <Typography.Text style={{ fontSize: 13, color: "var(--text-slate-500)" }}>
+            Showing{" "}
+            <span style={{ color: "var(--text-slate-700)", fontWeight: 700 }}>
+              {(currentPage - 1) * pageSize + 1}–
+              {Math.min(currentPage * pageSize, totalCount)}
+            </span>{" "}
+            of{" "}
+            <span style={{ color: "var(--text-slate-700)", fontWeight: 700 }}>
+              {totalCount}
+            </span>{" "}
+            portal user{totalCount !== 1 ? "s" : ""}
+          </Typography.Text>
+          <Pagination
+            current={currentPage}
+            pageSize={pageSize}
+            total={totalCount}
+            onChange={(page, size) => {
+              setCurrentPage(page);
+              setPageSize(size);
+            }}
+            showSizeChanger
+            pageSizeOptions={[10, 15, 20, 25, 50, 100]}
+          />
         </div>
       )}
 
@@ -973,6 +1016,104 @@ export default function PortalAccessTab({ clientId, contacts, onCountChange, onR
         }
         [data-theme="dark"] .pc-foot-div {
           background: var(--border-slate-800);
+        }
+
+        /* ── Container & Body for full-height stretch ── */
+        .portalaccess-tab-container {
+          display: flex !important;
+          flex-direction: column !important;
+          flex: 1 !important;
+          min-height: 100% !important;
+          padding: 4px 0 0 0 !important;
+          position: relative !important;
+        }
+        .portalaccess-tab-body {
+          flex: 1 0 auto !important;
+          padding-bottom: 16px !important;
+        }
+
+        /* ── Sticky pagination footer (fixed to bottom) ── */
+        .portalaccess-pagination-footer {
+          display: flex !important;
+          align-items: center !important;
+          justify-content: space-between !important;
+          gap: 12px !important;
+          padding: 10px 16px !important;
+          margin-top: auto !important;
+          margin-left: -12px !important;
+          margin-right: -12px !important;
+          margin-bottom: 0 !important;
+          flex-wrap: wrap !important;
+          position: sticky !important;
+          bottom: 0 !important;
+          left: 0 !important;
+          right: 0 !important;
+          background: var(--bg-pure-white) !important;
+          border-top: 1px solid var(--border-slate-200) !important;
+          z-index: 20 !important;
+          box-shadow: 0 -4px 16px rgba(15, 23, 42, 0.04) !important;
+        }
+        [data-theme="dark"] .portalaccess-pagination-footer {
+          background: #0B0F1A !important;
+          border-top-color: #1f2937 !important;
+        }
+        @media (max-width: 900px) {
+          .portalaccess-pagination-footer {
+            margin-left: -12px !important;
+            margin-right: -12px !important;
+            padding-left: 12px !important;
+            padding-right: 12px !important;
+          }
+        }
+        @media (max-width: 720px) {
+          .portalaccess-pagination-footer {
+            margin-left: -12px !important;
+            margin-right: -12px !important;
+            padding-left: 12px !important;
+            padding-right: 12px !important;
+          }
+        }
+
+        .portalaccess-pagination-footer .ant-pagination-item,
+        .portalaccess-pagination-footer .ant-pagination-prev .ant-pagination-item-link,
+        .portalaccess-pagination-footer .ant-pagination-next .ant-pagination-item-link {
+          border: 1px solid var(--border-slate-200) !important;
+          border-radius: 6px !important;
+          background: transparent !important;
+          color: var(--text-slate-500) !important;
+        }
+        .portalaccess-pagination-footer .ant-pagination-item-active {
+          background: #3b82f6 !important;
+          border-color: #3b82f6 !important;
+        }
+        .portalaccess-pagination-footer .ant-pagination-item-active a {
+          color: #fff !important;
+        }
+        .portalaccess-pagination-footer .ant-select-selector {
+          border: 1px solid var(--border-slate-200) !important;
+          border-radius: 6px !important;
+          background: transparent !important;
+          height: 28px !important;
+          font-size: 12px !important;
+        }
+        [data-theme="dark"] .portalaccess-pagination-footer .ant-pagination-item,
+        [data-theme="dark"] .portalaccess-pagination-footer .ant-pagination-prev .ant-pagination-item-link,
+        [data-theme="dark"] .portalaccess-pagination-footer .ant-pagination-next .ant-pagination-item-link {
+          border-color: #374151 !important;
+          background: #111827 !important;
+          color: #9ca3af !important;
+        }
+        [data-theme="dark"] .portalaccess-pagination-footer .ant-pagination-item-active {
+          background: #3b82f6 !important;
+          border-color: #3b82f6 !important;
+        }
+        [data-theme="dark"] .portalaccess-pagination-footer .ant-pagination-item-active a {
+          color: #fff !important;
+        }
+        [data-theme="dark"] .portalaccess-pagination-footer .ant-select-selector {
+          border-color: #374151 !important;
+          background: #111827 !important;
+          color: #e5e7eb !important;
         }
       `}} />
     </div>

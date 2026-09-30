@@ -271,7 +271,12 @@ const ProjectOverviewPage = () => {
           )}
 
           {activeView === "sprint" && (
-            <SprintTable sprints={sprints} selectedSprintId={selectedSprintId} onSelectSprint={setSelectedSprintId} />
+            <SprintTable
+              projectId={projectId}
+              sprints={sprints}
+              selectedSprintId={selectedSprintId}
+              onSelectSprint={setSelectedSprintId}
+            />
           )}
 
           {activeView === "timeline" &&
@@ -283,7 +288,7 @@ const ProjectOverviewPage = () => {
               <TimelineTree tickets={timelineTickets ?? []} />
             ))}
 
-          {activeView === "team" && <TeamProgressCards members={team} />}
+          {activeView === "team" && <TeamProgressCards members={team} projectId={projectId} />}
         </div>
       </div>
 

@@ -85,11 +85,14 @@ interface ErrorResponse {
 
 export interface PaginatedResponse<T = any> {
   data: T[];
-  pagination: { pageSizeOptions: [10, 20, 25, 50, 100], current: number;
+  pagination: {
+    pageSizeOptions: [10, 20, 25, 50, 100];
+    current: number;
     pageSize: number;
     total: number;
     totalPages: number;
   };
+  stats?: any;
 }
 
 // Custom error class for API errors
@@ -508,8 +511,9 @@ export const apiUtils = {
             current: response.data.pagination.page,
             pageSize: response.data.pagination.limit,
             total: response.data.pagination.total,
-            totalPages: response.data.pagination.pages,
-          }
+            totalPages: response.data.pagination.pages || response.data.pagination.totalPages || 1,
+          },
+          stats: response.data.stats,
         };
       } else {
         // Fallback for endpoints that haven't been updated to return pagination

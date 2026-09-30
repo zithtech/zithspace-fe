@@ -63,20 +63,8 @@ interface LiveStatus {
 const { RangePicker } = DatePicker;
 
 // ── Module palette: blue / green / red / grey only ──────────────────────────
-const PALETTE = {
-  blue: '#3B82F6',
-  green: '#10B981',
-  amber: '#F59E0B',
-  red: '#EF4444',
-  grey: '#94A3B8',
-} as const;
-const TINT = {
-  blue: 'rgba(59,130,246,0.10)',
-  green: 'rgba(16,185,129,0.10)',
-  amber: 'rgba(245,158,11,0.12)',
-  red: 'rgba(239,68,68,0.10)',
-  grey: 'rgba(148,163,184,0.12)',
-} as const;
+import { PALETTE, TINT, StatCards } from '@/components/attendance/ui';
+import { FilterBar, FilterToggleButton, TicketFilterPill } from '@/components/common/FilterBar';
 
 type StatusValue = 'present' | 'late' | 'absent';
 
@@ -148,7 +136,7 @@ const AreaSparkline = ({ values, color }: { values: number[]; color: string }) =
   );
 };
 
-const PAGE_SIZE_OPTIONS = [10, 20, 25, 50, 100];
+const PAGE_SIZE_OPTIONS = [10, 15, 20, 25, 50, 100];
 
 // Decorative sparkline shapes (no per-status time-series exists yet).
 const TRENDS: Record<string, number[]> = {
@@ -189,10 +177,11 @@ export default function ManageAttendancePanel() {
     dayjs().startOf('day'),
     dayjs().endOf('day'),
   ]);
+  const [isFilterRowOpen, setIsFilterRowOpen] = useState(false);
 
   // pagination (server-side)
   const [tablePage, setTablePage] = useState(1);
-  const [tablePageSize, setTablePageSize] = useState(20);
+  const [tablePageSize, setTablePageSize] = useState(15);
 
   // drawer
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -200,6 +189,9 @@ export default function ManageAttendancePanel() {
   const [saving, setSaving] = useState(false);
   const [form] = Form.useForm();
   const statusValue = Form.useWatch('status', form);
+  const watchedMember = Form.useWatch('member', form);
+  const watchedDate = Form.useWatch('date', form);
+  const [existingRecordBanner, setExistingRecordBanner] = useState<string | null>(null);
 
   // reopen-day modal
   const [reopenTarget, setReopenTarget] = useState<ExtendedAttendance | null>(null);
@@ -250,6 +242,73 @@ export default function ManageAttendancePanel() {
   useEffect(() => {
     if (canReadAttendance || canManageAttendance) load();
   }, [canReadAttendance, canManageAttendance, load]);
+
+  // Auto-detect if an attendance record already exists for the selected member & date,
+  // and load its status, notes, and Work & Breaks intervals into the form.
+  useEffect(() => {
+    if (!drawerOpen || !watchedMember || !watchedDate) {
+      setExistingRecordBanner(null);
+      return;
+    }
+
+    const dateStr = dayjs(watchedDate).format('YYYY-MM-DD');
+
+    // If currently editing and member/date match, retain current banner/editing state
+    if (editing) {
+      const eMemberId = editing.member?.id || (editing as any).userId || (editing as any).user_id || (editing as any).member;
+      const eDateStr = editing.date
+        ? (typeof editing.date === 'string' ? editing.date.split('T')[0] : dayjs(editing.date).format('YYYY-MM-DD'))
+        : '';
+      if (eMemberId === watchedMember && eDateStr === dateStr) {
+        return;
+      }
+    }
+
+    let active = true;
+    const checkRecord = async () => {
+      try {
+        // Look in loaded table rows first
+        let existing = rows.find((r) => {
+          const mId = r.member?.id || (r as any).userId || (r as any).user_id || (r as any).member;
+          const rDateStr = r.date
+            ? (typeof r.date === 'string' ? r.date.split('T')[0] : dayjs(r.date).format('YYYY-MM-DD'))
+            : '';
+          return mId === watchedMember && rDateStr === dateStr;
+        });
+
+        // If not in visible table rows, query backend API
+        if (!existing) {
+          const res = await AttendanceService.getAttendance({
+            member: watchedMember,
+            startDate: dateStr,
+            endDate: dateStr,
+            limit: 1,
+          });
+          if (res.data && res.data.length > 0) {
+            existing = res.data[0] as ExtendedAttendance;
+          }
+        }
+
+        if (active && existing) {
+          const memberObj = members.find((m) => m.id === watchedMember);
+          const memberName = memberObj?.name || existing.member?.name || 'this member';
+          setExistingRecordBanner(`Existing attendance record found for ${memberName} on ${dayjs(watchedDate).format('MMM DD, YYYY')}. Loaded details for editing.`);
+          openEdit(existing);
+        } else if (active && !existing) {
+          setExistingRecordBanner(null);
+          if (editing) setEditing(null);
+        }
+      } catch {
+        /* non-fatal fallback */
+      }
+    };
+
+    const timer = setTimeout(checkRecord, 350);
+    return () => {
+      active = false;
+      clearTimeout(timer);
+    };
+  }, [drawerOpen, watchedMember, watchedDate, editing, rows, members]);
 
   // Live updates: any clock-in / pause / resume / complete across the tenant
   // updates the on-break overlay instantly and refreshes the table (debounced).
@@ -317,6 +376,7 @@ export default function ManageAttendancePanel() {
   // ── Drawer handlers ────────────────────────────────────────────────────────
   const openCreate = () => {
     setEditing(null);
+    setExistingRecordBanner(null);
     form.resetFields();
     form.setFieldsValue({
       date: dayjs(),
@@ -343,11 +403,11 @@ export default function ManageAttendancePanel() {
           reason: '',
         });
         const next = sessions[idx + 1];
-        if (s.breakType && next) {
+        if (s.breakType) {
           timeline.push({
             type: s.breakType,
             start: s.clockOut ? dayjs(s.clockOut) : null,
-            end: next.clockIn ? dayjs(next.clockIn) : null,
+            end: next?.clockIn ? dayjs(next.clockIn) : null,
             reason: s.breakReason || '',
           });
         }
@@ -363,9 +423,11 @@ export default function ManageAttendancePanel() {
       timeline.push({ type: 'work', start: null, end: null, reason: '' });
     }
 
+    const memberId = record.member?.id || (record as any).userId || (record as any).user_id || (record as any).member;
+
     form.setFieldsValue({
-      member: record.member?.id,
-      date: record.date ? dayjs(record.date) : dayjs(),
+      member: memberId,
+      date: record.date ? (typeof record.date === 'string' ? dayjs(record.date.split('T')[0]) : dayjs(record.date)) : dayjs(),
       status: record.status,
       notes: record.notes,
       timeline,
@@ -461,7 +523,7 @@ export default function ManageAttendancePanel() {
 
       const payload: any = {
         userId: values.member,
-        date: selectedDate.toISOString(),
+        date: selectedDate.format('YYYY-MM-DD'),
         status: values.status,
         notes: values.notes,
       };
@@ -558,7 +620,7 @@ export default function ManageAttendancePanel() {
       title: 'Date',
       dataIndex: 'date',
       key: 'date',
-      render: (v) => (v ? dayjs(v).format('MMM DD, YYYY') : '-'),
+      render: (v) => (v ? (typeof v === 'string' ? dayjs(v.split('T')[0]).format('MMM DD, YYYY') : dayjs(v).format('MMM DD, YYYY')) : '-'),
     },
     {
       title: 'Status',
@@ -605,19 +667,21 @@ export default function ManageAttendancePanel() {
       key: 'actions',
       width: 90,
       align: 'right',
-      render: (_, r) => (
-        <div style={{ display: 'flex', gap: 4, justifyContent: 'flex-end' }}>
-          {canUpdateAttendance && r.clockOut && (
-            <Tooltip title="Reopen day">
-              <Button
-                type="text"
-                size="small"
-                icon={<PlayCircleOutlined />}
-                style={{ color: PALETTE.green }}
-                onClick={() => openReopen(r)}
-              />
-            </Tooltip>
-          )}
+      render: (_, r) => {
+        const isToday = r.date ? dayjs(r.date).isSame(dayjs(), 'day') : false;
+        return (
+          <div style={{ display: 'flex', gap: 4, justifyContent: 'flex-end' }}>
+            {canUpdateAttendance && isToday && r.clockOut && (
+              <Tooltip title="Reopen day">
+                <Button
+                  type="text"
+                  size="small"
+                  icon={<PlayCircleOutlined />}
+                  style={{ color: PALETTE.green }}
+                  onClick={() => openReopen(r)}
+                />
+              </Tooltip>
+            )}
           {canUpdateAttendance && (
             <Tooltip title="Edit"><Button type="text" size="small" icon={<EditOutlined />} onClick={() => openEdit(r)} /></Tooltip>
           )}
@@ -634,8 +698,9 @@ export default function ManageAttendancePanel() {
               <Button type="text" size="small" danger icon={<DeleteOutlined />} />
             </ConfirmDialog>
           )}
-        </div>
-      ),
+          </div>
+        );
+      },
     },
   ];
 
@@ -727,6 +792,11 @@ export default function ManageAttendancePanel() {
             <SearchOutlined className="att-search-icon" />
             <input className="att-search" placeholder="Search by member name…" value={search} onChange={(e) => setSearch(e.target.value)} />
           </div>
+          <FilterToggleButton
+            isOpen={isFilterRowOpen}
+            onToggle={() => setIsFilterRowOpen((prev) => !prev)}
+            activeCount={(statusFilter ? 1 : 0) + (memberFilter ? 1 : 0) + (projectFilter ? 1 : 0) + (dateRange ? 1 : 0)}
+          />
           <Tooltip title="Refresh"><button type="button" className="att-ghost-btn" onClick={load}><ReloadOutlined spin={loading} /></button></Tooltip>
           {canCreateAttendance && (
             <Button type="primary" icon={<PlusOutlined />} onClick={openCreate} className="att-add-btn">Add Record</Button>
@@ -735,81 +805,67 @@ export default function ManageAttendancePanel() {
       </div>
 
       {/* ── 2) STAT CARDS ─────────────────────────────────────────────────────── */}
-      <div className="att-stats">
-        {statCells.map((s) => (
-          <div key={s.key} className="att-stat-card">
-            <div className="att-stat-top">
-              <div className="att-stat-left">
-                <span className="att-stat-icon" style={{ background: s.tint, color: s.color }}>{s.icon}</span>
-                <span className="att-stat-label">{s.title}</span>
-              </div>
-            </div>
-            <div className="att-stat-bottom">
-              <div className="att-stat-value-wrap">
-                <span className="att-stat-value">{s.value}</span>
-                <span className="att-stat-period">{s.period}</span>
-              </div>
-              <div className="att-stat-spark"><AreaSparkline values={s.trend} color={s.color} /></div>
-            </div>
-          </div>
-        ))}
-      </div>
+      <StatCards
+        title="Attendance Overview"
+        statusText="LIVE"
+        progressPct={(stats.present + stats.late + stats.absent) > 0 ? Math.round((stats.present / (stats.present + stats.late + stats.absent)) * 100) : 0}
+        cells={statCells.map(s => ({
+          label: s.title,
+          value: <>{s.value} <span style={{ fontSize: 11, fontWeight: 500, color: 'var(--text-slate-400)' }}>{s.period}</span></>,
+          icon: s.icon,
+          color: s.color,
+          tint: s.tint
+        }))}
+      />
 
       {/* ── 3) FILTERS ────────────────────────────────────────────────────────── */}
-      <div className="att-filters">
-        <span className="att-filter-label"><FilterOutlined /> Filter</span>
-        <SearchableDropdown
-          className="att-filter-dd"
-          placeholder="Status"
-          searchPlaceholder="Search statuses"
-          itemNoun="statuses"
-          value={statusFilter}
-          onChange={(v) => setStatusFilter((v as StatusValue) ?? undefined)}
-          options={[
-            { value: 'present', label: 'Present' },
-            { value: 'late', label: 'Late' },
-            { value: 'absent', label: 'Absent' },
-          ]}
-          style={{ width: 150 }}
-          width={210}
-        />
-        <SearchableDropdown
-          className="att-filter-dd"
-          placeholder="Member"
-          searchPlaceholder="Search members"
-          itemNoun="members"
-          value={memberFilter}
-          onChange={(v) => setMemberFilter((v as string) ?? undefined)}
-          options={members.map((m) => ({ value: m.id, label: m.name || '—', avatarUrl: m.avatarUrl }))}
-          style={{ width: 170 }}
-          width={240}
-        />
-        <SearchableDropdown
-          className="att-filter-dd"
-          placeholder="Project"
-          searchPlaceholder="Search projects"
-          itemNoun="projects"
-          value={projectFilter}
-          onChange={(v) => setProjectFilter((v as string) ?? undefined)}
-          options={projects}
-          style={{ width: 170 }}
-          width={240}
-        />
-        <RangePicker
-          className="att-range"
-          value={dateRange}
-          onChange={(dates) => {
-            if (dates && dates[0] && dates[1]) setDateRange([dates[0].startOf('day'), dates[1].endOf('day')]);
-            else setDateRange(null);
-          }}
-        />
-        <span className="att-filter-count">{rows.length} of {total}</span>
-        {hasActiveFilters && (
-          <button type="button" className="att-clear" onClick={clearFilters}><CloseCircleOutlined /> Clear</button>
-        )}
-      </div>
-
-      {/* ── 4) TABLE ──────────────────────────────────────────────────────────── */}
+      {isFilterRowOpen && (
+        <FilterBar
+          activeCount={(statusFilter ? 1 : 0) + (memberFilter ? 1 : 0) + (projectFilter ? 1 : 0) + (dateRange ? 1 : 0)}
+          onReset={clearFilters}
+          onClose={() => setIsFilterRowOpen(false)}
+        >
+          <TicketFilterPill
+            label="Status"
+            icon={<CheckCircleOutlined />}
+            value={statusFilter}
+            options={[
+              { value: 'present', label: 'Present', dotColor: '#10b981' },
+              { value: 'late', label: 'Late', dotColor: '#f59e0b' },
+              { value: 'absent', label: 'Absent', dotColor: '#ef4444' },
+            ]}
+            onChange={(v) => setStatusFilter((v as StatusValue) || undefined)}
+          />
+          <TicketFilterPill
+            label="Member"
+            icon={<UserOutlined />}
+            value={memberFilter}
+            options={members.map((m) => ({
+              value: m.id,
+              label: m.name || '—',
+              initials: initialsFor(m.name || '—'),
+              avatarColor: avatarColorFor(m.name || '—'),
+            }))}
+            onChange={(v) => setMemberFilter((v as string) || undefined)}
+          />
+          <TicketFilterPill
+            label="Project"
+            icon={<TeamOutlined />}
+            value={projectFilter}
+            options={projects.map((p) => ({ value: p.value, label: p.label }))}
+            onChange={(v) => setProjectFilter((v as string) || undefined)}
+          />
+          <RangePicker
+            className="att-range"
+            value={dateRange}
+            style={{ borderRadius: 8, height: 32 }}
+            onChange={(dates) => {
+              if (dates && dates[0] && dates[1]) setDateRange([dates[0].startOf('day'), dates[1].endOf('day')]);
+              else setDateRange(null);
+            }}
+          />
+        </FilterBar>
+      )}
       <div className="att-table-wrap" style={{ overflowX: 'auto' }}>
         <ZukvoLoadingOverlay loading={loading} message="">
           <Table
@@ -956,6 +1012,27 @@ export default function ManageAttendancePanel() {
             requiredMark="optional"
             className="customer-drawer-form att-drawer-form"
           >
+            {existingRecordBanner && (
+              <div
+                style={{
+                  padding: '10px 14px',
+                  marginBottom: 14,
+                  borderRadius: 8,
+                  background: 'rgba(59,130,246,0.08)',
+                  border: '1px solid rgba(59,130,246,0.30)',
+                  color: '#1d4ed8',
+                  fontSize: 12.5,
+                  fontWeight: 600,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 8,
+                }}
+              >
+                <InfoCircleOutlined style={{ fontSize: 16, flexShrink: 0 }} />
+                <span>{existingRecordBanner}</span>
+              </div>
+            )}
+
             {/* STEP 1 — Record Details */}
             <SectionCard
               icon={<InfoCircleOutlined />}
@@ -974,7 +1051,6 @@ export default function ManageAttendancePanel() {
                   placeholder="Select member"
                   searchPlaceholder="Search members"
                   itemNoun="members"
-                  disabled={!!editing}
                   options={members.map((m) => ({ value: m.id, label: m.name || '—' }))}
                   style={{ width: '100%', height: 40 }}
                   width={240}

@@ -91,7 +91,7 @@ const SORTS: { value: SortKey; label: string; description: string }[] = [
 ];
 
 export default function PlaybooksPage() {
-  useActivitySource({ section: "WORK", module: "QA", page: "Playbooks" });
+  useActivitySource({ section: "WORK", module: "Playbooks", page: "QaPlaybooks" });
 
   const router = useRouter();
   const queryClient = useQueryClient();
@@ -115,8 +115,7 @@ export default function PlaybooksPage() {
 
   const hasRequestPlaybookFeature = Boolean(
     user?.subscriptionFeatures &&
-    (user.subscriptionFeatures.includes("work_playbooks_requested_playbooks_request_playbook") ||
-     user.subscriptionFeatures.includes("work_playbooks_qa_playbooks_request_playbook"))
+    user.subscriptionFeatures.includes("work_playbooks_requested_playbooks_request_playbook")
   );
   const hasRequestedFeature = Boolean(
     user?.subscriptionFeatures &&
@@ -145,6 +144,12 @@ export default function PlaybooksPage() {
   const hasNewPlaybookFeature = Boolean(
     user?.subscriptionFeatures &&
     user.subscriptionFeatures.includes("work_playbooks_qa_playbooks_new_playbook")
+  );
+  const hasTrashFeature = Boolean(
+    user?.subscriptionFeatures &&
+    (user.subscriptionFeatures.includes("work_playbooks_qa_playbooks_upload") ||
+     user.subscriptionFeatures.includes("work_playbooks_collections_new_collections") ||
+     user.subscriptionFeatures.includes("work_playbooks_qa_playbooks_new_playbook"))
   );
   /**
    * The second step INSIDE a collection.
@@ -636,7 +641,7 @@ export default function PlaybooksPage() {
 
             {((hasRequestPlaybookFeature && canRequestPlaybook) ||
               (hasRequestedFeature && canReadPlaybook) ||
-              canReadPlaybookTrash) && (
+              (hasTrashFeature && canReadPlaybookTrash)) && (
               <div className="pb-toolbar__actions">
                 {hasRequestPlaybookFeature && canRequestPlaybook && (
                   <Tooltip title="Nothing in the library for the feature you are testing? Ask for it.">
@@ -660,7 +665,7 @@ export default function PlaybooksPage() {
                   </Button>
                 )}
 
-                {canReadPlaybookTrash && (
+                {hasTrashFeature && canReadPlaybookTrash && (
                   <Tooltip title="View and restore deleted playbooks, collections, and categories">
                     <Button
                       className="pb-btn"

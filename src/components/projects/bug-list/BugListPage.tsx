@@ -475,6 +475,7 @@ export default function BugListPage() {
     !!selectedProjectId &&
     !(folders?.length === 0 && scope === "all" && !foldersLoading) &&
     (scope !== "archived" || !!selectedSheetId) &&
+    (scope !== "trash" || !!selectedSheetId) &&
     !!bugsResponse?.pagination &&
     total > 0;
 
@@ -994,6 +995,7 @@ export default function BugListPage() {
                       ticketStatusOptions={[
                         { value: "all", label: "All bugs" },
                         { value: "linked", label: "Linked to tickets" },
+                        { value: "completed", label: "Completed tickets" },
                         { value: "unlinked", label: "No ticket" }
                       ]}
                     />
@@ -1158,6 +1160,7 @@ export default function BugListPage() {
                 options={[
                   { value: "all", label: "All bugs" },
                   { value: "linked", label: "Linked to tickets" },
+                  { value: "completed", label: "Completed tickets" },
                   { value: "unlinked", label: "No ticket" }
                 ]}
                 onChange={(val: any) => setFilters(f => ({ ...f, ticketStatus: val }))}
@@ -1505,6 +1508,7 @@ export default function BugListPage() {
             <>
               {scope === "archived" && !selectedSheetId && (
                 <ArchiveView
+                  projectId={selectedProjectId || undefined}
                   selectedSheetId={selectedSheetId}
                   selectedFolderId={selectedFolderId}
                   onSelectFolder={setSelectedFolderId}
@@ -1520,6 +1524,7 @@ export default function BugListPage() {
               )}
               {scope === "trash" && !selectedSheetId && (
                 <TrashView
+                  projectId={selectedProjectId || undefined}
                   selectedSheetId={selectedSheetId}
                   selectedFolderId={selectedFolderId}
                   onSelectFolder={setSelectedFolderId}

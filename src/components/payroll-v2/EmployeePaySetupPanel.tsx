@@ -10,6 +10,7 @@ import {
   CloseCircleOutlined, UserOutlined, TeamOutlined, CheckCircleOutlined, DollarOutlined, StopOutlined,
   IdcardOutlined, HistoryOutlined, PieChartOutlined,
 } from '@ant-design/icons';
+import { StatCards } from '@/components/payroll-v2/ui';
 import { usePermission } from '@/hooks/usePermission';
 import { SearchableDropdown } from '@/components/common/SearchableDropdown';
 import ConfirmDialog from '@/components/common/ConfirmDialog';
@@ -19,6 +20,7 @@ import PayrollV2Service, {
   MemberOption, EmployeeAssignmentListItem, PayStructureListItem, AssignmentComponent, StructureTotals, ComponentCategory, EmployeeProfile,
 } from '@/services/payrollV2Service';
 import { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
+import { FilterBar, FilterToggleButton, TicketFilterPill, FilterPillOption } from '@/components/common/FilterBar';
 
 const PALETTE = { slate: '#64748B', blue: '#3B82F6', green: '#10B981', red: '#EF4444', violet: '#8B5CF6', amber: '#F59E0B', grey: '#94A3B8' } as const;
 const TINT = { slate: 'rgba(100,116,139,0.12)', blue: 'rgba(59,130,246,0.10)', green: 'rgba(16,185,129,0.10)', amber: 'rgba(245,158,11,0.10)' } as const;
@@ -26,7 +28,7 @@ const CAT_COLOR: Record<ComponentCategory, string> = { earning: PALETTE.green, d
 
 const inr = new Intl.NumberFormat('en-IN', { maximumFractionDigits: 0 });
 const money = (n: number) => `₹${inr.format(Math.round(n))}`;
-const PAGE_SIZE_OPTIONS = [10, 20, 25, 50, 100];
+const PAGE_SIZE_OPTIONS = [10, 15, 20, 25, 50, 100];
 type StatusFilter = 'all' | 'assigned' | 'unassigned';
 
 interface Row {
@@ -76,9 +78,10 @@ export default function EmployeePaySetupPanel() {
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
+  const [isFilterRowOpen, setIsFilterRowOpen] = useState(false);
 
   const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(20);
+  const [pageSize, setPageSize] = useState(15);
   const [totalEmployees, setTotalEmployees] = useState(0);
 
   // profile drawer
@@ -309,31 +312,39 @@ export default function EmployeePaySetupPanel() {
             <SearchOutlined className="pvep-search-icon" />
             <input className="pvep-search" placeholder="Search name or role…" value={search} onChange={(e) => setSearch(e.target.value)} />
           </div>
+          <FilterToggleButton
+            isOpen={isFilterRowOpen}
+            onToggle={() => setIsFilterRowOpen((prev) => !prev)}
+            activeCount={statusFilter !== 'all' ? 1 : 0}
+          />
           <Tooltip title="Refresh"><button type="button" className="pvep-ghost-btn" onClick={() => load()}><ReloadOutlined spin={loading} /></button></Tooltip>
         </div>
       </div>
 
-      <div className="pvep-stats">
-        {statCells.map((s) => (
-          <div key={s.key} className="pvep-stat-card">
-            <div className="pvep-stat-left"><span className="pvep-stat-icon" style={{ background: s.tint, color: s.color }}>{s.icon}</span><span className="pvep-stat-label">{s.title}</span></div>
-            <div className="pvep-stat-value-wrap"><span className="pvep-stat-value">{s.value}</span><span className="pvep-stat-period">{s.period}</span></div>
-          </div>
-        ))}
-      </div>
+      <StatCards cells={statCells.map(s => ({ label: s.title, value: s.value, icon: s.icon, color: s.color, tint: s.tint }))} />
 
-      <div className="pvep-filters">
-        <span className="pvep-filter-label"><FilterOutlined /> Filter</span>
-        <SearchableDropdown className="pvep-dd" placeholder="Status" searchPlaceholder="Search" itemNoun="statuses"
-          value={statusFilter === 'all' ? undefined : statusFilter} onChange={(v) => setStatusFilter((v as StatusFilter) ?? 'all')}
-          options={[{ value: 'assigned', label: 'Assigned' }, { value: 'unassigned', label: 'Not set up' }]} style={{ width: 170 }} width={210} />
-        <span className="pvep-filter-count">{filtered.length}</span>
-        {hasFilters && <button type="button" className="pvep-clear" onClick={() => { setSearch(''); setStatusFilter('all'); }}><CloseCircleOutlined /> Clear</button>}
-      </div>
+      {isFilterRowOpen && (
+        <FilterBar
+          activeCount={statusFilter !== 'all' ? 1 : 0}
+          onReset={() => setStatusFilter('all')}
+          onClose={() => setIsFilterRowOpen(false)}
+        >
+          <TicketFilterPill
+            label="Status"
+            icon={<CheckCircleOutlined />}
+            value={statusFilter === 'all' ? undefined : statusFilter}
+            options={[
+              { value: 'assigned', label: 'Assigned', dotColor: '#10b981' },
+              { value: 'unassigned', label: 'Not set up', dotColor: '#f59e0b' },
+            ]}
+            onChange={(v) => setStatusFilter((v as StatusFilter) || 'all')}
+          />
+        </FilterBar>
+      )}
 
-      <div className="pvep-table-wrap">
+      <div className="pv-table-wrap">
         <ZukvoLoadingOverlay loading={loading} message="">
-          <Table rowKey={(r) => r.employee.value} size="small" className="pvep-table" columns={columns} dataSource={pagedRows} pagination={false} onRow={() => ({ className: 'pvep-row' })} scroll={{ x: 'max-content' }} locale={{ emptyText: <NoData /> }} />
+          <Table rowKey={(r) => r.employee.value} size="small" columns={columns} dataSource={pagedRows} pagination={false} onRow={() => ({ className: 'pvep-row' })} scroll={{ x: 'max-content' }} locale={{ emptyText: <NoData /> }} />
         </ZukvoLoadingOverlay>
       </div>
 
@@ -447,7 +458,7 @@ export default function EmployeePaySetupPanel() {
 
       <style jsx global>{`
         .pvep { display: flex; flex-direction: column; flex: 1; min-height: 0; }
-        .pvep-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding-bottom: 14px; margin-bottom: 14px; border-bottom: 1px solid var(--border-slate-200); flex-wrap: wrap; }
+        .pvep-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding-bottom: 14px; margin-bottom: 0; border-bottom: 1px solid var(--border-slate-200); flex-wrap: wrap; }
         .pvep-header-about { display: flex; align-items: center; gap: 12px; flex: 1 1 auto; min-width: 250px; }
         .pvep-header-icon { width: 38px; height: 38px; border-radius: 10px; flex-shrink: 0; background: ${TINT.slate}; color: ${PALETTE.slate}; display: inline-flex; align-items: center; justify-content: center; font-size: 18px; }
         .pvep-header-title { font-size: 17px; font-weight: 800; color: var(--text-slate-900); letter-spacing: -0.02em; line-height: 1.15; }
@@ -489,14 +500,14 @@ export default function EmployeePaySetupPanel() {
         .pvep-table .ant-table-tbody > tr.pvep-row:hover > td { background: var(--bg-slate-50) !important; }
 
         .pvep-footer { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; height: 52px; box-sizing: border-box; }
-        .pvep-footer--sticky { position: sticky; bottom: 0; z-index: 20; margin: auto -22px 0; padding: 0 22px; background: var(--bg-pure-white); border-top: 1px solid var(--border-slate-200); box-shadow: 0 -4px 14px rgba(15,23,42,0.05); }
+        .pvep-footer--sticky { position: sticky; bottom: 0; z-index: 20; margin: 0; padding: 0 22px; background: var(--bg-pure-white); border-top: 1px solid var(--border-slate-200); box-shadow: 0 -4px 14px rgba(15,23,42,0.05); }
         .pvep-footer-info { font-size: 12px; color: var(--text-slate-500); }
         .pvep-footer-info strong { color: var(--text-slate-700); font-weight: 700; }
         .pvep-pager { display: flex; align-items: center; gap: 3px; }
         .pvep-pager-btn, .pvep-pager-num { min-width: 28px; height: 28px; border-radius: 7px; border: 1px solid var(--border-slate-200); background: var(--bg-pure-white); color: var(--text-slate-600); cursor: pointer; font-size: 12.5px; font-weight: 600; }
-        .pvep-pager-btn:hover:not(:disabled), .pvep-pager-num:hover { border-color: #cbd5e1; color: ${PALETTE.slate}; }
+        .pvep-pager-btn:hover:not(:disabled), .pvep-pager-num:hover { border-color: #93c5fd; color: #3b82f6; }
         .pvep-pager-btn:disabled { opacity: 0.4; cursor: not-allowed; }
-        .pvep-pager-num.is-active { background: ${PALETTE.slate}; border-color: ${PALETTE.slate}; color: #fff; }
+        .pvep-pager-num.is-active { background: #3b82f6; border-color: #3b82f6; color: #fff; }
         .pvep-pagesize { margin-left: 5px; }
         .pvep-pagesize .ant-select-selector { border-radius: 7px !important; height: 28px !important; }
 

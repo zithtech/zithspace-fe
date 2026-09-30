@@ -197,7 +197,7 @@ export default function ApprovalsQueuePanel() {
       {loading && rows.length === 0 ? (
         <Skeleton active paragraph={{ rows: 5 }} />
       ) : (
-        <div className="omp-table-wrap">
+        <div className="opn-table-wrap">
           <Table<PendingApprovalItem>
             rowKey={(r) => r.approval.id}
             size="small"

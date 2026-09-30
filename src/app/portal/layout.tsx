@@ -16,7 +16,7 @@ export default function PortalLayout({
 
   useEffect(() => {
     const prev = document.title;
-    document.title = "Zukvo · Client Portal";
+    document.title = "Client Portal";
     return () => {
       document.title = prev;
     };

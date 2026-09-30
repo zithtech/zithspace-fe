@@ -33,11 +33,12 @@ import {
   Link2,
   History,
   RotateCcw,
+  RefreshCcw,
   Info,
   Plus,
   PanelRightOpen,
 } from "lucide-react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 
 import { usePermission } from "@/hooks/usePermission";
 import { useActivitySource } from "@/hooks/useActivitySource";
@@ -133,6 +134,17 @@ export default function QaSubmissionDetailPage() {
 
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const from = searchParams?.get("from");
+
+  const handleBack = () => {
+    if (from === "approvals") {
+      router.push("/qa-workspace/approvals");
+    } else {
+      router.push("/qa-workspace/qa-submissions");
+    }
+  };
+
   const {
     canReadSubmission,
     canUpdateSubmission,
@@ -140,6 +152,7 @@ export default function QaSubmissionDetailPage() {
     canSignOffSubmission,
     canApproveSubmission,
     canSendBackSubmission,
+    canManageQa,
   } = usePermission();
   const { user } = useAuth();
 
@@ -156,6 +169,8 @@ export default function QaSubmissionDetailPage() {
   const [sendBackReason, setSendBackReason] = useState("");
   const [approveOpen, setApproveOpen] = useState(false);
   const [approveComment, setApproveComment] = useState("");
+  const [retestOpen, setRetestOpen] = useState(false);
+  const [retestComment, setRetestComment] = useState("");
   const [reopenOpen, setReopenOpen] = useState(false);
   const [reopenReason, setReopenReason] = useState("");
 
@@ -181,11 +196,11 @@ export default function QaSubmissionDetailPage() {
       setData(await QaSubmissionService.get(id));
     } catch (e: any) {
       message.error(e?.response?.data?.error || "Failed to load the submission");
-      router.replace("/qa-workspace/qa-submissions");
+      router.replace(from === "approvals" ? "/qa-workspace/approvals" : "/qa-workspace/qa-submissions");
     } finally {
       setLoading(false);
     }
-  }, [id, router, message]);
+  }, [id, router, message, from]);
 
   useEffect(() => {
     if (canReadSubmission) load();
@@ -359,6 +374,8 @@ export default function QaSubmissionDetailPage() {
 
   const e = summary.execution;
 
+  const isReportsTo = !!data && !!user && user.id === data.owner_reports_to_id;
+
   /**
    * Approval is open from the moment results are reported, not only after QA
    * signs off — the same rule the Approvals queue works to. A Draft has nothing
@@ -367,8 +384,14 @@ export default function QaSubmissionDetailPage() {
   const canApprove =
     canApproveSubmission &&
     data &&
-    !["Draft", "Approved"].includes(data.status) &&
-    user?.id === data.owner_reports_to_id;
+    !["Draft", "Approved", "QA Signed-off"].includes(data.status) &&
+    isReportsTo;
+
+  const canRequestRetest =
+    canApproveSubmission &&
+    data &&
+    !["Draft", "Approved", "QA Signed-off", "Retesting"].includes(data.status) &&
+    isReportsTo;
 
   /**
    * QA Sign-off is the last step, not the middle one: it only opens once the
@@ -389,7 +412,7 @@ export default function QaSubmissionDetailPage() {
       <div className="dh-main" style={{ height: "calc(100vh - 64px)" }}>
         <div className="dh-main-topbar sc-topbar">
           <div className="sc-topbar__title">
-            <Button type="text" icon={<ArrowLeftOutlined />} onClick={() => router.push("/qa-workspace/qa-submissions")} />
+            <Button type="text" icon={<ArrowLeftOutlined />} onClick={handleBack} />
             <span className="sc-topbar__h1">QA Submission</span>
             <span className="sc-topbar__div" />
             <span className="sc-topbar__sub">{STATUS_HELP[data.status] || ""}</span>
@@ -470,7 +493,18 @@ export default function QaSubmissionDetailPage() {
                       Approve submission
                     </Button>
                   )}
-                  {canSendBackSubmission && !["Draft", "Approved", "Sent Back"].includes(data.status) && (
+                  {canRequestRetest && (
+                    <Button
+                      icon={<RefreshCcw size={14} />}
+                      onClick={() => {
+                        setRetestComment("");
+                        setRetestOpen(true);
+                      }}
+                    >
+                      Retesting
+                    </Button>
+                  )}
+                  {canSendBackSubmission && isReportsTo && !["Draft", "Approved", "Sent Back"].includes(data.status) && (
                     <>
                       <Button
                         icon={<Undo2 size={14} />}
@@ -1318,7 +1352,33 @@ export default function QaSubmissionDetailPage() {
       <Modal
         open={signoffOpen}
         onCancel={() => setSignoffOpen(false)}
-        title="Confirm QA Sign-off"
+        title={
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <span
+              style={{
+                width: 32,
+                height: 32,
+                borderRadius: 8,
+                background: "rgba(59,130,246,0.12)",
+                color: "#2563eb",
+                display: "inline-flex",
+                alignItems: "center",
+                justifyContent: "center",
+                flexShrink: 0,
+              }}
+            >
+              <ShieldCheck size={18} />
+            </span>
+            <div>
+              <div style={{ fontSize: 15, fontWeight: 700, color: "var(--text-slate-900)", lineHeight: 1.2 }}>
+                Confirm QA Sign-off
+              </div>
+              <div style={{ fontSize: 12, color: "var(--text-slate-500)", fontWeight: 400, marginTop: 2 }}>
+                Review results and confirm final recommendation for <strong>{signoffPreview?.scope_name || data?.submission_name}</strong>
+              </div>
+            </div>
+          </div>
+        }
         width={720}
         footer={[
           <Button key="cancel" onClick={() => setSignoffOpen(false)}>
@@ -1351,45 +1411,207 @@ export default function QaSubmissionDetailPage() {
               </div>
             )}
 
-            <div className="qs-header__facts" style={{ marginTop: 0, paddingTop: 0, borderTop: "none" }}>
-              <div className="qs-fact">
-                <dt>Scope</dt>
-                <dd>{signoffPreview.scope_name || "—"}</dd>
+            <div
+              style={{
+                background: "var(--bg-slate-50)",
+                border: "1px solid var(--border-slate-200)",
+                borderRadius: 8,
+                padding: "10px 14px",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                gap: 12,
+                flexWrap: "wrap",
+                marginBottom: 14,
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <span style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: "var(--text-slate-400)" }}>
+                  Scope:
+                </span>
+                <span style={{ fontSize: 13, fontWeight: 650, color: "var(--text-slate-800)" }}>
+                  {signoffPreview.scope_name || "—"}
+                </span>
               </div>
-              <div className="qs-fact">
-                <dt>Recommendation</dt>
-                <dd>
-                  <RecommendationPill value={signoffPreview.qa_recommendation} size="sm" />
-                </dd>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <span style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: "var(--text-slate-400)" }}>
+                  Recommendation:
+                </span>
+                <RecommendationPill value={signoffPreview.qa_recommendation} size="sm" />
               </div>
             </div>
 
-            <div className="qs-runlist-caption">Testing runs</div>
-            {signoffPreview.runs.map((r: any) => (
-              <div key={r.id} className="qs-runrow" style={{ padding: "8px 10px" }}>
-                <CheckCircle2 size={15} style={{ color: "#10b981", marginTop: 2, flexShrink: 0 }} />
-                <div className="qs-runrow__body">
-                  <span className="qs-runrow__name">{r.run_name}</span>
-                  <div className="qs-runrow__meta">
-                    {r.run_role === "retest" ? "Retest" : "Initial"} · {r.passed}/{r.total_cases} passed
+            {/* Test Results & Defects Grid */}
+            <div style={{ display: "grid", gridTemplateColumns: "1.3fr 1fr", gap: 12, marginBottom: 14 }}>
+              {/* Test Results Card */}
+              <div
+                style={{
+                  border: "1px solid var(--border-slate-200)",
+                  borderRadius: 8,
+                  padding: "10px 12px",
+                  background: "var(--bg-pure-white)",
+                }}
+              >
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    marginBottom: 8,
+                    fontSize: 11,
+                    fontWeight: 700,
+                    textTransform: "uppercase",
+                    letterSpacing: "0.08em",
+                    color: "var(--text-slate-500)",
+                  }}
+                >
+                  <span>Test Results</span>
+                  <span style={{ fontSize: 11, fontWeight: 600, color: "#047857" }}>
+                    {signoffPreview.execution.totalCases > 0
+                      ? `${Math.round((signoffPreview.execution.passed / signoffPreview.execution.totalCases) * 100)}% Pass Rate`
+                      : "0%"}
+                  </span>
+                </div>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 6 }}>
+                  <div style={{ textAlign: "center", padding: "6px 4px", borderRadius: 6, background: "var(--bg-slate-50)" }}>
+                    <div style={{ fontSize: 10, fontWeight: 700, color: "var(--text-slate-400)", textTransform: "uppercase" }}>Total</div>
+                    <div style={{ fontSize: 16, fontWeight: 800, color: "var(--text-slate-800)" }}>{signoffPreview.execution.totalCases}</div>
+                  </div>
+                  <div style={{ textAlign: "center", padding: "6px 4px", borderRadius: 6, background: "rgba(16,185,129,0.08)" }}>
+                    <div style={{ fontSize: 10, fontWeight: 700, color: "#047857", textTransform: "uppercase" }}>Passed</div>
+                    <div style={{ fontSize: 16, fontWeight: 800, color: "#047857" }}>{signoffPreview.execution.passed}</div>
+                  </div>
+                  <div style={{ textAlign: "center", padding: "6px 4px", borderRadius: 6, background: "rgba(239,68,68,0.08)" }}>
+                    <div style={{ fontSize: 10, fontWeight: 700, color: "#dc2626", textTransform: "uppercase" }}>Failed</div>
+                    <div style={{ fontSize: 16, fontWeight: 800, color: "#dc2626" }}>{signoffPreview.execution.failed}</div>
+                  </div>
+                  <div style={{ textAlign: "center", padding: "6px 4px", borderRadius: 6, background: "rgba(245,158,11,0.08)" }}>
+                    <div style={{ fontSize: 10, fontWeight: 700, color: "#b45309", textTransform: "uppercase" }}>Blocked</div>
+                    <div style={{ fontSize: 16, fontWeight: 800, color: "#b45309" }}>{signoffPreview.execution.blocked}</div>
                   </div>
                 </div>
               </div>
-            ))}
 
-            <div className="qs-runlist-caption">Test results</div>
-            <div className="qs-metrics">
-              <MetricCell label="Total" value={signoffPreview.execution.totalCases} />
-              <MetricCell label="Passed" value={signoffPreview.execution.passed} tone="green" />
-              <MetricCell label="Failed" value={signoffPreview.execution.failed} tone="red" />
-              <MetricCell label="Blocked" value={signoffPreview.execution.blocked} tone="amber" />
+              {/* Defects Card */}
+              <div
+                style={{
+                  border: "1px solid var(--border-slate-200)",
+                  borderRadius: 8,
+                  padding: "10px 12px",
+                  background: "var(--bg-pure-white)",
+                }}
+              >
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    marginBottom: 8,
+                    fontSize: 11,
+                    fontWeight: 700,
+                    textTransform: "uppercase",
+                    letterSpacing: "0.08em",
+                    color: "var(--text-slate-500)",
+                  }}
+                >
+                  <span>Defects</span>
+                  <span style={{ fontSize: 11, fontWeight: 600, color: signoffPreview.bugs.open === 0 ? "#047857" : "#dc2626" }}>
+                    {signoffPreview.bugs.open === 0 ? "No Open Bugs" : `${signoffPreview.bugs.open} Open`}
+                  </span>
+                </div>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 6 }}>
+                  <div style={{ textAlign: "center", padding: "6px 4px", borderRadius: 6, background: "var(--bg-slate-50)" }}>
+                    <div style={{ fontSize: 10, fontWeight: 700, color: "var(--text-slate-400)", textTransform: "uppercase" }}>Created</div>
+                    <div style={{ fontSize: 16, fontWeight: 800, color: "var(--text-slate-800)" }}>{signoffPreview.bugs.total}</div>
+                  </div>
+                  <div style={{ textAlign: "center", padding: "6px 4px", borderRadius: 6, background: "rgba(16,185,129,0.08)" }}>
+                    <div style={{ fontSize: 10, fontWeight: 700, color: "#047857", textTransform: "uppercase" }}>Resolved</div>
+                    <div style={{ fontSize: 16, fontWeight: 800, color: "#047857" }}>{signoffPreview.bugs.resolved}</div>
+                  </div>
+                  <div style={{ textAlign: "center", padding: "6px 4px", borderRadius: 6, background: signoffPreview.bugs.open > 0 ? "rgba(239,68,68,0.08)" : "rgba(16,185,129,0.08)" }}>
+                    <div style={{ fontSize: 10, fontWeight: 700, color: signoffPreview.bugs.open > 0 ? "#dc2626" : "#047857", textTransform: "uppercase" }}>Open</div>
+                    <div style={{ fontSize: 16, fontWeight: 800, color: signoffPreview.bugs.open > 0 ? "#dc2626" : "#047857" }}>{signoffPreview.bugs.open}</div>
+                  </div>
+                </div>
+              </div>
             </div>
 
-            <div className="qs-runlist-caption">Defects</div>
-            <div className="qs-metrics">
-              <MetricCell label="Created" value={signoffPreview.bugs.total} />
-              <MetricCell label="Resolved" value={signoffPreview.bugs.resolved} tone="green" />
-              <MetricCell label="Open" value={signoffPreview.bugs.open} tone={signoffPreview.bugs.open ? "red" : "green"} />
+            {/* Testing Runs Header & Scrollable List */}
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", margin: "14px 0 8px" }}>
+              <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.09em", textTransform: "uppercase", color: "var(--text-slate-500)" }}>
+                Testing Runs ({signoffPreview.runs.length})
+              </span>
+              <span style={{ fontSize: 11, color: "var(--text-slate-400)" }}>
+                Linked test executions
+              </span>
+            </div>
+            <div
+              style={{
+                maxHeight: 180,
+                overflowY: "auto",
+                display: "flex",
+                flexDirection: "column",
+                gap: 6,
+                border: "1px solid var(--border-slate-200)",
+                borderRadius: 8,
+                padding: 8,
+                background: "var(--bg-slate-50)",
+              }}
+            >
+              {signoffPreview.runs.map((r: any) => {
+                const isPassAll = r.passed === r.total_cases && r.total_cases > 0;
+                return (
+                  <div
+                    key={r.id}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      gap: 12,
+                      padding: "8px 12px",
+                      borderRadius: 6,
+                      background: "var(--bg-pure-white)",
+                      border: "1px solid var(--border-slate-200)",
+                    }}
+                  >
+                    <div style={{ display: "flex", alignItems: "center", gap: 9, minWidth: 0 }}>
+                      <CheckCircle2
+                        size={16}
+                        style={{
+                          color: isPassAll ? "#10b981" : "#f59e0b",
+                          flexShrink: 0,
+                        }}
+                      />
+                      <div style={{ minWidth: 0 }}>
+                        <div style={{ fontSize: 13, fontWeight: 650, color: "var(--text-slate-900)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                          {r.run_name}
+                        </div>
+                        <div style={{ fontSize: 11, color: "var(--text-slate-400)", marginTop: 1 }}>
+                          {r.run_role === "retest" ? "Retest run" : "Initial run"}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
+                      <span
+                        className={`qs-pill qs-pill--${r.run_role === "retest" ? "blue" : "ash"} qs-pill--sm`}
+                      >
+                        {r.run_role === "retest" ? "Retest" : "Initial"}
+                      </span>
+                      <span
+                        style={{
+                          fontSize: 12,
+                          fontWeight: 700,
+                          fontVariantNumeric: "tabular-nums",
+                          color: isPassAll ? "#047857" : "var(--text-slate-700)",
+                        }}
+                      >
+                        {r.passed}/{r.total_cases} passed
+                      </span>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
 
             {signoffPreview.warnings.length > 0 && (
@@ -1402,15 +1624,25 @@ export default function QaSubmissionDetailPage() {
               </div>
             )}
 
-            <div className="qs-confirmbox" style={{ marginTop: 14 }}>
+            <div
+              style={{
+                marginTop: 14,
+                padding: "12px 14px",
+                borderRadius: 8,
+                border: "1px solid rgba(59,130,246,0.25)",
+                background: "rgba(59,130,246,0.04)",
+              }}
+            >
               <Checkbox checked={signoffConfirmed} onChange={(ev) => setSignoffConfirmed(ev.target.checked)}>
-                I confirm that the required testing and retesting for this scope have been completed and the above
-                results accurately represent the QA outcome.
+                <span style={{ fontSize: 12.5, fontWeight: 500, color: "var(--text-slate-800)", lineHeight: 1.4 }}>
+                  I confirm that the required testing and retesting for this scope have been completed and the above
+                  results accurately represent the QA outcome.
+                </span>
               </Checkbox>
             </div>
 
             <Input.TextArea
-              style={{ marginTop: 12 }}
+              style={{ marginTop: 12, borderRadius: 8, fontSize: 12.5 }}
               rows={2}
               value={signoffComment}
               onChange={(ev) => setSignoffComment(ev.target.value)}
@@ -1450,6 +1682,33 @@ export default function QaSubmissionDetailPage() {
           value={approveComment}
           onChange={(ev) => setApproveComment(ev.target.value)}
           placeholder="Approval comment (optional)"
+        />
+      </Modal>
+
+      {/* ── Retesting ──────────────────────────────────────────────── */}
+      <Modal
+        open={retestOpen}
+        onCancel={() => setRetestOpen(false)}
+        title="Move to Retesting"
+        okText="Confirm Retesting"
+        confirmLoading={busy}
+        onOk={async () => {
+          await act(
+            () => QaSubmissionService.changeStatus(id, "Retesting", retestComment.trim() || undefined),
+            "Submission moved to Retesting",
+          );
+          setRetestOpen(false);
+          setRetestComment("");
+        }}
+      >
+        <p className="qs-hint" style={{ marginBottom: 10 }}>
+          Moving <strong>{data.submission_name}</strong> to <strong>Retesting</strong> allows QA to execute and link retest runs to verify bug fixes and resolved test cases.
+        </p>
+        <Input.TextArea
+          rows={3}
+          value={retestComment}
+          onChange={(ev) => setRetestComment(ev.target.value)}
+          placeholder="Reason or instructions for retesting (optional)"
         />
       </Modal>
 

@@ -9,6 +9,7 @@ export interface FilterPillOption {
   label: string;
   description?: string;
   badge?: React.ReactNode;
+  dotColor?: string;
   /** Avatar image URL — used when showAvatar=true on the pill */
   avatarUrl?: string | null;
 }
@@ -180,6 +181,17 @@ export const TicketFilterPill: React.FC<TicketFilterPillProps> = ({
                         : initialsFor(opt.label)
                     }
                   </div>
+                ) : opt.dotColor ? (
+                  <span
+                    style={{
+                      width: 7,
+                      height: 7,
+                      borderRadius: '50%',
+                      background: opt.dotColor,
+                      flex: 'none',
+                      marginRight: 6,
+                    }}
+                  />
                 ) : (
                   opt.badge && <span className="fp-option-badge">{opt.badge}</span>
                 )}

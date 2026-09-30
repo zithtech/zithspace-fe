@@ -227,6 +227,23 @@ export default function ReportsPanel() {
       .catch(() => { });
   }, []);
 
+  const visibleSections = useMemo(() => {
+    return SECTIONS.filter((s) => {
+      if (s.key === 'overview') return true;
+      const mw = moduleWeights.find((w) => w.key === s.key);
+      return mw ? mw.enabled !== false : true;
+    });
+  }, [moduleWeights]);
+
+  useEffect(() => {
+    if (activeSection !== 'overview') {
+      const mw = moduleWeights.find((w) => w.key === activeSection);
+      if (mw && mw.enabled === false) {
+        setActiveSection('overview');
+      }
+    }
+  }, [moduleWeights, activeSection]);
+
   // Fetch with EXPLICIT filters (no closure on state) so the auto-run can never
   // pick up a stale range. Both the button and the auto-run go through this.
   const fetchReport = useCallback(
@@ -570,7 +587,7 @@ export default function ReportsPanel() {
         ) : (
           <>
             <div className="prr-tabs" role="tablist">
-              {SECTIONS.map((s) => {
+              {visibleSections.map((s) => {
                 const active = activeSection === s.key;
                 return (
                   <button
@@ -827,7 +844,7 @@ export default function ReportsPanel() {
         /* ── Member header band (full-bleed via the layout's -header rule) ───── */
         .prr-header {
           position: relative; overflow: hidden;
-          margin-top: -12px; padding: 14px 0 14px; margin-bottom: 0;
+          margin-top: 0; padding: 14px 24px; margin-bottom: 0;
           border-bottom: 1px solid var(--border-slate-100);
           background:
             linear-gradient(180deg, rgba(59, 130, 246, 0.055), rgba(59, 130, 246, 0) 82%),
@@ -889,9 +906,13 @@ export default function ReportsPanel() {
         /* ── Toolbar: range + presets + export ──────────────────────────────── */
         .prr-toolbar {
           display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
-          padding: 9px 12px; border-radius: 16px;
+          padding: 9px 12px; border-radius: 16px; margin: 0 24px;
           border: 1px solid var(--border-slate-200); background: var(--bg-pure-white);
           box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04), 0 8px 24px rgba(15, 23, 42, 0.035);
+        }
+        .prr-results {
+          display: flex; flex-direction: column; flex: 1; min-height: 0;
+          padding: 0 24px 24px 24px;
         }
         .prr-tool-ic {
           width: 28px; height: 28px; flex-shrink: 0; border-radius: 9px;

@@ -354,8 +354,9 @@ export default function ReimbursementSettings() {
                         columns={columns(handleEdit, handleConfirmDelete)}
                         dataSource={filteredData}
                         pagination={{
-                          pageSize: 8,
-                          showSizeChanger: false,
+                          defaultPageSize: 15,
+                          pageSizeOptions: [10, 15, 20, 25, 50, 100],
+                          showSizeChanger: true,
                           showQuickJumper: false,
                           position: ["bottomRight"],
                         }}

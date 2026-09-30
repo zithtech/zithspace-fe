@@ -477,6 +477,8 @@ export const integrationStyles = `
 .intg-card {
   position: relative;
   display: flex; flex-direction: column; gap: 8px;
+  width: 100%;
+  height: 100%;
   padding: 14px;
   border-radius: 13px;
   border: 1px solid var(--i-border);

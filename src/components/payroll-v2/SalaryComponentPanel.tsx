@@ -38,8 +38,9 @@ import {
   SafetyCertificateOutlined,
 } from '@ant-design/icons';
 import { usePermission } from '@/hooks/usePermission';
-import { SearchableDropdown } from '@/components/common/SearchableDropdown';
 import ConfirmDialog from '@/components/common/ConfirmDialog';
+import SearchableDropdown from '@/components/common/SearchableDropdown';
+import { StatCards } from '@/components/payroll-v2/ui';
 import PayrollV2Service, {
   CreateComponentInput,
   PayComponent,
@@ -48,6 +49,7 @@ import PayrollV2Service, {
   ComponentPercentageOf,
 } from '@/services/payrollV2Service';
 import { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
+import { FilterBar, FilterToggleButton, TicketFilterPill, FilterPillOption } from '@/components/common/FilterBar';
 
 const { TextArea } = Input;
 
@@ -118,7 +120,7 @@ const slugifyCode = (name: string): string =>
     .replace(/^_+|_+$/g, '')
     .slice(0, 40);
 
-const PAGE_SIZE_OPTIONS = [10, 20, 25, 50, 100];
+const PAGE_SIZE_OPTIONS = [10, 15, 20, 25, 50, 100];
 
 const TRENDS: Record<string, number[]> = {
   total: [3, 5, 4, 6, 7, 6, 8],
@@ -231,11 +233,12 @@ export default function SalaryComponentPanel() {
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<CategoryFilter>('all');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('active');
+  const [isFilterRowOpen, setIsFilterRowOpen] = useState(false);
 
   // pagination
   const [total, setTotal] = useState(0);
   const [tablePage, setTablePage] = useState(1);
-  const [tablePageSize, setTablePageSize] = useState(20);
+  const [tablePageSize, setTablePageSize] = useState(15);
 
   // drawer
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -317,6 +320,14 @@ export default function SalaryComponentPanel() {
     isActive: true,
     displayOrder: 0,
   };
+
+  const suggestionOptions = useMemo(() => {
+    return COMPONENT_SUGGESTIONS.map((s) => ({
+      value: s.name,
+      label: s.name,
+      description: `${CATEGORY_META[s.category ?? 'earning'].label} · ${s.calculationType === 'percentage' ? `${s.defaultValue ?? 0}% of ${PERCENT_OF_LABEL[s.percentageOf ?? 'basic']}` : 'Fixed amount'}`,
+    }));
+  }, []);
 
   const openCreate = () => {
     setEditing(null);
@@ -459,7 +470,6 @@ export default function SalaryComponentPanel() {
     return <div style={{ padding: 40, textAlign: 'center', color: PALETTE.grey }}>You don’t have permission to view salary components.</div>;
   }
 
-  const suggestionOptions = COMPONENT_SUGGESTIONS.map((s) => ({ value: s.name }));
   const isPercent = calcType === 'percentage';
 
   return (
@@ -485,6 +495,11 @@ export default function SalaryComponentPanel() {
             <SearchOutlined className="pvc-search-icon" />
             <input className="pvc-search" placeholder="Search name or code…" value={search} onChange={(e) => setSearch(e.target.value)} />
           </div>
+          <FilterToggleButton
+            isOpen={isFilterRowOpen}
+            onToggle={() => setIsFilterRowOpen((prev) => !prev)}
+            activeCount={(categoryFilter !== 'all' ? 1 : 0) + (statusFilter !== 'all' ? 1 : 0)}
+          />
           <Tooltip title="Refresh"><button type="button" className="pvc-ghost-btn" onClick={() => load()}><ReloadOutlined spin={loading} /></button></Tooltip>
           {canCreatePayrollComponents && (
             <Button type="primary" icon={<PlusOutlined />} onClick={openCreate} className="pvc-add-btn">New Component</Button>
@@ -493,72 +508,50 @@ export default function SalaryComponentPanel() {
       </div>
 
       {/* ── STAT CARDS ─────────────────────────────────────────────────────── */}
-      <div className="pvc-stats">
-        {statCells.map((s) => (
-          <div key={s.key} className="pvc-stat-card">
-            <div className="pvc-stat-top">
-              <div className="pvc-stat-left">
-                <span className="pvc-stat-icon" style={{ background: s.tint, color: s.color }}>{s.icon}</span>
-                <span className="pvc-stat-label">{s.title}</span>
-              </div>
-            </div>
-            <div className="pvc-stat-bottom">
-              <div className="pvc-stat-value-wrap">
-                <span className="pvc-stat-value">{s.value}</span>
-                <span className="pvc-stat-period">{s.period}</span>
-              </div>
-              <div className="pvc-stat-spark"><AreaSparkline values={s.trend} color={s.color} /></div>
-            </div>
-          </div>
-        ))}
-      </div>
+      <StatCards cells={statCells.map(s => ({ label: s.title, value: s.value, icon: s.icon, color: s.color, tint: s.tint }))} />
 
       {/* ── FILTERS ────────────────────────────────────────────────────────── */}
-      <div className="pvc-filters">
-        <span className="pvc-filter-label"><FilterOutlined /> Filter</span>
-        <SearchableDropdown
-          className="pvc-filter-dd"
-          placeholder="Category"
-          searchPlaceholder="Search categories"
-          itemNoun="categories"
-          value={categoryFilter === 'all' ? undefined : categoryFilter}
-          onChange={(v) => setCategoryFilter((v as CategoryFilter) ?? 'all')}
-          options={[
-            { value: 'earning', label: 'Earning' },
-            { value: 'deduction', label: 'Deduction' },
-            { value: 'reimbursement', label: 'Reimbursement' },
-            { value: 'benefit', label: 'Benefit' },
-          ]}
-          style={{ width: 170 }}
-          width={210}
-        />
-        <SearchableDropdown
-          className="pvc-filter-dd"
-          placeholder="Status"
-          searchPlaceholder="Search statuses"
-          itemNoun="statuses"
-          value={statusFilter === 'all' ? undefined : statusFilter}
-          onChange={(v) => setStatusFilter((v as StatusFilter) ?? 'all')}
-          options={[
-            { value: 'active', label: 'Active' },
-            { value: 'inactive', label: 'Inactive' },
-          ]}
-          style={{ width: 160 }}
-          width={210}
-        />
-        <span className="pvc-filter-count">{total} components</span>
-        {hasActiveFilters && (
-          <button type="button" className="pvc-clear" onClick={clearFilters}><CloseCircleOutlined /> Clear</button>
-        )}
-      </div>
+      {isFilterRowOpen && (
+        <FilterBar
+          activeCount={(categoryFilter !== 'all' ? 1 : 0) + (statusFilter !== 'all' ? 1 : 0)}
+          onReset={() => {
+            setCategoryFilter('all');
+            setStatusFilter('all');
+          }}
+          onClose={() => setIsFilterRowOpen(false)}
+        >
+          <TicketFilterPill
+            label="Category"
+            icon={<PieChartOutlined />}
+            value={categoryFilter === 'all' ? undefined : categoryFilter}
+            options={[
+              { value: 'earning', label: 'Earning', dotColor: '#10b981' },
+              { value: 'deduction', label: 'Deduction', dotColor: '#ef4444' },
+              { value: 'reimbursement', label: 'Reimbursement', dotColor: '#3b82f6' },
+              { value: 'benefit', label: 'Benefit', dotColor: '#8b5cf6' },
+            ]}
+            onChange={(v) => setCategoryFilter((v as CategoryFilter) || 'all')}
+          />
+          <TicketFilterPill
+            label="Status"
+            icon={<CheckCircleOutlined />}
+            value={statusFilter === 'all' ? undefined : statusFilter}
+            options={[
+              { value: 'active', label: 'Active', dotColor: '#10b981' },
+              { value: 'inactive', label: 'Inactive', dotColor: '#ef4444' },
+            ]}
+            onChange={(v) => setStatusFilter((v as StatusFilter) || 'all')}
+          />
+        </FilterBar>
+      )}
 
       {/* ── TABLE ──────────────────────────────────────────────────────────── */}
-      <div className="pvc-table-wrap">
+      <div className="pv-table-wrap">
         <ZukvoLoadingOverlay loading={loading} message="">
               <Table
                         rowKey="id"
                         size="small"
-                        className="pvc-table"
+                       
                         columns={columns}
                         dataSource={pagedRows}
                         pagination={false}
@@ -642,20 +635,50 @@ export default function SalaryComponentPanel() {
               {/* STEP 1 — Basic Details */}
               <SectionCard icon={<InfoCircleOutlined />} tint={TINT.blue} color={PALETTE.blue} title="Basic Details" subtitle="What this component is and where it belongs" step="STEP 1">
                 <DrawerRow label="Component name" hint="Pick a common component or type your own" required>
-                  <Form.Item style={{ marginBottom: 0 }} name="name" rules={[{ required: true, message: 'Name is required' }]}>
-                    <AutoComplete
+                  <Form.Item style={{ marginBottom: 0 }} name="name" rules={[{ required: true, message: 'Name is required' }, { pattern: /^[a-zA-Z\s\-]+$/, message: 'Only letters and spaces are allowed in component name' }]}>
+                    <SearchableDropdown
+                      className="pvc-dd-flat"
+                      placeholder="Select component name"
+                      searchPlaceholder="Search component name..."
+                      itemNoun="components"
+                      freeText={true}
                       options={suggestionOptions}
-                      onSelect={applySuggestion}
-                      filterOption={(input, option) => (option?.value as string).toLowerCase().includes(input.toLowerCase())}
-                      allowClear
-                    >
-                      <Input size="large" maxLength={120} placeholder="e.g. House Rent Allowance" />
-                    </AutoComplete>
+                      onChange={(val: string) => {
+                        const sanitized = val ? val.replace(/[^a-zA-Z\s\-]/g, '') : '';
+                        form.setFieldValue('name', sanitized);
+                        if (!editing && !codeTouched) {
+                          form.setFieldValue('code', slugifyCode(sanitized || ''));
+                        }
+                        if (sanitized) {
+                          applySuggestion(sanitized);
+                        }
+                      }}
+                      style={{ width: '100%', height: 40 }}
+                    />
                   </Form.Item>
                 </DrawerRow>
                 <DrawerRow label="Code" hint="Auto-generated from the name — override if needed" required>
-                  <Form.Item style={{ marginBottom: 0 }} name="code" rules={[{ required: true, message: 'Code is required' }, { pattern: /^[a-zA-Z0-9_-]+$/, message: 'Letters, numbers, - and _ only' }]}>
-                    <Input size="large" placeholder="HRA" maxLength={40} disabled={!!editing} onChange={() => setCodeTouched(true)} style={{ fontFamily: 'monospace', color: 'var(--text-slate-600)' }} />
+                  <Form.Item style={{ marginBottom: 0 }} name="code" rules={[{ required: true, message: 'Code is required' }, { pattern: /^[a-zA-Z0-9_-]+$/, message: 'Special characters are not allowed' }]}>
+                    <Input
+                      size="large"
+                      placeholder="HRA"
+                      maxLength={40}
+                      disabled={!!editing}
+                      onKeyDown={(e) => {
+                        if (['Backspace', 'Delete', 'Tab', 'Escape', 'Enter', 'ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(e.key) || e.ctrlKey || e.metaKey) {
+                          return;
+                        }
+                        if (!/^[a-zA-Z0-9_-]$/.test(e.key)) {
+                          e.preventDefault();
+                        }
+                      }}
+                      onChange={(e) => {
+                        setCodeTouched(true);
+                        const sanitized = e.target.value.replace(/[^a-zA-Z0-9_-]/g, '');
+                        form.setFieldValue('code', sanitized);
+                      }}
+                      style={{ fontFamily: 'monospace', color: 'var(--text-slate-600)' }}
+                    />
                   </Form.Item>
                 </DrawerRow>
                 <DrawerRow label="Category" hint="Which bucket this component belongs to" required>
@@ -678,7 +701,7 @@ export default function SalaryComponentPanel() {
                   </Form.Item>
                 </DrawerRow>
                 <DrawerRow label="Description" hint="A short note on what this component is for">
-                  <Form.Item style={{ marginBottom: 0 }} name="description">
+                  <Form.Item style={{ marginBottom: 0 }} name="description" rules={[{ pattern: /^[a-zA-Z0-9\s\-_.,()&/'"]*$/, message: 'Special characters are not allowed' }]}>
                     <TextArea rows={2} maxLength={500} placeholder="What is this component for?" />
                   </Form.Item>
                 </DrawerRow>
@@ -705,7 +728,27 @@ export default function SalaryComponentPanel() {
                 </DrawerRow>
                 <DrawerRow label={isPercent ? 'Percentage (%)' : 'Default amount'} hint="Salary structures can override this value">
                   <Form.Item style={{ marginBottom: 0 }} name="defaultValue">
-                    <InputNumber min={0} max={isPercent ? 100 : 100000000} step={isPercent ? 0.5 : 100} style={{ width: '100%', height: 40 }} placeholder={isPercent ? 'e.g. 40' : 'e.g. 15000'} />
+                    <InputNumber
+                      min={0}
+                      max={isPercent ? 100 : 100000000}
+                      step={isPercent ? 0.5 : 100}
+                      style={{ width: '100%', height: 40 }}
+                      placeholder={isPercent ? 'e.g. 40' : 'e.g. 15000'}
+                      onKeyDown={(e) => {
+                        if (['Backspace', 'Delete', 'Tab', 'Escape', 'Enter', 'ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(e.key) || e.ctrlKey || e.metaKey) {
+                          return;
+                        }
+                        if (!/^[0-9.]$/.test(e.key)) {
+                          e.preventDefault();
+                        }
+                      }}
+                      parser={(val) => {
+                        if (!val) return '' as any;
+                        const clean = val.replace(/[^0-9.]/g, '');
+                        const parts = clean.split('.');
+                        return (parts.length > 2 ? `${parts[0]}.${parts.slice(1).join('')}` : clean) as any;
+                      }}
+                    />
                   </Form.Item>
                 </DrawerRow>
                 {isPercent && (
@@ -765,7 +808,7 @@ export default function SalaryComponentPanel() {
 
       <style jsx global>{`
         .pvc { display: flex; flex-direction: column; flex: 1; min-height: 0; }
-        .pvc-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding-bottom: 14px; margin-bottom: 14px; border-bottom: 1px solid var(--border-slate-200); flex-wrap: wrap; }
+        .pvc-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding-bottom: 14px; margin-bottom: 0; border-bottom: 1px solid var(--border-slate-200); flex-wrap: wrap; }
         .pvc-header-about { display: flex; align-items: center; gap: 12px; flex: 1 1 auto; min-width: 250px; }
         .pvc-header-icon { width: 38px; height: 38px; border-radius: 10px; flex-shrink: 0; background: ${TINT.blue}; color: ${PALETTE.blue}; display: inline-flex; align-items: center; justify-content: center; font-size: 18px; }
         .pvc-header-title { font-size: 17px; font-weight: 800; color: var(--text-slate-900); letter-spacing: -0.02em; line-height: 1.15; }
@@ -812,7 +855,7 @@ export default function SalaryComponentPanel() {
         .pvc-table .ant-table-tbody > tr.pvc-row:hover > td { background: var(--bg-slate-50) !important; }
 
         .pvc-footer { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; height: 52px; box-sizing: border-box; }
-        .pvc-footer--sticky { position: sticky; bottom: 0; z-index: 20; margin: auto -22px 0; padding: 0 22px; background: var(--bg-pure-white); border-top: 1px solid var(--border-slate-200); box-shadow: 0 -4px 14px rgba(15,23,42,0.05); }
+        .pvc-footer--sticky { position: sticky; bottom: 0; z-index: 20; margin: 0; padding: 0 22px; background: var(--bg-pure-white); border-top: 1px solid var(--border-slate-200); box-shadow: 0 -4px 14px rgba(15,23,42,0.05); }
         .pvc-footer-info { font-size: 12px; color: var(--text-slate-500); }
         .pvc-footer-info strong { color: var(--text-slate-700); font-weight: 700; }
         .pvc-pager { display: flex; align-items: center; gap: 3px; }

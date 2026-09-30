@@ -35,12 +35,45 @@ export interface PortalMilestone {
   items: PortalMilestoneItem[];
 }
 
+export interface PortalMilestoneMeta {
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+  counts: {
+    total: number;
+    in_progress: number;
+    completed: number;
+    on_hold: number;
+    not_started: number;
+    cancelled: number;
+  };
+  projects?: { id: string; name: string; code: string | null }[];
+}
+
 export const portalMilestoneService = {
-  async list(): Promise<PortalMilestone[]> {
-    const res = await portalClient.get(`/api/client-portal/milestones`);
+  async list(params: {
+    page?: number;
+    limit?: number;
+    search?: string;
+    status?: string;
+    projectId?: string;
+    from?: string;
+    to?: string;
+  } = {}) {
+    const qs = new URLSearchParams();
+    Object.entries(params).forEach(([k, v]) => {
+      if (v != null && v !== "") qs.append(k, String(v));
+    });
+    const res = await portalClient.get(
+      `/api/client-portal/milestones${qs.toString() ? `?${qs.toString()}` : ""}`
+    );
     if (res.data?.success === false) {
       throw new Error(res.data.error || "Failed to load milestones");
     }
-    return (res.data?.data || []) as PortalMilestone[];
+    // Backward compatibility: if accessed as array directly
+    const data = (res.data?.data || []) as PortalMilestone[];
+    const meta = (res.data?.meta || null) as PortalMilestoneMeta | null;
+    return { data, meta };
   },
 };

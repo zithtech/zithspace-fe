@@ -259,8 +259,8 @@ export default function LetterTiptapEditor({
   useEffect(() => {
     const fetchStructures = async () => {
       try {
-        const data = await LettersService.getStructures();
-        setStructures(data);
+        const res = await LettersService.getStructures();
+        setStructures(Array.isArray(res) ? res : (res as any).data || []);
       } catch (error) {
         console.error("Failed to load structures", error);
       }

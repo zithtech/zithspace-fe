@@ -7,6 +7,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
   Archive,
+  Layers,
   Search,
   Filter,
   Download,
@@ -30,9 +31,10 @@ import { usePermission } from '@/hooks/usePermission';
 import SearchableDropdown from '@/components/common/SearchableDropdown';
 import { Table, Button, Dropdown, Tooltip, Select, Drawer, Avatar, Modal } from 'antd';
 import { LetterStatsCards, StatCellData } from '@/components/letters/LetterStatsCards';
+import { StatCards, PALETTE, TINT } from '@/components/letters/ui';
 import { SnippetsOutlined, FileTextOutlined, CheckCircleOutlined, StarOutlined } from '@ant-design/icons';
 
-const PAGE_SIZE_OPTIONS = [10, 20, 25, 50, 100];
+const PAGE_SIZE_OPTIONS = [10, 15, 20, 25, 50, 100];
 import type { ColumnsType } from 'antd/es/table';
 import { AppstoreOutlined, UnorderedListOutlined, EllipsisOutlined, ReloadOutlined } from '@ant-design/icons';
 import ZukvoLoader from '@/components/common/ZukvoLoader';
@@ -74,11 +76,11 @@ export default function DocumentRepositoryPage() {
   const [filterPortalNode, setFilterPortalNode] = useState<Element | null>(null);
 
   const [tablePage, setTablePage] = useState(1);
-  const [tablePageSize, setTablePageSize] = useState(20);
+  const [tablePageSize, setTablePageSize] = useState(15);
+  const [total, setTotal] = useState(0);
 
-  const total = documents.length;
-  const pageCount = Math.ceil(total / tablePageSize) || 1;
-  const paginatedDocuments = documents.slice((tablePage - 1) * tablePageSize, tablePage * tablePageSize);
+  const paginatedDocuments = documents;
+  const pageCount = Math.max(1, Math.ceil(total / tablePageSize));
   const pageStart = total === 0 ? 0 : (tablePage - 1) * tablePageSize + 1;
   const pageEnd = Math.min(tablePage * tablePageSize, total);
 
@@ -136,16 +138,19 @@ export default function DocumentRepositoryPage() {
   const fetchData = async () => {
     try {
       setLoading(true);
-      const [docs, tpls, cats] = await Promise.all([
+      const [docsRes, tpls, cats] = await Promise.all([
         LettersService.getGeneratedLetters({
           templateId: selectedTemplateId || undefined,
           categoryId: selectedCategoryId || undefined,
           search: searchQuery || undefined,
+          limit: tablePageSize,
+          offset: (tablePage - 1) * tablePageSize,
         }),
         LettersService.getTemplates(),
         LettersService.getCategories(),
       ]);
-      setDocuments(docs);
+      setDocuments(docsRes.data || []);
+      setTotal(docsRes.total || 0);
       setTemplates(tpls.data || []);
       setCategories(cats);
     } catch (err: any) {
@@ -157,10 +162,10 @@ export default function DocumentRepositoryPage() {
 
   useEffect(() => {
     fetchData();
-  }, [selectedTemplateId, selectedCategoryId]);
+  }, [selectedTemplateId, selectedCategoryId, tablePage, tablePageSize]);
 
   const statCells: StatCellData[] = useMemo(() => {
-    const total = documents.length;
+    const totalCount = total;
     const thisWeekCount = documents.filter(d => {
       if (!d.generatedAt) return false;
       return (new Date().getTime() - new Date(d.generatedAt).getTime()) < 7 * 24 * 60 * 60 * 1000;
@@ -173,16 +178,20 @@ export default function DocumentRepositoryPage() {
     const genericTrend = [0, 2, 4, 3, 5, 4, 7];
 
     return [
-      { key: 'total', title: 'Total Generated', value: total, suffix: '', icon: <FileTextOutlined />, color: '#3b82f6', tint: 'rgba(59,130,246,0.10)', trend: genericTrend, delta: total },
+      { key: 'total', title: 'Total Generated', value: totalCount, suffix: '', icon: <FileTextOutlined />, color: '#3b82f6', tint: 'rgba(59,130,246,0.10)', trend: genericTrend, delta: totalCount },
       { key: 'this_week', title: 'This Week', value: thisWeekCount, suffix: '', icon: <CheckCircleOutlined />, color: '#10b981', tint: 'rgba(16,185,129,0.10)', trend: genericTrend, delta: thisWeekCount },
       { key: 'today', title: 'Today', value: todayCount, suffix: '', icon: <StarOutlined />, color: '#8b5cf6', tint: 'rgba(139,92,246,0.10)', trend: genericTrend, delta: todayCount },
-      { key: 'archived', title: 'In Repository', value: total, suffix: '', icon: <SnippetsOutlined />, color: '#f59e0b', tint: 'rgba(245,158,11,0.10)', trend: genericTrend, delta: total },
+      { key: 'archived', title: 'In Repository', value: totalCount, suffix: '', icon: <SnippetsOutlined />, color: '#f59e0b', tint: 'rgba(245,158,11,0.10)', trend: genericTrend, delta: totalCount },
     ];
-  }, [documents]);
+  }, [documents, total]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    fetchData();
+    if (tablePage === 1) {
+      fetchData();
+    } else {
+      setTablePage(1);
+    }
   };
 
   const handleDeleteDocument = async () => {
@@ -191,8 +200,8 @@ export default function DocumentRepositoryPage() {
       toast.loading('Deleting document record...', { id: 'del' });
       await LettersService.deleteGeneratedLetter(deleteDocId);
       toast.success('Generated document deleted', { id: 'del' });
-      setDocuments(documents.filter((d) => d.id !== deleteDocId));
       setDeleteDocId(null);
+      fetchData();
     } catch (err: any) {
       toast.error(err.message || 'Failed to delete document', { id: 'del' });
     }
@@ -410,8 +419,34 @@ export default function DocumentRepositoryPage() {
         </div>
       </div>
 
-      <div style={{ padding: '14px 24px 32px', flex: 1, overflow: 'hidden', minHeight: 0, display: 'flex', flexDirection: 'column' }}>
-        <LetterStatsCards statCells={statCells} />
+      <StatCards
+        title="Records Overview"
+        statusText="ACTIVE"
+        progressPct={(() => {
+          const thisWeek = documents.filter(d => {
+            if (!d.generatedAt) return false;
+            return (new Date().getTime() - new Date(d.generatedAt).getTime()) < 7 * 24 * 60 * 60 * 1000;
+          }).length;
+          return total > 0 ? Math.min(100, Math.round((thisWeek / total) * 100)) : 0;
+        })()}
+        cells={[
+          { label: 'Generated Records', value: total, icon: <Archive size={15} />, color: PALETTE.blue, tint: TINT.blue },
+          {
+            label: 'This Week',
+            value: documents.filter(d => {
+              if (!d.generatedAt) return false;
+              return (new Date().getTime() - new Date(d.generatedAt).getTime()) < 7 * 24 * 60 * 60 * 1000;
+            }).length,
+            icon: <FileCheck size={15} />,
+            color: PALETTE.green,
+            tint: TINT.green
+          },
+          { label: 'Categories', value: categories.length, icon: <Layers size={15} />, color: PALETTE.violet, tint: TINT.violet },
+          { label: 'Templates Used', value: new Set(documents.map(d => d.templateId).filter(Boolean)).size || (templates.length > 0 ? Math.min(templates.length, total) : 0), icon: <FileText size={15} />, color: PALETTE.amber, tint: TINT.amber },
+        ]}
+      />
+
+      <div className="doc-table-wrap">
         {/* Documents List Table */}
         {loading ? (
           <div style={{ padding: '60px 0', textAlign: 'center', color: 'var(--text-slate-600)', fontSize: '15px' }}>
@@ -452,21 +487,18 @@ export default function DocumentRepositoryPage() {
             </div>
           } />
         ) : view === 'list' ? (
-          <div className="att-table-wrap" style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
-            <Table
-              rowKey="id"
-              size="small"
-              className="att-table flex-table"
-              columns={columns}
-              dataSource={paginatedDocuments}
-              pagination={false}
-              scroll={{ x: 'max-content', y: '100%' }}
-              onRow={(record) => ({ className: 'att-row', onClick: () => handlePreviewDocument(record), style: { cursor: 'pointer' } })} locale={{ emptyText: <NoData /> }}
-            />
-          </div>
+          <Table
+            rowKey="id"
+            size="small"
+            columns={columns}
+            dataSource={paginatedDocuments}
+            pagination={false}
+            scroll={{ x: 'max-content' }}
+            onRow={(record) => ({ onClick: () => handlePreviewDocument(record), style: { cursor: 'pointer' } })} locale={{ emptyText: <NoData /> }}
+          />
         ) : (
-          <div style={{ flex: 1, overflowY: 'auto', minHeight: 0, paddingRight: '4px', marginRight: '-4px' }}>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '16px', paddingBottom: '16px' }}>
+          <div style={{ flex: 1, overflowY: 'auto', minHeight: 0 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '16px', padding: '16px' }}>
               {paginatedDocuments.map((doc) => (
                 <div key={doc.id} className="pc-card" onClick={(e) => { e.stopPropagation(); handlePreviewDocument(doc); }}>
                   <div className="pc-top">

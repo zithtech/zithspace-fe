@@ -65,20 +65,22 @@ export default function CustomerModal({ open, loading, customer, onClose, onSave
         <Form.Item
           name="companyName"
           label="Company Name"
+          normalize={(value) => (value || '').replace(/[^A-Za-z0-9\s\-.'&]/g, '')}
           rules={[
             { required: true, message: "Company name is required" },
             { pattern: /^[A-Za-z0-9\s\-.'&]+$/, message: "Name can only contain letters, numbers, and standard characters" }
           ]}
         >
-          <Input autoComplete="off" />
+          <Input maxLength={100} autoComplete="off" />
         </Form.Item>
 
         <Form.Item
           name="email"
           label="Email"
+          normalize={(value) => (value || '').replace(/\s/g, '')}
           rules={[{ type: 'email', message: 'Please enter a valid email address' }]}
         >
-          <Input autoComplete="off" />
+          <Input maxLength={255} autoComplete="off" />
         </Form.Item>
 
         <Form.Item 
@@ -96,22 +98,24 @@ export default function CustomerModal({ open, loading, customer, onClose, onSave
         </Form.Item>
 
         <Form.Item name="address" label="Address">
-          <Input autoComplete="off" />
+          <Input maxLength={255} autoComplete="off" />
         </Form.Item>
 
         <Row gutter={16}>
           <Col span={12}>
             <Form.Item name="city" label="City"
+              normalize={(value) => (value || '').replace(/[^A-Za-z\s\-'.]/g, '')}
               rules={[{ pattern: /^[A-Za-z\s\-'.]+$/, message: "City must contain only letters" }]}
             >
-              <Input autoComplete="off" />
+              <Input maxLength={100} autoComplete="off" />
             </Form.Item>
           </Col>
           <Col span={12}>
             <Form.Item name="country" label="Country"
+              normalize={(value) => (value || '').replace(/[^A-Za-z\s\-'.]/g, '')}
               rules={[{ pattern: /^[A-Za-z\s\-'.]+$/, message: "Country must contain only letters" }]}
             >
-              <Input autoComplete="off" />
+              <Input maxLength={100} autoComplete="off" />
             </Form.Item>
           </Col>
         </Row>

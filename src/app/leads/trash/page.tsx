@@ -17,7 +17,8 @@ import {
   Skeleton,
   Badge,
   Dropdown,
-  Avatar
+  Avatar,
+  Pagination
 } from "antd";
 import {
   UndoOutlined,
@@ -58,6 +59,7 @@ import relativeTime from "dayjs/plugin/relativeTime";
 import { useRouter } from "next/navigation";
 import { useActivitySource } from "@/hooks/useActivitySource";
 import { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
+import { StatCards } from "@/components/common/StatCards";
 
 dayjs.extend(relativeTime);
 
@@ -212,16 +214,42 @@ export default function LeadsTrashPage() {
     }
   }, []);
 
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(15);
+  const [totalLeads, setTotalLeads] = useState(0);
+
+  const loadTrashLeads = useCallback(async () => {
+    try {
+      const res = await fetchTrashLeads({ page, limit: pageSize, search: searchQuery });
+      if (res?.pagination) {
+        setTotalLeads(res.pagination.total);
+      } else if (res?.data && Array.isArray(res.data)) {
+        setTotalLeads(res.count ?? res.data.length);
+      } else if (Array.isArray(res)) {
+        setTotalLeads(res.length);
+      }
+    } catch (err) {
+      console.error("Failed to load trash leads", err);
+    }
+  }, [fetchTrashLeads, page, pageSize, searchQuery]);
+
   useEffect(() => {
     fetchActiveLeads();
-    fetchTrashLeads();
-  }, [fetchActiveLeads, fetchTrashLeads]);
+  }, [fetchActiveLeads]);
+
+  useEffect(() => {
+    loadTrashLeads();
+  }, [loadTrashLeads]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [searchQuery]);
 
   const handleRestore = async (id: string) => {
     try {
       await LeadService.restore(id);
       message.success("Lead restored successfully");
-      fetchTrashLeads();
+      loadTrashLeads();
       fetchActiveLeads();
     } catch (error: any) {
       message.error(error.message || "Failed to restore lead");
@@ -232,31 +260,49 @@ export default function LeadsTrashPage() {
     try {
       await LeadService.permanentDelete(id);
       message.success("Lead permanently deleted");
-      fetchTrashLeads();
+      loadTrashLeads();
     } catch (error: any) {
       message.error(error.message || "Failed to delete lead permanently");
     }
   };
-
-  const filteredLeads = leads?.filter((l) =>
-    (l.title || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
-    (l.client_name || "").toLowerCase().includes(searchQuery.toLowerCase())
-  ) || [];
 
   const actionMenu = (item: Lead) => ({
     items: [
       canRestoreLeadTrash ? {
         key: 'restore',
         label: (
-          <div className="es-menu-item">
-            <span className="es-menu-ic" style={{ color: '#10b981', background: 'rgba(16,185,129,0.12)' }}>
-              <UndoOutlined />
-            </span>
-            <span className="es-menu-text">
-              <span className="es-menu-title">Restore</span>
-              <span className="es-menu-desc">Restore lead to pipeline</span>
-            </span>
-          </div>
+          <ConfirmDialog
+            tone="success"
+            icon={<UndoOutlined style={{ fontSize: 15, color: '#10b981' }} />}
+            title="Restore Lead"
+            description="Are you sure you want to restore this lead back to the active pipeline?"
+            confirmText="Restore"
+            cancelText="Cancel"
+            placement="left"
+            onConfirm={() => handleRestore(item.id)}
+          >
+            <div
+              style={{
+                margin: '-5px -12px',
+                padding: '5px 12px',
+                width: 'calc(100% + 24px)',
+                height: '100%'
+              }}
+              onClick={(e) => {
+                e.stopPropagation();
+              }}
+            >
+              <div className="es-menu-item">
+                <span className="es-menu-ic" style={{ color: '#10b981', background: 'rgba(16,185,129,0.12)' }}>
+                  <UndoOutlined />
+                </span>
+                <span className="es-menu-text">
+                  <span className="es-menu-title">Restore</span>
+                  <span className="es-menu-desc">Restore lead to pipeline</span>
+                </span>
+              </div>
+            </div>
+          </ConfirmDialog>
         )
       } : null,
       (canRestoreLeadTrash && canDeleteLeadTrash) ? { type: 'divider' as const } : null,
@@ -299,11 +345,8 @@ export default function LeadsTrashPage() {
         )
       } : null
     ].filter(Boolean) as any,
-    onClick: ({ key, domEvent }: any) => {
+    onClick: ({ domEvent }: any) => {
       domEvent.stopPropagation();
-      if (key === 'restore') {
-        handleRestore(item.id);
-      }
     }
   });
 
@@ -346,6 +389,8 @@ export default function LeadsTrashPage() {
     {
       title: "Lead Details",
       key: "lead",
+      onHeaderCell: () => ({ style: { paddingLeft: 24 } }),
+      onCell: () => ({ style: { paddingLeft: 24 } }),
       render: (record: Lead) => (
         <div style={{ display: "flex", flexDirection: "column" }}>
           <Text strong className="es-row-title" style={{ fontSize: 13, color: "var(--text-slate-900)" }}>{record.title}</Text>
@@ -392,20 +437,34 @@ export default function LeadsTrashPage() {
     {
       title: "Actions",
       key: "actions",
-      align: "right" as const,
+      align: "center" as const,
       width: 120,
       fixed: "right" as const,
+      onHeaderCell: () => ({ style: { textAlign: "center" as const } }),
+      onCell: () => ({ style: { textAlign: "center" as const } }),
       render: (record: Lead) => (
         <Space size={8}>
           {canRestoreLeadTrash && (
-            <Tooltip title="Restore Lead">
-              <Button
-                type="text"
-                className="es-icon-btn"
-                icon={<UndoOutlined style={{ color: "#52c41a" }} />}
-                onClick={() => handleRestore(record.id)}
-              />
-            </Tooltip>
+            <ConfirmDialog
+              tone="success"
+              icon={<UndoOutlined style={{ fontSize: 16, color: '#10b981' }} />}
+              title="Restore Lead"
+              description="Are you sure you want to restore this lead back to the active pipeline?"
+              confirmText="Restore"
+              cancelText="Cancel"
+              placement="topRight"
+              onConfirm={() => handleRestore(record.id)}
+            >
+              <div onClick={(e) => e.stopPropagation()}>
+                <Tooltip title="Restore Lead">
+                  <Button
+                    type="text"
+                    className="es-icon-btn"
+                    icon={<UndoOutlined style={{ color: "#52c41a" }} />}
+                  />
+                </Tooltip>
+              </div>
+            </ConfirmDialog>
           )}
           {canDeleteLeadTrash && (
             <ConfirmDialog
@@ -436,7 +495,7 @@ export default function LeadsTrashPage() {
 
   return (
     <ProtectedRoute>
-      <MainLayout>
+      <MainLayout noPadding>
         <div className="es-shell">
           {mobileSidebarOpen && <div className="es-mobile-overlay" onClick={() => setMobileSidebarOpen(false)} />}
 
@@ -559,7 +618,7 @@ export default function LeadsTrashPage() {
               </div>
 
               <div className="es-topbar-meta">
-                <span className="es-meta-item"><span className="es-pulse" /><strong>{filteredLeads.length}</strong> deleted leads</span>
+                <span className="es-meta-item"><span className="es-pulse" /><strong>{totalLeads}</strong> deleted leads</span>
               </div>
 
               <div className="es-topbar-actions">
@@ -573,7 +632,7 @@ export default function LeadsTrashPage() {
                     className="es-ghost-btn"
                     onClick={async () => {
                       setIsRefreshing(true);
-                      await fetchTrashLeads();
+                      await loadTrashLeads();
                       await fetchActiveLeads();
                       setIsRefreshing(false);
                       message.success("Trash view synchronized");
@@ -585,38 +644,39 @@ export default function LeadsTrashPage() {
               </div>
             </div>
 
-            <div className="es-divider" />
+            <div className="es-divider" style={{ margin: 0 }} />
 
-            {/* ============================ STATS ============================ */}
-            <div className="es-stats">
-              <StatCard
-                label="Trashed Leads"
-                value={stats.totalDeleted}
-                icon={<Layers size={14} />}
-                accent="#3b82f6"
-                subtle="Total in repository"
-                loading={loading && stats.totalDeleted === 0}
-                chart={<Sparkline data={deletedTrend} color="#3b82f6" />}
-              />
-
-              <StatCard
-                label="High Priority"
-                value={stats.hotDeleted}
-                icon={<Flame size={14} />}
-                accent="#ef4444"
-                subtle="AI score ≥ 80"
-                loading={loading && stats.hotDeleted === 0}
-                chart={<Sparkline data={deletedTrend} color="#ef4444" />}
-              />
-
-              <StatCard
-                label="Auto-Purging"
-                value={stats.purgingSoon}
-                icon={<AlertCircle size={14} />}
-                accent="#f59e0b"
-                subtle="≤ 24 hours left"
-                loading={loading && stats.purgingSoon === 0}
-                chart={<Sparkline data={deletedTrend} color="#f59e0b" />}
+            {/* Shared StatCards Header Banner */}
+            <div style={{ margin: 0 }}>
+              <StatCards
+                title="Lead Trash Overview"
+                statusText="TRASHED"
+                statusColor="#ef4444"
+                statusBorder="rgba(239, 68, 68, 0.32)"
+                progressPct={stats.totalDeleted > 0 ? Math.round((stats.purgingSoon / stats.totalDeleted) * 100) : 0}
+                cells={[
+                  {
+                    label: "Trashed Leads",
+                    value: stats.totalDeleted,
+                    icon: <Layers size={14} />,
+                    color: "#3b82f6",
+                    tint: "rgba(59,130,246,0.10)",
+                  },
+                  {
+                    label: "High Priority",
+                    value: stats.hotDeleted,
+                    icon: <Flame size={14} />,
+                    color: "#ef4444",
+                    tint: "rgba(239,68,68,0.10)",
+                  },
+                  {
+                    label: "Auto-Purging",
+                    value: stats.purgingSoon,
+                    icon: <AlertCircle size={14} />,
+                    color: "#f59e0b",
+                    tint: "rgba(245,158,11,0.10)",
+                  },
+                ]}
               />
             </div>
 
@@ -629,25 +689,36 @@ export default function LeadsTrashPage() {
                 </div>
                 <div className="saas-bulk-buttons">
                   {canRestoreLeadTrash && (
-                    <Button
-                      type="text"
-                      size="small"
-                      icon={<UndoOutlined />}
-                      onClick={async () => {
+                    <ConfirmDialog
+                      tone="success"
+                      icon={<UndoOutlined style={{ fontSize: 16, color: '#10b981' }} />}
+                      title="Restore Selected Leads"
+                      description={`Are you sure you want to restore the ${selectedRowKeys.length} selected lead(s) back to the active pipeline?`}
+                      confirmText="Restore Selected"
+                      cancelText="Cancel"
+                      placement="bottom"
+                      onConfirm={async () => {
                         try {
                           await bulkRestoreLeads(selectedRowKeys as string[]);
                           setSelectedRowKeys([]);
                           message.success("Selected leads restored");
+                          loadTrashLeads();
                           fetchActiveLeads();
                         } catch (err: any) {
                           message.error("Failed to restore leads");
                         }
                       }}
-                      loading={loading}
-                      className="saas-bulk-btn restore"
                     >
-                      Restore
-                    </Button>
+                      <Button
+                        type="text"
+                        size="small"
+                        icon={<UndoOutlined />}
+                        loading={loading}
+                        className="saas-bulk-btn restore"
+                      >
+                        Restore
+                      </Button>
+                    </ConfirmDialog>
                   )}
                   {canDeleteLeadTrash && (
                     <ConfirmDialog
@@ -663,6 +734,7 @@ export default function LeadsTrashPage() {
                           await bulkDeleteLeads(selectedRowKeys as string[]);
                           setSelectedRowKeys([]);
                           message.success("Selected leads purged");
+                          loadTrashLeads();
                         } catch (err: any) {
                           message.error("Failed to purge leads");
                         }
@@ -692,12 +764,12 @@ export default function LeadsTrashPage() {
 
             {/* ============================ CONTENT ============================ */}
             <div className="es-body">
-              {!loading && filteredLeads.length === 0 ? (
+              {!loading && leads.length === 0 ? (
                 <div className="es-empty">
                   <NoData description={<Text type="secondary">No trashed leads found</Text>} />
                 </div>
               ) : view === 'list' ? (
-                <div className="es-table-wrap">
+                <div className="es-table-wrap" style={{ margin: 0, borderLeft: "none", borderRight: "none" }}>
                   <ZukvoLoadingOverlay loading={false} message="">
                     <Table
                       rowSelection={(loading || isRefreshing) ? undefined : {
@@ -713,10 +785,10 @@ export default function LeadsTrashPage() {
                           return col.render ? (col.render as any)(text, record, index) : text;
                         }
                       }))}
-                      dataSource={(loading || isRefreshing) ? Array(5).fill({}) : filteredLeads}
+                      dataSource={(loading || isRefreshing) ? Array(5).fill({}) : leads}
                       scroll={{ x: "max-content" }}
                       rowKey={(record: any) => record.id || Math.random()}
-                      pagination={{ pageSizeOptions: [10, 20, 25, 50, 100], pageSize: 20, size: "small" }}
+                      pagination={false}
                       className="es-table"
                       locale={{
                         emptyText: (
@@ -727,8 +799,8 @@ export default function LeadsTrashPage() {
                   </ZukvoLoadingOverlay>
                 </div>
               ) : (
-                <div className="es-grid">
-                  {filteredLeads.map((item: any) => {
+                <div className="es-grid" style={{ marginTop: 16, padding: "0 24px" }}>
+                  {leads.map((item: any) => {
                     return (
                       <div key={item.id} className="ec-card group flex flex-col relative">
                         <div className="ec-top">
@@ -793,13 +865,36 @@ export default function LeadsTrashPage() {
                 </div>
               )}
             </div>
+
+            {totalLeads > 0 && (
+              <div className="pp-footer pp-footer--sticky">
+                <Pagination
+                  size="small"
+                  current={page}
+                  pageSize={pageSize}
+                  total={totalLeads}
+                  showSizeChanger
+                  pageSizeOptions={[10, 15, 20, 25, 50, 100]}
+                  onChange={(newPage, newPageSize) => {
+                    setPage(newPage);
+                    if (newPageSize !== pageSize) setPageSize(newPageSize);
+                  }}
+                  showTotal={(t, range) => (
+                    <span>
+                      Showing <strong>{range[0]}–{range[1]}</strong> of <strong>{t}</strong>
+                      {selectedRowKeys.length > 0 && <span className="pp-footer-sel"> · {selectedRowKeys.length} selected</span>}
+                    </span>
+                  )}
+                />
+              </div>
+            )}
           </main>
         </div>
 
         <style jsx global>{`
-          .es-shell { display: flex; margin: 0 -16px; min-height: calc(100vh - 64px); background: var(--bg-pure-white); }
+          .es-shell { display: flex; margin: 0; width: 100%; min-height: calc(100vh - 64px); background: var(--bg-pure-white); }
           .es-sidebar { width: 240px; flex-shrink: 0; border-right: 1px solid var(--border-slate-200); background: var(--bg-pure-white); display: flex; flex-direction: column; position: sticky; top: 0; height: calc(100vh - 64px); }
-          .es-sidebar-top { padding: 14px 14px 12px 18px; }
+          .es-sidebar-top { padding: 14px 14px 12px 14px; }
           .es-side-head { display: flex; align-items: center; gap: 10px; padding-bottom: 14px; margin-bottom: 6px; border-bottom: 1px solid var(--border-slate-100); }
           .es-side-logo { flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
           .es-side-logo .anticon { font-size: 24px !important; color: var(--text-slate-900) !important; }
@@ -843,9 +938,9 @@ export default function LeadsTrashPage() {
           .es-empty-trash-btn.ant-btn-disabled .anticon, .es-empty-trash-btn[disabled] .anticon {
             color: rgba(0, 0, 0, 0.25) !important;
           }
-          .es-side-scroll { flex: 1; min-height: 0; overflow-y: auto; padding: 10px 10px 6px 16px; scrollbar-width: none; -ms-overflow-style: none; }
+          .es-side-scroll { flex: 1; min-height: 0; overflow-y: auto; padding: 10px 14px 6px 14px; scrollbar-width: none; -ms-overflow-style: none; }
           .es-side-scroll::-webkit-scrollbar { width: 0; height: 0; display: none; }
-          .es-side-section-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; color: var(--text-slate-400); padding: 0 8px; margin: 16px 0 6px; }
+          .es-side-section-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; color: var(--text-slate-400); padding: 0 10px; margin: 16px 0 6px; }
           .es-side-scroll > .es-side-section-label:first-child { margin-top: 6px; }
           .es-side-list { display: flex; flex-direction: column; gap: 1px; }
           .es-view-item { display: flex; align-items: center; gap: 10px; width: 100%; padding: 7px 10px; border-radius: 8px; border: none; background: transparent; cursor: pointer; transition: background .12s ease; text-align: left; }
@@ -857,9 +952,9 @@ export default function LeadsTrashPage() {
           .es-view-count { font-size: 11.5px; font-weight: 600; color: var(--text-slate-400); min-width: 18px; text-align: right; }
           .es-view-item.is-active .es-view-count { color: #ff4d4f; font-weight: 700; background: rgba(255,77,79,0.12); border-radius: 6px; padding: 1px 7px; min-width: 0; }
           
-          .es-main { flex: 1; min-width: 0; padding: 8px 18px 0; display: flex; flex-direction: column; }
-          .es-body { flex: 1 0 auto; }
-          .es-topbar { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+          .es-main { flex: 1; min-width: 0; padding: 8px 0 0 0; display: flex; flex-direction: column; min-height: 100%; position: relative; }
+          .es-body { flex: 1; display: flex; flex-direction: column; }
+          .es-topbar { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; padding: 0 24px 4px 24px; }
           .es-search-wrap {
             position: relative; flex: 1; max-width: 520px; display: flex; align-items: center;
             height: 32px; border-radius: 8px; background: var(--bg-pure-white);
@@ -891,7 +986,7 @@ export default function LeadsTrashPage() {
           .es-segmented button:not(.is-active):hover { background: var(--bg-slate-50); color: var(--text-slate-700); }
           .es-ghost-btn { width: 32px; height: 32px; border-radius: 8px; border: 1px solid var(--border-slate-200); background: var(--bg-slate-50); color: var(--text-slate-700); cursor: pointer; font-size: 14px; display: inline-flex; align-items: center; justify-content: center; }
           .es-ghost-btn:hover { color: #3B82F6; border-color: #bfdbfe; }
-          .es-divider { height: 1px; background: var(--border-slate-200); margin: 0 -18px 10px; }
+          .es-divider { height: 1px; background: var(--border-slate-200); margin: 0; }
 
           .es-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 14px; }
           .es-stat-card {
@@ -1027,6 +1122,43 @@ export default function LeadsTrashPage() {
           .saas-bulk-btn.cancel:hover { background: var(--bg-slate-50) !important; }
 
           .es-empty { display: flex; flex-direction: column; align-items: center; padding: 56px 20px; }
+
+          /* Footer + pager */
+          .pp-footer {
+            display: flex; align-items: center; justify-content: flex-end; padding: 10px 16px; margin-top: auto;
+            background: var(--bg-pure-white); border-top: 1px solid var(--border-slate-200);
+          }
+          .pp-footer--sticky {
+            position: sticky; bottom: 0; z-index: 30;
+            box-shadow: 0 -4px 14px rgba(15, 23, 42, 0.08);
+          }
+          .pp-footer .ant-pagination {
+            width: 100%; display: flex; align-items: center; justify-content: space-between;
+            margin: 0 !important; padding: 0 !important; border-top: none !important;
+            background: transparent !important; flex-wrap: wrap; gap: 8px;
+          }
+          .pp-footer .ant-pagination-total-text { margin-right: auto; color: var(--text-slate-500); font-size: 12.5px; }
+
+          [data-theme='dark'] .pp-footer {
+            border-top-color: #1F2937 !important;
+            background: #0B0F1A !important;
+          }
+          [data-theme='dark'] .pp-footer--sticky {
+            background: #0B0F1A !important;
+            box-shadow: 0 -4px 14px rgba(0,0,0,0.4) !important;
+          }
+          [data-theme='dark'] .pp-footer-info { color: #94A3B8 !important; }
+          [data-theme='dark'] .pp-footer-info strong { color: #ffffff !important; }
+          [data-theme='dark'] .pp-pager-btn, [data-theme='dark'] .pp-pager-num {
+            background: #0B0F1A !important;
+            border-color: #1F2937 !important;
+            color: #94A3B8 !important;
+          }
+          [data-theme='dark'] .pp-pager-num.is-active {
+            background: #3B82F6 !important;
+            border-color: #3B82F6 !important;
+            color: #ffffff !important;
+          }
 
           [data-theme='dark'] .es-shell {
             background:

@@ -61,7 +61,7 @@ export default function SubDepartmentsPage() {
   const [submitting, setSubmitting] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [view, setView] = useState<OrgView>("grid");
-  const [pagination, setPagination] = useState({ current: 1, pageSize: 20 });
+  const [pagination, setPagination] = useState({ current: 1, pageSize: 15 });
 
   const { allDepartments: departments = [], loading: departmentsLoading } = useDepartments();
   const {
@@ -338,7 +338,7 @@ export default function SubDepartmentsPage() {
             style={{
               borderBottom: "1px solid var(--border-slate-200)",
               padding: "9.5px 32px",
-              marginBottom: 8,
+              marginBottom: 0,
               position: 'sticky',
               top: 0,
               zIndex: 100,
@@ -371,6 +371,7 @@ export default function SubDepartmentsPage() {
           />
 
           <OrgModuleScaffold<any>
+            title="Sub Departments Overview"
             search={searchText}
             onSearchChange={setSearchText}
             searchPlaceholder="Search by name, code, or description..."
@@ -380,6 +381,7 @@ export default function SubDepartmentsPage() {
             onRefresh={fetchSubDepartments}
             loading={subDepartmentsLoading}
             stats={stats}
+            progressPct={totalSubDepartments > 0 ? Math.round((activeSubDepartments / totalSubDepartments) * 100) : 0}
             columns={columns}
             data={paginatedSubDepartments}
             rowKey="id"

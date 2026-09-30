@@ -32,9 +32,9 @@ import LeaveV2Service, {
 } from '@/services/leaveV2Service';
 
 const { TextArea } = Input;
-const PALETTE = { blue: '#3B82F6', green: '#10B981', red: '#EF4444', grey: '#94A3B8' } as const;
-const TINT = { blue: 'rgba(59,130,246,0.10)', green: 'rgba(16,185,129,0.10)', red: 'rgba(239,68,68,0.10)', grey: 'rgba(148,163,184,0.12)' } as const;
-const PAGE_SIZE_OPTIONS = [10, 20, 25, 50, 100];
+import { PALETTE, TINT, StatCards } from '@/components/leaves-v2/ui';
+import { FilterBar, FilterToggleButton, TicketFilterPill } from '@/components/common/FilterBar';
+const PAGE_SIZE_OPTIONS = [10, 15, 20, 25, 50, 100];
 import { drawerFormStyles as formStyles, SectionCard } from "@/components/common/DrawerSection";
 import { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
 
@@ -68,8 +68,9 @@ export default function LeaveAdjustmentPanel() {
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState('');
   const [dirFilter, setDirFilter] = useState<'all' | 'credit' | 'debit'>('all');
+  const [isFilterRowOpen, setIsFilterRowOpen] = useState(false);
   const [tablePage, setTablePage] = useState(1);
-  const [tablePageSize, setTablePageSize] = useState(20);
+  const [tablePageSize, setTablePageSize] = useState(15);
 
   // drawer
   const [open, setOpen] = useState(false);
@@ -279,44 +280,49 @@ export default function LeaveAdjustmentPanel() {
             <SearchOutlined className="lvadj-search-icon" />
             <input className="lvadj-search" placeholder="Search employee or type…" value={search} onChange={(e) => setSearch(e.target.value)} />
           </div>
+          <FilterToggleButton
+            isOpen={isFilterRowOpen}
+            onToggle={() => setIsFilterRowOpen((prev) => !prev)}
+            activeCount={dirFilter !== 'all' ? 1 : 0}
+          />
           <Tooltip title="Refresh"><button type="button" className="lvadj-ghost-btn" onClick={() => load()}><ReloadOutlined spin={loading} /></button></Tooltip>
           {canCreateLeaveAdjustment && <Button type="primary" icon={<PlusOutlined />} onClick={openNew} className="lvadj-add-btn">New Adjustment</Button>}
         </div>
       </div>
 
-      <div className="lvadj-stats">
-        {statCells.map((s) => (
-          <div key={s.key} className="lvadj-stat-card">
-            <div className="lvadj-stat-top">
-              <span className="lvadj-stat-icon" style={{ background: s.tint, color: s.color }}>{s.icon}</span>
-              <span className="lvadj-stat-label">{s.title}</span>
-            </div>
-            <div className="lvadj-stat-bottom">
-              <span className="lvadj-stat-value">{s.value}</span>
-              <span className="lvadj-stat-period">{s.period}</span>
-            </div>
-          </div>
-        ))}
-      </div>
+      <StatCards
+        title="Leave Overview"
+        statusText="LIVE"
+        progressPct={stats.total > 0 ? Math.round((stats.credited / stats.total) * 100) : 0}
+        cells={statCells.map(s => ({
+          label: s.title,
+          value: <>{s.value} <span style={{ fontSize: 11, fontWeight: 500, color: 'var(--text-slate-400)' }}>{s.period}</span></>,
+          icon: s.icon,
+          color: s.color,
+          tint: s.tint
+        }))}
+      />
 
-      <div className="lvadj-filters">
-        <span className="lvadj-filter-label"><FilterOutlined /> Filter</span>
-        <SearchableDropdown
-          className="lvadj-filter-dd"
-          placeholder="Direction"
-          searchPlaceholder="Search"
-          itemNoun="directions"
-          value={dirFilter === 'all' ? undefined : dirFilter}
-          onChange={(v) => setDirFilter((v as any) ?? 'all')}
-          options={[{ value: 'credit', label: 'Credits' }, { value: 'debit', label: 'Debits' }]}
-          style={{ width: 160 }}
-          width={210}
-        />
-        <span className="lvadj-filter-count">{total} of {stats.total}</span>
-        {hasFilters && <button type="button" className="lvadj-clear" onClick={() => { setSearch(''); setDirFilter('all'); }}><CloseCircleOutlined /> Clear</button>}
-      </div>
+      {isFilterRowOpen && (
+        <FilterBar
+          activeCount={dirFilter !== 'all' ? 1 : 0}
+          onReset={() => { setSearch(''); setDirFilter('all'); }}
+          onClose={() => setIsFilterRowOpen(false)}
+        >
+          <TicketFilterPill
+            label="Direction"
+            icon={<SwapOutlined />}
+            value={dirFilter === 'all' ? undefined : dirFilter}
+            options={[
+              { value: 'credit', label: 'Credits', dotColor: '#10b981' },
+              { value: 'debit', label: 'Debits', dotColor: '#ef4444' },
+            ]}
+            onChange={(v) => setDirFilter((v as any) || 'all')}
+          />
+        </FilterBar>
+      )}
 
-      <div className="lvadj-table-wrap">
+      <div className="lv-table-wrap">
         <ZukvoLoadingOverlay loading={loading} message="">
           <Table rowKey="id" size="small" className="lvadj-table" columns={columns} dataSource={paged} pagination={false} scroll={{ x: 'max-content' }} onRow={() => ({ className: 'lvadj-row' })} locale={{ emptyText: <NoData /> }} />
         </ZukvoLoadingOverlay>

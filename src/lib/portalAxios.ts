@@ -36,11 +36,32 @@ function resolveTenantHeaders(): Record<string, string> {
   if (typeof window === "undefined") return {};
   const headers: Record<string, string> = {};
 
-  // Subdomain detection mirrors lib/axios.ts so the portal hits the same tenant.
   const hostname = window.location.hostname;
   let subdomain: string | null = null;
+  let tenantId: string | null = localStorage.getItem("clientPortalTenantId");
+
+  // Read currentTenant saved by main app / auth
+  try {
+    const savedTenant = localStorage.getItem("currentTenant");
+    if (savedTenant) {
+      const parsed = JSON.parse(savedTenant);
+      if (!tenantId && parsed.tenantId) {
+        tenantId = parsed.tenantId;
+      }
+      if (parsed.subdomain) {
+        subdomain = parsed.subdomain;
+      }
+    }
+  } catch {}
+
   if (hostname === "localhost" || hostname === "127.0.0.1") {
-    subdomain = localStorage.getItem("devTenantSubdomain");
+    const devSub = localStorage.getItem("devTenantSubdomain");
+    if (devSub) subdomain = devSub;
+  } else if (hostname.endsWith(".localhost")) {
+    const candidate = hostname.split(".")[0];
+    if (candidate && !["www", "api", "admin", "app", "mail"].includes(candidate)) {
+      subdomain = candidate;
+    }
   } else {
     const parts = hostname.split(".");
     if (parts.length >= 3) {
@@ -50,10 +71,8 @@ function resolveTenantHeaders(): Record<string, string> {
       }
     }
   }
-  if (subdomain) headers["X-Tenant-Subdomain"] = subdomain;
 
-  // Also accept an explicit tenant id stashed for the portal (rare; mostly dev).
-  const tenantId = localStorage.getItem("clientPortalTenantId");
+  if (subdomain) headers["X-Tenant-Subdomain"] = subdomain;
   if (tenantId) headers["X-Tenant-ID"] = tenantId;
 
   return headers;

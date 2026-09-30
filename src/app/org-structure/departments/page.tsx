@@ -68,7 +68,7 @@ export default function DepartmentsPage() {
   const [submitting, setSubmitting] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [view, setView] = useState<OrgView>("grid");
-  const [pagination, setPagination] = useState({ current: 1, pageSize: 20 });
+  const [pagination, setPagination] = useState({ current: 1, pageSize: 15 });
 
   const { employmentTypes, loading: employmentTypesLoading } = useEmploymentTypes();
   const { allDepartments, paginatedDepartments, totalCount, loading, createDepartment, updateDepartment, deleteDepartment, refresh } = useDepartments({
@@ -371,7 +371,7 @@ export default function DepartmentsPage() {
             style={{
               borderBottom: "1px solid var(--border-slate-200)",
               padding: "9.5px 32px",
-              marginBottom: 8,
+              marginBottom: 0,
               position: 'sticky',
               top: 0,
               zIndex: 100,
@@ -404,6 +404,7 @@ export default function DepartmentsPage() {
           />
 
           <OrgModuleScaffold<Department>
+            title="Departments Overview"
             search={searchText}
             onSearchChange={setSearchText}
             searchPlaceholder="Search by name, code, or employment type..."
@@ -412,6 +413,7 @@ export default function DepartmentsPage() {
             onViewChange={setView}
             loading={loading}
             stats={stats}
+            progressPct={totalDepartments > 0 ? Math.round((withLeader / totalDepartments) * 100) : 0}
             columns={columns}
             data={paginatedDepartments}
             rowKey="id"

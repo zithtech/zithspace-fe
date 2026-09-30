@@ -26,7 +26,7 @@ const APPROVER_OPTIONS: { value: ApproverType; label: string }[] = [
   { value: 'specific_user', label: 'Specific User' },
 ];
 const APPROVER_LABEL: Record<ApproverType, string> = { manager: 'Reporting Manager', role: 'Role', specific_user: 'Specific User' };
-const PAGE_SIZE_OPTIONS = [10, 20, 25, 50, 100];
+const PAGE_SIZE_OPTIONS = [10, 15, 20, 25, 50, 100];
 
 type StepDraft = { approverType: ApproverType; roleId: string | null; specificUserId: string | null; fallbackUserId: string | null };
 
@@ -60,6 +60,21 @@ function DrawerCard({ icon, tint, color, title, subtitle, action, children }: {
   );
 }
 
+const ALLOWED_NAME_KEY_REGEX = /^[a-zA-Z\s\-]$/;
+const handleNameKeyDown = (e: React.KeyboardEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  const allowedKeys = [
+    'Backspace', 'Delete', 'Tab', 'Escape', 'Enter',
+    'ArrowLeft', 'ArrowRight', 'Home', 'End',
+  ];
+  if (allowedKeys.includes(e.key) || e.ctrlKey || e.metaKey) {
+    return;
+  }
+  if (e.key.length === 1 && !ALLOWED_NAME_KEY_REGEX.test(e.key)) {
+    e.preventDefault();
+  }
+};
+const sanitizeNameInput = (val: string) => val.replace(/[^a-zA-Z\s\-]/g, '');
+
 export default function ApprovalWorkflowPanel() {
   const { canReadPayrollWorkflows, canCreatePayrollWorkflows, canUpdatePayrollWorkflows, canDeletePayrollWorkflows } = usePermission();
   console.log("Forcing HMR reload for ApprovalWorkflowPanel");
@@ -72,7 +87,7 @@ export default function ApprovalWorkflowPanel() {
   const [debouncedSearch, setDebouncedSearch] = useState('');
 
   const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(20);
+  const [pageSize, setPageSize] = useState(15);
   const [totalWorkflows, setTotalWorkflows] = useState(0);
 
   const [open, setOpen] = useState(false);
@@ -137,6 +152,8 @@ export default function ApprovalWorkflowPanel() {
 
   const submit = async () => {
     if (!name.trim()) { message.error('Workflow name is required'); return; }
+    if (!/^[a-zA-Z\s\-]+$/.test(name.trim())) { message.error('Only letters and spaces are allowed in workflow name'); return; }
+    if (description && !/^[a-zA-Z0-9\s&()_".,\-'/—–]*$/.test(description.trim())) { message.error('Special characters are not allowed in description'); return; }
     if (steps.length === 0) { message.error('Add at least one approval step'); return; }
     for (const [i, s] of steps.entries()) {
       if (s.approverType === 'role' && !s.roleId) { message.error(`Step ${i + 1}: select a role`); return; }
@@ -232,9 +249,9 @@ export default function ApprovalWorkflowPanel() {
         </div>
       </div>
 
-      <div className="pvw-table-wrap">
+      <div className="pv-table-wrap">
         <ZukvoLoadingOverlay loading={loading} message="">
-          <Table rowKey="id" size="small" className="pvw-table" columns={columns} dataSource={pagedRows} pagination={false} onRow={() => ({ className: 'pvw-row' })} scroll={{ x: 'max-content' }} locale={{ emptyText: <NoData /> }} />
+          <Table rowKey="id" size="small" columns={columns} dataSource={pagedRows} pagination={false} onRow={() => ({ className: 'pvw-row' })} scroll={{ x: 'max-content' }} locale={{ emptyText: <NoData /> }} />
         </ZukvoLoadingOverlay>
       </div>
 
@@ -270,8 +287,8 @@ export default function ApprovalWorkflowPanel() {
           <div className="pvw-drawer-body">
             {/* details */}
             <DrawerCard icon={<InfoCircleOutlined />} tint={TINT.sky} color={PALETTE.sky} title="Details" subtitle="Name this workflow and set its defaults">
-              <Field label="Workflow name" hint="Shown when a payroll run picks an approval chain"><Input size="large" maxLength={120} placeholder="e.g. Standard Payroll Approval" value={name} onChange={(e) => setName(e.target.value)} /></Field>
-              <Field label="Description" hint="When does this workflow apply?"><Input.TextArea rows={2} maxLength={500} placeholder="When does this workflow apply?" value={description} onChange={(e) => setDescription(e.target.value)} /></Field>
+              <Field label="Workflow name" hint="Shown when a payroll run picks an approval chain"><Input size="large" maxLength={120} placeholder="e.g. Standard Payroll Approval" value={name} onKeyDown={handleNameKeyDown} onChange={(e) => setName(sanitizeNameInput(e.target.value))} /></Field>
+              <Field label="Description" hint="When does this workflow apply?"><Input.TextArea rows={2} maxLength={500} placeholder="When does this workflow apply?" value={description} onKeyDown={handleNameKeyDown} onChange={(e) => setDescription(sanitizeNameInput(e.target.value))} /></Field>
               <Field label="Default workflow" hint="Used by payroll runs when none is set" inline><Switch checked={isDefault} onChange={setIsDefault} /></Field>
               <Field label="Active" hint="Available for payroll runs" inline><Switch checked={isActive} onChange={setIsActive} /></Field>
             </DrawerCard>
@@ -332,7 +349,7 @@ export default function ApprovalWorkflowPanel() {
 
       <style jsx global>{`
         .pvw { display: flex; flex-direction: column; flex: 1; min-height: 0; }
-        .pvw-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding-bottom: 14px; margin-bottom: 14px; border-bottom: 1px solid var(--border-slate-200); flex-wrap: wrap; }
+        .pvw-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding-bottom: 14px; margin-bottom: 0; border-bottom: 1px solid var(--border-slate-200); flex-wrap: wrap; }
         .pvw-header-about { display: flex; align-items: center; gap: 12px; flex: 1 1 auto; min-width: 250px; }
         .pvw-header-icon { width: 38px; height: 38px; border-radius: 10px; flex-shrink: 0; background: ${TINT.sky}; color: ${PALETTE.sky}; display: inline-flex; align-items: center; justify-content: center; font-size: 18px; }
         .pvw-header-title { font-size: 17px; font-weight: 800; color: var(--text-slate-900); letter-spacing: -0.02em; line-height: 1.15; }
@@ -358,14 +375,14 @@ export default function ApprovalWorkflowPanel() {
         .pvw-table .ant-table-tbody > tr:last-child > td { border-bottom: none !important; }
         .pvw-table .ant-table-tbody > tr.pvw-row:hover > td { background: var(--bg-slate-50) !important; }
         .pvw-footer { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; height: 52px; box-sizing: border-box; }
-        .pvw-footer--sticky { position: sticky; bottom: 0; z-index: 20; margin: auto -22px 0; padding: 0 22px; background: var(--bg-pure-white); border-top: 1px solid var(--border-slate-200); box-shadow: 0 -4px 14px rgba(15,23,42,0.05); }
+        .pvw-footer--sticky { position: sticky; bottom: 0; z-index: 20; margin: 0; padding: 0 22px; background: var(--bg-pure-white); border-top: 1px solid var(--border-slate-200); box-shadow: 0 -4px 14px rgba(15,23,42,0.05); }
         .pvw-footer-info { font-size: 12px; color: var(--text-slate-500); }
         .pvw-footer-info strong { color: var(--text-slate-700); font-weight: 700; }
         .pvw-pager { display: flex; align-items: center; gap: 3px; }
         .pvw-pager-btn, .pvw-pager-num { min-width: 28px; height: 28px; border-radius: 7px; border: 1px solid var(--border-slate-200); background: var(--bg-pure-white); color: var(--text-slate-600); cursor: pointer; font-size: 12.5px; font-weight: 600; }
-        .pvw-pager-btn:hover:not(:disabled), .pvw-pager-num:hover { border-color: #7dd3fc; color: ${PALETTE.sky}; }
+        .pvw-pager-btn:hover:not(:disabled), .pvw-pager-num:hover { border-color: #93c5fd; color: #3b82f6; }
         .pvw-pager-btn:disabled { opacity: 0.4; cursor: not-allowed; }
-        .pvw-pager-num.is-active { background: ${PALETTE.sky}; border-color: ${PALETTE.sky}; color: #fff; }
+        .pvw-pager-num.is-active { background: #3b82f6; border-color: #3b82f6; color: #fff; }
         .pvw-pagesize { margin-left: 5px; }
         .pvw-pagesize .ant-select-selector { border-radius: 7px !important; height: 28px !important; }
 

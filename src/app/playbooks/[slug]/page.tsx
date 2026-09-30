@@ -109,7 +109,7 @@ function SectionBlock({
 }
 
 export default function PlaybookReaderPage() {
-  useActivitySource({ section: "WORK", module: "QA", page: "PlaybookDetail" });
+  useActivitySource({ section: "WORK", module: "Playbooks", page: "QaPlaybooks" });
 
   const router = useRouter();
   const params = useParams();

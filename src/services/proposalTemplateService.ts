@@ -1,4 +1,4 @@
-import { api } from '@/lib/axios';
+import { api, apiUtils, PaginatedResponse } from '@/lib/axios';
 import type { LibraryTemplate } from '@/store/proposalLibraryStore';
 
 export interface TemplatePayload {
@@ -12,10 +12,22 @@ export interface TemplatePayload {
   fontId?: string;
 }
 
+export interface ProposalTemplateFilters {
+  page?: number;
+  limit?: number;
+  search?: string;
+  view?: string;
+  archived?: boolean | string;
+  all?: boolean;
+}
+
 const BASE = '/api/proposal-templates';
 
 export const ProposalTemplateService = {
-  list: () => api.get<LibraryTemplate[]>(BASE),
+  list: (params?: ProposalTemplateFilters): Promise<PaginatedResponse<LibraryTemplate>> => {
+    return apiUtils.getPaginated<LibraryTemplate>(BASE, params);
+  },
+  listAll: (): Promise<LibraryTemplate[]> => api.get<LibraryTemplate[]>(`${BASE}?all=true`),
   getById: (id: string) => api.get<LibraryTemplate>(`${BASE}/${id}`),
   create: (payload: TemplatePayload) => api.post<LibraryTemplate>(BASE, payload),
   update: (id: string, payload: Partial<TemplatePayload> & { archived?: boolean }) =>

@@ -1,5 +1,7 @@
-import React, { forwardRef } from 'react';
+import React, { forwardRef, useContext } from 'react';
 import dayjs, { Dayjs } from 'dayjs';
+import ProductContext from '@/context/ProductContext';
+import { productFromHostname } from '@/lib/product';
 import { ReportMember } from '@/services/performanceReportService';
 import { StatusMarks } from './ticketPoints';
 import { ReportModel, ticketRowPoints, performanceBand } from './reportPdfData';
@@ -59,10 +61,9 @@ const ticketStatusMeta = (status: string) => {
 const C = { border: '#e2e8f0', headBg: '#f8fafc', ink: '#0f172a', muted: '#64748b', faint: '#94a3b8' };
 
 // Section title
-function SectionTitle({ children, icon }: { children: React.ReactNode, icon?: React.ReactNode }) {
+function SectionTitle({ children }: { children: React.ReactNode }) {
   return (
-    <div className="text-[14px] uppercase tracking-[0.15em] font-bold text-blue-800 dark:text-blue-300 mb-5 inline-flex items-center gap-2">
-      {icon}
+    <div className="text-[12px] uppercase tracking-[0.12em] font-bold text-blue-800 dark:text-blue-300 mb-3.5 inline-flex items-center">
       {children}
     </div>
   );
@@ -78,21 +79,21 @@ function StatCards({ items, points }: { items: Stat[], points?: { value: string 
   else if (total >= 6) colsClass = 'sm:grid-cols-6';
 
   return (
-    <div className={`grid grid-cols-2 ${colsClass} gap-4 mb-4`}>
+    <div className={`grid grid-cols-2 ${colsClass} gap-2.5 mb-3`}>
       {points && (
-        <div className="flex flex-col justify-center rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/60 p-4">
-          <div className="flex items-baseline gap-1.5">
-            <span className="text-2xl font-bold leading-none" style={{ color: points.color }}>{points.value ?? '—'}</span>
-            <span className="text-xs font-semibold text-zinc-400">/ 100</span>
+        <div className="rpt-stat-card flex flex-col justify-center rounded-lg border border-zinc-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900/60 p-2.5">
+          <div className="flex items-baseline gap-1">
+            <span className="text-lg font-extrabold leading-none" style={{ color: points.color }}>{points.value ?? '—'}</span>
+            <span className="text-[9.5px] font-bold text-zinc-400">/ 100</span>
           </div>
-          <div className="mt-1 text-xs font-semibold text-zinc-500 uppercase tracking-wider">Avg points</div>
+          <div className="mt-1 text-[9.5px] font-bold text-zinc-400 uppercase tracking-wider">Avg points</div>
         </div>
       )}
       {items.map((it, i) => (
-        <div key={i} className="flex flex-col justify-center rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900/30 p-4">
-          <div className="text-xl font-bold leading-none" style={{ color: it.color || 'inherit' }}>{it.value}</div>
-          <div className="mt-1 text-[11px] font-semibold text-zinc-500 uppercase tracking-wider">{it.label}</div>
-          {it.sub && <div className="mt-1 text-xs text-zinc-400">{it.sub}</div>}
+        <div key={i} className="rpt-stat-card flex flex-col justify-center rounded-lg border border-zinc-200/80 dark:border-zinc-800 bg-zinc-50/70 dark:bg-zinc-900/30 p-2.5">
+          <div className="text-base font-extrabold leading-none" style={{ color: it.color || 'inherit' }}>{it.value}</div>
+          <div className="mt-1 text-[9.5px] font-bold text-zinc-400 uppercase tracking-wider">{it.label}</div>
+          {it.sub && <div className="mt-0.5 text-[9.5px] text-zinc-400">{it.sub}</div>}
         </div>
       ))}
     </div>
@@ -114,6 +115,11 @@ interface Props {
 
 const ReportPrintable = forwardRef<HTMLDivElement, Props>(
   ({ member, range, model, statusMarks, avatarDataUrl }, ref) => {
+    const prodCtx = useContext(ProductContext);
+    const resolvedProduct = prodCtx?.product || (typeof window !== 'undefined' ? productFromHostname(window.location.hostname) : 'zukvo');
+    const brandName = resolvedProduct === 'testiez' ? 'Testiez' : 'Zukvo';
+    const brandColor = resolvedProduct === 'testiez' ? '#8b5cf6' : '#3b82f6';
+
     const monthLabel = range[0].format('MMMM YYYY');
     const rangeLabel = `${range[0].format('MMM D')} – ${range[1].format('MMM D, YYYY')}`;
     const overallBand = performanceBand(model.overall);
@@ -181,344 +187,369 @@ const ReportPrintable = forwardRef<HTMLDivElement, Props>(
 
         <div className="px-8 py-2 space-y-4">
           {/* ── Overview ───────────────────────────────────────────────────────── */}
-          <section className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/60 p-5">
-            <SectionTitle icon={<AppstoreOutlined />}>Overview</SectionTitle>
-            <div className="flex gap-4 mb-4">
-              <div className="flex-1 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900/30 p-5 flex items-center gap-6">
-                <div>
-                  <div className="flex items-baseline gap-1.5">
-                    <span className="text-5xl font-bold leading-none tracking-tight" style={{ color: scoreColor(model.overall) }}>{model.overall ?? '—'}</span>
-                    <span className="text-lg font-semibold text-zinc-400">/ 100</span>
+          <section className="rpt-section-card rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/60 p-4">
+            <SectionTitle>Overview</SectionTitle>
+            <div className="flex gap-4 mb-3">
+              <div className="flex-1 rounded-lg border border-zinc-200/80 dark:border-zinc-800 bg-zinc-50/70 dark:bg-zinc-900/30 p-3 flex items-center justify-between gap-4">
+                <div className="flex items-center gap-4">
+                  <div className="flex items-baseline gap-1">
+                    <span className="text-3xl font-extrabold leading-none tracking-tight" style={{ color: scoreColor(model.overall) }}>{model.overall ?? '—'}</span>
+                    <span className="text-xs font-semibold text-zinc-400">/ 100</span>
                   </div>
-                </div>
-                <div className="w-px h-12 bg-zinc-200 dark:bg-zinc-800" />
-                <div>
-                  <div className="text-lg font-bold" style={{ color: overallBand.color }}>{overallBand.label}</div>
-                  <div className="text-xs text-zinc-500 mt-1">Overall performance · weighted across stages</div>
+                  <div className="w-px h-8 bg-zinc-200 dark:bg-zinc-800" />
+                  <div>
+                    <div className="text-xs font-bold" style={{ color: overallBand.color }}>{overallBand.label}</div>
+                    <div className="text-[10.5px] text-zinc-500 mt-0.5">Overall performance · weighted across stages</div>
+                  </div>
                 </div>
               </div>
             </div>
 
-            <div className="grid grid-cols-3 gap-3">
-              {model.stages.map((s) => {
-                const band = performanceBand(s.score);
-                return (
-                  <div key={s.key} className={`rounded-xl border border-zinc-200 dark:border-zinc-800 p-4 ${s.enabled ? 'opacity-100' : 'opacity-50'}`}>
-                    <div className="flex justify-between items-center mb-3">
-                      <span className="text-xs font-bold text-zinc-700 dark:text-zinc-300">{s.label}</span>
-                      <span className="text-[10px] font-bold text-zinc-400">{Number(s.weight)}%</span>
-                    </div>
-                    <div className="flex justify-between items-end">
-                      <div className="flex items-baseline gap-1">
-                        <span className="text-2xl font-bold leading-none tracking-tight" style={{ color: scoreColor(s.score) }}>{s.score ?? '—'}</span>
-                        <span className="text-[10px] font-bold text-zinc-400">/ 100</span>
+            {(() => {
+              const enabledStages = model.stages.filter((s) => s.enabled);
+              const gridColsClass =
+                enabledStages.length <= 2
+                  ? 'grid-cols-2'
+                  : enabledStages.length === 3
+                  ? 'grid-cols-3'
+                  : enabledStages.length === 4
+                  ? 'grid-cols-4'
+                  : 'grid-cols-3 sm:grid-cols-5';
+              return (
+                <div className={`grid gap-2.5 ${gridColsClass}`}>
+                  {enabledStages.map((s) => {
+                    const band = performanceBand(s.score);
+                    return (
+                      <div key={s.key} className="rpt-module-card rounded-lg border border-zinc-200/80 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-900/20 p-2.5">
+                        <div className="flex justify-between items-center mb-2">
+                          <span className="text-[11px] font-bold text-zinc-700 dark:text-zinc-300">{s.label}</span>
+                          <span className="text-[9px] font-bold text-zinc-400">{Number(s.weight)}%</span>
+                        </div>
+                        <div className="flex justify-between items-end">
+                          <div className="flex items-baseline gap-0.5">
+                            <span className="text-lg font-extrabold leading-none" style={{ color: scoreColor(s.score) }}>{s.score ?? '—'}</span>
+                            <span className="text-[9px] font-semibold text-zinc-400">/ 100</span>
+                          </div>
+                          <span className="text-[8.5px] font-bold" style={{ color: band.color }}>{band.label}</span>
+                        </div>
                       </div>
-                      <span className="text-[10px] font-bold" style={{ color: band.color }}>{s.enabled ? band.label : 'Excluded'}</span>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
+                    );
+                  })}
+                </div>
+              );
+            })()}
           </section>
 
           {/* ── Tickets ────────────────────────────────────────────────────────── */}
-          <section className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/60 p-5">
-            <SectionTitle icon={<TagsOutlined />}>Tickets</SectionTitle>
-            <StatCards
-              points={{ value: model.tickets.score, color: scoreColor(model.tickets.score) }}
-              items={[
-                { label: 'Total', value: tkTotal },
-                { label: 'On-time', value: tkOnTime, color: '#16a34a' },
-                { label: 'Delayed', value: tkDelayed, color: '#dc2626' },
-              ]}
-            />
-            {model.tickets.rows.length === 0 ? (
-              empty('No tickets worked in this window.')
-            ) : (
-              <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 mt-4 bg-white dark:bg-zinc-900 shadow-sm">
-                <table className="w-full text-left border-collapse table-fixed">
-                  <thead>
-                    <tr className="bg-zinc-50/70 dark:bg-zinc-900/50 border-b border-zinc-200 dark:border-zinc-800">
-                      <th className="w-[27%] px-3 py-2.5 text-[10px] uppercase font-bold text-zinc-400 tracking-wider text-left">Ticket</th>
-                      <th className="w-[12%] px-1 py-2.5 text-[10px] uppercase font-bold text-zinc-400 tracking-wider text-center border-l border-zinc-100 dark:border-zinc-800">Type</th>
-                      <th className="w-[8%] px-1 py-2.5 text-[10px] uppercase font-bold text-zinc-400 tracking-wider text-center border-l border-zinc-100 dark:border-zinc-800">Start</th>
-                      <th className="w-[8%] px-1 py-2.5 text-[10px] uppercase font-bold text-zinc-400 tracking-wider text-center border-l border-zinc-100 dark:border-zinc-800">End</th>
-                      <th className="w-[6%] px-1 py-2.5 text-[10px] uppercase font-bold text-zinc-400 tracking-wider text-center border-l border-zinc-100 dark:border-zinc-800">Est</th>
-                      <th className="w-[9.5%] px-1 py-2.5 text-[10px] uppercase font-bold text-zinc-400 tracking-wider text-center border-l border-zinc-100 dark:border-zinc-800">Tracked</th>
-                      <th className="w-[11%] px-1 py-2.5 text-[10px] uppercase font-bold text-zinc-400 tracking-wider text-center border-l border-zinc-100 dark:border-zinc-800">Delay</th>
-                      <th className="w-[7.5%] px-1 py-2.5 text-[10px] uppercase font-bold text-zinc-400 tracking-wider text-center border-l border-zinc-100 dark:border-zinc-800">Points</th>
-                      <th className="w-[11%] px-1 py-2.5 text-[10px] uppercase font-bold text-zinc-400 tracking-wider text-center border-l border-zinc-100 dark:border-zinc-800" style={{ textAlign: 'center' }}>Status</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {model.tickets.rows.map((t: any) => {
-                      const st = ticketStatusMeta(t.status);
-                      const del = delayOf(t.estimateHours || 0, t.trackedSeconds || 0);
-                      const pts = ticketRowPoints(t, statusMarks);
-                      const ptsColor = scoreColor(pts);
-                      return (
-                        <tr key={t.id} className="border-b last:border-0 border-zinc-100 dark:border-zinc-800/60 hover:bg-zinc-50/50">
-                          <td className="px-3 py-3 align-middle">
-                            <div className="flex items-start gap-2">
-                              <span className="w-1.5 h-1.5 rounded-full mt-1.5 flex-shrink-0" style={{ background: st.color }} />
-                              <div className="min-w-0 flex-1">
-                                <div className="font-bold text-[#2563eb] text-[11.5px] leading-tight">
-                                  {t.ticketNumber}
-                                  {t.sprintName && (
-                                    <span className="ml-1.5 font-normal text-[9px] text-zinc-400 bg-zinc-100 dark:bg-zinc-800 px-1 py-0.5 rounded">
-                                      {t.sprintName}
-                                    </span>
-                                  )}
-                                </div>
-                                <div className="text-[11px] text-zinc-700 dark:text-zinc-300 leading-snug mt-0.5 break-words">
-                                  {t.title}
+          {model.stages.find((s) => s.key === 'tickets')?.enabled !== false && (
+            <section className="rpt-section-card rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/60 p-5">
+              <SectionTitle>Tickets</SectionTitle>
+              <StatCards
+                points={{ value: model.tickets.score, color: scoreColor(model.tickets.score) }}
+                items={[
+                  { label: 'Total', value: tkTotal },
+                  { label: 'On-time', value: tkOnTime, color: '#16a34a' },
+                  { label: 'Delayed', value: tkDelayed, color: '#dc2626' },
+                ]}
+              />
+              {model.tickets.rows.length === 0 ? (
+                empty('No tickets worked in this window.')
+              ) : (
+                <div className="rpt-table-wrap border border-zinc-200 dark:border-zinc-800 mt-4 bg-white dark:bg-zinc-900">
+                  <table className="w-full text-left border-collapse table-fixed">
+                    <thead style={{ backgroundColor: '#f8fafc' }}>
+                      <tr className="bg-zinc-50/70 dark:bg-zinc-900/50 border-b border-zinc-200 dark:border-zinc-800">
+                        <th className="w-[27%] px-3 py-2.5 text-[10px] uppercase font-bold text-zinc-400 tracking-wider text-left">Ticket</th>
+                        <th className="w-[12%] px-1 py-2.5 text-[10px] uppercase font-bold text-zinc-400 tracking-wider text-center border-l border-zinc-100 dark:border-zinc-800">Type</th>
+                        <th className="w-[8%] px-1 py-2.5 text-[10px] uppercase font-bold text-zinc-400 tracking-wider text-center border-l border-zinc-100 dark:border-zinc-800">Start</th>
+                        <th className="w-[8%] px-1 py-2.5 text-[10px] uppercase font-bold text-zinc-400 tracking-wider text-center border-l border-zinc-100 dark:border-zinc-800">End</th>
+                        <th className="w-[6%] px-1 py-2.5 text-[10px] uppercase font-bold text-zinc-400 tracking-wider text-center border-l border-zinc-100 dark:border-zinc-800">Est</th>
+                        <th className="w-[9.5%] px-1 py-2.5 text-[10px] uppercase font-bold text-zinc-400 tracking-wider text-center border-l border-zinc-100 dark:border-zinc-800">Tracked</th>
+                        <th className="w-[11%] px-1 py-2.5 text-[10px] uppercase font-bold text-zinc-400 tracking-wider text-center border-l border-zinc-100 dark:border-zinc-800">Delay</th>
+                        <th className="w-[7.5%] px-1 py-2.5 text-[10px] uppercase font-bold text-zinc-400 tracking-wider text-center border-l border-zinc-100 dark:border-zinc-800">Points</th>
+                        <th className="w-[11%] px-1 py-2.5 text-[10px] uppercase font-bold text-zinc-400 tracking-wider text-center border-l border-zinc-100 dark:border-zinc-800" style={{ textAlign: 'center' }}>Status</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {model.tickets.rows.map((t: any) => {
+                        const st = ticketStatusMeta(t.status);
+                        const del = delayOf(t.estimateHours || 0, t.trackedSeconds || 0);
+                        const pts = ticketRowPoints(t, statusMarks);
+                        const ptsColor = scoreColor(pts);
+                        return (
+                          <tr key={t.id} className="border-b last:border-0 border-zinc-100 dark:border-zinc-800/60 hover:bg-zinc-50/50">
+                            <td className="px-3 py-3 align-middle">
+                              <div className="flex items-start gap-2">
+                                <span className="w-1.5 h-1.5 rounded-full mt-1.5 flex-shrink-0" style={{ background: st.color }} />
+                                <div className="min-w-0 flex-1">
+                                  <div className="font-bold text-[#2563eb] text-[11.5px] leading-tight">
+                                    {t.ticketNumber}
+                                    {t.sprintName && (
+                                      <span className="ml-1.5 font-normal text-[9px] text-zinc-400 bg-zinc-100 dark:bg-zinc-800 px-1 py-0.5 rounded">
+                                        {t.sprintName}
+                                      </span>
+                                    )}
+                                  </div>
+                                  <div className="text-[11px] text-zinc-700 dark:text-zinc-300 leading-snug mt-0.5 break-words">
+                                    {t.title}
+                                  </div>
                                 </div>
                               </div>
-                            </div>
-                          </td>
-                          <td className="px-1 py-3 text-[10.5px] text-center text-zinc-600 dark:text-zinc-400 capitalize border-l border-zinc-100 dark:border-zinc-800 align-middle" style={{ textAlign: 'center' }}>
-                            {t.type || '—'}
-                          </td>
-                          <td className="px-1 py-3 text-[10.5px] text-center text-zinc-600 dark:text-zinc-400 border-l border-zinc-100 dark:border-zinc-800 align-middle whitespace-nowrap" style={{ textAlign: 'center' }}>
-                            {t.startDate ? dayjs(t.startDate).format('MMM D') : '—'}
-                          </td>
-                          <td className="px-1 py-3 text-[10.5px] text-center text-zinc-600 dark:text-zinc-400 border-l border-zinc-100 dark:border-zinc-800 align-middle whitespace-nowrap" style={{ textAlign: 'center' }}>
-                            {t.endDate || t.dueDate ? dayjs(t.endDate || t.dueDate).format('MMM D') : '—'}
-                          </td>
-                          <td className="px-1 py-3 text-[10.5px] text-center text-zinc-600 dark:text-zinc-400 border-l border-zinc-100 dark:border-zinc-800 align-middle whitespace-nowrap" style={{ textAlign: 'center' }}>
-                            {t.estimateHours > 0 ? `${t.estimateHours}h` : '—'}
-                          </td>
-                          <td className="px-1 py-3 text-[11px] text-center font-bold text-zinc-900 dark:text-zinc-100 border-l border-zinc-100 dark:border-zinc-800 align-middle whitespace-nowrap" style={{ textAlign: 'center' }}>
-                            {t.trackedSeconds > 0 ? hmFromSec(t.trackedSeconds) : '—'}
-                          </td>
-                          <td className="px-1 py-3 text-[11px] text-center font-bold border-l border-zinc-100 dark:border-zinc-800 align-middle whitespace-nowrap" style={{ color: del.color, textAlign: 'center' }}>
-                            {del.text}
-                          </td>
-                          <td className="px-1 py-3 text-[11px] text-center font-bold border-l border-zinc-100 dark:border-zinc-800 align-middle whitespace-nowrap" style={{ color: ptsColor, textAlign: 'center' }}>
-                            {pts !== null ? `${pts}%` : '—'}
-                          </td>
-                          <td className="px-1 py-3 text-center border-l border-zinc-100 dark:border-zinc-800 align-middle" style={{ textAlign: 'center' }}>
-                            <span
-                              style={{
-                                display: 'inline-block',
-                                fontSize: '11px',
-                                fontWeight: 600,
-                                whiteSpace: 'nowrap',
-                                color: st.color,
-                                textAlign: 'center',
-                              }}
-                            >
-                              {st.label}
-                            </span>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </section>
+                            </td>
+                            <td className="px-1 py-3 text-[10.5px] text-center text-zinc-600 dark:text-zinc-400 capitalize border-l border-zinc-100 dark:border-zinc-800 align-middle" style={{ textAlign: 'center' }}>
+                              {t.type || '—'}
+                            </td>
+                            <td className="px-1 py-3 text-[10.5px] text-center text-zinc-600 dark:text-zinc-400 border-l border-zinc-100 dark:border-zinc-800 align-middle whitespace-nowrap" style={{ textAlign: 'center' }}>
+                              {t.startDate ? dayjs(t.startDate).format('MMM D') : '—'}
+                            </td>
+                            <td className="px-1 py-3 text-[10.5px] text-center text-zinc-600 dark:text-zinc-400 border-l border-zinc-100 dark:border-zinc-800 align-middle whitespace-nowrap" style={{ textAlign: 'center' }}>
+                              {t.endDate || t.dueDate ? dayjs(t.endDate || t.dueDate).format('MMM D') : '—'}
+                            </td>
+                            <td className="px-1 py-3 text-[10.5px] text-center text-zinc-600 dark:text-zinc-400 border-l border-zinc-100 dark:border-zinc-800 align-middle whitespace-nowrap" style={{ textAlign: 'center' }}>
+                              {t.estimateHours > 0 ? `${t.estimateHours}h` : '—'}
+                            </td>
+                            <td className="px-1 py-3 text-[11px] text-center font-bold text-zinc-900 dark:text-zinc-100 border-l border-zinc-100 dark:border-zinc-800 align-middle whitespace-nowrap" style={{ textAlign: 'center' }}>
+                              {t.trackedSeconds > 0 ? hmFromSec(t.trackedSeconds) : '—'}
+                            </td>
+                            <td className="px-1 py-3 text-[11px] text-center font-bold border-l border-zinc-100 dark:border-zinc-800 align-middle whitespace-nowrap" style={{ color: del.color, textAlign: 'center' }}>
+                              {del.text}
+                            </td>
+                            <td className="px-1 py-3 text-[11px] text-center font-bold border-l border-zinc-100 dark:border-zinc-800 align-middle whitespace-nowrap" style={{ color: ptsColor, textAlign: 'center' }}>
+                              {pts !== null ? `${pts}%` : '—'}
+                            </td>
+                            <td className="px-1 py-3 text-center border-l border-zinc-100 dark:border-zinc-800 align-middle" style={{ textAlign: 'center' }}>
+                              <span
+                                style={{
+                                  display: 'inline-block',
+                                  fontSize: '11px',
+                                  fontWeight: 600,
+                                  whiteSpace: 'nowrap',
+                                  color: st.color,
+                                  textAlign: 'center',
+                                }}
+                              >
+                                {st.label}
+                              </span>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </section>
+          )}
 
           {/* ── Time Tracking ──────────────────────────────────────────────────── */}
-          <section className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/60 p-5">
-            <SectionTitle icon={<ClockCircleOutlined />}>Time Tracking</SectionTitle>
-            <StatCards
-              points={{ value: model.timeTracking.score, color: scoreColor(model.timeTracking.score) }}
-              items={[
-                { label: 'Avg hours / day', value: hmFromSec(model.timeTracking.avgSeconds) },
-                { label: 'Tracked days', value: model.timeTracking.trackedDays },
-              ]}
-            />
+          {model.stages.find((s) => s.key === 'time_tracking')?.enabled !== false && (
+            <>
+              <section className="rpt-section-card rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/60 p-5">
+                <SectionTitle>Time Tracking</SectionTitle>
+                <StatCards
+                  points={{ value: model.timeTracking.score, color: scoreColor(model.timeTracking.score) }}
+                  items={[
+                    { label: 'Avg hours / day', value: hmFromSec(model.timeTracking.avgSeconds) },
+                    { label: 'Tracked days', value: model.timeTracking.trackedDays },
+                  ]}
+                />
 
-            <div className="text-[11px] font-bold text-zinc-400 uppercase tracking-wider mt-4 mb-2">Performance Summary</div>
-            {model.timeTracking.summaryTiers.length === 0 ? (
-              empty('No performance tiers.')
-            ) : (
-              <div className="grid gap-2 grid-cols-1 sm:grid-cols-2">
-                {model.timeTracking.summaryTiers.map((tr) => (
-                  <div key={tr.label} className="flex justify-between items-center rounded-lg border border-zinc-200 dark:border-zinc-800 p-3 bg-zinc-50 dark:bg-zinc-900/30">
-                    <span className="text-xs font-semibold text-zinc-700 dark:text-zinc-300">{tr.label}</span>
-                    <span className="text-sm font-bold text-zinc-900 dark:text-zinc-100">{tr.days} days</span>
-                  </div>
-                ))}
-              </div>
-            )}
-          </section>
-
-          <section className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/60 p-5">
-            <SectionTitle icon={<TableOutlined />}>Time Tracking · Detailed</SectionTitle>
-            {model.timeTracking.detailed.length === 0 ? (
-              empty('No tracking records.')
-            ) : (
-              <div className="rounded-lg border border-zinc-200 dark:border-zinc-800">
-                <table className="w-full text-left border-collapse">
-                  <thead>
-                    <tr className="bg-zinc-50 dark:bg-zinc-900/30 border-b border-zinc-200 dark:border-zinc-800">
-                      <th className="px-3 py-2 text-[10px] uppercase font-bold text-zinc-400 tracking-wider">Member</th>
-                      <th className="px-3 py-2 text-[10px] uppercase font-bold text-zinc-400 tracking-wider">Date</th>
-                      <th className="px-3 py-2 text-[10px] uppercase font-bold text-zinc-400 tracking-wider">Weekday</th>
-                      <th className="px-3 py-2 text-[10px] uppercase font-bold text-zinc-400 tracking-wider text-right">Hours</th>
-                      <th className="px-3 py-2 text-[10px] uppercase font-bold text-zinc-400 tracking-wider text-right">Tickets</th>
-                      <th className="px-3 py-2 text-[10px] uppercase font-bold text-zinc-400 tracking-wider">Status</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {model.timeTracking.detailed.map((r: any, i: number) => (
-                      <tr key={i} className="border-b last:border-0 border-zinc-100 dark:border-zinc-800/60">
-                        <td className="px-3 py-2 text-xs font-semibold text-zinc-700 dark:text-zinc-300">{r.user?.name || '—'}</td>
-                        <td className="px-3 py-2 text-xs text-zinc-600 dark:text-zinc-400">{dayjs(r.date).format('MMM D')}</td>
-                        <td className="px-3 py-2 text-xs text-zinc-500">{r.weekday}</td>
-                        <td className="px-3 py-2 text-xs font-bold text-right text-zinc-700 dark:text-zinc-300">{r.formattedDuration || hmFromSec(r.totalSeconds)}</td>
-                        <td className="px-3 py-2 text-xs text-right text-zinc-600 dark:text-zinc-400">{r.ticketCount ?? '—'}</td>
-                        <td className="px-3 py-2 text-xs text-zinc-600 dark:text-zinc-400">{r.status}</td>
-                      </tr>
+                <div className="text-[11px] font-bold text-zinc-400 uppercase tracking-wider mt-4 mb-2">Performance Summary</div>
+                {model.timeTracking.summaryTiers.length === 0 ? (
+                  empty('No performance tiers.')
+                ) : (
+                  <div className="grid gap-2 grid-cols-1 sm:grid-cols-2">
+                    {model.timeTracking.summaryTiers.map((tr) => (
+                      <div key={tr.label} className="rpt-tier-card flex justify-between items-center rounded-lg border border-zinc-200 dark:border-zinc-800 p-3 bg-zinc-50 dark:bg-zinc-900/30">
+                        <span className="text-xs font-semibold text-zinc-700 dark:text-zinc-300">{tr.label}</span>
+                        <span className="text-sm font-bold text-zinc-900 dark:text-zinc-100">{tr.days} days</span>
+                      </div>
                     ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </section>
+                  </div>
+                )}
+              </section>
+
+              <section className="rpt-section-card rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/60 p-5">
+                <SectionTitle>Time Tracking · Detailed</SectionTitle>
+                {model.timeTracking.detailed.length === 0 ? (
+                  empty('No tracking records.')
+                ) : (
+                  <div className="rpt-table-wrap border border-zinc-200 dark:border-zinc-800">
+                    <table className="w-full text-left border-collapse">
+                      <thead style={{ backgroundColor: '#f8fafc' }}>
+                        <tr className="bg-zinc-50 dark:bg-zinc-900/30 border-b border-zinc-200 dark:border-zinc-800">
+                          <th className="px-3 py-2 text-[10px] uppercase font-bold text-zinc-400 tracking-wider">Member</th>
+                          <th className="px-3 py-2 text-[10px] uppercase font-bold text-zinc-400 tracking-wider">Date</th>
+                          <th className="px-3 py-2 text-[10px] uppercase font-bold text-zinc-400 tracking-wider">Weekday</th>
+                          <th className="px-3 py-2 text-[10px] uppercase font-bold text-zinc-400 tracking-wider text-right">Hours</th>
+                          <th className="px-3 py-2 text-[10px] uppercase font-bold text-zinc-400 tracking-wider text-right">Tickets</th>
+                          <th className="px-3 py-2 text-[10px] uppercase font-bold text-zinc-400 tracking-wider">Status</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {model.timeTracking.detailed.map((r: any, i: number) => (
+                          <tr key={i} className="border-b last:border-0 border-zinc-100 dark:border-zinc-800/60">
+                            <td className="px-3 py-2 text-xs font-semibold text-zinc-700 dark:text-zinc-300">{r.user?.name || '—'}</td>
+                            <td className="px-3 py-2 text-xs text-zinc-600 dark:text-zinc-400">{dayjs(r.date).format('MMM D')}</td>
+                            <td className="px-3 py-2 text-xs text-zinc-500">{r.weekday}</td>
+                            <td className="px-3 py-2 text-xs font-bold text-right text-zinc-700 dark:text-zinc-300">{r.formattedDuration || hmFromSec(r.totalSeconds)}</td>
+                            <td className="px-3 py-2 text-xs text-right text-zinc-600 dark:text-zinc-400">{r.ticketCount ?? '—'}</td>
+                            <td className="px-3 py-2 text-xs text-zinc-600 dark:text-zinc-400">{r.status}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </section>
+            </>
+          )}
 
           {/* ── Daily Updates ──────────────────────────────────────────────────── */}
-          <section className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/60 p-5">
-            <SectionTitle icon={<MessageOutlined />}>Daily Updates</SectionTitle>
-            <StatCards
-              points={{ value: model.dailyUpdates.score, color: scoreColor(model.dailyUpdates.score) }}
-              items={[
-                { label: 'Expected days', value: model.dailyUpdates.expected },
-                { label: 'Posted', value: model.dailyUpdates.posted, color: '#16a34a' },
-                { label: 'Missed', value: model.dailyUpdates.missed, color: '#dc2626' },
-              ]}
-            />
-            {model.dailyUpdates.rows.length === 0 ? (
-              empty('No daily updates posted in this window.')
-            ) : (
-              <div className="rounded-lg border border-zinc-200 dark:border-zinc-800 mt-4">
-                <table className="w-full text-left border-collapse">
-                  <thead>
-                    <tr className="bg-zinc-50 dark:bg-zinc-900/30 border-b border-zinc-200 dark:border-zinc-800">
-                      <th className="px-3 py-2 text-[10px] uppercase font-bold text-zinc-400 tracking-wider">Member</th>
-                      <th className="px-3 py-2 text-[10px] uppercase font-bold text-zinc-400 tracking-wider">Type</th>
-                      <th className="px-3 py-2 text-[10px] uppercase font-bold text-zinc-400 tracking-wider">Posted On</th>
-                      <th className="px-3 py-2 text-[10px] uppercase font-bold text-zinc-400 tracking-wider text-right">Tasks</th>
-                      <th className="px-3 py-2 text-[10px] uppercase font-bold text-zinc-400 tracking-wider text-right">Hours</th>
-                      <th className="px-3 py-2 text-[10px] uppercase font-bold text-zinc-400 tracking-wider">Mood</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {model.dailyUpdates.rows.map((u: any) => (
-                      <tr key={u.id} className="border-b last:border-0 border-zinc-100 dark:border-zinc-800/60">
-                        <td className="px-3 py-2 text-xs font-semibold text-zinc-700 dark:text-zinc-300">{u.user?.name || '—'}</td>
-                        <td className="px-3 py-2 text-xs text-zinc-600 dark:text-zinc-400">{u.updateType || 'EOD'}</td>
-                        <td className="px-3 py-2 text-xs text-zinc-600 dark:text-zinc-400">{fmtDate(u.createdAt)}</td>
-                        <td className="px-3 py-2 text-xs text-right text-zinc-600 dark:text-zinc-400">
-                          {(u.projectUpdates || []).reduce((n: number, p: any) => n + (p.tasks?.length || 0), 0) || '—'}
-                        </td>
-                        <td className="px-3 py-2 text-xs text-right text-zinc-600 dark:text-zinc-400">{u.totalHoursWorked ? `${u.totalHoursWorked}h` : '—'}</td>
-                        <td className="px-3 py-2 text-xs text-zinc-600 dark:text-zinc-400 capitalize">{u.mood || '—'}</td>
+          {model.stages.find((s) => s.key === 'daily_updates')?.enabled !== false && (
+            <section className="rpt-section-card rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/60 p-5">
+              <SectionTitle>Daily Updates</SectionTitle>
+              <StatCards
+                points={{ value: model.dailyUpdates.score, color: scoreColor(model.dailyUpdates.score) }}
+                items={[
+                  { label: 'Expected days', value: model.dailyUpdates.expected },
+                  { label: 'Posted', value: model.dailyUpdates.posted, color: '#16a34a' },
+                  { label: 'Missed', value: model.dailyUpdates.missed, color: '#dc2626' },
+                ]}
+              />
+              {model.dailyUpdates.rows.length === 0 ? (
+                empty('No daily updates posted in this window.')
+              ) : (
+                <div className="rpt-table-wrap border border-zinc-200 dark:border-zinc-800 mt-4">
+                  <table className="w-full text-left border-collapse">
+                    <thead style={{ backgroundColor: '#f8fafc' }}>
+                      <tr className="bg-zinc-50 dark:bg-zinc-900/30 border-b border-zinc-200 dark:border-zinc-800">
+                        <th className="px-3 py-2 text-[10px] uppercase font-bold text-zinc-400 tracking-wider">Member</th>
+                        <th className="px-3 py-2 text-[10px] uppercase font-bold text-zinc-400 tracking-wider">Type</th>
+                        <th className="px-3 py-2 text-[10px] uppercase font-bold text-zinc-400 tracking-wider">Posted On</th>
+                        <th className="px-3 py-2 text-[10px] uppercase font-bold text-zinc-400 tracking-wider text-right">Tasks</th>
+                        <th className="px-3 py-2 text-[10px] uppercase font-bold text-zinc-400 tracking-wider text-right">Hours</th>
+                        <th className="px-3 py-2 text-[10px] uppercase font-bold text-zinc-400 tracking-wider">Mood</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </section>
+                    </thead>
+                    <tbody>
+                      {model.dailyUpdates.rows.map((u: any) => (
+                        <tr key={u.id} className="border-b last:border-0 border-zinc-100 dark:border-zinc-800/60">
+                          <td className="px-3 py-2 text-xs font-semibold text-zinc-700 dark:text-zinc-300">{u.user?.name || '—'}</td>
+                          <td className="px-3 py-2 text-xs text-zinc-600 dark:text-zinc-400">{u.updateType || 'EOD'}</td>
+                          <td className="px-3 py-2 text-xs text-zinc-600 dark:text-zinc-400">{fmtDate(u.createdAt)}</td>
+                          <td className="px-3 py-2 text-xs text-right text-zinc-600 dark:text-zinc-400">
+                            {(u.projectUpdates || []).reduce((n: number, p: any) => n + (p.tasks?.length || 0), 0) || '—'}
+                          </td>
+                          <td className="px-3 py-2 text-xs text-right text-zinc-600 dark:text-zinc-400">{u.totalHoursWorked ? `${u.totalHoursWorked}h` : '—'}</td>
+                          <td className="px-3 py-2 text-xs text-zinc-600 dark:text-zinc-400 capitalize">{u.mood || '—'}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </section>
+          )}
 
           {/* ── Attendance ───────────────────────────────────────────────────── */}
-          <section className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/60 p-5">
-            <SectionTitle icon={<UserOutlined />}>Attendance</SectionTitle>
-            <StatCards
-              points={{ value: model.attendance.score, color: scoreColor(model.attendance.score) }}
-              items={[
-                { label: 'Present', value: model.attendance.present, color: '#16a34a' },
-                { label: 'Absent', value: model.attendance.absent, color: '#dc2626' },
-                { label: 'Avg hours / day', value: hmFromMin(model.attendance.avgMins) },
-              ]}
-            />
-            {model.attendance.rows.length === 0 ? (
-              empty('No attendance records in this window.')
-            ) : (
-              <div className="rounded-lg border border-zinc-200 dark:border-zinc-800 mt-4">
-                <table className="w-full text-left border-collapse">
-                  <thead>
-                    <tr className="bg-zinc-50 dark:bg-zinc-900/30 border-b border-zinc-200 dark:border-zinc-800">
-                      <th className="px-3 py-2 text-[10px] uppercase font-bold text-zinc-400 tracking-wider">Member</th>
-                      <th className="px-3 py-2 text-[10px] uppercase font-bold text-zinc-400 tracking-wider">Date</th>
-                      <th className="px-3 py-2 text-[10px] uppercase font-bold text-zinc-400 tracking-wider">Clock In</th>
-                      <th className="px-3 py-2 text-[10px] uppercase font-bold text-zinc-400 tracking-wider">Clock Out</th>
-                      <th className="px-3 py-2 text-[10px] uppercase font-bold text-zinc-400 tracking-wider text-right">Hours</th>
-                      <th className="px-3 py-2 text-[10px] uppercase font-bold text-zinc-400 tracking-wider text-right">Late</th>
-                      <th className="px-3 py-2 text-[10px] uppercase font-bold text-zinc-400 tracking-wider">Status</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {model.attendance.rows.map((r: any) => (
-                      <tr key={r.id} className="border-b last:border-0 border-zinc-100 dark:border-zinc-800/60">
-                        <td className="px-3 py-2 text-xs font-semibold text-zinc-700 dark:text-zinc-300">{r.member?.name || '—'}</td>
-                        <td className="px-3 py-2 text-xs text-zinc-600 dark:text-zinc-400">{dayjs(r.date).format('MMM D')}</td>
-                        <td className="px-3 py-2 text-xs text-zinc-600 dark:text-zinc-400">{fmtTime(r.clockIn)}</td>
-                        <td className="px-3 py-2 text-xs text-zinc-600 dark:text-zinc-400">{fmtTime(r.clockOut)}</td>
-                        <td className="px-3 py-2 text-xs font-bold text-right text-zinc-700 dark:text-zinc-300">{hmFromMin(r.effectiveWorkMinutes ?? r.workingMinutes ?? r.totalWorkMinutes ?? 0)}</td>
-                        <td className="px-3 py-2 text-xs text-right" style={{ color: (r.lateMinutes ?? 0) > 0 ? '#dc2626' : C.faint }}>{(r.lateMinutes ?? 0) > 0 ? hmFromMin(r.lateMinutes) : '—'}</td>
-                        <td className="px-3 py-2 text-xs text-zinc-600 dark:text-zinc-400 capitalize">{(r.status || '').replace('-', ' ')}</td>
+          {model.stages.find((s) => s.key === 'attendance')?.enabled !== false && (
+            <section className="rpt-section-card rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/60 p-5">
+              <SectionTitle>Attendance</SectionTitle>
+              <StatCards
+                points={{ value: model.attendance.score, color: scoreColor(model.attendance.score) }}
+                items={[
+                  { label: 'Present', value: model.attendance.present, color: '#16a34a' },
+                  { label: 'Absent', value: model.attendance.absent, color: '#dc2626' },
+                  { label: 'Avg hours / day', value: hmFromMin(model.attendance.avgMins) },
+                ]}
+              />
+              {model.attendance.rows.length === 0 ? (
+                empty('No attendance records in this window.')
+              ) : (
+                <div className="rpt-table-wrap border border-zinc-200 dark:border-zinc-800 mt-4">
+                  <table className="w-full text-left border-collapse">
+                    <thead style={{ backgroundColor: '#f8fafc' }}>
+                      <tr className="bg-zinc-50 dark:bg-zinc-900/30 border-b border-zinc-200 dark:border-zinc-800">
+                        <th className="px-3 py-2 text-[10px] uppercase font-bold text-zinc-400 tracking-wider">Member</th>
+                        <th className="px-3 py-2 text-[10px] uppercase font-bold text-zinc-400 tracking-wider">Date</th>
+                        <th className="px-3 py-2 text-[10px] uppercase font-bold text-zinc-400 tracking-wider">Clock In</th>
+                        <th className="px-3 py-2 text-[10px] uppercase font-bold text-zinc-400 tracking-wider">Clock Out</th>
+                        <th className="px-3 py-2 text-[10px] uppercase font-bold text-zinc-400 tracking-wider text-right">Hours</th>
+                        <th className="px-3 py-2 text-[10px] uppercase font-bold text-zinc-400 tracking-wider text-right">Late</th>
+                        <th className="px-3 py-2 text-[10px] uppercase font-bold text-zinc-400 tracking-wider">Status</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </section>
+                    </thead>
+                    <tbody>
+                      {model.attendance.rows.map((r: any) => (
+                        <tr key={r.id} className="border-b last:border-0 border-zinc-100 dark:border-zinc-800/60">
+                          <td className="px-3 py-2 text-xs font-semibold text-zinc-700 dark:text-zinc-300">{r.member?.name || '—'}</td>
+                          <td className="px-3 py-2 text-xs text-zinc-600 dark:text-zinc-400">{dayjs(r.date).format('MMM D')}</td>
+                          <td className="px-3 py-2 text-xs text-zinc-600 dark:text-zinc-400">{fmtTime(r.clockIn)}</td>
+                          <td className="px-3 py-2 text-xs text-zinc-600 dark:text-zinc-400">{fmtTime(r.clockOut)}</td>
+                          <td className="px-3 py-2 text-xs font-bold text-right text-zinc-700 dark:text-zinc-300">{hmFromMin(r.effectiveWorkMinutes ?? r.workingMinutes ?? r.totalWorkMinutes ?? 0)}</td>
+                          <td className="px-3 py-2 text-xs text-right" style={{ color: (r.lateMinutes ?? 0) > 0 ? '#dc2626' : C.faint }}>{(r.lateMinutes ?? 0) > 0 ? hmFromMin(r.lateMinutes) : '—'}</td>
+                          <td className="px-3 py-2 text-xs text-zinc-600 dark:text-zinc-400 capitalize">{(r.status || '').replace('-', ' ')}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </section>
+          )}
 
           {/* ── Leaves ───────────────────────────────────────────────────────── */}
-          <section className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/60 p-5">
-            <SectionTitle icon={<CoffeeOutlined />}>Leaves</SectionTitle>
-            <StatCards
-              points={{ value: model.leaves.score, color: scoreColor(model.leaves.score) }}
-              items={[
-                { label: 'Leave days', value: Number(model.leaves.leaveDays.toFixed(2)) },
-                { label: 'Paid', value: Number(model.leaves.paidDays.toFixed(2)), color: '#16a34a' },
-                { label: 'LOP', value: Number(model.leaves.lopDays.toFixed(2)), color: '#dc2626' },
-                { label: 'Requests', value: model.leaves.rows.length },
-                { label: 'Pending', value: model.leaves.rows.filter((l) => l.status === 'pending').length, color: '#b45309' },
-              ]}
-            />
-            {model.leaves.rows.length === 0 ? (
-              empty('No leaves in this window.')
-            ) : (
-              <div className="rounded-lg border border-zinc-200 dark:border-zinc-800 mt-4">
-                <table className="w-full text-left border-collapse">
-                  <thead>
-                    <tr className="bg-zinc-50 dark:bg-zinc-900/30 border-b border-zinc-200 dark:border-zinc-800">
-                      <th className="px-3 py-2 text-[10px] uppercase font-bold text-zinc-400 tracking-wider">Member</th>
-                      <th className="px-3 py-2 text-[10px] uppercase font-bold text-zinc-400 tracking-wider">Leave Type</th>
-                      <th className="px-3 py-2 text-[10px] uppercase font-bold text-zinc-400 tracking-wider">From</th>
-                      <th className="px-3 py-2 text-[10px] uppercase font-bold text-zinc-400 tracking-wider">To</th>
-                      <th className="px-3 py-2 text-[10px] uppercase font-bold text-zinc-400 tracking-wider text-right">Days</th>
-                      <th className="px-3 py-2 text-[10px] uppercase font-bold text-zinc-400 tracking-wider text-right">LOP</th>
-                      <th className="px-3 py-2 text-[10px] uppercase font-bold text-zinc-400 tracking-wider">Status</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {model.leaves.rows.map((l) => (
-                      <tr key={l.id} className="border-b last:border-0 border-zinc-100 dark:border-zinc-800/60">
-                        <td className="px-3 py-2 text-xs font-semibold text-zinc-700 dark:text-zinc-300">{l.userName || '—'}</td>
-                        <td className="px-3 py-2 text-xs text-zinc-600 dark:text-zinc-400">{l.leaveTypeName || '—'}</td>
-                        <td className="px-3 py-2 text-xs text-zinc-600 dark:text-zinc-400">{dayjs(l.fromDate).format('MMM D')}</td>
-                        <td className="px-3 py-2 text-xs text-zinc-600 dark:text-zinc-400">{dayjs(l.toDate).format('MMM D')}</td>
-                        <td className="px-3 py-2 text-xs font-bold text-right text-zinc-700 dark:text-zinc-300">{Number((l.totalUnits || 0).toFixed(2))}</td>
-                        <td className="px-3 py-2 text-xs text-right" style={{ color: l.lopUnits > 0 ? '#dc2626' : C.faint }}>{l.lopUnits > 0 ? Number(l.lopUnits.toFixed(2)) : '—'}</td>
-                        <td className="px-3 py-2 text-xs text-zinc-600 dark:text-zinc-400 capitalize">{l.status}</td>
+          {model.stages.find((s) => s.key === 'leaves')?.enabled !== false && (
+            <section className="rpt-section-card rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/60 p-5">
+              <SectionTitle>Leaves</SectionTitle>
+              <StatCards
+                points={{ value: model.leaves.score, color: scoreColor(model.leaves.score) }}
+                items={[
+                  { label: 'Leave days', value: Number(model.leaves.leaveDays.toFixed(2)) },
+                  { label: 'Paid', value: Number(model.leaves.paidDays.toFixed(2)), color: '#16a34a' },
+                  { label: 'LOP', value: Number(model.leaves.lopDays.toFixed(2)), color: '#dc2626' },
+                  { label: 'Requests', value: model.leaves.rows.length },
+                  { label: 'Pending', value: model.leaves.rows.filter((l) => l.status === 'pending').length, color: '#b45309' },
+                ]}
+              />
+              {model.leaves.rows.length === 0 ? (
+                empty('No leaves in this window.')
+              ) : (
+                <div className="rpt-table-wrap border border-zinc-200 dark:border-zinc-800 mt-4">
+                  <table className="w-full text-left border-collapse">
+                    <thead style={{ backgroundColor: '#f8fafc' }}>
+                      <tr className="bg-zinc-50 dark:bg-zinc-900/30 border-b border-zinc-200 dark:border-zinc-800">
+                        <th className="px-3 py-2 text-[10px] uppercase font-bold text-zinc-400 tracking-wider">Member</th>
+                        <th className="px-3 py-2 text-[10px] uppercase font-bold text-zinc-400 tracking-wider">Leave Type</th>
+                        <th className="px-3 py-2 text-[10px] uppercase font-bold text-zinc-400 tracking-wider">From</th>
+                        <th className="px-3 py-2 text-[10px] uppercase font-bold text-zinc-400 tracking-wider">To</th>
+                        <th className="px-3 py-2 text-[10px] uppercase font-bold text-zinc-400 tracking-wider text-right">Days</th>
+                        <th className="px-3 py-2 text-[10px] uppercase font-bold text-zinc-400 tracking-wider text-right">LOP</th>
+                        <th className="px-3 py-2 text-[10px] uppercase font-bold text-zinc-400 tracking-wider">Status</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </section>
+                    </thead>
+                    <tbody>
+                      {model.leaves.rows.map((l) => (
+                        <tr key={l.id} className="border-b last:border-0 border-zinc-100 dark:border-zinc-800/60">
+                          <td className="px-3 py-2 text-xs font-semibold text-zinc-700 dark:text-zinc-300">{l.userName || '—'}</td>
+                          <td className="px-3 py-2 text-xs text-zinc-600 dark:text-zinc-400">{l.leaveTypeName || '—'}</td>
+                          <td className="px-3 py-2 text-xs text-zinc-600 dark:text-zinc-400">{dayjs(l.fromDate).format('MMM D')}</td>
+                          <td className="px-3 py-2 text-xs text-zinc-600 dark:text-zinc-400">{dayjs(l.toDate).format('MMM D')}</td>
+                          <td className="px-3 py-2 text-xs font-bold text-right text-zinc-700 dark:text-zinc-300">{Number((l.totalUnits || 0).toFixed(2))}</td>
+                          <td className="px-3 py-2 text-xs text-right" style={{ color: l.lopUnits > 0 ? '#dc2626' : C.faint }}>{l.lopUnits > 0 ? Number(l.lopUnits.toFixed(2)) : '—'}</td>
+                          <td className="px-3 py-2 text-xs text-zinc-600 dark:text-zinc-400 capitalize">{l.status}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </section>
+          )}
 
           <div className="pt-4 pb-4 text-center text-sm font-medium text-zinc-500 dark:text-zinc-400">
-            Generated from <span className="text-[#3b82f6]">Zukvo</span>
+            Generated from <span style={{ color: brandColor }}>{brandName}</span>
           </div>
         </div>
 
@@ -529,33 +560,53 @@ const ReportPrintable = forwardRef<HTMLDivElement, Props>(
           .rpt-printable .ant-avatar img { width: 100%; height: 100%; object-fit: cover; }
           .rpt-printable .ant-avatar { display: inline-flex; align-items: center; justify-content: center; overflow: hidden; }
 
-          /* Allow clean page-break flow without huge gaps before sections */
-          .rpt-printable section {
-            break-inside: auto !important;
-            page-break-inside: auto !important;
+          /* ── Page-break rules ─────────────────────────────────────────────── */
+
+          /* Section cards and small cards: avoid being cut across page boundaries */
+          .rpt-printable .rpt-section-card,
+          .rpt-printable .rpt-stat-card,
+          .rpt-printable .rpt-tier-card,
+          .rpt-printable .rpt-module-card {
+            break-inside: avoid !important;
+            page-break-inside: avoid !important;
           }
+
+          /* Tables flow naturally and rows avoid internal cuts */
           .rpt-printable table {
             break-inside: auto !important;
             page-break-inside: auto !important;
           }
+
           .rpt-printable tr {
             break-inside: avoid !important;
             page-break-inside: avoid !important;
           }
-          .rpt-printable thead {
-            display: table-header-group;
-          }
 
           @media print {
-            .rpt-printable section {
-              break-inside: auto !important;
-              page-break-inside: auto !important;
+            .rpt-printable .rpt-section-card,
+            .rpt-printable .rpt-stat-card,
+            .rpt-printable .rpt-tier-card,
+            .rpt-printable .rpt-module-card {
+              break-inside: avoid !important;
+              page-break-inside: avoid !important;
             }
             .rpt-printable tr {
               break-inside: avoid !important;
               page-break-inside: avoid !important;
             }
           }
+
+          /* thead: removed display:table-header-group (doesn't work in canvas rendering).
+             Header repetition is handled by splitTablesForPages() in reportExport.ts. */
+
+          @media print {
+            .rpt-printable section,
+            .rpt-printable table { break-inside: auto !important; page-break-inside: auto !important; }
+            .rpt-printable .rpt-stat-card,
+            .rpt-printable .rpt-tier-card,
+            .rpt-printable .rpt-module-card { break-inside: avoid !important; page-break-inside: avoid !important; }
+          }
+
 
           /* CSS custom properties scoped under the printable root */
           .rpt-printable {

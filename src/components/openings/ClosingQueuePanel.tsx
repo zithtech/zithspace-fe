@@ -118,7 +118,7 @@ export default function ClosingQueuePanel() {
       {loading && rows.length === 0 ? (
         <Skeleton active paragraph={{ rows: 4 }} />
       ) : (
-        <div className="omp-table-wrap">
+        <div className="opn-table-wrap">
           <Table<ClosureCandidate>
             rowKey="openingId"
             size="small"

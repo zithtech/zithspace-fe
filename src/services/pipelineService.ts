@@ -2,7 +2,7 @@ import { api } from '@/lib/axios';
 
 export const PipelineService = {
   // Candidates
-  listCandidates: async (params: { page?: number; limit?: number; search?: string }) => {
+  listCandidates: async (params?: { page?: number; limit?: number; search?: string; status?: string; role?: string; exp?: string }) => {
     const data = await api.get('/api/pipeline/candidates', { params });
     return { success: true, data };
   },
@@ -66,8 +66,8 @@ export const PipelineService = {
   },
 
   // Configs
-  listConfigs: async () => {
-    const data = await api.get('/api/pipeline/configs');
+  listConfigs: async (params?: { page?: number; limit?: number; search?: string }) => {
+    const data = await api.get('/api/pipeline/configs', { params });
     return { success: true, data };
   },
   createConfig: async (config: any) => {

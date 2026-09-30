@@ -27,9 +27,9 @@ import ConfirmDialog from '@/components/common/ConfirmDialog';
 import LeaveV2Service, { Holiday, HolidayInput, HolidayType, HolidayRule } from '@/services/leaveV2Service';
 
 const { RangePicker } = DatePicker;
-const PALETTE = { blue: '#3B82F6', green: '#10B981', red: '#EF4444', grey: '#94A3B8' } as const;
-const TINT = { blue: 'rgba(59,130,246,0.10)', green: 'rgba(16,185,129,0.10)', red: 'rgba(239,68,68,0.10)', grey: 'rgba(148,163,184,0.12)' } as const;
-const PAGE_SIZE_OPTIONS = [10, 20, 25, 50, 100];
+import { PALETTE, TINT, StatCards } from '@/components/leaves-v2/ui';
+import { FilterBar, FilterToggleButton, TicketFilterPill } from '@/components/common/FilterBar';
+const PAGE_SIZE_OPTIONS = [10, 15, 20, 25, 50, 100];
 import { drawerFormStyles as formStyles, SectionCard } from "@/components/common/DrawerSection";
 import { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
 
@@ -79,8 +79,9 @@ export default function AddHolidaysPanel() {
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState<TypeFilter>('all');
   const [yearFilter, setYearFilter] = useState<number>(dayjs().year());
+  const [isFilterRowOpen, setIsFilterRowOpen] = useState(false);
   const [tablePage, setTablePage] = useState(1);
-  const [tablePageSize, setTablePageSize] = useState(20);
+  const [tablePageSize, setTablePageSize] = useState(15);
 
   // drawer
   const [open, setOpen] = useState(false);
@@ -290,35 +291,53 @@ export default function AddHolidaysPanel() {
             <SearchOutlined className="lvh-search-icon" />
             <input className="lvh-search" placeholder="Search holiday…" value={search} onChange={(e) => setSearch(e.target.value)} />
           </div>
+          <FilterToggleButton
+            isOpen={isFilterRowOpen}
+            onToggle={() => setIsFilterRowOpen((prev) => !prev)}
+            activeCount={(typeFilter !== 'all' ? 1 : 0) + (yearFilter !== dayjs().year() ? 1 : 0)}
+          />
           <Tooltip title="Refresh"><button type="button" className="lvh-ghost-btn" onClick={() => load(yearFilter)}><ReloadOutlined spin={loading} /></button></Tooltip>
           {canCreateLeaveHoliday && <Button type="primary" icon={<PlusOutlined />} onClick={openCreate} className="lvh-add-btn">Add Holiday</Button>}
         </div>
       </div>
 
-      <div className="lvh-stats">
-        {statCells.map((s) => (
-          <div key={s.key} className="lvh-stat-card">
-            <div className="lvh-stat-top">
-              <span className="lvh-stat-icon" style={{ background: s.tint, color: s.color }}>{s.icon}</span>
-              <span className="lvh-stat-label">{s.title}</span>
-            </div>
-            <div className="lvh-stat-bottom">
-              <span className="lvh-stat-value">{s.value}</span>
-              <span className="lvh-stat-period">{s.period}</span>
-            </div>
-          </div>
-        ))}
-      </div>
+      <StatCards
+        title="Leave Overview"
+        statusText="LIVE"
+        progressPct={stats.total > 0 ? Math.round((stats.active / stats.total) * 100) : 0}
+        cells={statCells.map(s => ({
+          label: s.title,
+          value: <>{s.value} <span style={{ fontSize: 11, fontWeight: 500, color: 'var(--text-slate-400)' }}>{s.period}</span></>,
+          icon: s.icon,
+          color: s.color,
+          tint: s.tint
+        }))}
+      />
 
-      <div className="lvh-filters">
-        <span className="lvh-filter-label"><FilterOutlined /> Filter</span>
-        <SearchableDropdown className="lvh-filter-dd" placeholder="Year" itemNoun="years" allowClear={false} value={String(yearFilter)} onChange={(v) => setYearFilter(Number(v))} options={years.map((y) => ({ value: String(y), label: String(y) }))} style={{ width: 120 }} width={140} />
-        <SearchableDropdown className="lvh-filter-dd" placeholder="Type" itemNoun="types" value={typeFilter === 'all' ? undefined : typeFilter} onChange={(v) => setTypeFilter((v as TypeFilter) ?? 'all')} options={TYPE_OPTIONS} style={{ width: 150 }} width={200} />
-        <span className="lvh-filter-count">{total} of {stats.total}</span>
-        {hasFilters && <button type="button" className="lvh-clear" onClick={() => { setSearch(''); setTypeFilter('all'); }}><CloseCircleOutlined /> Clear</button>}
-      </div>
+      {isFilterRowOpen && (
+        <FilterBar
+          activeCount={(typeFilter !== 'all' ? 1 : 0) + (yearFilter !== dayjs().year() ? 1 : 0)}
+          onReset={() => { setSearch(''); setTypeFilter('all'); setYearFilter(dayjs().year()); }}
+          onClose={() => setIsFilterRowOpen(false)}
+        >
+          <TicketFilterPill
+            label="Year"
+            icon={<CalendarOutlined />}
+            value={String(yearFilter)}
+            options={years.map((y) => ({ value: String(y), label: String(y) }))}
+            onChange={(v) => setYearFilter(Number(v) || dayjs().year())}
+          />
+          <TicketFilterPill
+            label="Type"
+            icon={<GlobalOutlined />}
+            value={typeFilter === 'all' ? undefined : typeFilter}
+            options={TYPE_OPTIONS.map((t) => ({ value: t.value, label: t.label }))}
+            onChange={(v) => setTypeFilter((v as TypeFilter) || 'all')}
+          />
+        </FilterBar>
+      )}
 
-      <div className="lvh-table-wrap">
+      <div className="lv-table-wrap">
         <ZukvoLoadingOverlay loading={loading} message="">
           <Table rowKey="id" size="small" className="lvh-table" columns={columns} dataSource={paged} pagination={false} scroll={{ x: 'max-content' }} onRow={() => ({ className: 'lvh-row' })} locale={{ emptyText: <NoData /> }} />
         </ZukvoLoadingOverlay>
@@ -473,7 +492,7 @@ export default function AddHolidaysPanel() {
 
       <style jsx global>{`
         .lvh { display: flex; flex-direction: column; flex: 1; min-height: 0; }
-        .lvh-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding-bottom: 14px; margin-bottom: 14px; border-bottom: 1px solid var(--border-slate-200); flex-wrap: wrap; }
+        .lvh-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding-bottom: 14px; margin-bottom: 14px; border-bottom: 1px solid var(--border-slate-200); flex-wrap: wrap; flex-shrink: 0; }
         .lvh-header-about { display: flex; align-items: center; gap: 12px; min-width: 200px; }
         .lvh-header-icon { width: 38px; height: 38px; border-radius: 10px; background: ${TINT.blue}; color: ${PALETTE.blue}; display: inline-flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; }
         .lvh-header-title { font-size: 17px; font-weight: 800; color: var(--text-slate-900); letter-spacing: -0.02em; }
@@ -486,7 +505,7 @@ export default function AddHolidaysPanel() {
         .lvh-ghost-btn { width: 34px; height: 34px; border-radius: 8px; border: 1px solid var(--border-slate-200); background: var(--bg-slate-50); color: var(--text-slate-700); cursor: pointer; font-size: 14px; }
         .lvh-ghost-btn:hover { color: ${PALETTE.blue}; border-color: #bfdbfe; }
         .lvh-add-btn { height: 34px !important; border-radius: 8px !important; font-weight: 600 !important; }
-        .lvh-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 14px; }
+        .lvh-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 14px; flex-shrink: 0; }
         .lvh-stat-card { background: var(--bg-pure-white); border: 1px solid var(--border-slate-200); padding: 12px 14px; min-height: 84px; display: flex; flex-direction: column; justify-content: space-between; gap: 10px; box-shadow: 0 1px 2px rgba(15,23,42,0.04); }
         .lvh-stat-top { display: flex; align-items: center; gap: 8px; }
         .lvh-stat-icon { width: 26px; height: 26px; border-radius: 8px; display: inline-flex; align-items: center; justify-content: center; font-size: 13px; }
@@ -494,13 +513,12 @@ export default function AddHolidaysPanel() {
         .lvh-stat-bottom { display: flex; align-items: baseline; gap: 6px; }
         .lvh-stat-value { font-size: 23px; font-weight: 800; color: var(--text-slate-900); }
         .lvh-stat-period { font-size: 11px; color: var(--text-slate-400); }
-        .lvh-filters { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; flex-wrap: wrap; }
+        .lvh-filters { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; flex-wrap: wrap; flex-shrink: 0; }
         .lvh-filter-label { display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 600; color: var(--text-slate-600); }
         .lvh-filter-label .anticon { color: var(--text-slate-400); }
         .lvh-filter-count { font-size: 12px; color: var(--text-slate-500); }
         .lvh-clear { display: inline-flex; align-items: center; gap: 5px; background: none; border: none; cursor: pointer; padding: 3px 6px; font-size: 12px; font-weight: 600; color: ${PALETTE.red}; margin-left: auto; }
         .lvh-table-wrap { background: var(--bg-pure-white); border: 1px solid var(--border-slate-200); border-radius: 0; overflow: auto; flex: 1; min-height: 0; }
-        .lvh-table .ant-table-content { overflow: visible !important; }
         .lvh-table, .lvh-table.ant-table-wrapper, .lvh-table .ant-table, .lvh-table .ant-table-container, .lvh-table .ant-table-content, .lvh-table .ant-table-header, .lvh-table .ant-table-body { background: transparent; font-size: 12px; border-radius: 0 !important; }
         .lvh-table .ant-table-thead > tr > th,
         .lvh-table .ant-table-thead > tr > td {

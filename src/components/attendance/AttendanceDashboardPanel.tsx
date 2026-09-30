@@ -20,22 +20,7 @@ import { AttendanceService } from '@/services/attendanceService';
 const { RangePicker } = DatePicker;
 
 // ── Module palette ──────────────────────────────────────────────────────────
-const PALETTE = {
-  blue: '#3B82F6',
-  green: '#10B981',
-  amber: '#F59E0B',
-  red: '#EF4444',
-  purple: '#8B5CF6',
-  grey: '#94A3B8',
-} as const;
-const TINT = {
-  blue: 'rgba(59,130,246,0.10)',
-  green: 'rgba(16,185,129,0.10)',
-  amber: 'rgba(245,158,11,0.12)',
-  red: 'rgba(239,68,68,0.10)',
-  purple: 'rgba(139,92,246,0.10)',
-  grey: 'rgba(148,163,184,0.12)',
-} as const;
+import { PALETTE, TINT, StatCards } from '@/components/attendance/ui';
 
 type DateFilter = 'today' | 'week' | 'month' | 'custom';
 
@@ -155,8 +140,8 @@ export default function AttendanceDashboardPanel() {
   const [customRange, setCustomRange] = useState<[dayjs.Dayjs, dayjs.Dayjs] | null>(null);
 
   const range = useMemo(() => {
-    if (dateFilter === 'week') return [dayjs().startOf('week'), dayjs().endOf('day')] as const;
-    if (dateFilter === 'month') return [dayjs().startOf('month'), dayjs().endOf('day')] as const;
+    if (dateFilter === 'week') return [dayjs().startOf('week'), dayjs().endOf('week')] as const;
+    if (dateFilter === 'month') return [dayjs().startOf('month'), dayjs().endOf('month')] as const;
     if (dateFilter === 'custom' && customRange) return [customRange[0].startOf('day'), customRange[1].endOf('day')] as const;
     return [dayjs().startOf('day'), dayjs().endOf('day')] as const;
   }, [dateFilter, customRange]);
@@ -171,10 +156,13 @@ export default function AttendanceDashboardPanel() {
 
   const load = useCallback(async () => {
     setLoading(true);
+    setPresent([]);
     try {
+      const startStr = range[0].format('YYYY-MM-DD');
+      const endStr = range[1].format('YYYY-MM-DD');
       const [s, p] = await Promise.all([
-        AttendanceService.getDashboardSummary(range[0].toISOString(), range[1].toISOString()),
-        AttendanceService.getPresentMembers(range[0].toISOString(), range[1].toISOString()),
+        AttendanceService.getDashboardSummary(startStr, endStr),
+        AttendanceService.getPresentMembers(startStr, endStr),
       ]);
       setSummary(s as any);
       setPresent(p as any);
@@ -254,25 +242,19 @@ export default function AttendanceDashboardPanel() {
       </div>
 
       {/* ── STAT CARDS ─────────────────────────────────────────────────────── */}
-      <div className="adb-stats">
-        {statCells.map((s) => (
-          <div key={s.key} className="adb-stat-card">
-            <div className="adb-stat-top">
-              <div className="adb-stat-left">
-                <span className="adb-stat-icon" style={{ background: s.tint, color: s.color }}>{s.icon}</span>
-                <span className="adb-stat-label">{s.title}</span>
-              </div>
-            </div>
-            <div className="adb-stat-bottom">
-              <div className="adb-stat-value-wrap">
-                <span className="adb-stat-value">{s.value}</span>
-                <span className="adb-stat-period">{s.period}</span>
-              </div>
-              <div className="adb-stat-spark"><AreaSparkline values={s.trend} color={s.color} /></div>
-            </div>
-          </div>
-        ))}
-      </div>
+      <StatCards
+        title="Attendance Overview"
+        statusText="LIVE"
+        progressPct={summary?.expectedToday ? Math.round(((summary.presentToday || 0) / summary.expectedToday) * 100) : (summary?.attendanceRate ?? 0)}
+        cells={statCells.map(s => ({
+          label: s.title,
+          value: <>{s.value} <span style={{ fontSize: 11, fontWeight: 500, color: 'var(--text-slate-400)' }}>{s.period}</span></>,
+          icon: s.icon,
+          color: s.color,
+          tint: s.tint
+        }))}
+      />
+      <div className="att-content-wrap">
 
       {/* ── TWO COLUMNS: who's in · health ─────────────────────────────────── */}
       <div className="adb-grid">
@@ -293,10 +275,10 @@ export default function AttendanceDashboardPanel() {
             ) : present.length === 0 ? (
               <div className="adb-empty"><CalendarOutlined style={{ fontSize: 22, opacity: 0.5 }} /><div>No one is marked present {filterLabel}.</div></div>
             ) : (
-              present.map((e) => {
+              present.map((e, index) => {
                 const meta = STATUS_META[e.status] || STATUS_META.present;
                 return (
-                  <div key={e.id} className="adb-emp-row">
+                  <div key={`${e.id || 'emp'}-${index}`} className="adb-emp-row">
                     <Avatar size={40} src={e.avatarUrl} style={{ background: meta.color, borderRadius: 11, fontWeight: 700, flexShrink: 0 }}>
                       {e.name?.charAt(0)?.toUpperCase()}
                     </Avatar>
@@ -341,6 +323,7 @@ export default function AttendanceDashboardPanel() {
         </div>
       </div>
 
+      </div>
       <style jsx global>{`
         .adb { display: flex; flex-direction: column; flex: 1; min-height: 0; }
 
@@ -391,7 +374,7 @@ export default function AttendanceDashboardPanel() {
         .adb-stat-period { font-size: 11px; color: var(--text-slate-400); font-weight: 500; }
 
         /* Two-column grid */
-        .adb-grid { display: grid; grid-template-columns: 1.7fr 1fr; gap: 14px; align-items: start; }
+        .adb-grid { display: grid; grid-template-columns: 1.7fr 1fr; gap: 14px; align-items: start; margin-top: 14px; }
         .adb-card { background: var(--bg-pure-white); border: 1px solid var(--border-slate-200); border-radius: 0; box-shadow: 0 1px 2px rgba(15,23,42,0.04); }
         .adb-card-head {
           display: flex; align-items: center; justify-content: space-between; gap: 10px;

@@ -344,7 +344,7 @@ export default function GeneralSettingsPanel() {
       )}
 
       <style jsx global>{`
-        .pv-page { display: flex; flex-direction: column; gap: 14px; padding-bottom: 32px; }
+        .pv-page { display: flex; flex-direction: column; flex: 1; min-height: 0; overflow-y: auto; gap: 14px; padding-bottom: 32px; }
         .pv-header {
           display: flex; align-items: center; gap: 14px;
           padding: 4px 2px 16px; border-bottom: 1px solid var(--border-slate-100);
@@ -358,7 +358,7 @@ export default function GeneralSettingsPanel() {
         .pv-head-sub { font-size: 12.5px; color: var(--text-slate-500); margin-top: 2px; }
         .pv-head-actions { display: flex; gap: 8px; flex-shrink: 0; }
         .pv-loading { display: flex; justify-content: center; padding: 64px 0; }
-        .pv-sections { display: flex; flex-direction: column; gap: 14px; max-width: 880px; }
+        .pv-sections { display: flex; flex-direction: column; gap: 14px; max-width: 880px; padding: 16px 20px 48px; }
 
         .pv-card {
           border: 1px solid var(--border-slate-200); border-radius: 12px;

@@ -52,7 +52,7 @@ export default function ThemeGalleryPage() {
   const [previewTheme, setPreviewTheme] = React.useState<string | null>(null);
 
   return (
-    <MainLayout>
+    <MainLayout noPadding>
       <div style={{ padding: '24px 32px', maxWidth: 1400, margin: '0 auto', fontFamily: '"Inter", sans-serif' }}>
         {/* Header */}
         <div style={{ marginBottom: 20 }}>

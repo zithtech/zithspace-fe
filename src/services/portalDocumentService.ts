@@ -43,6 +43,9 @@ export interface PortalDocumentGroup {
 
 export interface PortalDocumentMeta {
   total: number;
+  page?: number;
+  limit?: number;
+  totalPages?: number;
   groups: PortalDocumentGroup[];
   categories: string[];
   projects?: { id: string; name: string; code: string | null }[];
@@ -56,19 +59,27 @@ export interface PortalDocumentMeta {
 export const portalDocumentService = {
   async list(
     params: {
+      page?: number;
+      limit?: number;
       category?: string;
       search?: string;
       projectId?: string;
       source?: DocumentSource;
+      from?: string;
+      to?: string;
     } = {},
   ) {
     const qs = new URLSearchParams();
+    if (params.page) qs.append("page", String(params.page));
+    if (params.limit) qs.append("limit", String(params.limit));
     if (params.category) qs.append("category", params.category);
     if (params.search) qs.append("search", params.search);
     if (params.projectId) qs.append("projectId", params.projectId);
     if (params.source && params.source !== "all") {
       qs.append("source", params.source);
     }
+    if (params.from) qs.append("from", params.from);
+    if (params.to) qs.append("to", params.to);
     const res = await portalClient.get(
       `/api/client-portal/documents${qs.toString() ? `?${qs.toString()}` : ""}`,
     );

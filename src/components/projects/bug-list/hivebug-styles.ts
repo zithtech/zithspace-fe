@@ -1687,8 +1687,12 @@ export const hivebugStyles = `
   text-decoration: none;
 }
 .hb-ticket-link:hover { color: var(--hb-text); border-color: var(--hb-border-strong); }
-.hb-ticket-link.is-live { color: var(--hb-success); }
-.hb-ticket-link.is-live:hover { color: var(--hb-success); filter: brightness(1.1); }
+.hb-ticket-link.is-live,
+.hb-ticket-link.is-completed,
+.hb-ticket-link.is-done { color: var(--hb-success); }
+.hb-ticket-link.is-live:hover,
+.hb-ticket-link.is-completed:hover,
+.hb-ticket-link.is-done:hover { color: var(--hb-success); filter: brightness(1.1); }
 
 .hb-create-ticket {
   display: inline-flex; align-items: center; gap: 4px;
@@ -4648,7 +4652,7 @@ export const hivebugStyles = `
     overflow: hidden;
   }
   .hb-main { flex: 1 1 auto; }
-  .hb-content { overflow: hidden; padding: 8px 10px 12px; }
+  .hb-content { overflow: hidden; padding: 0; }
   .hb-header {
     padding: 10px 12px;
     gap: 10px;
@@ -4681,7 +4685,9 @@ export const hivebugStyles = `
   .hb-bulkbar { flex-direction: column; align-items: stretch; gap: 8px; }
   .hb-bulkbar-actions { flex-wrap: wrap; }
   /* Allow horizontal scroll - make table responsive */
-  .hb-table-wrapper { overflow-x: auto; }
+  .hb-table-wrapper { 
+    overflow-x: auto;
+  }
   .hb-table { width: 100%; min-width: 900px; }
   .hb-table thead th { padding: 5px 8px; font-size: 10px; }
   .hb-table tbody td { padding: 6px 10px; font-size: 11.5px; }

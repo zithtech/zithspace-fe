@@ -43,7 +43,7 @@ import {
 } from "@/components/qa/playbookShared";
 
 export default function CollectionDetailPage() {
-  useActivitySource({ section: "WORK", module: "QA", page: "Playbook Collection" });
+  useActivitySource({ section: "WORK", module: "Playbooks", page: "PlaybookCollections" });
 
   const router = useRouter();
   const params = useParams();

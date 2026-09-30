@@ -16,7 +16,11 @@ import {
   Space,
   Avatar,
   Modal,
+  Pagination,
+  Typography,
 } from "antd";
+
+const { Text } = Typography;
 import {
   Plus,
   Rocket,
@@ -99,6 +103,7 @@ export default function ReleasesTab({ clientId, projects = [], onRefresh }: Prop
   const c = useMemo(() => palette(theme as Mode), [theme]);
 
   const [items, setItems] = useState<ClientRelease[]>([]);
+  const [totalCount, setTotalCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [createOpen, setCreateOpen] = useState(false);
   const [editing, setEditing] = useState<ClientRelease | null>(null);
@@ -108,11 +113,25 @@ export default function ReleasesTab({ clientId, projects = [], onRefresh }: Prop
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedProject, setSelectedProject] = useState("all");
   const [viewMode, setViewMode] = useState<"list" | "grid">("grid");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(15);
 
-  const load = async () => {
+  const load = async (
+    page = currentPage,
+    size = pageSize,
+    search = searchTerm,
+    proj = selectedProject,
+  ) => {
     setLoading(true);
     try {
-      setItems(await releaseService.list(clientId));
+      const res = await releaseService.list(clientId, {
+        page,
+        limit: size,
+        search: search.trim() || undefined,
+        projectId: proj !== "all" ? proj : undefined,
+      });
+      setItems(res.data);
+      setTotalCount(res.meta.total);
     } catch (err: any) {
       messageApi.error(`Failed to load releases: ${err?.message || ""}`);
     } finally {
@@ -124,7 +143,7 @@ export default function ReleasesTab({ clientId, projects = [], onRefresh }: Prop
     try {
       setRefreshing(true);
       await Promise.all([
-        load(),
+        load(currentPage, pageSize, searchTerm, selectedProject),
         onRefresh ? onRefresh() : Promise.resolve(),
       ]);
     } catch (err) {
@@ -135,9 +154,18 @@ export default function ReleasesTab({ clientId, projects = [], onRefresh }: Prop
   };
 
   useEffect(() => {
-    load();
+    load(currentPage, pageSize, searchTerm, selectedProject);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [clientId]);
+  }, [clientId, currentPage, pageSize, selectedProject]);
+
+  useEffect(() => {
+    const t = setTimeout(() => {
+      setCurrentPage(1);
+      load(1, pageSize, searchTerm, selectedProject);
+    }, 300);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchTerm]);
 
   const remove = async (r: ClientRelease) => {
     try {
@@ -196,21 +224,7 @@ export default function ReleasesTab({ clientId, projects = [], onRefresh }: Prop
     }
   });
 
-  const filteredItems = items.filter((item) => {
-    const search = searchTerm.toLowerCase();
-    const matchesSearch =
-      (item.title || "").toLowerCase().includes(search) ||
-      (item.version || "").toLowerCase().includes(search) ||
-      (item.projectName || "").toLowerCase().includes(search) ||
-      (item.milestoneName || "").toLowerCase().includes(search);
-
-    let matchesProject = true;
-    if (selectedProject !== "all") {
-      matchesProject = item.projectId === selectedProject;
-    }
-
-    return matchesSearch && matchesProject;
-  });
+  const paginatedItems = items;
 
   const columns = [
     {
@@ -365,7 +379,7 @@ export default function ReleasesTab({ clientId, projects = [], onRefresh }: Prop
   ];
 
   return (
-    <div style={{ padding: "4px 0 24px", color: c.text }}>
+    <div className="releases-tab-container" style={{ color: c.text }}>
       {contextHolder}
 
       {/* Header */}
@@ -454,7 +468,7 @@ export default function ReleasesTab({ clientId, projects = [], onRefresh }: Prop
         <div className="ptab-divider" />
       </div>
 
-      <div>
+      <div className="releases-tab-body">
         {loading ? (
           <div
             style={{
@@ -468,7 +482,7 @@ export default function ReleasesTab({ clientId, projects = [], onRefresh }: Prop
           >
             Loading…
           </div>
-        ) : filteredItems.length === 0 ? (
+        ) : items.length === 0 ? (
           <EmptyState
             c={c}
             onAdd={() => {
@@ -479,7 +493,7 @@ export default function ReleasesTab({ clientId, projects = [], onRefresh }: Prop
         ) : viewMode === "list" ? (
           <div className="pp-table-wrap">
             <Table
-              dataSource={filteredItems}
+              dataSource={paginatedItems}
               columns={columns}
               rowKey="id"
               pagination={false}
@@ -488,12 +502,13 @@ export default function ReleasesTab({ clientId, projects = [], onRefresh }: Prop
               onRow={(record) => ({
                 onClick: () => setViewingRelease(record),
                 style: { cursor: "pointer" },
-              })} locale={{ emptyText: <NoData /> }}
+              })}
+              locale={{ emptyText: <NoData /> }}
             />
           </div>
         ) : (
           <div className="pp-grid">
-            {filteredItems.map((r) => (
+            {paginatedItems.map((r) => (
               <ReleaseCard
                 key={r.id}
                 release={r}
@@ -510,6 +525,34 @@ export default function ReleasesTab({ clientId, projects = [], onRefresh }: Prop
           </div>
         )}
       </div>
+
+      {!loading && totalCount > 0 && (
+        <div className="pm2-pagination releases-pagination-footer">
+          <Text style={{ fontSize: 13, color: "var(--text-slate-500)" }}>
+            Showing{" "}
+            <span style={{ color: "var(--text-slate-700)", fontWeight: 700 }}>
+              {(currentPage - 1) * pageSize + 1}–
+              {Math.min(currentPage * pageSize, totalCount)}
+            </span>{" "}
+            of{" "}
+            <span style={{ color: "var(--text-slate-700)", fontWeight: 700 }}>
+              {totalCount}
+            </span>{" "}
+            release{totalCount !== 1 ? "s" : ""}
+          </Text>
+          <Pagination
+            current={currentPage}
+            pageSize={pageSize}
+            total={totalCount}
+            onChange={(page, size) => {
+              setCurrentPage(page);
+              setPageSize(size);
+            }}
+            showSizeChanger
+            pageSizeOptions={[10, 15, 20, 25, 50, 100]}
+          />
+        </div>
+      )}
 
       <ReleaseModal
         open={createOpen}
@@ -760,6 +803,83 @@ export default function ReleasesTab({ clientId, projects = [], onRefresh }: Prop
         .release-description-body ol {
           padding-left: 22px;
           margin: 0 0 8px 0;
+        }
+
+        /* ── Container & Body for full-height stretch ── */
+        .releases-tab-container {
+          display: flex !important;
+          flex-direction: column !important;
+          flex: 1 !important;
+          min-height: 100% !important;
+          padding: 4px 0 0 0 !important;
+          position: relative !important;
+        }
+        .releases-tab-body {
+          flex: 1 0 auto !important;
+          padding-bottom: 16px !important;
+        }
+
+        /* ── Sticky pagination footer (fixed to bottom) ── */
+        .releases-pagination-footer {
+          display: flex !important;
+          align-items: center !important;
+          justify-content: space-between !important;
+          gap: 12px !important;
+          padding: 10px 16px !important;
+          margin-top: auto !important;
+          margin-left: -12px !important;
+          margin-right: -12px !important;
+          margin-bottom: 0 !important;
+          flex-wrap: wrap !important;
+          position: sticky !important;
+          bottom: 0 !important;
+          left: 0 !important;
+          right: 0 !important;
+          background: var(--bg-pure-white) !important;
+          border-top: 1px solid var(--border-slate-200) !important;
+          z-index: 20 !important;
+          box-shadow: 0 -4px 16px rgba(15, 23, 42, 0.04) !important;
+        }
+        [data-theme="dark"] .releases-pagination-footer {
+          background: #0B0F1A !important;
+          border-top-color: #1f2937 !important;
+        }
+        @media (max-width: 900px) {
+          .releases-pagination-footer {
+            margin-left: -12px !important;
+            margin-right: -12px !important;
+            padding-left: 12px !important;
+            padding-right: 12px !important;
+          }
+        }
+        @media (max-width: 720px) {
+          .releases-pagination-footer {
+            margin-left: -12px !important;
+            margin-right: -12px !important;
+            padding-left: 12px !important;
+            padding-right: 12px !important;
+          }
+        }
+
+        .releases-pagination-footer .ant-pagination-item,
+        .releases-pagination-footer .ant-pagination-prev .ant-pagination-item-link,
+        .releases-pagination-footer .ant-pagination-next .ant-pagination-item-link {
+          border: 1px solid var(--border-slate-200) !important;
+          border-radius: 6px !important;
+          background: transparent !important;
+          color: var(--text-slate-500) !important;
+        }
+        .releases-pagination-footer .ant-pagination-item-active {
+          background: #3b82f6 !important;
+          border-color: #3b82f6 !important;
+        }
+        .releases-pagination-footer .ant-pagination-item-active a {
+          color: #fff !important;
+        }
+        .releases-pagination-footer .ant-select-selector {
+          border: 1px solid var(--border-slate-200) !important;
+          border-radius: 6px !important;
+          color: var(--text-slate-500) !important;
         }
       `}} />
     </div>

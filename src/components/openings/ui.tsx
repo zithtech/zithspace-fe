@@ -423,14 +423,14 @@ export function TagList({ items, empty = '—' }: { items?: string[] | null; emp
 }
 
 export const tablePaginationConfig = {
-  pageSize: 20,
+  pageSize: 15,
   showTotal: (total: number, range: [number, number]) => (
     <>
       Showing <strong>{range[0]}–{range[1]}</strong> of <strong>{total}</strong>
     </>
   ),
   showSizeChanger: true,
-  pageSizeOptions: ['10', '20', '25', '50', '100'],
+  pageSizeOptions: ['10', '15', '20', '25', '50', '100'],
 };
 
 // ── Shared styles (render once per panel) ───────────────────────────────────
@@ -441,7 +441,7 @@ export function OpeningStyles() {
       .omp { display: flex; flex-direction: column; min-height: 0; flex: 1; }
       .omp-header {
         display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap;
-        padding: 16px 0 20px !important; border-bottom: 1px solid var(--border-slate-100); margin-bottom: 20px;
+        padding: 12px 20px !important; border-bottom: 1px solid var(--border-slate-200); margin-bottom: 0px;
         position: sticky; top: 0; z-index: 30; background: var(--bg-pure-white);
       }
       .omp-head-about { display: flex; align-items: center; gap: 10px; min-width: 0; }
@@ -518,9 +518,10 @@ export function OpeningStyles() {
         align-items: center;
         gap: 10px;
         flex-wrap: nowrap;
+        margin-top: 12px;
         margin-bottom: 12px;
         overflow-x: auto;
-        padding-bottom: 8px;
+        padding-bottom: 4px;
         /* Hide scrollbar for a cleaner look while maintaining scrollability */
         scrollbar-width: none;
       }
@@ -608,3 +609,209 @@ export function OpeningStyles() {
     `}</style>
   );
 }
+
+export function money(n: number | null | undefined, currency = 'INR'): string {
+  const v = Number(n ?? 0);
+  try {
+    return new Intl.NumberFormat('en-IN', {
+      style: 'currency',
+      currency,
+      maximumFractionDigits: 2,
+    }).format(v);
+  } catch {
+    return `${currency} ${v.toFixed(2)}`;
+  }
+}
+
+// ── Shared StatCards Component ───────────────────────────────────────────────
+export function StatCards({
+  cells,
+  progressPct,
+  title = "Openings Overview",
+  statusText = "ACTIVE",
+  statusColor = "#10b981",
+  statusBorder = "rgba(16, 185, 129, 0.32)",
+  extra,
+}: {
+  cells: { label: React.ReactNode; value: React.ReactNode; icon: React.ReactNode; color: string; tint: string }[];
+  progressPct?: string | number;
+  title?: string;
+  statusText?: string;
+  statusColor?: string;
+  statusBorder?: string;
+  extra?: React.ReactNode;
+}) {
+  const { pctNumber, pctString } = React.useMemo(() => {
+    if (progressPct !== undefined && progressPct !== null && progressPct !== "") {
+      const parsed = typeof progressPct === "number" ? progressPct : parseFloat(String(progressPct));
+      if (!isNaN(parsed)) {
+        const clamped = Math.min(100, Math.max(0, parsed));
+        return { pctNumber: clamped, pctString: `${clamped}%` };
+      }
+    }
+    if (cells && cells.length > 0) {
+      let total = 0;
+      let completed = 0;
+      let hasTotal = false;
+      let hasCompleted = false;
+      for (const item of cells) {
+        const lbl = String(item.label || "").toLowerCase();
+        const rawVal = item.value;
+        const numVal = typeof rawVal === "number" ? rawVal : parseFloat(String(rawVal).replace(/[^0-9.-]/g, ""));
+        if (!isNaN(numVal)) {
+          if (lbl.includes("total") || lbl.includes("all") || lbl.includes("count") || lbl.includes("openings") || lbl.includes("positions") || lbl.includes("applications")) {
+            total = numVal;
+            hasTotal = true;
+          } else if (lbl.includes("filled") || lbl.includes("hired") || lbl.includes("joined") || lbl.includes("interview") || lbl.includes("active") || lbl.includes("posted")) {
+            completed += numVal;
+            hasCompleted = true;
+          }
+        }
+      }
+      if (hasTotal && total > 0 && hasCompleted) {
+        const computed = Math.min(100, Math.max(0, Math.round((completed / total) * 100)));
+        return { pctNumber: computed, pctString: `${computed}%` };
+      }
+    }
+    return { pctNumber: 0, pctString: "0%" };
+  }, [progressPct, cells]);
+
+  return (
+    <div className="opn-sprint-header-v2">
+      <div className="opn-sprint-row1">
+        <div className="opn-sprint-title-block">
+          <div
+            className="opn-sprint-dot"
+            style={{ background: "#3b82f6", boxShadow: "0 0 0 3px rgba(59, 130, 246, 0.2)" }}
+          />
+          <h2 className="opn-sprint-title">{title}</h2>
+          <div className="opn-sprint-tags">
+            <span
+              className="opn-sprint-tag opn-sprint-tag-active"
+              style={{ color: statusColor, borderColor: statusBorder }}
+            >
+              {statusText}
+            </span>
+          </div>
+        </div>
+        {extra && <div className="opn-sprint-extra">{extra}</div>}
+      </div>
+      <div className="opn-sprint-row2">
+        {cells.map((c, i) => (
+          <div key={i} className="opn-sprint-meta">
+            <span style={{ color: c.color, display: "inline-flex", alignItems: "center" }}>
+              {c.icon}
+            </span>
+            <span>
+              <b>{c.value}</b> {c.label}
+            </span>
+          </div>
+        ))}
+      </div>
+      <div className="opn-sprint-row3">
+        <div className="opn-sprint-progress-bar">
+          <div
+            className="opn-sprint-progress-fill"
+            style={{ width: `${pctNumber}%` }}
+          />
+        </div>
+        <div className="opn-sprint-progress-pct">{pctString}</div>
+      </div>
+    </div>
+  );
+}
+
+// ── Shared Openings V2 Styles ─────────────────────────────────────────────────
+export function OpnStyles() {
+  return (
+    <style jsx global>{`
+      /* Sprint Header (Stats) */
+      .opn-sprint-header-v2 { display: flex; flex-direction: column; gap: 6px; padding: 10px 24px; background: var(--bg-slate-50, #f8fafc); border-bottom: 1px solid var(--border-slate-200, #e2e8f0); margin-bottom: 0px; flex-shrink: 0; }
+      .opn-sprint-row1 { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+      .opn-sprint-title-block { display: flex; align-items: center; gap: 8px; min-width: 0; flex: 1 1 auto; }
+      .opn-sprint-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; background: #3b82f6; box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2); }
+      .opn-sprint-title { font-size: 13.5px !important; font-weight: 800 !important; color: var(--text-slate-900, #0f172a) !important; letter-spacing: -0.01em; margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+      .opn-sprint-tags { display: inline-flex; align-items: center; gap: 6px; flex-shrink: 0; }
+      .opn-sprint-tag { display: inline-flex; align-items: center; height: 18px; padding: 0 6px; font-size: 9px; font-weight: 800; letter-spacing: 0.04em; border-radius: 4px; border: 1px solid transparent; text-transform: uppercase; line-height: 1; }
+      .opn-sprint-tag-active { background: transparent; color: #10b981; border-color: rgba(16, 185, 129, 0.32); }
+      .opn-sprint-row2 { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; padding-left: 15px; }
+      .opn-sprint-meta { display: inline-flex; align-items: center; gap: 6px; font-size: 11.5px; font-weight: 600; color: var(--text-slate-500, #64748b); letter-spacing: -0.005em; }
+      .opn-sprint-meta b { color: var(--text-slate-900, #0f172a); font-weight: 800; }
+      .opn-sprint-row3 { display: flex; align-items: center; gap: 12px; padding-left: 15px; }
+      .opn-sprint-progress-bar { flex: 1 1 auto; position: relative; height: 6px; background: var(--bg-slate-100, #f1f5f9); border-radius: 999px; overflow: hidden; min-width: 60px; }
+      .opn-sprint-progress-fill { position: absolute; inset: 0; background: linear-gradient(90deg, #3b82f6, #2563eb); border-radius: 999px; transition: width 0.4s ease; }
+      .opn-sprint-progress-pct { flex-shrink: 0; font-size: 12px; font-weight: 800; color: var(--text-slate-900, #0f172a); font-variant-numeric: tabular-nums; min-width: 36px; }
+
+      /* Payroll Global Table Wrap */
+      .opn-table-wrap {
+        display: flex; flex-direction: column; flex: 1; min-height: 0; overflow: hidden;
+      }
+      .opn-table-wrap .ant-table-wrapper { display: flex; flex-direction: column; flex: 1; min-height: 0; overflow: hidden; }
+      .opn-table-wrap .zlo,
+      .opn-table-wrap .zlo__content { display: flex; flex-direction: column; flex: 1; min-height: 0; overflow: hidden; }
+      .opn-table-wrap .ant-spin-nested-loading { display: flex; flex-direction: column; flex: 1; min-height: 0; overflow: hidden; }
+      .opn-table-wrap .ant-spin-container { display: flex; flex-direction: column; flex: 1; min-height: 0; overflow: hidden; }
+      .opn-table-wrap .ant-table {
+        flex: 1 1 auto; overflow: hidden; display: flex; flex-direction: column;
+        background: var(--bg-pure-white);
+        border: 1px solid var(--border-slate-200);
+        border-radius: 0 !important;
+        margin-bottom: 0;
+        border-left: none; border-right: none;
+      }
+      .opn-table-wrap .ant-table-container { overflow: hidden !important; display: flex; flex-direction: column; flex: 1; min-height: 0; }
+      .opn-table-wrap .ant-table-content { overflow-y: auto !important; overflow-x: auto !important; flex: 1; min-height: 0; }
+      .opn-table-wrap .ant-table table { min-width: 800px; }
+      
+      .opn-table-wrap .ant-table-thead > tr > th:first-child,
+      .opn-table-wrap .ant-table-thead > tr > th:last-child {
+        border-radius: 0 !important;
+      }
+      
+      /* Table headers fixed */
+      .opn-table-wrap .ant-table-thead > tr > th,
+      .ant-drawer-content .ant-table-thead > tr > th,
+      .ant-table-thead > tr > th {
+        position: sticky; top: 0; z-index: 10;
+        padding: 5px 10px !important;
+        font-size: 10px !important;
+        font-weight: 800 !important;
+        background: var(--bg-slate-50, #f8fafc) !important;
+        color: var(--text-slate-500, #64748b) !important;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        text-align: left !important;
+        border-bottom: 1px solid var(--border-slate-200) !important;
+        border-inline-end: none !important;
+      }
+      .opn-table-wrap .ant-table-thead > tr > th::before,
+      .ant-drawer-content .ant-table-thead > tr > th::before {
+        display: none !important;
+      }
+      [data-theme='dark'] .opn-table-wrap .ant-table-thead > tr > th,
+      [data-theme='dark'] .ant-drawer-content .ant-table-thead > tr > th {
+        background: #0f1419 !important;
+        color: #94a3b8 !important;
+      }
+      .opn-table-wrap .ant-table-tbody > tr > td,
+      .ant-drawer-content .ant-table-tbody > tr > td {
+        padding: 4px 10px !important;
+        font-size: 11.5px !important;
+        text-align: left !important;
+      }
+
+      /* Fixed footer / pagination */
+      .opn-table-wrap .ant-pagination {
+        margin: 0 !important;
+        padding: 12px 20px;
+        background: var(--bg-pure-white);
+        border-top: 1px solid var(--border-slate-200);
+        display: flex; align-items: center;
+        flex-shrink: 0;
+      }
+      .opn-table-wrap .ant-pagination-total-text { margin-right: auto; color: var(--text-slate-500); font-size: 13px; }
+      
+    `}</style>
+  );
+}
+

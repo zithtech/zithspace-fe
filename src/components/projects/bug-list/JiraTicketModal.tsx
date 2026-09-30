@@ -155,12 +155,18 @@ export const JiraTicketModal: React.FC<JiraTicketModalProps> = ({
                       label="Title"
                       rules={[{ required: true, message: "Please enter a title" }]}
                     >
-                      <Input placeholder="e.g. Checkout fails on expired card" />
+                      <Input placeholder="e.g. Checkout fails on expired card" maxLength={100} showCount />
                     </Form.Item>
 
-                    <Form.Item name="description" label="Description">
+                    <Form.Item
+                      name="description"
+                      label="Description"
+                      rules={[{ max: 5000, message: "Description cannot exceed 5,000 characters" }]}
+                    >
                       <Input.TextArea
                         rows={5}
+                        maxLength={5000}
+                        showCount
                         placeholder="Context, repro steps, expected vs actual… (optional)"
                       />
                     </Form.Item>

@@ -38,7 +38,7 @@ import dayjs from "dayjs";
 
 import { usePermission } from "@/hooks/usePermission";
 import { useActivitySource } from "@/hooks/useActivitySource";
-import { SearchableDropdown } from "@/components/common/SearchableDropdown";
+import { FilterBar, FilterToggleButton, TicketFilterPill } from "@/components/common/FilterBar";
 import ZukvoLoader, { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
 import QaAnalyticsService, {
   type AnalyticsFilters,
@@ -106,6 +106,7 @@ function AnalyticsContent() {
   const [granularity, setGranularity] = useState<"day" | "week" | "month">("week");
   const [asTable, setAsTable] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [isFilterOpen, setIsFilterOpen] = useState(true);
 
 
   const [options, setOptions] = useState<FilterOptions | null>(null);
@@ -388,6 +389,11 @@ function AnalyticsContent() {
               </span>
             </div>
             <div className="dh-main-controls">
+              <FilterToggleButton
+                isOpen={isFilterOpen}
+                onToggle={() => setIsFilterOpen((prev) => !prev)}
+                activeCount={activeFilterCount}
+              />
               <Button
                 type="default"
                 icon={<RotateCw size={14} className={loading ? "animate-spin" : ""} />}
@@ -425,59 +431,70 @@ function AnalyticsContent() {
 
           {/* One filter bar for every tab. Deliberately outside the loading
               overlay so it stays usable while a report refreshes. */}
-          <div className="qa-filterbar">
-            <RangePicker
-              value={range as any}
-              onChange={(v) => setRange(v as any)}
-              format="DD MMM YYYY"
-              allowClear={false}
-              presets={[
-                { label: "Last 7 days", value: [dayjs().subtract(7, "day"), dayjs()] },
-                { label: "Last 30 days", value: [dayjs().subtract(30, "day"), dayjs()] },
-                { label: "Last 90 days", value: [dayjs().subtract(90, "day"), dayjs()] },
-                { label: "This year", value: [dayjs().startOf("year"), dayjs()] },
-              ]}
-            />
-            <SearchableDropdown
-              options={(options?.owners ?? []).map((o) => ({ value: o.id, label: o.label }))}
-              value={ownerId}
-              onChange={setOwnerId}
-              placeholder="All QA owners"
-              itemNoun="people"
-              className="sc-filters__field"
-            />
-            <SearchableDropdown
-              options={(options?.releases ?? []).map((r) => ({ value: r, label: r }))}
-              value={release}
-              onChange={setRelease}
-              placeholder="All releases"
-              hideAvatar
-              itemNoun="releases"
-              className="sc-filters__field"
-            />
-            <SearchableDropdown
-              options={(options?.scopes ?? []).map((s) => ({ value: s.id, label: s.label, description: s.status }))}
-              value={scopeId}
-              onChange={setScopeId}
-              placeholder="All scopes"
-              itemNoun="scopes"
-              className="sc-filters__field"
-            />
-            <SearchableDropdown
-              options={(options?.runs ?? []).map((r) => ({ value: r.id, label: r.label }))}
-              value={runId}
-              onChange={setRunId}
-              placeholder="All runs"
-              hideAvatar
-              itemNoun="runs"
-              className="sc-filters__field"
-            />
-            {activeFilterCount > 0 && (
-              <button type="button" className="sc-clear" onClick={clearFilters}>
-                Clear ({activeFilterCount})
-              </button>
-            )}
-          </div>
+          {isFilterOpen && (
+            <FilterBar
+              activeCount={activeFilterCount}
+              onReset={clearFilters}
+              onClose={() => setIsFilterOpen(false)}
+              actions={
+                <span style={{ fontSize: 12, color: "var(--text-slate-500)", whiteSpace: "nowrap" }}>
+                  <b>{TABS.find((t) => t.key === tab)?.label || tab.toUpperCase()}</b> Analytics
+                </span>
+              }
+            >
+              <TicketFilterPill
+                icon={<Users size={12} />}
+                label="QA Owner"
+                value={ownerId || ""}
+                options={(options?.owners ?? []).map((o) => ({ value: o.id, label: o.label }))}
+                onChange={(v) => setOwnerId(v ? String(v) : undefined)}
+                itemNoun="people"
+                multiple={false}
+                showAvatar
+              />
+              <TicketFilterPill
+                icon={<Package size={12} />}
+                label="Release"
+                value={release || ""}
+                options={(options?.releases ?? []).map((r) => ({ value: r, label: r }))}
+                onChange={(v) => setRelease(v ? String(v) : undefined)}
+                itemNoun="releases"
+                multiple={false}
+              />
+              <TicketFilterPill
+                icon={<Target size={12} />}
+                label="Scope"
+                value={scopeId || ""}
+                options={(options?.scopes ?? []).map((s) => ({ value: s.id, label: s.label }))}
+                onChange={(v) => setScopeId(v ? String(v) : undefined)}
+                itemNoun="scopes"
+                multiple={false}
+              />
+              <TicketFilterPill
+                icon={<Activity size={12} />}
+                label="Run"
+                value={runId || ""}
+                options={(options?.runs ?? []).map((r) => ({ value: r.id, label: r.label }))}
+                onChange={(v) => setRunId(v ? String(v) : undefined)}
+                itemNoun="runs"
+                multiple={false}
+              />
+              <RangePicker
+                size="small"
+                style={{ height: 28, borderRadius: 6 }}
+                value={range as any}
+                onChange={(v) => setRange(v as any)}
+                format="DD MMM YYYY"
+                allowClear={false}
+                presets={[
+                  { label: "Last 7 days", value: [dayjs().subtract(7, "day"), dayjs()] },
+                  { label: "Last 30 days", value: [dayjs().subtract(30, "day"), dayjs()] },
+                  { label: "Last 90 days", value: [dayjs().subtract(90, "day"), dayjs()] },
+                  { label: "This year", value: [dayjs().startOf("year"), dayjs()] },
+                ]}
+              />
+            </FilterBar>
+          )}
 
           <div className="dh-main-scroll">
             <ZukvoLoadingOverlay loading={loading} message="Building the report…" minHeight={340}>

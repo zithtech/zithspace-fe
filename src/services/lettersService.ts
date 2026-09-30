@@ -141,9 +141,15 @@ export class LettersService {
   }
 
   // ─── Document Structures ─────────────────────────────────────────
-  static async getStructures(): Promise<DocumentStructure[]> {
-    const res = await apiClient.get<ApiResponse<DocumentStructure[]>>('/api/hrms/letters/structures');
-    return res.data.data;
+  static async getStructures(params?: { search?: string; limit?: number; offset?: number }): Promise<{ data: DocumentStructure[]; total: number }> {
+    const res = await apiClient.get<any>('/api/hrms/letters/structures', { params });
+    if (Array.isArray(res.data)) {
+      return { data: res.data, total: res.data.length };
+    }
+    if (res.data && Array.isArray(res.data.data)) {
+      return { data: res.data.data, total: res.data.total ?? res.data.data.length };
+    }
+    return { data: [], total: 0 };
   }
 
   static async createStructure(name: string, htmlContent: string): Promise<DocumentStructure> {
@@ -241,9 +247,15 @@ export class LettersService {
   }
 
   // ─── Generated Letters ───────────────────────────────────────────
-  static async getGeneratedLetters(params?: { templateId?: string; categoryId?: string; search?: string }): Promise<GeneratedDocument[]> {
-    const res = await apiClient.get<ApiResponse<GeneratedDocument[]>>('/api/hrms/letters/generated', { params });
-    return res.data.data;
+  static async getGeneratedLetters(params?: { templateId?: string; categoryId?: string; status?: string; referenceEntityId?: string; search?: string; limit?: number; offset?: number }): Promise<{ data: GeneratedDocument[]; total: number }> {
+    const res = await apiClient.get<any>('/api/hrms/letters/generated', { params });
+    if (Array.isArray(res.data)) {
+      return { data: res.data, total: res.data.length };
+    }
+    if (res.data && Array.isArray(res.data.data)) {
+      return { data: res.data.data, total: res.data.total ?? res.data.data.length };
+    }
+    return { data: [], total: 0 };
   }
 
   static async getGeneratedLetterById(id: string): Promise<GeneratedDocument> {

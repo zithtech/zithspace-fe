@@ -10,6 +10,7 @@ import { useRouter } from "next/navigation";
 import {
   Card,
   Table,
+  Pagination,
   Button,
   Typography,
   Tag,
@@ -70,6 +71,7 @@ import ConfirmDialog from "@/components/common/ConfirmDialog";
 import { SearchableDropdown } from "@/components/common/SearchableDropdown";
 import ZukvoLoader from "@/components/common/ZukvoLoader";
 import { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
+import { StatCards } from "@/components/common/StatCards";
 
 const { Title, Text } = Typography;
 const { TextArea } = Input;
@@ -526,10 +528,23 @@ const PERMISSION_TO_SUBSCRIPTION_FEATURE: Record<string, string[]> = {
     'work_playbooks_qa_playbooks_new_collections',
     'work_playbooks_new_playbook',
   ],
+  'playbook.trash.read': [
+    'work_playbooks_qa_playbooks_upload',
+    'work_playbooks_collections_new_collections',
+    'work_playbooks_qa_playbooks_new_playbook',
+  ],
+  'playbook.trash.restore': [
+    'work_playbooks_qa_playbooks_upload',
+    'work_playbooks_collections_new_collections',
+    'work_playbooks_qa_playbooks_new_playbook',
+  ],
+  'playbook.trash.delete': [
+    'work_playbooks_qa_playbooks_upload',
+    'work_playbooks_collections_new_collections',
+    'work_playbooks_qa_playbooks_new_playbook',
+  ],
   'playbook.request': [
     'work_playbooks_requested_playbooks_request_playbook',
-    'work_playbooks_qa_playbooks_request_playbook',
-    'work_playbooks_request_playbook',
   ],
   'playbook.manage': [
     'work_playbooks_qa_playbooks_access',
@@ -789,6 +804,8 @@ export default function RolesPage() {
   const [historyOpen, setHistoryOpen] = useState(false);
 
   const [roles, setRoles] = useState<RBACRole[]>([]);
+  const [totalRoles, setTotalRoles] = useState(0);
+  const [rolesStatsCounts, setRolesStatsCounts] = useState<{ total: number; system: number; custom: number }>({ total: 0, system: 0, custom: 0 });
   const [allPermissions, setAllPermissions] = useState<Record<string, RBACPermission[]>>({});
   const [loading, setLoading] = useState(true);
   const { message: messageApi } = App.useApp();
@@ -796,6 +813,8 @@ export default function RolesPage() {
   // Filters
   const [searchTerm, setSearchTerm] = useState("");
   const [roleTypeFilter, setRoleTypeFilter] = useState<"all" | "system" | "custom">("all");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(15);
 
   // List / grid view
   const [view, setView] = useState<"list" | "grid">("list");
@@ -850,31 +869,14 @@ export default function RolesPage() {
     const totalMembers = roles.reduce((sum, r) => sum + (r._count?.userRoles || 0), 0);
     const assignedPerms = roles.reduce((sum, r) => sum + (r._count?.rolePermissions || 0), 0);
     return {
-      total: roles.length,
-      system: roles.filter(r => r.isSystem).length,
-      custom: roles.filter(r => !r.isSystem).length,
+      total: rolesStatsCounts.total || totalRoles || roles.length,
+      system: rolesStatsCounts.system || roles.filter(r => r.isSystem).length,
+      custom: rolesStatsCounts.custom || roles.filter(r => !r.isSystem).length,
       permissions: Object.values(allPermissions).flat().length,
       assignedPerms,
       totalMembers,
     };
-  }, [roles, allPermissions]);
-
-  // Filtered roles
-  const filteredRoles = React.useMemo(() => {
-    let list = [...roles];
-    if (searchTerm) {
-      const q = searchTerm.toLowerCase();
-      list = list.filter(
-        r =>
-          r.name.toLowerCase().includes(q) ||
-          r.slug.toLowerCase().includes(q) ||
-          (r.description || "").toLowerCase().includes(q),
-      );
-    }
-    if (roleTypeFilter === "system") list = list.filter(r => r.isSystem);
-    else if (roleTypeFilter === "custom") list = list.filter(r => !r.isSystem);
-    return list;
-  }, [roles, searchTerm, roleTypeFilter]);
+  }, [roles, rolesStatsCounts, totalRoles, allPermissions]);
 
   const hasActiveFilter = !!searchTerm || roleTypeFilter !== "all";
 
@@ -888,6 +890,7 @@ export default function RolesPage() {
   const handleClearFilters = () => {
     setSearchTerm("");
     setRoleTypeFilter("all");
+    setCurrentPage(1);
   };
 
   // ── Route guard ────────────────────────────────────────────────────────────
@@ -898,17 +901,52 @@ export default function RolesPage() {
   }, [user, isLoading, canReadRole, router]);
 
   // ── Initial data fetch ─────────────────────────────────────────────────────
-  const fetchRoles = useCallback(async () => {
+  const fetchRoles = useCallback(async (page = currentPage, size = pageSize, search = searchTerm, type = roleTypeFilter) => {
     try {
       setLoading(true);
-      const data = await RBACService.listRoles();
-      setRoles(data);
+      const res = await RBACService.listRoles({
+        page,
+        limit: size,
+        search: search.trim() || undefined,
+        type: type === 'all' ? undefined : type,
+      });
+      if (res && res.data) {
+        setRoles(res.data);
+        if (res.pagination) {
+          setTotalRoles(res.pagination.total);
+        } else {
+          setTotalRoles(res.data.length);
+        }
+        if (res.stats) {
+          setRolesStatsCounts(res.stats);
+        }
+      } else if (Array.isArray(res)) {
+        setRoles(res);
+        setTotalRoles(res.length);
+      }
     } catch {
       messageApi.error("Failed to load roles");
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [currentPage, pageSize, searchTerm, roleTypeFilter, messageApi]);
+
+  useEffect(() => {
+    if (user) {
+      fetchRoles(currentPage, pageSize, searchTerm, roleTypeFilter);
+    }
+  }, [user, currentPage, pageSize, roleTypeFilter]);
+
+  // Debounced search
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (user) {
+        setCurrentPage(1);
+        fetchRoles(1, pageSize, searchTerm, roleTypeFilter);
+      }
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
 
   const fetchPermissions = useCallback(async () => {
     try {
@@ -940,10 +978,9 @@ export default function RolesPage() {
 
   useEffect(() => {
     if (user) {
-      fetchRoles();
       fetchPermissions();
     }
-  }, [user, fetchRoles, fetchPermissions]);
+  }, [user, fetchPermissions]);
 
   // ── Members drawer logic ───────────────────────────────────────────────────
   const openMembersDrawer = async (role: RBACRole) => {
@@ -1200,8 +1237,10 @@ export default function RolesPage() {
     {
       title: "Actions",
       key: "actions",
-      width: 140,
+      width: 160,
       align: "right" as const,
+      onHeaderCell: () => ({ style: { paddingRight: 24 } }),
+      onCell: () => ({ style: { paddingRight: 24 } }),
       render: (_, record) => (
         <div className="rp-row-actions">
           {canAssignRole && (
@@ -1265,7 +1304,7 @@ export default function RolesPage() {
   }
 
   return (
-    <MainLayout>
+    <MainLayout noPadding>
       <div className="rp-shell">
         {/* ============================ SIDEBAR ============================ */}
         {isMobileOpen && (
@@ -1403,126 +1442,57 @@ export default function RolesPage() {
             </div>
           </div>
 
-          {/* Premium stats grid */}
-          <div className="rp-stat-grid">
-            <StatCard
-              label="Total Roles"
-              value={roleStats.total}
-              icon={<SafetyOutlined />}
-              accent="#3b82f6"
-              subtle="Across all access tiers"
-              loading={loading && roleStats.total === 0}
-              chart={
-                roleStats.total > 0 ? (
-                  <MiniBar
-                    segments={[
-                      {
-                        value: roleStats.system,
-                        color: '#3b82f6',
-                        label: `${roleStats.system} system`,
-                      },
-                      {
-                        value: roleStats.custom,
-                        color: '#10b981',
-                        label: `${roleStats.custom} custom`,
-                      },
-                    ]}
-                  />
-                ) : null
-              }
-            />
+          {/* Divider line after header */}
+          <div className="pp-divider rp-stretch" />
 
-            <StatCard
-              label="System Roles"
-              value={roleStats.system}
-              icon={<LockOutlined />}
-              accent="#3b82f6"
-              subtle="Locked baseline roles"
-              loading={loading && roleStats.total === 0}
-              chart={
-                roleStats.total > 0 ? (
-                  <div className="rp-cv-row">
-                    <KeyOutlined style={{ fontSize: 11 }} />
-                    <span>
-                      <strong>
-                        {Math.round((roleStats.system / Math.max(roleStats.total, 1)) * 100)}%
-                      </strong>{' '}
-                      of roles
-                    </span>
-                  </div>
-                ) : null
-              }
-            />
-
-            <StatCard
-              label="Custom Roles"
-              value={roleStats.custom}
-              icon={<ApartmentOutlined />}
-              accent="#10b981"
-              subtle="Created by your team"
-              loading={loading && roleStats.total === 0}
-              chart={
-                roleStats.total > 0 ? (
-                  <div className="rp-cv-row">
-                    <TeamOutlined style={{ fontSize: 11 }} />
-                    <span>
-                      <strong>{roleStats.totalMembers}</strong> total members
-                    </span>
-                  </div>
-                ) : null
-              }
-            />
-
-            <StatCard
-              label="Permissions"
-              value={roleStats.permissions}
-              icon={<KeyOutlined />}
-              accent="#64748b"
-              subtle={
-                roleStats.permissions > 0
-                  ? `${roleStats.assignedPerms} assigned across roles`
-                  : 'No permissions defined'
-              }
-              loading={loading && roleStats.permissions === 0}
-              chart={
-                roleStats.total > 0 && roleStats.permissions > 0 ? (
-                  <div className="rp-progress-row">
-                    <div className="rp-progress-track">
-                      <span
-                        className="rp-progress-fill"
-                        style={{
-                          width: `${Math.min(
-                            100,
-                            Math.round(
-                              (roleStats.assignedPerms /
-                                Math.max(roleStats.permissions * roleStats.total, 1)) *
-                              100,
-                            ),
-                          )}%`,
-                          background: 'linear-gradient(90deg, #64748b, #94a3b8)',
-                        }}
-                      />
-                    </div>
-                    <span className="rp-progress-label">
-                      {roleStats.assignedPerms}/{roleStats.permissions * roleStats.total}
-                    </span>
-                  </div>
-                ) : null
-              }
+          {/* Shared StatCards Header Banner */}
+          <div className="rp-stretch">
+            <StatCards
+              title="Roles & Permissions Overview"
+              statusText="ACTIVE"
+              progressPct={roleStats.total > 0 ? Math.round((roleStats.custom / roleStats.total) * 100) : 0}
+              cells={[
+                {
+                  label: "Total Roles",
+                  value: roleStats.total,
+                  icon: <SafetyOutlined />,
+                  color: "#3b82f6",
+                  tint: "rgba(59,130,246,0.10)",
+                },
+                {
+                  label: "System Roles",
+                  value: roleStats.system,
+                  icon: <LockOutlined />,
+                  color: "#3b82f6",
+                  tint: "rgba(59,130,246,0.10)",
+                },
+                {
+                  label: "Custom Roles",
+                  value: roleStats.custom,
+                  icon: <ApartmentOutlined />,
+                  color: "#10b981",
+                  tint: "rgba(16,185,129,0.10)",
+                },
+                {
+                  label: "Permissions",
+                  value: roleStats.permissions,
+                  icon: <KeyOutlined />,
+                  color: "#64748b",
+                  tint: "rgba(100,116,139,0.10)",
+                },
+              ]}
             />
           </div>
-
-
 
           {/* Roles panel */}
           <ZukvoLoadingOverlay loading={loading} message="">
             {view === "list" ? (
-              <div className="rp-panel">
+              <div className="rp-panel rp-stretch" style={{ borderLeft: "none", borderRight: "none" }}>
                 {/* Table */}
                 <Table
                   className="premium-table rp-table"
                   columns={columns}
-                  dataSource={filteredRoles}
+                  dataSource={roles}
                   rowKey="id"
                   pagination={false}
                   scroll={{ x: 1000 }} locale={{ emptyText: <NoData /> }}
@@ -1530,13 +1500,13 @@ export default function RolesPage() {
 
               </div>
             ) : (
-              <div className="rp-grid">
+              <div className="rp-grid" style={{ marginTop: 16 }}>
                 {loading ? (
                   <div className="rp-grid-loading">Loading…</div>
-                ) : filteredRoles.length === 0 ? (
+                ) : roles.length === 0 ? (
                   <div className="rp-grid-loading">No roles match your filters.</div>
                 ) : (
-                  filteredRoles.map((record) => {
+                  roles.map((record) => {
                     const permCount = record._count?.rolePermissions ?? 0;
                     const memberCount = record._count?.userRoles ?? 0;
                     return (
@@ -1647,8 +1617,31 @@ export default function RolesPage() {
 
           <div className="rp-footer rp-footer--sticky">
             <div className="rp-footer-info">
-              Showing <strong>{filteredRoles.length}</strong> of <strong>{roleStats.total}</strong> roles
+              Showing{" "}
+              <strong>
+                {totalRoles === 0
+                  ? 0
+                  : `${(currentPage - 1) * pageSize + 1}–${Math.min(
+                      currentPage * pageSize,
+                      totalRoles,
+                    )}`}
+              </strong>{" "}
+              of <strong>{totalRoles}</strong> role{totalRoles !== 1 ? "s" : ""}
             </div>
+            {totalRoles > 0 && (
+              <Pagination
+                current={currentPage}
+                pageSize={pageSize}
+                total={totalRoles}
+                onChange={(page, size) => {
+                  setCurrentPage(page);
+                  setPageSize(size);
+                }}
+                showSizeChanger
+                pageSizeOptions={[10, 15, 20, 25, 50, 100]}
+                size="small"
+              />
+            )}
           </div>
         </main>
 

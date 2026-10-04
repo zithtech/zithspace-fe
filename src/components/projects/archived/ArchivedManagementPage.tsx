@@ -359,21 +359,36 @@ export default function ArchivedManagementPage() {
       render: (record: any) => (
         <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
           {canRestoreTicketArchive && (
-            <Tooltip title="Unarchive Ticket">
-              <Button
-                type="text"
-                icon={<InboxOutlined style={{ color: "#3b82f6" }} />}
-                onClick={() =>
-                  bulkUnarchive.mutate([record.id], {
-                    onSuccess: () => {
-                      message.success("Ticket unarchived successfully");
-                      refetch();
-                    },
+            <div onClick={(e) => e.stopPropagation()}>
+              <ConfirmDialog
+                tone="primary"
+                title="Unarchive ticket?"
+                description="This will restore the ticket to active status."
+                confirmText="Unarchive"
+                cancelText="Cancel"
+                placement="bottomRight"
+                onConfirm={() =>
+                  new Promise<void>((resolve) => {
+                    bulkUnarchive.mutate([record.id], {
+                      onSuccess: () => {
+                        message.success("Ticket unarchived successfully");
+                        refetch();
+                        resolve();
+                      },
+                      onError: () => resolve(),
+                    });
                   })
                 }
-                loading={bulkUnarchive.isPending}
-              />
-            </Tooltip>
+              >
+                <Tooltip title="Unarchive Ticket">
+                  <Button
+                    type="text"
+                    icon={<InboxOutlined style={{ color: "#3b82f6" }} />}
+                    loading={bulkUnarchive.isPending}
+                  />
+                </Tooltip>
+              </ConfirmDialog>
+            </div>
           )}
           {canDeleteTicket && (
             <ConfirmDialog
@@ -718,33 +733,46 @@ export default function ArchivedManagementPage() {
             </div>
             <div className="saas-bulk-buttons" style={{ display: "flex", alignItems: "center", gap: 6 }}>
               {canRestoreTicketArchive && (
-                <Button
-                  type="text"
-                  size="small"
-                  icon={<InboxOutlined style={{ color: "#3b82f6" }} />}
-                  onClick={() => {
-                    bulkUnarchive.mutate(selectedRowKeys as string[], {
-                      onSuccess: () => {
-                        message.success("Tickets unarchived successfully");
-                        setSelectedRowKeys([]);
-                        refetch();
-                      },
-                    });
-                  }}
-                  loading={bulkUnarchive.isPending}
-                  style={{
-                    borderRadius: 6,
-                    fontWeight: 600,
-                    fontSize: 12,
-                    color: "#2563eb",
-                    background: "rgba(59,130,246,0.1)",
-                    border: "1px solid rgba(59,130,246,0.25)",
-                    height: 28,
-                    padding: "0 10px",
-                  }}
+                <ConfirmDialog
+                  tone="primary"
+                  title="Unarchive tickets?"
+                  description={`This will restore ${selectedRowKeys.length} ticket${selectedRowKeys.length > 1 ? 's' : ''} to active status.`}
+                  confirmText="Unarchive"
+                  cancelText="Cancel"
+                  placement="bottomRight"
+                  onConfirm={() =>
+                    new Promise<void>((resolve) => {
+                      bulkUnarchive.mutate(selectedRowKeys as string[], {
+                        onSuccess: () => {
+                          message.success("Tickets unarchived successfully");
+                          setSelectedRowKeys([]);
+                          refetch();
+                          resolve();
+                        },
+                        onError: () => resolve(),
+                      });
+                    })
+                  }
                 >
-                  Unarchive
-                </Button>
+                  <Button
+                    type="text"
+                    size="small"
+                    icon={<InboxOutlined style={{ color: "#3b82f6" }} />}
+                    loading={bulkUnarchive.isPending}
+                    style={{
+                      borderRadius: 6,
+                      fontWeight: 600,
+                      fontSize: 12,
+                      color: "#2563eb",
+                      background: "rgba(59,130,246,0.1)",
+                      border: "1px solid rgba(59,130,246,0.25)",
+                      height: 28,
+                      padding: "0 10px",
+                    }}
+                  >
+                    Unarchive
+                  </Button>
+                </ConfirmDialog>
               )}
               {canDeleteTicket && (
                 <ConfirmDialog
@@ -1112,6 +1140,65 @@ export default function ArchivedManagementPage() {
         .pp-ghost-btn:hover {
           background: var(--bg-slate-100);
           border-color: var(--border-slate-300);
+        }
+        .premium-table.ant-table-wrapper .ant-table-selection-column,
+        .premium-table .ant-table-selection-column {
+          padding-left: 16px !important;
+          padding-right: 12px !important;
+        }
+        .premium-table.ant-table-wrapper .ant-table-tbody > tr > td:first-child,
+        .premium-table.ant-table-wrapper .ant-table-thead > tr > th:first-child {
+          padding-left: 16px !important;
+        }
+
+        .premium-table .ant-table,
+        .premium-table .ant-table-wrapper,
+        .premium-table .ant-table-container,
+        .premium-table .ant-table-content,
+        .premium-table .ant-table-header,
+        .premium-table .ant-table-body {
+          background: transparent !important;
+          border-radius: 0 !important;
+        }
+        .premium-table .ant-table-thead > tr > th,
+        .premium-table .ant-table-thead > tr > td {
+          background: var(--bg-slate-50) !important;
+          border-bottom: 1px solid var(--border-slate-200) !important;
+          font-size: 10px !important;
+          font-weight: 700 !important;
+          letter-spacing: 0.04em !important;
+          text-transform: uppercase !important;
+          color: var(--text-slate-400) !important;
+          padding: 6px 10px !important;
+          white-space: nowrap !important;
+          border-radius: 0 !important;
+          border-start-start-radius: 0 !important;
+          border-start-end-radius: 0 !important;
+          position: sticky !important;
+          top: 0 !important;
+          z-index: 10 !important;
+        }
+        .premium-table .ant-table-thead > tr > th::before {
+          display: none !important;
+        }
+        [data-theme='dark'] .premium-table .ant-table-thead > tr > th,
+        [data-theme='dark'] .premium-table .ant-table-thead > tr > td {
+          background: #161b22 !important;
+          border-bottom-color: #374151 !important;
+          color: #94a3b8 !important;
+        }
+        .premium-table .ant-table-tbody > tr > td {
+          border-bottom: 1px solid var(--border-slate-100) !important;
+          padding: 6.5px 10px !important;
+        }
+        [data-theme='dark'] .premium-table .ant-table-tbody > tr > td {
+          border-bottom-color: #1e293b !important;
+        }
+        .premium-table .ant-table-row:hover > td {
+          background: var(--bg-slate-50) !important;
+        }
+        [data-theme='dark'] .premium-table .ant-table-row:hover > td {
+          background: rgba(255, 255, 255, 0.02) !important;
         }
       `}</style>
     </div>

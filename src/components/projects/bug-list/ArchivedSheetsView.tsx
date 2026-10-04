@@ -281,12 +281,21 @@ function ArchivedSheetCard({
             <Eye size={12} />
             View Bugs
           </button>
-          <Tooltip title="Restore sheet to active">
-            <button className="arc-action-btn arc-action-restore" onClick={onRestore}>
+          <ConfirmDialog
+            tone="primary"
+            icon={<RotateCcw size={16} />}
+            title="Restore Sheet?"
+            description={`Are you sure you want to restore sheet "${sheet.name}" from archive?`}
+            confirmText="Restore"
+            cancelText="Cancel"
+            placement="bottomRight"
+            onConfirm={onRestore}
+          >
+            <button className="arc-action-btn arc-action-restore">
               <RotateCcw size={12} />
               Restore
             </button>
-          </Tooltip>
+          </ConfirmDialog>
           <div onClick={(e) => e.stopPropagation()}>
             <ConfirmDialog
               tone="danger"

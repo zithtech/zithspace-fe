@@ -42,14 +42,14 @@ export default function ProjectAgreementsLayout({ children }: { children: React.
     if (perms.canReadAgreementTemplate || perms.canReadAgreement) {
       paths.push('/project-agreements/templates');
     }
-    if (perms.canReadAgreement || perms.canManageAgreements) {
+    if (perms.canReadAgreement || perms.canManageAgreements || perms.canReadAgreementSetting) {
       // The letterhead lives here now; /branding redirects into it and is
       // listed so the redirect is not bounced by this guard on its way through.
       paths.push('/project-agreements/settings');
       paths.push('/project-agreements/branding');
     }
     return paths;
-  }, [perms.canReadAgreement, perms.canReadAgreementTemplate, perms.canManageAgreements]);
+  }, [perms.canReadAgreement, perms.canReadAgreementTemplate, perms.canManageAgreements, perms.canReadAgreementSetting]);
 
   useEffect(() => {
     if (isLoading || !pathname) return;
@@ -114,6 +114,7 @@ export default function ProjectAgreementsLayout({ children }: { children: React.
             font-size: 12.5px; color: var(--text-slate-600); margin-top: 2px;
             white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
           }
+          .pa-sidebar-toggle-btn { display: none !important; }
           .pa-header-actions { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
 
           .pa-body-scroll { flex: 1; min-height: 0; overflow-y: auto; padding: 16px; }
@@ -278,8 +279,10 @@ export default function ProjectAgreementsLayout({ children }: { children: React.
              stage scrolls in both directions when a zoom outgrows the pane. */
           .pa-preview-stage.is-page {
             overflow: auto;
-            display: flex; align-items: center; justify-content: center;
             padding: 12px;
+            /* display: flex removed because a centered flex item that overflows 
+               cannot be scrolled to its top/left edges. text-align: center from 
+               .pa-preview-stage handles horizontal centering safely. */
           }
           .pa-preview-stage.is-page > .pa-preview-scaler {
             flex: none;
@@ -871,6 +874,8 @@ export default function ProjectAgreementsLayout({ children }: { children: React.
           .pa-list-main {
             min-width: 0; min-height: 0;
             display: flex; flex-direction: column;
+            overflow-y: auto;
+            overflow-x: hidden;
           }
           .pa-rail {
             min-height: 0;
@@ -998,32 +1003,18 @@ export default function ProjectAgreementsLayout({ children }: { children: React.
             background: rgba(59,130,246,0.06);
           }
           @media (max-width: 1100px) {
+            .pa-sidebar-toggle-btn {
+              display: inline-flex !important; align-items: center; justify-content: center;
+              width: 38px; height: 38px; padding: 0;
+              background: transparent; color: var(--text-slate-500);
+              border: 1px solid var(--border-slate-200); border-radius: 8px;
+              cursor: pointer; transition: background 0.15s;
+            }
+            .pa-sidebar-toggle-btn:hover { background: var(--bg-slate-50, #f8fafc); }
             /* Below this the table needs every pixel; the rail's selections are
                all reachable from the filter pills above the table. */
             .pa-list-split { grid-template-columns: 1fr; }
             .pa-rail { display: none; }
-            /* EXCEPT where the rail is the only way to switch section. Settings
-               has no filter pills to fall back on, so it becomes a strip along
-               the top instead of vanishing. */
-            .pa-list-split.is-keep-rail {
-              grid-template-columns: 1fr;
-              grid-template-rows: auto minmax(0, 1fr);
-            }
-            .pa-list-split.is-keep-rail > .pa-rail {
-              display: block;
-              border-right: none;
-              border-bottom: 1px solid var(--border-slate-200);
-            }
-            .pa-list-split.is-keep-rail .pa-rail-scroll {
-              display: flex; align-items: center; gap: 8px;
-              overflow-x: auto; overflow-y: hidden; padding: 8px 10px;
-            }
-            .pa-list-split.is-keep-rail .pa-rail-label { display: none; }
-            .pa-list-split.is-keep-rail .pa-rail-list {
-              flex-direction: row; gap: 6px;
-            }
-            .pa-list-split.is-keep-rail .pa-rail-item { width: auto; white-space: nowrap; }
-            .pa-list-split.is-keep-rail .pa-rail-hint { display: none; }
           }
 
           /* A list page is header + bands + table + footer, and only the table
@@ -1047,12 +1038,16 @@ export default function ProjectAgreementsLayout({ children }: { children: React.
           @media (max-width: 1100px) {
             .pa-compose, .pa-compose.is-split { grid-template-columns: 1fr; }
             .pa-editor-pane { border-left: none; min-height: 70vh; }
-            .pa-split { grid-template-columns: 1fr; }
+            .pa-split { 
+              display: flex; flex-direction: column; 
+              overflow-y: auto; overflow-x: hidden;
+            }
             .pa-split-form {
+              flex: none; overflow-y: visible;
               border-right: none;
               border-bottom: 1px solid var(--border-slate-200);
             }
-            .pa-preview { min-height: 70vh; }
+            .pa-preview { flex: none; min-height: 70vh; }
             .pa-grid-2 { grid-template-columns: 1fr; }
           }
         `}</style>

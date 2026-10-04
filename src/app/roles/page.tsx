@@ -116,6 +116,9 @@ const RESOURCE_LABELS: Record<string, string> = {
   opening: "Opening Management",
   profile: "User Profile",
   hotspot: "Hotspot",
+  project_agreement: "Project Agreements",
+  project_agreement_template: "Project Agreement Templates",
+  project_agreement_setting: "Project Agreement Settings",
   letter: "Doc Suite",
   letter_template: "Doc Suite Templates",
   'letter.format': "Doc Suite Formats",
@@ -398,6 +401,9 @@ const getAccessGroups = (isTestiez: boolean): AccessGroup[] => [
     resources: ['attendance', 'leave', 'shift', 'onboarding', 'exit', 'performance', 'opening', 'recruitment', 'escalation', 'letter',
       'letter_template',
       'letter.format',
+      'project_agreement',
+      'project_agreement_template',
+      'project_agreement_setting',
       ...(isTestiez ? [] : ['profile'])
     ],
     accent: '#10b981',
@@ -484,6 +490,9 @@ const RESOURCE_TO_SUBSCRIPTION_FEATURE: Record<string, string[]> = {
   opening: ["hrms_openings", "hrms_opening_management"],
   recruitment: ["hrms_candidate_pipeline"],
   letter: ["hrms_doc_suite"],
+  project_agreement: ["hrms_project_agreements", "hrms"],
+  project_agreement_template: ["hrms_project_agreements", "hrms"],
+  project_agreement_setting: ["hrms_project_agreements", "hrms"],
   profile: ["hrms_profile", "hrms_new_profile"],
 
   // Admin
@@ -582,7 +591,7 @@ const PERMISSION_MODULES = [
   },
   {
     title: "HRMS",
-    resources: ["user", "attendance", "leave", "shift", "onboarding", "exit", "org", "performance", "opening", "profile", "escalation"]
+    resources: ["user", "attendance", "leave", "shift", "onboarding", "exit", "org", "performance", "opening", "profile", "escalation", "project_agreement", "project_agreement_template"]
   },
   {
     title: "Finance",
@@ -1139,6 +1148,12 @@ export default function RolesPage() {
               ...(allPermissions['letter'] || []),
               ...(allPermissions['letter_template'] || []),
               ...(allPermissions['letter.format'] || []),
+            ]
+          : resource === 'project_agreement'
+          ? [
+              ...(allPermissions['project_agreement'] || []),
+              ...(allPermissions['project_agreement_template'] || []),
+              ...(allPermissions['project_agreement_setting'] || []),
             ]
           : allPermissions[resource] || [];
       return raw.filter((p) => isPermFeatureEnabled(p.name));
@@ -1846,7 +1861,7 @@ export default function RolesPage() {
               // Filter perms by search across the current tab
               const filteredByResource: Record<string, RBACPermission[]> = {};
               tabResources.forEach((res) => {
-                if (res === 'letter_template' || res === 'letter.format') return;
+                if (res === 'letter_template' || res === 'letter.format' || res === 'project_agreement_template' || res === 'project_agreement_setting') return;
 
                 const perms = getFilteredPermsForResource(res);
 
@@ -1855,7 +1870,10 @@ export default function RolesPage() {
                   return;
                 }
                 const label = (RESOURCE_LABELS[res] || res).toLowerCase();
-                if (label.includes(searchQ) || (res === 'letter' && ((RESOURCE_LABELS['letter_template'] || '').toLowerCase().includes(searchQ) || (RESOURCE_LABELS['letter.format'] || '').toLowerCase().includes(searchQ)))) {
+                if (label.includes(searchQ) || 
+                    (res === 'letter' && ((RESOURCE_LABELS['letter_template'] || '').toLowerCase().includes(searchQ) || (RESOURCE_LABELS['letter.format'] || '').toLowerCase().includes(searchQ))) ||
+                    (res === 'project_agreement' && ((RESOURCE_LABELS['project_agreement_template'] || '').toLowerCase().includes(searchQ) || (RESOURCE_LABELS['project_agreement_setting'] || '').toLowerCase().includes(searchQ)))
+                ) {
                   if (perms.length > 0) filteredByResource[res] = perms;
                   return;
                 }
@@ -2103,6 +2121,19 @@ export default function RolesPage() {
                               subKey = 'Letter Composer';
                             } else if (p.name === 'letter.read' || p.name === 'letter.delete') {
                               subKey = 'Generated Records';
+                            }
+                            if (!subGroups[subKey]) subGroups[subKey] = [];
+                            subGroups[subKey].push(p);
+                          });
+                        } else if (resource === 'project_agreement') {
+                          perms.forEach((p) => {
+                            let subKey = 'Other';
+                            if (p.name.startsWith('project_agreement_template.')) {
+                              subKey = 'Templates';
+                            } else if (p.name.startsWith('project_agreement_setting.')) {
+                              subKey = 'Settings';
+                            } else {
+                              subKey = 'Agreements';
                             }
                             if (!subGroups[subKey]) subGroups[subKey] = [];
                             subGroups[subKey].push(p);

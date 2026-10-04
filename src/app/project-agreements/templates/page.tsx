@@ -39,12 +39,16 @@ import {
   SignalHigh,
   Trash2,
 } from 'lucide-react';
-import { toast } from 'react-hot-toast';
+import { message } from '@/providers/AntdGlobalProvider';
 import NoData from '@/components/common/NoData';
 import ZukvoLoader from '@/components/common/ZukvoLoader';
 import TicketFilterPill from '@/components/projects/TicketFilterPill';
+import StatCards from '@/components/common/StatCards';
+import FilterBar, { FilterToggleButton } from '@/components/common/FilterBar';
+import ConfirmDialog from '@/components/common/ConfirmDialog';
 import { ListFooter, menuLabel } from '@/components/project-agreements/listChrome';
 import TemplateDetailDrawer from '@/components/project-agreements/TemplateDetailDrawer';
+import PasswordUnlockModal from '@/components/project-agreements/PasswordUnlockModal';
 import { usePermission } from '@/hooks/usePermission';
 import { useDebounce } from '@/hooks/useDebounce';
 import {
@@ -52,6 +56,9 @@ import {
   ProjectAgreementsService,
   TEMPLATE_STATUS_META,
   TemplateStatus,
+  getLockScope,
+  isPasswordLockError,
+  unlockTemplate,
 } from '@/services/projectAgreementsService';
 
 const STATUS_KEYS = Object.keys(TEMPLATE_STATUS_META) as TemplateStatus[];
@@ -73,7 +80,14 @@ export default function TemplatesPage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState<string>('');
+  const [showFilters, setShowFilters] = useState(true);
   const debouncedSearch = useDebounce(search, 300);
+
+  const [deleteTarget, setDeleteTarget] = useState<AgreementTemplate | null>(null);
+  const [isLocked, setIsLocked] = useState(false);
+  const [lockScope, setLockScope] = useState<'TENANT' | 'AGREEMENT' | 'TEMPLATE'>('TENANT');
+  const [unlockTargetId, setUnlockTargetId] = useState<string | null>(null);
+  const pendingActionRef = React.useRef<(() => void) | null>(null);
 
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
@@ -88,7 +102,7 @@ export default function TemplatesPage() {
         await ProjectAgreementsService.listTemplates({ search: debouncedSearch || undefined })
       );
     } catch (err: any) {
-      toast.error(err?.message || 'Could not load templates');
+      message.error(err?.message || 'Could not load templates');
     } finally {
       setLoading(false);
     }
@@ -121,37 +135,75 @@ export default function TemplatesPage() {
 
   const activeFilterCount = (status ? 1 : 0) + (search ? 1 : 0);
 
+  const handleTemplateUnlock = async (password: string) => {
+    if (!unlockTargetId) return;
+    const result = await unlockTemplate(unlockTargetId, password);
+    if (typeof window !== 'undefined') {
+      sessionStorage.setItem(`pa_unlock_${unlockTargetId}`, result.unlockToken);
+    }
+    setIsLocked(false);
+    if (pendingActionRef.current) {
+      const action = pendingActionRef.current;
+      pendingActionRef.current = null;
+      await action();
+    }
+  };
+
   const setTemplateStatus = async (t: AgreementTemplate, next: TemplateStatus) => {
     try {
       const updated = await ProjectAgreementsService.setTemplateStatus(t.id, next);
       setTemplates((prev) => prev.map((x) => (x.id === t.id ? { ...x, ...updated } : x)));
-      toast.success(next === 'published' ? 'Template published' : `Template moved to ${next}`);
+      message.success(next === 'published' ? 'Template published' : `Template moved to ${next}`);
     } catch (err: any) {
-      toast.error(err?.message || 'Could not change the status');
+      if (isPasswordLockError(err)) {
+        setUnlockTargetId(t.id);
+        pendingActionRef.current = () => setTemplateStatus(t, next);
+        setIsLocked(true);
+        setLockScope(getLockScope(err));
+      } else {
+        message.error(err?.message || 'Could not change the status');
+      }
     }
   };
 
   const duplicate = async (t: AgreementTemplate) => {
     try {
       const copy = await ProjectAgreementsService.duplicateTemplate(t.id);
-      toast.success('Template duplicated');
+      message.success('Template duplicated');
       router.push(`/project-agreements/templates/builder?id=${copy.id}`);
     } catch (err: any) {
-      toast.error(err?.message || 'Could not duplicate that template');
+      if (isPasswordLockError(err)) {
+        setUnlockTargetId(t.id);
+        pendingActionRef.current = () => duplicate(t);
+        setIsLocked(true);
+        setLockScope(getLockScope(err));
+      } else {
+        message.error(err?.message || 'Could not duplicate that template');
+      }
     }
   };
 
-  const remove = async (t: AgreementTemplate) => {
-    const warning = t.agreementCount
-      ? `${t.name} has ${t.agreementCount} agreement(s) raised from it. Those documents keep their wording, but the template leaves the picker. Continue?`
-      : `Delete "${t.name}"?`;
-    if (!window.confirm(warning)) return;
+  const checkDelete = (t: AgreementTemplate) => {
+    setDeleteTarget(t);
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteTarget) return;
+    const targetId = deleteTarget.id;
     try {
-      await ProjectAgreementsService.deleteTemplate(t.id);
-      setTemplates((prev) => prev.filter((x) => x.id !== t.id));
-      toast.success('Template deleted');
+      await ProjectAgreementsService.deleteTemplate(targetId);
+      setTemplates((prev) => prev.filter((x) => x.id !== targetId));
+      message.success('Template deleted');
+      setDeleteTarget(null);
     } catch (err: any) {
-      toast.error(err?.message || 'Could not delete that template');
+      if (isPasswordLockError(err)) {
+        setUnlockTargetId(targetId);
+        pendingActionRef.current = () => confirmDelete();
+        setIsLocked(true);
+        setLockScope(getLockScope(err));
+      } else {
+        message.error(err?.message || 'Could not delete that template');
+      }
     }
   };
 
@@ -240,111 +292,125 @@ export default function TemplatesPage() {
       width: 56,
       fixed: 'right' as const,
       render: (_: unknown, row: AgreementTemplate) => (
-        <Dropdown
-          overlayClassName="tl-action-pop"
-          trigger={['click']}
-          placement="bottomRight"
-          menu={{
-            items: [
-              {
-                key: 'view',
-                label: menuLabel(<Eye size={14} />, 'Open', 'Read the wording', '#3b82f6'),
-                onClick: ({ domEvent }: any) => {
-                  domEvent.stopPropagation();
-                  setOpenId(row.id);
-                },
-              },
-              ...(perms.canUpdateAgreementTemplate
-                ? [
-                    {
-                      key: 'edit',
-                      label: menuLabel(
-                        <Pencil size={14} />,
-                        'Edit',
-                        'Open in the template builder',
-                        '#3b82f6'
-                      ),
-                      onClick: ({ domEvent }: any) => {
-                        domEvent.stopPropagation();
-                        router.push(`/project-agreements/templates/builder?id=${row.id}`);
-                      },
-                    },
-                    row.status === 'published'
-                      ? {
-                          key: 'archive',
-                          label: menuLabel(
-                            <Archive size={14} />,
-                            'Archive',
-                            'Take it out of the composer'
-                          ),
-                          onClick: ({ domEvent }: any) => {
-                            domEvent.stopPropagation();
-                            setTemplateStatus(row, 'archived');
-                          },
-                        }
-                      : {
-                          key: 'publish',
-                          label: menuLabel(
-                            <CheckCircle2 size={14} />,
-                            'Publish',
-                            'Make it available in the composer',
-                            '#16a34a'
-                          ),
-                          onClick: ({ domEvent }: any) => {
-                            domEvent.stopPropagation();
-                            setTemplateStatus(row, 'published');
-                          },
-                        },
-                  ]
-                : []),
-              ...(perms.canCreateAgreementTemplate
-                ? [
-                    {
-                      key: 'duplicate',
-                      label: menuLabel(
-                        <Copy size={14} />,
-                        'Duplicate',
-                        'Start a new draft from this wording'
-                      ),
-                      onClick: ({ domEvent }: any) => {
-                        domEvent.stopPropagation();
-                        duplicate(row);
-                      },
-                    },
-                  ]
-                : []),
-              ...(perms.canDeleteAgreementTemplate
-                ? [
-                    { type: 'divider' as const, key: 'd1' },
-                    {
-                      key: 'delete',
-                      danger: true,
-                      label: menuLabel(
-                        <Trash2 size={14} />,
-                        'Delete',
-                        'Documents raised keep their wording',
-                        '#ef4444'
-                      ),
-                      onClick: ({ domEvent }: any) => {
-                        domEvent.stopPropagation();
-                        remove(row);
-                      },
-                    },
-                  ]
-                : []),
-            ],
-          }}
+        <ConfirmDialog
+          open={deleteTarget?.id === row.id}
+          onOpenChange={(open) => !open && setDeleteTarget(null)}
+          tone="danger"
+          title={`Delete "${row.name}"?`}
+          description={
+            row.agreementCount
+              ? `This template has ${row.agreementCount} agreement(s) raised from it. Those documents keep their wording, but the template leaves the picker.`
+              : undefined
+          }
+          confirmText="Delete"
+          onConfirm={confirmDelete}
         >
-          <button
-            type="button"
-            className="pa-btn"
-            style={{ width: 28, height: 28, padding: 0, justifyContent: 'center' }}
-            onClick={(e) => e.stopPropagation()}
-            aria-label="Actions"
+          <Dropdown
+            overlayClassName="tl-action-pop"
+            trigger={['click']}
+            placement="bottomRight"
+            menu={{
+              items: [
+                {
+                  key: 'view',
+                  label: menuLabel(<Eye size={14} />, 'Open', 'Read the wording', '#3b82f6'),
+                  onClick: ({ domEvent }: any) => {
+                    domEvent.stopPropagation();
+                    setOpenId(row.id);
+                  },
+                },
+                ...(perms.canUpdateAgreementTemplate
+                  ? [
+                      {
+                        key: 'edit',
+                        label: menuLabel(
+                          <Pencil size={14} />,
+                          'Edit',
+                          'Open in the template builder',
+                          '#3b82f6'
+                        ),
+                        onClick: ({ domEvent }: any) => {
+                          domEvent.stopPropagation();
+                          router.push(`/project-agreements/templates/builder?id=${row.id}`);
+                        },
+                      },
+                      row.status === 'published'
+                        ? {
+                            key: 'archive',
+                            label: menuLabel(
+                              <Archive size={14} />,
+                              'Archive',
+                              'Take it out of the composer'
+                            ),
+                            onClick: ({ domEvent }: any) => {
+                              domEvent.stopPropagation();
+                              setTemplateStatus(row, 'archived');
+                            },
+                          }
+                        : {
+                            key: 'publish',
+                            label: menuLabel(
+                              <CheckCircle2 size={14} />,
+                              'Publish',
+                              'Make it available in the composer',
+                              '#16a34a'
+                            ),
+                            onClick: ({ domEvent }: any) => {
+                              domEvent.stopPropagation();
+                              setTemplateStatus(row, 'published');
+                            },
+                          },
+                    ]
+                  : []),
+                ...(perms.canCreateAgreementTemplate
+                  ? [
+                      {
+                        key: 'duplicate',
+                        label: menuLabel(
+                          <Copy size={14} />,
+                          'Duplicate',
+                          'Start a new draft from this wording'
+                        ),
+                        onClick: ({ domEvent }: any) => {
+                          domEvent.stopPropagation();
+                          duplicate(row);
+                        },
+                      },
+                    ]
+                  : []),
+                ...(perms.canDeleteAgreementTemplate
+                  ? [
+                      { type: 'divider' as const, key: 'd1' },
+                      {
+                        key: 'delete',
+                        danger: true,
+                        label: menuLabel(
+                          <Trash2 size={14} />,
+                          'Delete',
+                          'Documents raised keep their wording',
+                          '#ef4444'
+                        ),
+                        onClick: ({ domEvent }: any) => {
+                          domEvent.stopPropagation();
+                          checkDelete(row);
+                        },
+                      },
+                    ]
+                  : []),
+              ],
+            }}
           >
-            <EllipsisOutlined />
-          </button>
-        </Dropdown>
+            <button
+              type="button"
+              className="pa-btn"
+              style={{ width: 28, height: 28, padding: 0, justifyContent: 'center' }}
+              onClick={(e) => e.stopPropagation()}
+              aria-label="Actions"
+            >
+              <EllipsisOutlined />
+            </button>
+          </Dropdown>
+        </ConfirmDialog>
       ),
     },
   ];
@@ -364,6 +430,11 @@ export default function TemplatesPage() {
           </div>
         </div>
         <div className="pa-header-actions">
+          <FilterToggleButton
+            isOpen={showFilters}
+            onToggle={() => setShowFilters(!showFilters)}
+            activeCount={activeFilterCount}
+          />
           <Tooltip title="Refresh">
             <button
               type="button"
@@ -383,93 +454,64 @@ export default function TemplatesPage() {
         </div>
       </div>
 
-      <div className="tl-section-head">
-        <div className="tl-sprint-row1">
-          <div className="tl-sprint-title-block">
-            <span
-              className="tl-sprint-dot"
-              style={{ background: '#3b82f6', boxShadow: '0 0 0 3px #3b82f633' }}
-            />
-            <span className="tl-sprint-title">
-              {status ? TEMPLATE_STATUS_META[status as TemplateStatus].label : 'All templates'}
-            </span>
-            <span className="tl-sprint-tags">
-              {STATUS_KEYS.map((key) => {
-                const meta = TEMPLATE_STATUS_META[key];
-                return (
-                  <span
-                    key={key}
-                    className="tl-sprint-tag"
-                    style={{
-                      color: meta.color,
-                      background: `${meta.color}1a`,
-                      borderColor: `${meta.color}40`,
-                    }}
-                  >
-                    <b>{counts[key]}</b> {meta.label}
-                  </span>
-                );
-              })}
-            </span>
+      <StatCards
+        title={status ? TEMPLATE_STATUS_META[status as TemplateStatus].label : 'All templates'}
+        statusText=""
+        cells={[
+          { label: 'Total', value: templates.length },
+          { label: 'Published', value: counts.published },
+          ...(activeFilterCount > 0 ? [{ label: 'Matching', value: filtered.length }] : []),
+        ]}
+        extra={
+          <div className="common-sprint-tags">
+            {STATUS_KEYS.map((key) => {
+              const meta = TEMPLATE_STATUS_META[key];
+              return (
+                <span
+                  key={key}
+                  className="common-sprint-tag"
+                  style={{
+                    color: meta.color,
+                    background: `${meta.color}1a`,
+                    borderColor: `${meta.color}40`,
+                  }}
+                >
+                  <b>{counts[key]}</b> {meta.label}
+                </span>
+              );
+            })}
           </div>
-        </div>
-        <div className="tl-sprint-row2">
-          <span className="tl-sprint-meta">
-            <b>{templates.length}</b> in total
-          </span>
-          <span className="tl-sprint-meta">
-            <b>{counts.published}</b> available in the composer
-          </span>
-          {activeFilterCount > 0 && (
-            <span className="tl-sprint-meta">
-              <b>{filtered.length}</b> match the filters
-            </span>
-          )}
-        </div>
-      </div>
+        }
+      />
 
-      <div className="tl-filter-row">
-        <div className="tl-filter-row-label">
-          <Filter size={11} />
-          <span>Filters</span>
-          <span className="tl-filter-row-count">{activeFilterCount}</span>
-        </div>
-        <div className="tl-filter-row-pills">
-          <div className="tl-filter-search">
-            <Search size={13} />
-            <input
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search templates"
-              aria-label="Search templates"
-            />
-          </div>
-          <TicketFilterPill
-            icon={<SignalHigh size={11} />}
-            label="Status"
-            value={status}
-            options={STATUS_OPTIONS}
-            onChange={(v: any) => setStatus(v ?? '')}
-            multiple={false}
-            itemNoun="statuses"
+      <FilterBar
+        isOpen={showFilters}
+        onClose={() => setShowFilters(false)}
+        onReset={() => {
+          setStatus('');
+          setSearch('');
+        }}
+        activeCount={activeFilterCount}
+      >
+        <div className="tl-filter-search">
+          <Search size={13} />
+          <input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search templates"
+            aria-label="Search templates"
           />
         </div>
-        {activeFilterCount > 0 && (
-          <div className="tl-filter-row-actions">
-            <button
-              type="button"
-              className="tl-filter-row-reset"
-              onClick={() => {
-                setStatus('');
-                setSearch('');
-              }}
-            >
-              <RotateCcw size={10} />
-              Reset
-            </button>
-          </div>
-        )}
-      </div>
+        <TicketFilterPill
+          icon={<SignalHigh size={11} />}
+          label="Status"
+          value={status}
+          options={STATUS_OPTIONS}
+          onChange={(v: any) => setStatus(v ?? '')}
+          multiple={false}
+          itemNoun="statuses"
+        />
+      </FilterBar>
 
       {loading ? (
         <div
@@ -534,6 +576,18 @@ export default function TemplatesPage() {
         id={openId}
         onClose={() => setOpenId(null)}
         onChanged={load}
+      />
+
+      <PasswordUnlockModal
+        open={isLocked}
+        documentTitle={templates.find((t) => t.id === unlockTargetId)?.name || 'Template'}
+        scope={lockScope}
+        onUnlock={handleTemplateUnlock}
+        onCancel={() => {
+          setIsLocked(false);
+          setUnlockTargetId(null);
+          pendingActionRef.current = null;
+        }}
       />
     </div>
   );

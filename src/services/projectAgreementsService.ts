@@ -71,6 +71,8 @@ export interface AgreementTemplate {
   bodyHtml: string;
   status: TemplateStatus;
   version: number;
+  isPasswordProtected?: boolean;
+  passwordMode?: AgreementPasswordMode;
   placeholders: TemplatePlaceholder[];
   agreementCount?: number;
   createdAt: string;
@@ -152,8 +154,8 @@ export interface Agreement {
   clientSignatoryName: string | null;
   /** The authority THEY sign under — their half of "Name - Position". */
   clientSignatoryPosition: string | null;
-  /** The entity THEY sign for. Falls back to partyName. */
   clientSignatoryCompany: string | null;
+  clientSignatureUrl?: string | null;
   showSignatures: boolean;
   /** Which summary rows to print. null means all of them. */
   summaryFields: SummaryFieldKey[] | null;
@@ -162,6 +164,9 @@ export interface Agreement {
   pdfGeneratedAt: string | null;
   /** When the client first opened it in the portal. null means never. */
   portalViewedAt: string | null;
+  isPasswordProtected?: boolean;
+  passwordMode?: AgreementPasswordMode;
+  passwordVersion?: number;
   values?: Record<string, string>;
   createdAt: string;
   updatedAt: string;
@@ -247,6 +252,9 @@ export interface TemplatePayload {
   description?: string | null;
   bodyHtml: string;
   status: TemplateStatus;
+  isPasswordProtected?: boolean;
+  passwordMode?: AgreementPasswordMode;
+  customPassword?: string;
   placeholders: Array<Omit<TemplatePlaceholder, "id" | "templateId">>;
 }
 
@@ -283,6 +291,9 @@ export interface AgreementPayload {
   /** The entity THEY sign for. Blank falls back to the Client name. */
   clientSignatoryCompany?: string | null;
   showSignatures?: boolean;
+  isPasswordProtected?: boolean;
+  passwordMode?: AgreementPasswordMode;
+  customPassword?: string;
   summaryFields?: SummaryFieldKey[] | null;
   notes?: string | null;
   values: Record<string, string>;
@@ -337,7 +348,9 @@ export const ProjectAgreementsService = {
     search?: string;
     /** Live documents lapsing within N days. */
     expiringWithinDays?: number;
-  } = {}): Promise<{ items: Agreement[]; stats: AgreementStats }> =>
+    page?: number;
+    limit?: number;
+  } = {}): Promise<{ items: Agreement[]; stats: AgreementStats; meta?: { total: number; page: number; limit: number } }> =>
     api.get(`${BASE}/agreements${query(params)}`),
 
   getAgreement: (id: string): Promise<Agreement> =>
@@ -441,6 +454,7 @@ export const ProjectAgreementsService = {
     clientSignatoryName?: string | null;
     clientSignatoryPosition?: string | null;
     clientSignatoryCompany?: string | null;
+    clientSignatureUrl?: string | null;
     showSignatures?: boolean;
   }): Promise<{ url: string; pageCount: number }> => {
     const res = await apiClient.post(`${BASE}/agreements/preview-pdf`, payload, {
@@ -616,3 +630,71 @@ export const manualTokensIn = (html: string): string[] =>
 
 export const humanise = (key: string): string =>
   key.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+
+export type PasswordProtectionMode = 'DISABLED' | 'TENANT_GLOBAL' | 'PER_AGREEMENT' | 'CUSTOM_OVERRIDE';
+export type AgreementPasswordMode = 'INHERIT_TENANT' | 'CUSTOM' | 'NONE';
+
+export interface SecuritySettings {
+  passwordProtectionMode: PasswordProtectionMode;
+  hasTenantPassword: boolean;
+  tenantPasswordVersion: number;
+  requirePasswordForPdf: boolean;
+  updatedAt?: string;
+}
+
+export interface SecuritySettingsPayload {
+  passwordProtectionMode?: PasswordProtectionMode;
+  tenantPassword?: string;
+  requirePasswordForPdf?: boolean;
+}
+
+export const getSecuritySettings = async (): Promise<SecuritySettings> => {
+  return api.get<SecuritySettings>(`${BASE}/settings/security`);
+};
+
+export const updateSecuritySettings = async (
+  payload: SecuritySettingsPayload
+): Promise<SecuritySettings> => {
+  return api.put<SecuritySettings>(`${BASE}/settings/security`, payload);
+};
+
+export const unlockAgreement = async (
+  id: string,
+  password: string
+): Promise<{ unlockToken: string; expiresAt: string }> => {
+  return api.post<{ unlockToken: string; expiresAt: string }>(
+    `${BASE}/agreements/${id}/unlock`,
+    { password }
+  );
+};
+
+export const unlockTemplate = async (
+  id: string,
+  password: string
+): Promise<{ unlockToken: string; expiresAt: string }> => {
+  return api.post<{ unlockToken: string; expiresAt: string }>(
+    `${BASE}/templates/${id}/unlock`,
+    { password }
+  );
+};
+
+export function isPasswordLockError(err: any): boolean {
+  if (!err) return false;
+  const msg = typeof err === 'string' ? err : (err?.message || err?.error || err?.details?.error || '');
+  return Boolean(
+    err.code === 'PASSWORD_REQUIRED' ||
+    err.details?.isLocked ||
+    err.details?.code === 'PASSWORD_REQUIRED' ||
+    err.isLocked ||
+    err.response?.data?.isLocked ||
+    err.response?.data?.code === 'PASSWORD_REQUIRED' ||
+    (err.status === 401 && (err.details?.isLocked || err.details?.scope || err.code === 'PASSWORD_REQUIRED')) ||
+    (err.response?.status === 401 && (err.response?.data?.isLocked || err.response?.data?.code === 'PASSWORD_REQUIRED')) ||
+    (typeof msg === 'string' && msg.toLowerCase().includes('password required'))
+  );
+}
+
+export function getLockScope(err: any): 'TENANT' | 'AGREEMENT' | 'TEMPLATE' {
+  return err?.details?.scope || err?.response?.data?.scope || err?.scope || 'TENANT';
+}
+

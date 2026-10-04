@@ -21,12 +21,15 @@
 
 import React, { Suspense, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Layers, Settings as SettingsIcon, Stamp } from 'lucide-react';
+import { Drawer } from 'antd';
+import { Layers, Settings as SettingsIcon, Stamp, Menu } from 'lucide-react';
 import ZukvoLoader from '@/components/common/ZukvoLoader';
 import DocumentTypeSettings from '@/components/project-agreements/DocumentTypeSettings';
 import LetterheadSettings from '@/components/project-agreements/LetterheadSettings';
+import SecuritySettings from '@/components/project-agreements/SecuritySettings';
+import { ShieldCheck } from 'lucide-react';
 
-type TabKey = 'doc-types' | 'letterhead';
+type TabKey = 'doc-types' | 'letterhead' | 'security';
 
 const SECTIONS: Array<{
   key: TabKey;
@@ -46,13 +49,20 @@ const SECTIONS: Array<{
     hint: 'Header and footer',
     icon: <Stamp size={14} />,
   },
+  {
+    key: 'security',
+    label: 'Security & Access',
+    hint: 'Password policies & locks',
+    icon: <ShieldCheck size={14} />,
+  },
 ];
 
 function SettingsContent() {
   const router = useRouter();
   const params = useSearchParams();
   const raw = params.get('tab');
-  const tab: TabKey = raw === 'letterhead' ? 'letterhead' : 'doc-types';
+  const tab: TabKey = raw === 'letterhead' ? 'letterhead' : raw === 'security' ? 'security' : 'doc-types';
+  const [isSidebarOpen, setIsSidebarOpen] = React.useState(false);
 
   const select = useCallback(
     (key: TabKey) => {
@@ -63,55 +73,88 @@ function SettingsContent() {
     [router]
   );
 
+  const renderSidebarContent = () => (
+    <div className="pa-rail-scroll">
+      <div className="pa-rail-label">Configuration</div>
+      <div className="pa-rail-list" role="tablist" aria-label="Settings sections">
+        {SECTIONS.map((sec) => (
+          <button
+            key={sec.key}
+            type="button"
+            role="tab"
+            aria-selected={tab === sec.key}
+            className={`pa-rail-item is-stacked ${tab === sec.key ? 'is-on' : ''}`}
+            onClick={() => {
+              select(sec.key);
+              setIsSidebarOpen(false);
+            }}
+          >
+            <span className="pa-rail-icon">{sec.icon}</span>
+            <span className="pa-rail-text">
+              {sec.label}
+              <span className="pa-rail-hint">{sec.hint}</span>
+            </span>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+
   return (
     <div className="pa-list-page">
       <div className="pa-header">
         <div className="pa-header-about">
+          <button 
+            type="button" 
+            className="pa-sidebar-toggle-btn"
+            onClick={() => setIsSidebarOpen(true)}
+            aria-label="Open sidebar"
+          >
+            <Menu size={18} />
+          </button>
           <div className="pa-header-icon">
             <SettingsIcon size={19} />
           </div>
           <div>
             <div className="pa-header-title">Settings</div>
             <div className="pa-header-sub">
-              Document types and the letterhead every agreement prints inside
+              Document types, letterheads, and multi-tenant security policies
             </div>
           </div>
         </div>
+        <div id="pa-settings-header-actions" className="pa-header-actions" />
       </div>
 
-      {/* is-keep-rail: the list pages drop their rail on a narrow screen
-          because the filter pills above the table can do the same job. There
-          is no such fallback here, so this one folds into a top strip. */}
-      <div className="pa-list-split is-keep-rail">
+      <Drawer
+        title="Settings"
+        placement="left"
+        onClose={() => setIsSidebarOpen(false)}
+        open={isSidebarOpen}
+        width={260}
+        styles={{ body: { padding: 0 } }}
+        className="pa-mobile-drawer"
+      >
+        <aside className="pa-rail" style={{ display: 'block', height: '100%', borderRight: 'none' }}>
+          {renderSidebarContent()}
+        </aside>
+      </Drawer>
+
+      <div className="pa-list-split">
         <aside className="pa-rail">
-          <div className="pa-rail-scroll">
-            <div className="pa-rail-label">Configuration</div>
-            <div className="pa-rail-list" role="tablist" aria-label="Settings sections">
-              {SECTIONS.map((sec) => (
-                <button
-                  key={sec.key}
-                  type="button"
-                  role="tab"
-                  aria-selected={tab === sec.key}
-                  className={`pa-rail-item is-stacked ${tab === sec.key ? 'is-on' : ''}`}
-                  onClick={() => select(sec.key)}
-                >
-                  <span className="pa-rail-icon">{sec.icon}</span>
-                  <span className="pa-rail-text">
-                    {sec.label}
-                    <span className="pa-rail-hint">{sec.hint}</span>
-                  </span>
-                </button>
-              ))}
-            </div>
-          </div>
+          {renderSidebarContent()}
         </aside>
 
-        <div className="pa-list-main">
+        <div className="pa-list-main" style={{ flex: 1, minHeight: 0, overflowY: 'auto', overflowX: 'hidden' }}>
           {/* Mounted one at a time on purpose: each section loads its own data,
               and keeping the other alive would refetch a letterhead nobody is
               looking at every time the doc-type list changes. */}
-          {tab === 'doc-types' ? <DocumentTypeSettings /> : <LetterheadSettings />}
+          {tab === 'doc-types' ? (
+            <DocumentTypeSettings />
+          ) : tab === 'letterhead' ? (
+            <LetterheadSettings />
+          ) : (
+            <SecuritySettings />
+          )}
         </div>
       </div>
     </div>

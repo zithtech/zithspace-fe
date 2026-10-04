@@ -620,6 +620,22 @@ export const usePermission = () => {
     canUpdateAgreement: hasPermission(Permissions.PROJECT_AGREEMENT_UPDATE),
     canDeleteAgreement: hasPermission(Permissions.PROJECT_AGREEMENT_DELETE),
     canManageAgreements: hasPermission(Permissions.PROJECT_AGREEMENT_MANAGE),
+    canCreateAgreementSetting: hasAnyPermission(
+      Permissions.PROJECT_AGREEMENT_SETTING_CREATE,
+      Permissions.PROJECT_AGREEMENT_MANAGE,
+    ),
+    canReadAgreementSetting: hasAnyPermission(
+      Permissions.PROJECT_AGREEMENT_SETTING_READ,
+      Permissions.PROJECT_AGREEMENT_MANAGE,
+    ),
+    canUpdateAgreementSetting: hasAnyPermission(
+      Permissions.PROJECT_AGREEMENT_SETTING_UPDATE,
+      Permissions.PROJECT_AGREEMENT_MANAGE,
+    ),
+    canDeleteAgreementSetting: hasAnyPermission(
+      Permissions.PROJECT_AGREEMENT_SETTING_DELETE,
+      Permissions.PROJECT_AGREEMENT_MANAGE,
+    ),
 
     // ─── Raw helpers ─────────────────────────────────────────────────
     /** Check a single permission string */

@@ -715,8 +715,8 @@ export default function TrashManagementPage() {
               icon={<ProjectOutlined />}
               value={projectFilter || ""}
               options={userProjects.map((p: any) => ({
-                value: p.id as string,
-                label: p.name as string,
+                value: p.value || p.id,
+                label: p.label || p.name,
               }))}
               onChange={(val) => {
                 setProjectFilter(val ? String(val) : undefined);
@@ -751,8 +751,8 @@ export default function TrashManagementPage() {
               icon={<UserOutlined />}
               value={deletedByFilter || ""}
               options={membersList.map((m: any) => ({
-                value: m.id,
-                label: m.name || m.email,
+                value: m.value || m.id,
+                label: m.label || m.name || m.email,
                 avatarUrl: m.avatarUrl || undefined,
               }))}
               onChange={(val) => {

@@ -89,12 +89,16 @@ export const TicketFilterPill: React.FC<TicketFilterPillProps> = ({
   const filtered = useMemo(() => {
     if (!search.trim()) return options;
     const q = search.toLowerCase();
-    return options.filter(
-      (o) =>
-        o.label.toLowerCase().includes(q) ||
-        (o.description?.toLowerCase().includes(q) ?? false) ||
-        o.value.toLowerCase().includes(q),
-    );
+    return options.filter((o) => {
+      const labelStr = typeof o.label === "string" ? o.label : String(o.label ?? "");
+      const descStr = typeof o.description === "string" ? o.description : "";
+      const valStr = typeof o.value === "string" ? o.value : o.value != null ? String(o.value) : "";
+      return (
+        labelStr.toLowerCase().includes(q) ||
+        (descStr ? descStr.toLowerCase().includes(q) : false) ||
+        (valStr ? valStr.toLowerCase().includes(q) : false)
+      );
+    });
   }, [options, search]);
 
   const currentValues = useMemo(() => {
@@ -109,7 +113,8 @@ export const TicketFilterPill: React.FC<TicketFilterPillProps> = ({
   const toggle = (val: string) => {
     if (multiple === false) {
       if (onChange) {
-        onChange(val);
+        const nextVal = currentValues.includes(val) ? "" : val;
+        onChange(nextVal);
       }
       setOpen(false);
       return;

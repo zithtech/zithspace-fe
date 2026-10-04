@@ -39,10 +39,12 @@ import {
   User,
   X,
 } from 'lucide-react';
-import { toast } from 'react-hot-toast';
+import { message } from '@/providers/AntdGlobalProvider';
+import ConfirmDialog from '@/components/common/ConfirmDialog';
 import ZukvoLoader from '@/components/common/ZukvoLoader';
 import SearchableDropdown from '@/components/common/SearchableDropdown';
 import DocumentPreview from '@/components/project-agreements/DocumentPreview';
+import PasswordUnlockModal from '@/components/project-agreements/PasswordUnlockModal';
 import {
   DetailHero,
   DetailNote,
@@ -57,6 +59,9 @@ import {
   ProjectAgreementsService,
   amountInWords,
   formatMoney,
+  isPasswordLockError,
+  getLockScope,
+  unlockAgreement,
 } from '@/services/projectAgreementsService';
 
 const STATUS_OPTIONS = (Object.keys(AGREEMENT_STATUS_META) as AgreementStatus[]).map((s) => ({
@@ -79,6 +84,10 @@ export default function AgreementDetailDrawer({ id, onClose, onChanged }: Props)
   const [agreement, setAgreement] = useState<Agreement | null>(null);
   const [loading, setLoading] = useState(false);
   const [pdfBusy, setPdfBusy] = useState(false);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [isLocked, setIsLocked] = useState(false);
+  const [isUnlocked, setIsUnlocked] = useState(false);
+  const [lockScope, setLockScope] = useState<'TENANT' | 'AGREEMENT' | 'TEMPLATE'>('TENANT');
 
   /**
    * The stored document as real pages.
@@ -126,18 +135,36 @@ export default function AgreementDetailDrawer({ id, onClose, onChanged }: Props)
         clientSignatoryName: record.clientSignatoryName,
         clientSignatoryPosition: record.clientSignatoryPosition,
         clientSignatoryCompany: record.clientSignatoryCompany,
+        clientSignatureUrl: record.clientSignatureUrl,
         showSignatures: record.showSignatures,
       });
       revoke();
       previewUrl.current = rendered.url;
       setPreview(rendered);
+      setIsLocked(false);
+      setIsUnlocked(true);
     } catch (err: any) {
-      toast.error(err?.message || 'Could not load that agreement');
-      onClose();
+      if (isPasswordLockError(err)) {
+        setIsLocked(true);
+        setIsUnlocked(false);
+        setLockScope(getLockScope(err));
+      } else {
+        message.error(err?.message || 'Could not load that agreement');
+        onClose();
+      }
     } finally {
       setLoading(false);
     }
   }, [onClose]);
+
+  const handleUnlock = async (password: string) => {
+    if (!id) return;
+    const result = await unlockAgreement(id, password);
+    if (typeof window !== 'undefined') {
+      sessionStorage.setItem(`pa_unlock_${id}`, result.unlockToken);
+    }
+    await load(id);
+  };
 
   useEffect(() => {
     if (!id) {
@@ -147,6 +174,8 @@ export default function AgreementDetailDrawer({ id, onClose, onChanged }: Props)
       revoke();
       setAgreement(null);
       setPreview(null);
+      setIsLocked(false);
+      setIsUnlocked(false);
       return;
     }
     load(id);
@@ -159,10 +188,10 @@ export default function AgreementDetailDrawer({ id, onClose, onChanged }: Props)
     try {
       const updated = await ProjectAgreementsService.setAgreementStatus(agreement.id, next);
       setAgreement(updated);
-      toast.success(`Marked ${AGREEMENT_STATUS_META[next].label.toLowerCase()}`);
+      message.success(`Marked ${AGREEMENT_STATUS_META[next].label.toLowerCase()}`);
       onChanged?.();
     } catch (err: any) {
-      toast.error(err?.message || 'Could not change the status');
+      message.error(err?.message || 'Could not change the status');
     }
   };
 
@@ -198,9 +227,15 @@ export default function AgreementDetailDrawer({ id, onClose, onChanged }: Props)
     try {
       const { pdfUrl } = await ProjectAgreementsService.generatePdf(agreement.id);
       setAgreement({ ...agreement, pdfUrl });
-      toast.success('Shareable link ready — see Latest PDF');
+      message.success('Shareable link ready — see Latest PDF');
     } catch (err: any) {
-      toast.error(err?.message || 'Could not generate the PDF');
+      if (isPasswordLockError(err)) {
+        setIsLocked(true);
+        setIsUnlocked(false);
+        setLockScope(getLockScope(err));
+      } else {
+        message.error(err?.message || 'Could not generate the PDF');
+      }
     } finally {
       setPdfBusy(false);
     }
@@ -208,22 +243,28 @@ export default function AgreementDetailDrawer({ id, onClose, onChanged }: Props)
 
   const handleDelete = async () => {
     if (!agreement) return;
-    if (!window.confirm(`Delete "${agreement.title}"?`)) return;
     try {
       await ProjectAgreementsService.deleteAgreement(agreement.id);
-      toast.success('Agreement deleted');
+      message.success('Agreement deleted');
       onClose();
       onChanged?.();
     } catch (err: any) {
-      toast.error(err?.message || 'Could not delete that agreement');
+      if (isPasswordLockError(err)) {
+        setIsLocked(true);
+        setIsUnlocked(false);
+        setLockScope(getLockScope(err));
+      } else {
+        message.error(err?.message || 'Could not delete that agreement');
+      }
     }
   };
 
   const meta = agreement ? AGREEMENT_STATUS_META[agreement.status] : null;
 
   return (
-    <Drawer
-      open={Boolean(id)}
+    <>
+      <Drawer
+        open={Boolean(id) && isUnlocked}
       onClose={onClose}
       placement="right"
       width="min(1180px, 95vw)"
@@ -316,9 +357,21 @@ export default function AgreementDetailDrawer({ id, onClose, onChanged }: Props)
               </button>
             )}
             {perms.canDeleteAgreement && (
-              <button type="button" className="pa-btn pa-btn-danger" onClick={handleDelete}>
-                <Trash2 size={14} />
-              </button>
+              <ConfirmDialog
+                open={deleteConfirmOpen}
+                onOpenChange={setDeleteConfirmOpen}
+                tone="danger"
+                title={`Delete "${agreement.title}"?`}
+                confirmText="Delete"
+                onConfirm={async () => {
+                  await handleDelete();
+                  setDeleteConfirmOpen(false);
+                }}
+              >
+                <button type="button" className="pa-btn pa-btn-danger" onClick={() => setDeleteConfirmOpen(true)}>
+                  <Trash2 size={14} />
+                </button>
+              </ConfirmDialog>
             )}
           </div>
         )}
@@ -477,6 +530,19 @@ export default function AgreementDetailDrawer({ id, onClose, onChanged }: Props)
         </div>
       )}
     </Drawer>
+
+    <PasswordUnlockModal
+      open={isLocked}
+      documentTitle={agreement?.title || 'Agreement Document'}
+      documentNumber={agreement?.documentNumber}
+      scope={lockScope}
+      onUnlock={handleUnlock}
+      onCancel={() => {
+        setIsLocked(false);
+        onClose();
+      }}
+    />
+  </>
   );
 }
 

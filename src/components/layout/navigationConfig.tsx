@@ -1013,6 +1013,7 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
       Permissions.PROJECT_AGREEMENT_READ,
       Permissions.PROJECT_AGREEMENT_TEMPLATE_READ,
       Permissions.PROJECT_AGREEMENT_MANAGE,
+      Permissions.PROJECT_AGREEMENT_SETTING_READ,
     ],
     // Chip shown only to managers/HR — normal users reach their own profile,
     // attendance, leaves, etc. via My Hub. Route access still uses the broader
@@ -1131,6 +1132,7 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
           Permissions.PROJECT_AGREEMENT_READ,
           Permissions.PROJECT_AGREEMENT_TEMPLATE_READ,
           Permissions.PROJECT_AGREEMENT_MANAGE,
+          Permissions.PROJECT_AGREEMENT_SETTING_READ,
         ],
         // The module's three surfaces live HERE rather than in a second
         // sidebar inside the page — one nav, in the order somebody uses them.
@@ -1168,7 +1170,7 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
             path: "/project-agreements/settings",
             requiredSubscriptionFeature: ["hrms_project_agreements", "hrms"],
             requiredAnyPermission: [
-              Permissions.PROJECT_AGREEMENT_READ,
+              Permissions.PROJECT_AGREEMENT_SETTING_READ,
               Permissions.PROJECT_AGREEMENT_MANAGE,
             ],
           },

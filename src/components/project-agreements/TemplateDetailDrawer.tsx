@@ -29,7 +29,7 @@ import {
   Pencil,
   X,
 } from 'lucide-react';
-import { toast } from 'react-hot-toast';
+import { message } from '@/providers/AntdGlobalProvider';
 import ZukvoLoader from '@/components/common/ZukvoLoader';
 import DocumentPreview from '@/components/project-agreements/DocumentPreview';
 import {
@@ -38,11 +38,15 @@ import {
   DetailSection,
 } from '@/components/project-agreements/detailChrome';
 import { usePermission } from '@/hooks/usePermission';
+import PasswordUnlockModal from '@/components/project-agreements/PasswordUnlockModal';
 import {
   AgreementTemplate,
   ProjectAgreementsService,
   TEMPLATE_STATUS_META,
   TemplateStatus,
+  getLockScope,
+  isPasswordLockError,
+  unlockTemplate,
 } from '@/services/projectAgreementsService';
 
 interface Props {
@@ -61,6 +65,9 @@ export default function TemplateDetailDrawer({ id, onClose, onChanged }: Props) 
   const [html, setHtml] = useState('');
   const [loading, setLoading] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [isLocked, setIsLocked] = useState(false);
+  const [isUnlocked, setIsUnlocked] = useState(false);
+  const [lockScope, setLockScope] = useState<'TENANT' | 'AGREEMENT' | 'TEMPLATE'>('TENANT');
 
   const load = useCallback(
     async (templateId: string) => {
@@ -82,9 +89,17 @@ export default function TemplateDetailDrawer({ id, onClose, onChanged }: Props) 
             showSignatures: false,
           })
         );
+        setIsLocked(false);
+        setIsUnlocked(true);
       } catch (err: any) {
-        toast.error(err?.message || 'Could not load that template');
-        onClose();
+        if (isPasswordLockError(err)) {
+          setIsLocked(true);
+          setIsUnlocked(false);
+          setLockScope(getLockScope(err));
+        } else {
+          message.error(err?.message || 'Could not load that template');
+          onClose();
+        }
       } finally {
         setLoading(false);
       }
@@ -92,10 +107,21 @@ export default function TemplateDetailDrawer({ id, onClose, onChanged }: Props) 
     [onClose]
   );
 
+  const handleUnlock = async (password: string) => {
+    if (!id) return;
+    const result = await unlockTemplate(id, password);
+    if (typeof window !== 'undefined') {
+      sessionStorage.setItem(`pa_unlock_${id}`, result.unlockToken);
+    }
+    await load(id);
+  };
+
   useEffect(() => {
     if (!id) {
       setTemplate(null);
       setHtml('');
+      setIsLocked(false);
+      setIsUnlocked(false);
       return;
     }
     load(id);
@@ -107,10 +133,16 @@ export default function TemplateDetailDrawer({ id, onClose, onChanged }: Props) 
     try {
       const updated = await ProjectAgreementsService.setTemplateStatus(template.id, next);
       setTemplate({ ...template, ...updated });
-      toast.success(next === 'published' ? 'Template published' : `Template moved to ${next}`);
+      message.success(next === 'published' ? 'Template published' : `Template moved to ${next}`);
       onChanged?.();
     } catch (err: any) {
-      toast.error(err?.message || 'Could not change the status');
+      if (isPasswordLockError(err)) {
+        setIsLocked(true);
+        setIsUnlocked(false);
+        setLockScope(getLockScope(err));
+      } else {
+        message.error(err?.message || 'Could not change the status');
+      }
     } finally {
       setBusy(false);
     }
@@ -121,10 +153,16 @@ export default function TemplateDetailDrawer({ id, onClose, onChanged }: Props) 
     setBusy(true);
     try {
       const copy = await ProjectAgreementsService.duplicateTemplate(template.id);
-      toast.success('Template duplicated');
+      message.success('Template duplicated');
       router.push(`/project-agreements/templates/builder?id=${copy.id}`);
     } catch (err: any) {
-      toast.error(err?.message || 'Could not duplicate that template');
+      if (isPasswordLockError(err)) {
+        setIsLocked(true);
+        setIsUnlocked(false);
+        setLockScope(getLockScope(err));
+      } else {
+        message.error(err?.message || 'Could not duplicate that template');
+      }
     } finally {
       setBusy(false);
     }
@@ -134,8 +172,9 @@ export default function TemplateDetailDrawer({ id, onClose, onChanged }: Props) 
   const required = template?.placeholders.filter((p) => p.required).length ?? 0;
 
   return (
-    <Drawer
-      open={Boolean(id)}
+    <>
+      <Drawer
+        open={Boolean(id) && isUnlocked}
       onClose={onClose}
       placement="right"
       width="min(1180px, 95vw)"
@@ -318,6 +357,18 @@ export default function TemplateDetailDrawer({ id, onClose, onChanged }: Props) 
         </div>
       )}
     </Drawer>
+
+    <PasswordUnlockModal
+      open={isLocked}
+      documentTitle={template?.name || 'Template'}
+      scope={lockScope}
+      onUnlock={handleUnlock}
+      onCancel={() => {
+        setIsLocked(false);
+        onClose();
+      }}
+    />
+  </>
   );
 }
 

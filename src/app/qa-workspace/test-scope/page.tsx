@@ -248,19 +248,18 @@ function TestScopeContent() {
 
   const [hasInitializedOwner, setHasInitializedOwner] = useState(false);
 
-  // Pre-fill the QA Owner filter with the current user's name once auth loads,
-  // or restore the last selected filter from session storage.
+  // Default the QA Owner filter to All Scopes ([]), or restore the last selected filter from session storage.
   useEffect(() => {
-    if (!isLoading && user?.name && !hasInitializedOwner) {
+    if (!isLoading && !hasInitializedOwner) {
       const stored = sessionStorage.getItem('testScopeOwnerFilter');
       if (stored !== null) {
         setOwnerFilter(stored ? stored.split(',').filter(Boolean) : []);
       } else {
-        setOwnerFilter([user.name]);
+        setOwnerFilter([]);
       }
       setHasInitializedOwner(true);
     }
-  }, [isLoading, user?.name, hasInitializedOwner]);
+  }, [isLoading, hasInitializedOwner]);
 
   useEffect(() => {
     if (hasInitializedOwner) {
@@ -961,6 +960,16 @@ function TestScopeContent() {
                   }}
                   options={[
                     {
+                      value: 'all',
+                      label: (
+                        <span className="sc-owner-opt">
+                          <Users size={13} />
+                          <span className="sc-owner-opt__label">All Scopes</span>
+                          <span className="sc-owner-opt__count">{ownerCounts.all}</span>
+                        </span>
+                      ),
+                    },
+                    {
                       value: 'mine',
                       disabled: !user?.name,
                       label: (
@@ -968,16 +977,6 @@ function TestScopeContent() {
                           <User size={13} />
                           <span className="sc-owner-opt__label">My Scopes</span>
                           <span className="sc-owner-opt__count">{ownerCounts.mine}</span>
-                        </span>
-                      ),
-                    },
-                    {
-                      value: 'all',
-                      label: (
-                        <span className="sc-owner-opt">
-                          <Users size={13} />
-                          <span className="sc-owner-opt__label">All Scopes</span>
-                          <span className="sc-owner-opt__count">{ownerCounts.all}</span>
                         </span>
                       ),
                     },

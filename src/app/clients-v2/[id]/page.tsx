@@ -479,6 +479,7 @@ export default function ClientV2DetailsPage() {
   const [ticketsCount, setTicketsCount] = useState(0);
   const [envsCount, setEnvsCount] = useState(0);
   const [invoicesCount, setInvoicesCount] = useState(0);
+  const [agreementsCount, setAgreementsCount] = useState(0);
   const [crCount, setCrCount] = useState(0);
   const [approvalsCount, setApprovalsCount] = useState(0);
   const [milestonesCount, setMilestonesCount] = useState(0);
@@ -561,6 +562,7 @@ export default function ClientV2DetailsPage() {
       milestoneService.list(id, { limit: 1 }).then((d) => setMilestonesCount(d.meta?.total ?? d.data?.length ?? 0)).catch(() => { }),
       releaseService.list(id, { limit: 1 }).then((d) => setReleasesCount(d.meta?.total ?? d.data?.length ?? 0)).catch(() => { }),
       apiClient.get(`/api/clients-v2/${id}/invoices?limit=1`).then((res: any) => setInvoicesCount(res.data?.meta?.total ?? res.data?.data?.length ?? 0)).catch(() => { }),
+      apiClient.get(`/api/project-agreements/agreements?clientId=${id}`).then((res: any) => setAgreementsCount(res.data?.stats?.total ?? res.data?.items?.length ?? 0)).catch(() => { }),
     ]);
   }, [params.id]);
 
@@ -1479,6 +1481,7 @@ export default function ClientV2DetailsPage() {
                     <span className="cd-tab-label">
                       <FileSignature size={15} />
                       <span>Agreements</span>
+                      <span className="cd-tab-count">{agreementsCount}</span>
                     </span>
                   ),
                   children: (

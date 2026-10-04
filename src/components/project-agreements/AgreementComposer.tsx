@@ -19,17 +19,24 @@ import {
   ArrowLeft,
   Download,
   Eye,
+  EyeOff,
   FileDown,
   FileText,
+  Globe,
+  KeyRound,
   Link2Off,
   RefreshCw,
   Save,
+  ShieldCheck,
+  Sparkles,
   Wand2,
 } from 'lucide-react';
-import { toast } from 'react-hot-toast';
+import { Modal } from 'antd';
+import { message } from '@/providers/AntdGlobalProvider';
 import SearchableDropdown from '@/components/common/SearchableDropdown';
 import DocumentPreview from '@/components/project-agreements/DocumentPreview';
 import AgreementContentEditor from '@/components/project-agreements/AgreementContentEditor';
+import PasswordUnlockModal from '@/components/project-agreements/PasswordUnlockModal';
 import { useDebounce } from '@/hooks/useDebounce';
 import {
   AGREEMENT_STATUS_META,
@@ -49,6 +56,11 @@ import {
   TemplatePlaceholder,
   CURRENCIES,
   formatMoneyWithWords,
+  unlockTemplate,
+  isPasswordLockError,
+  getLockScope,
+  getSecuritySettings,
+  PasswordProtectionMode,
 } from '@/services/projectAgreementsService';
 
 interface Props {
@@ -172,7 +184,12 @@ export default function AgreementComposer({ agreement, readOnly = false }: Props
   const clientSignatoryCompanyTouched = useRef(Boolean(agreement));
 
   const [showSignatures, setShowSignatures] = useState(agreement?.showSignatures ?? true);
+  const [isPasswordProtected, setIsPasswordProtected] = useState(agreement?.isPasswordProtected ?? false);
+  const [passwordMode, setPasswordMode] = useState<'INHERIT_TENANT' | 'CUSTOM' | 'NONE'>(agreement?.passwordMode ?? 'INHERIT_TENANT');
+  const [customPassword, setCustomPassword] = useState('');
+  const [showCustomPassword, setShowCustomPassword] = useState(false);
   const [values, setValues] = useState<Record<string, string>>(agreement?.values ?? {});
+  const [tenantSecurityMode, setTenantSecurityMode] = useState<PasswordProtectionMode | null>(null);
 
   /* ── The document body ─────────────────────────────────────────────────
    * THE BODY IS THE DOCUMENT. A template seeds it and is then let go of —
@@ -207,13 +224,16 @@ export default function AgreementComposer({ agreement, readOnly = false }: Props
   const [previewing, setPreviewing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [isTemplateLocked, setIsTemplateLocked] = useState(false);
+  const [templateLockScope, setTemplateLockScope] = useState<'TENANT' | 'AGREEMENT' | 'TEMPLATE'>('TENANT');
+  const pendingApplyTemplateRef = useRef<{ id: string; nextValues: Record<string, string>; force: boolean } | null>(null);
 
   /* ── Reference data ──────────────────────────────────────────────────── */
 
   useEffect(() => {
     ProjectAgreementsService.listProjects()
       .then(setProjects)
-      .catch((e: any) => toast.error(e?.message || 'Could not load projects'));
+      .catch((e: any) => message.error(e?.message || 'Could not load projects'));
 
     // Only published templates: a draft is wording somebody is still working
     // on, and raising a contract from it is how half-written clauses ship.
@@ -221,15 +241,15 @@ export default function AgreementComposer({ agreement, readOnly = false }: Props
     // not be offered for a new one.
     ProjectAgreementsService.listDocumentTypes({ activeOnly: true })
       .then(setDocumentTypes)
-      .catch((e: any) => toast.error(e?.message || 'Could not load document types'));
+      .catch((e: any) => message.error(e?.message || 'Could not load document types'));
 
     ProjectAgreementsService.listClients()
       .then(setClients)
-      .catch((e: any) => toast.error(e?.message || 'Could not load clients'));
+      .catch((e: any) => message.error(e?.message || 'Could not load clients'));
 
     ProjectAgreementsService.listTemplates({ publishedOnly: true })
       .then(setTemplates)
-      .catch((e: any) => toast.error(e?.message || 'Could not load templates'));
+      .catch((e: any) => message.error(e?.message || 'Could not load templates'));
 
     // The editor draws the letterhead itself so the sheet looks like the page
     // it will print as.
@@ -245,6 +265,17 @@ export default function AgreementComposer({ agreement, readOnly = false }: Props
       .catch(() => {
         // Decoration only — a missing letterhead must not stop authoring.
       });
+
+    getSecuritySettings()
+      .then((sec) => {
+        setTenantSecurityMode(sec.passwordProtectionMode);
+        if (sec.passwordProtectionMode === 'PER_AGREEMENT') {
+          setPasswordMode('CUSTOM');
+        } else if (sec.passwordProtectionMode === 'TENANT_GLOBAL') {
+          setPasswordMode('INHERIT_TENANT');
+        }
+      })
+      .catch(() => {});
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -269,7 +300,7 @@ export default function AgreementComposer({ agreement, readOnly = false }: Props
       .catch((e: any) => {
         if (!cancelled) {
           setContacts([]);
-          toast.error(e?.message || 'Could not load that client\u2019s contacts');
+          message.error(e?.message || 'Could not load that client\u2019s contacts');
         }
       })
       .finally(() => {
@@ -294,15 +325,10 @@ export default function AgreementComposer({ agreement, readOnly = false }: Props
   // Fetching the full template (its body and placeholders) is separate from the
   // list, which carries them too — but the list is filtered to published and an
   // agreement being edited may cite one that has since been archived.
-  useEffect(() => {
-    if (!templateId) {
-      setTemplate(null);
-      return;
-    }
-    let cancelled = false;
-    ProjectAgreementsService.getTemplate(templateId)
+  const fetchTemplate = useCallback((id: string) => {
+    setIsTemplateLocked(false);
+    ProjectAgreementsService.getTemplate(id)
       .then((t) => {
-        if (cancelled) return;
         setTemplate(t);
         // Adopt the template's name unless the person has named it themselves.
         if (!titleTouched.current) setTitle(t.name);
@@ -314,11 +340,23 @@ export default function AgreementComposer({ agreement, readOnly = false }: Props
           return next;
         });
       })
-      .catch((e: any) => toast.error(e?.message || 'Could not load that template'));
-    return () => {
-      cancelled = true;
-    };
-  }, [templateId]);
+      .catch((e: any) => {
+        if (isPasswordLockError(e)) {
+          setIsTemplateLocked(true);
+          setTemplateLockScope(getLockScope(e));
+        } else {
+          message.error(e?.message || 'Could not load that template');
+        }
+      });
+  }, []);
+
+  useEffect(() => {
+    if (!templateId) {
+      setTemplate(null);
+      return;
+    }
+    fetchTemplate(templateId);
+  }, [templateId, fetchTemplate]);
 
   /**
    * Pour a template's wording into the editor.
@@ -327,37 +365,81 @@ export default function AgreementComposer({ agreement, readOnly = false }: Props
    * for the one case where there is nothing: seeding a template the person has
    * just picked on an empty document.
    */
+  const executeApplyTemplate = async (id: string, nextValues: Record<string, string>, force = false) => {
+    try {
+      const { bodyHtml: seeded } = await ProjectAgreementsService.composeBody({
+        templateId: id,
+        projectId: projectId || null,
+        values: nextValues,
+      });
+      setBodyHtml(seeded);
+      // Force the editor to re-read: it treats `value` as a seed, not a
+      // controlled prop, so nothing else would make it reload.
+      setSeedKey((k) => k + 1);
+      setDetached(false);
+    } catch (err: any) {
+      if (isPasswordLockError(err)) {
+        pendingApplyTemplateRef.current = { id, nextValues, force };
+        setIsTemplateLocked(true);
+        setTemplateLockScope(getLockScope(err));
+      } else {
+        message.error(err?.message || 'Could not apply that template');
+      }
+    }
+  };
+
   const applyTemplate = useCallback(
     async (id: string, nextValues: Record<string, string>, force = false) => {
       if (!force && hasContent(bodyHtml)) {
-        const okToReplace = window.confirm(
-          'Replace the wording you have written with this template? This cannot be undone.'
-        );
-        if (!okToReplace) return;
-      }
-      try {
-        const { bodyHtml: seeded } = await ProjectAgreementsService.composeBody({
-          templateId: id,
-          projectId: projectId || null,
-          values: nextValues,
+        Modal.confirm({
+          title: 'Replace Current Wording?',
+          content: 'Applying this template will replace the wording you have written. This cannot be undone.',
+          okText: 'Replace Wording',
+          okButtonProps: { danger: true },
+          cancelText: 'Cancel',
+          centered: true,
+          onOk: () => executeApplyTemplate(id, nextValues, force),
         });
-        setBodyHtml(seeded);
-        // Force the editor to re-read: it treats `value` as a seed, not a
-        // controlled prop, so nothing else would make it reload.
-        setSeedKey((k) => k + 1);
-        setDetached(false);
-      } catch (err: any) {
-        toast.error(err?.message || 'Could not apply that template');
+        return;
       }
+      await executeApplyTemplate(id, nextValues, force);
     },
     [bodyHtml, projectId]
   );
 
+  const handleTemplateUnlock = async (password: string) => {
+    if (!templateId && !pendingApplyTemplateRef.current?.id) return;
+    const targetId = templateId || pendingApplyTemplateRef.current?.id;
+    if (!targetId) return;
+    const result = await unlockTemplate(targetId, password);
+    if (typeof window !== 'undefined') {
+      sessionStorage.setItem(`pa_unlock_${targetId}`, result.unlockToken);
+    }
+    setIsTemplateLocked(false);
+    fetchTemplate(targetId);
+    if (pendingApplyTemplateRef.current) {
+      const p = pendingApplyTemplateRef.current;
+      pendingApplyTemplateRef.current = null;
+      await applyTemplate(p.id, p.nextValues, p.force);
+    }
+  };
+
+  const handleTemplateCancel = () => {
+    setIsTemplateLocked(false);
+    setTemplateId('');
+    setTemplate(null);
+    pendingApplyTemplateRef.current = null;
+  };
+
   // Picking a template on an untouched document seeds it immediately; on a
   // started one, applyTemplate asks first.
   const pickTemplate = (id: string) => {
+    if (!id) {
+      setTemplateId('');
+      setTemplate(null);
+      return;
+    }
     setTemplateId(id);
-    if (!id) return;
     applyTemplate(id, values, !hasContent(bodyHtml));
   };
 
@@ -462,7 +544,7 @@ export default function AgreementComposer({ agreement, readOnly = false }: Props
    */
   const downloadPdf = useCallback(async () => {
     if (!hasContent(bodyHtml)) {
-      toast.error('Write the agreement, or apply a template, before downloading');
+      message.error('Write the agreement, or apply a template, before downloading');
       return;
     }
 
@@ -488,7 +570,7 @@ export default function AgreementComposer({ agreement, readOnly = false }: Props
       fresh = rendered.url;
       save(fresh);
     } catch (err: any) {
-      toast.error(err?.message || 'Could not render the PDF');
+      message.error(err?.message || 'Could not render the PDF');
     } finally {
       // Give the click a tick to start the save before the URL goes away.
       if (fresh) setTimeout(() => URL.revokeObjectURL(fresh!), 10_000);
@@ -517,7 +599,7 @@ export default function AgreementComposer({ agreement, readOnly = false }: Props
       setPreviewPdf(rendered);
     } catch (err: any) {
       if (seq === previewSeq.current) {
-        toast.error(err?.message || 'Could not render the preview');
+        message.error(err?.message || 'Could not render the preview');
       }
     } finally {
       if (seq === previewSeq.current) setPreviewing(false);
@@ -578,12 +660,17 @@ export default function AgreementComposer({ agreement, readOnly = false }: Props
       // error lives in the editor pane, and the split layout stops drawing
       // that pane below 1500px — so a generic message leaves the button
       // looking simply broken.
-      toast.error(Object.values(problems)[0]);
+      message.error(Object.values(problems)[0]);
       requestAnimationFrame(() => {
         document
           .querySelector('.pa-compose .pa-error')
           ?.scrollIntoView({ behavior: 'smooth', block: 'center' });
       });
+      return;
+    }
+
+    if (isPasswordProtected && passwordMode === 'CUSTOM' && !agreement && !customPassword.trim()) {
+      message.error('Please enter a custom password or select Global Company Password');
       return;
     }
 
@@ -618,6 +705,9 @@ export default function AgreementComposer({ agreement, readOnly = false }: Props
       clientSignatoryPosition: clientSignatoryPosition.trim() || null,
       clientSignatoryCompany: clientSignatoryCompany.trim() || null,
       showSignatures,
+      isPasswordProtected,
+      passwordMode,
+      customPassword: customPassword.trim() || undefined,
       notes: notes.trim() || null,
       values,
       // ALWAYS. The editor holds the document; the template was only ever a
@@ -632,10 +722,10 @@ export default function AgreementComposer({ agreement, readOnly = false }: Props
       const saved = agreement
         ? await ProjectAgreementsService.updateAgreement(agreement.id, payload)
         : await ProjectAgreementsService.createAgreement(payload);
-      toast.success(agreement ? 'Agreement updated' : 'Agreement created');
+      message.success(agreement ? 'Agreement updated' : 'Agreement created');
       router.push(`/project-agreements/agreements/${saved.id}`);
     } catch (err: any) {
-      toast.error(err?.message || 'Could not save this agreement');
+      message.error(err?.message || 'Could not save this agreement');
     } finally {
       setSaving(false);
     }
@@ -643,11 +733,18 @@ export default function AgreementComposer({ agreement, readOnly = false }: Props
 
   /* ── Render ──────────────────────────────────────────────────────────── */
 
-  const projectOptions = projects.map((p) => ({
-    value: p.id,
-    label: p.name,
-    description: p.code ?? undefined,
-  }));
+  const projectOptions = projects
+    .filter((p: any) => {
+      if (!clientId) return true;
+      if (p.clientId === clientId) return true;
+      if (Array.isArray(p.clients) && p.clients.some((c: any) => c.id === clientId)) return true;
+      return false;
+    })
+    .map((p) => ({
+      value: p.id,
+      label: p.name,
+      description: p.code ?? undefined,
+    }));
 
   const documentTypeOptions = useMemo(() => {
     const opts = documentTypes.map((t) => ({
@@ -908,26 +1005,8 @@ export default function AgreementComposer({ agreement, readOnly = false }: Props
                 )}
               </div>
 
-              <div className="pa-field">
-                <span className="pa-label">Project — optional</span>
-                <SearchableDropdown
-                  value={projectId}
-                  onChange={(v: any) => setProjectId(v ?? '')}
-                  options={projectOptions}
-                  placeholder="Not tied to a project"
-                  searchPlaceholder="Find a project"
-                  itemNoun="projects"
-                  disabled={readOnly}
-                  allowClear
-                  width={340}
-                />
-                <span className="pa-hint">Fills the {'{{project_*}}'} tokens.</span>
-                {errors.projectId && <span className="pa-error">{errors.projectId}</span>}
-              </div>
-
-              {/* The counterparty, picked rather than typed. Sits under Project
-                  because that is the order the document is assembled in: what
-                  the work is, then who it is with. */}
+              {/* The counterparty, picked rather than typed. Sits above Project
+                  so that picking a client can filter the available projects. */}
               <div className="pa-field">
                 <span className="pa-label">Client — optional</span>
                 <SearchableDropdown
@@ -968,6 +1047,23 @@ export default function AgreementComposer({ agreement, readOnly = false }: Props
                   <span className="pa-hint">Fills the client name, email and phone below.</span>
                 </div>
               )}
+
+              <div className="pa-field">
+                <span className="pa-label">Project — optional</span>
+                <SearchableDropdown
+                  value={projectId}
+                  onChange={(v: any) => setProjectId(v ?? '')}
+                  options={projectOptions}
+                  placeholder="Not tied to a project"
+                  searchPlaceholder="Find a project"
+                  itemNoun="projects"
+                  disabled={readOnly}
+                  allowClear
+                  width={340}
+                />
+                <span className="pa-hint">Fills the {'{{project_*}}'} tokens.</span>
+                {errors.projectId && <span className="pa-error">{errors.projectId}</span>}
+              </div>
 
               <div className="pa-field">
                 <span className="pa-label">Template — optional</span>
@@ -1013,7 +1109,7 @@ export default function AgreementComposer({ agreement, readOnly = false }: Props
                   value={title}
                   onChange={(e) => {
                     titleTouched.current = true;
-                    setTitle(e.target.value);
+                    setTitle(e.target.value.replace(/[^a-zA-Z0-9\s-]/g, ''));
                   }}
                   placeholder="Master Services Agreement"
                   disabled={readOnly}
@@ -1027,7 +1123,7 @@ export default function AgreementComposer({ agreement, readOnly = false }: Props
                 <input
                   className="pa-input"
                   value={summaryTitle}
-                  onChange={(e) => setSummaryTitle(e.target.value)}
+                  onChange={(e) => setSummaryTitle(e.target.value.replace(/[^a-zA-Z0-9\s-]/g, ''))}
                   placeholder="What this agreement is for"
                   disabled={readOnly}
                 />
@@ -1040,7 +1136,7 @@ export default function AgreementComposer({ agreement, readOnly = false }: Props
                   <input
                     className="pa-input"
                     value={documentNumber}
-                    onChange={(e) => setDocumentNumber(e.target.value)}
+                    onChange={(e) => setDocumentNumber(e.target.value.replace(/[^a-zA-Z0-9\s-]/g, ''))}
                     placeholder="AGR-2026-0001"
                     disabled={readOnly}
                   />
@@ -1090,8 +1186,9 @@ export default function AgreementComposer({ agreement, readOnly = false }: Props
                     className="pa-input"
                     value={partyName}
                     onChange={(e) => {
-                      setPartyName(e.target.value);
-                      if (!clientSignatoryTouched.current) setClientSignatoryName(e.target.value);
+                      const val = e.target.value.replace(/[^a-zA-Z\s.-]/g, '');
+                      setPartyName(val);
+                      if (!clientSignatoryTouched.current) setClientSignatoryName(val);
                     }}
                     placeholder="Client or vendor name"
                     disabled={readOnly}
@@ -1102,7 +1199,21 @@ export default function AgreementComposer({ agreement, readOnly = false }: Props
                   <input
                     className="pa-input"
                     value={partyEmail}
-                    onChange={(e) => setPartyEmail(e.target.value)}
+                    onChange={(e) => {
+                      const val = e.target.value.replace(/\s/g, '');
+                      setPartyEmail(val);
+                      if (errors.partyEmail) {
+                        const next = { ...errors };
+                        delete next.partyEmail;
+                        setErrors(next);
+                      }
+                    }}
+                    onBlur={(e) => {
+                      const val = e.target.value;
+                      if (val && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val)) {
+                        setErrors((prev) => ({ ...prev, partyEmail: 'Enter a valid email address' }));
+                      }
+                    }}
                     placeholder="legal@client.com"
                     disabled={readOnly}
                   />
@@ -1116,7 +1227,7 @@ export default function AgreementComposer({ agreement, readOnly = false }: Props
                   <input
                     className="pa-input"
                     value={partyPhone}
-                    onChange={(e) => setPartyPhone(e.target.value)}
+                    onChange={(e) => setPartyPhone(e.target.value.replace(/[^0-9+\s-]/g, '').substring(0, 15))}
                     placeholder="+91 80 4567 8900"
                     disabled={readOnly}
                   />
@@ -1213,7 +1324,7 @@ export default function AgreementComposer({ agreement, readOnly = false }: Props
                       <input
                         className="pa-input"
                         value={signatoryName}
-                        onChange={(e) => setSignatoryName(e.target.value)}
+                        onChange={(e) => setSignatoryName(e.target.value.replace(/[^a-zA-Z\s.-]/g, ''))}
                         placeholder="Who signs"
                         disabled={readOnly}
                       />
@@ -1223,7 +1334,7 @@ export default function AgreementComposer({ agreement, readOnly = false }: Props
                       <input
                         className="pa-input"
                         value={signatoryPosition}
-                        onChange={(e) => setSignatoryPosition(e.target.value)}
+                        onChange={(e) => setSignatoryPosition(e.target.value.replace(/[^a-zA-Z\s-]/g, ''))}
                         placeholder="Director"
                         disabled={readOnly}
                       />
@@ -1236,7 +1347,7 @@ export default function AgreementComposer({ agreement, readOnly = false }: Props
                       value={signatoryCompany}
                       onChange={(e) => {
                         signatoryCompanyTouched.current = true;
-                        setSignatoryCompany(e.target.value);
+                        setSignatoryCompany(e.target.value.replace(/[^a-zA-Z0-9\s-]/g, ''));
                       }}
                       placeholder={branding?.companyName || 'Your company'}
                       disabled={readOnly}
@@ -1259,7 +1370,7 @@ export default function AgreementComposer({ agreement, readOnly = false }: Props
                         value={clientSignatoryName}
                         onChange={(e) => {
                           clientSignatoryTouched.current = true;
-                          setClientSignatoryName(e.target.value);
+                          setClientSignatoryName(e.target.value.replace(/[^a-zA-Z\s.-]/g, ''));
                         }}
                         placeholder={partyName || 'Who signs on their side'}
                         disabled={readOnly}
@@ -1270,7 +1381,7 @@ export default function AgreementComposer({ agreement, readOnly = false }: Props
                       <input
                         className="pa-input"
                         value={clientSignatoryPosition}
-                        onChange={(e) => setClientSignatoryPosition(e.target.value)}
+                        onChange={(e) => setClientSignatoryPosition(e.target.value.replace(/[^a-zA-Z\s-]/g, ''))}
                         placeholder="Director"
                         disabled={readOnly}
                       />
@@ -1283,7 +1394,7 @@ export default function AgreementComposer({ agreement, readOnly = false }: Props
                       value={clientSignatoryCompany}
                       onChange={(e) => {
                         clientSignatoryCompanyTouched.current = true;
-                        setClientSignatoryCompany(e.target.value);
+                        setClientSignatoryCompany(e.target.value.replace(/[^a-zA-Z0-9\s-]/g, ''));
                       }}
                       placeholder={clientCompany || partyName || 'Their company'}
                       disabled={readOnly}
@@ -1349,6 +1460,230 @@ export default function AgreementComposer({ agreement, readOnly = false }: Props
                   disabled={readOnly}
                 />
               </div>
+            </div>
+          </section>
+
+          <section className="pa-card">
+            <div className="pa-card-head" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div className="pa-card-title" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <ShieldCheck size={16} style={{ color: isPasswordProtected ? '#2563eb' : '#64748b' }} />
+                Security & Password Protection
+              </div>
+              <span
+                style={{
+                  fontSize: 11,
+                  fontWeight: 600,
+                  padding: '2px 8px',
+                  borderRadius: 12,
+                  background: isPasswordProtected
+                    ? passwordMode === 'CUSTOM'
+                      ? 'rgba(34, 197, 94, 0.15)'
+                      : 'rgba(59, 130, 246, 0.15)'
+                    : 'rgba(148, 163, 184, 0.15)',
+                  color: isPasswordProtected
+                    ? passwordMode === 'CUSTOM'
+                      ? '#22c55e'
+                      : '#3b82f6'
+                    : 'var(--text-slate-500, #64748b)',
+                  border: isPasswordProtected
+                    ? passwordMode === 'CUSTOM'
+                      ? '1px solid rgba(34, 197, 94, 0.3)'
+                      : '1px solid rgba(59, 130, 246, 0.3)'
+                    : '1px solid rgba(148, 163, 184, 0.2)',
+                }}
+              >
+                {isPasswordProtected
+                  ? passwordMode === 'CUSTOM'
+                    ? 'Custom Lock'
+                    : 'Global Lock'
+                  : 'Unprotected'}
+              </span>
+            </div>
+            <div className="pa-card-body" style={{ display: 'grid', gap: 14 }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: readOnly ? 'default' : 'pointer' }}>
+                <input
+                  type="checkbox"
+                  checked={isPasswordProtected}
+                  disabled={readOnly}
+                  onChange={(e) => {
+                    const checked = e.target.checked;
+                    setIsPasswordProtected(checked);
+                    if (checked) {
+                      if (tenantSecurityMode === 'PER_AGREEMENT') {
+                        setPasswordMode('CUSTOM');
+                      } else if (tenantSecurityMode === 'TENANT_GLOBAL') {
+                        setPasswordMode('INHERIT_TENANT');
+                      } else if (!passwordMode) {
+                        setPasswordMode('INHERIT_TENANT');
+                      }
+                    }
+                  }}
+                  style={{ width: 16, height: 16, accentColor: '#2563eb' }}
+                />
+                <span style={{ fontWeight: 600, fontSize: 13, color: 'var(--text-slate-900, #1e293b)' }}>
+                  Require Password Protection
+                </span>
+              </label>
+              <span className="pa-hint" style={{ marginTop: -8 }}>
+                Locks viewing, editing, signing, and deleting behind a secure password prompt.
+              </span>
+
+              {isPasswordProtected && (
+                <div
+                  style={{
+                    display: 'grid',
+                    gap: 14,
+                    marginTop: 4,
+                    padding: 14,
+                    borderRadius: 10,
+                    backgroundColor: 'rgba(37, 99, 235, 0.05)',
+                    border: '1px solid rgba(37, 99, 235, 0.2)',
+                  }}
+                >
+                  <div className="pa-field">
+                    <span className="pa-label">Protection Mode</span>
+                    <div
+                      style={{
+                        display: 'grid',
+                        gridTemplateColumns:
+                          tenantSecurityMode === 'PER_AGREEMENT' || tenantSecurityMode === 'TENANT_GLOBAL'
+                            ? '1fr'
+                            : '1fr 1fr',
+                        gap: 8,
+                        marginTop: 6,
+                      }}
+                    >
+                      {tenantSecurityMode !== 'PER_AGREEMENT' && (
+                        <button
+                          type="button"
+                          disabled={readOnly}
+                          onClick={() => setPasswordMode('INHERIT_TENANT')}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 8,
+                            padding: '10px 12px',
+                            borderRadius: 8,
+                            border: passwordMode === 'INHERIT_TENANT' ? '2px solid #2563eb' : '1px solid var(--border-slate-300, #cbd5e1)',
+                            backgroundColor: passwordMode === 'INHERIT_TENANT' ? 'var(--bg-pure-white, rgba(37, 99, 235, 0.12))' : 'transparent',
+                            cursor: readOnly ? 'default' : 'pointer',
+                            fontWeight: passwordMode === 'INHERIT_TENANT' ? 600 : 500,
+                            fontSize: 12,
+                            color: passwordMode === 'INHERIT_TENANT' ? '#3b82f6' : 'var(--text-slate-700, #475569)',
+                            textAlign: 'left',
+                            transition: 'all 0.15s ease',
+                          }}
+                        >
+                          <Globe size={16} color={passwordMode === 'INHERIT_TENANT' ? '#3b82f6' : 'var(--text-slate-400, #64748b)'} />
+                          <div>
+                            <div>Global Company Password</div>
+                            <div style={{ fontSize: 10, fontWeight: 400, color: 'var(--text-slate-400, #64748b)' }}>
+                              Uses tenant key
+                            </div>
+                          </div>
+                        </button>
+                      )}
+
+                      {tenantSecurityMode !== 'TENANT_GLOBAL' && (
+                        <button
+                          type="button"
+                          disabled={readOnly}
+                          onClick={() => setPasswordMode('CUSTOM')}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 8,
+                            padding: '10px 12px',
+                            borderRadius: 8,
+                            border: passwordMode === 'CUSTOM' ? '2px solid #2563eb' : '1px solid var(--border-slate-300, #cbd5e1)',
+                            backgroundColor: passwordMode === 'CUSTOM' ? 'var(--bg-pure-white, rgba(37, 99, 235, 0.12))' : 'transparent',
+                            cursor: readOnly ? 'default' : 'pointer',
+                            fontWeight: passwordMode === 'CUSTOM' ? 600 : 500,
+                            fontSize: 12,
+                            color: passwordMode === 'CUSTOM' ? '#3b82f6' : 'var(--text-slate-700, #475569)',
+                            textAlign: 'left',
+                            transition: 'all 0.15s ease',
+                          }}
+                        >
+                          <KeyRound size={16} color={passwordMode === 'CUSTOM' ? '#3b82f6' : 'var(--text-slate-400, #64748b)'} />
+                          <div>
+                            <div>Custom Password</div>
+                            <div style={{ fontSize: 10, fontWeight: 400, color: 'var(--text-slate-400, #64748b)' }}>
+                              Unique password
+                            </div>
+                          </div>
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  {passwordMode === 'CUSTOM' && (
+                    <div className="pa-field">
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                        <span className="pa-label" style={{ margin: 0 }}>Set Custom Password</span>
+                        {!readOnly && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%';
+                              let p = '';
+                              for (let i = 0; i < 12; i++) p += chars.charAt(Math.floor(Math.random() * chars.length));
+                              setCustomPassword(p);
+                              setShowCustomPassword(true);
+                            }}
+                            style={{
+                              background: 'none',
+                              border: 'none',
+                              color: '#2563eb',
+                              fontSize: 11,
+                              fontWeight: 600,
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: 4,
+                              padding: 0,
+                            }}
+                          >
+                            <Sparkles size={12} /> Auto-generate
+                          </button>
+                        )}
+                      </div>
+
+                      <div style={{ position: 'relative' }}>
+                        <input
+                          type={showCustomPassword ? 'text' : 'password'}
+                          className="pa-input"
+                          value={customPassword}
+                          onChange={(e) => setCustomPassword(e.target.value)}
+                          placeholder={isEdit ? '(Leave blank to keep existing password)' : 'Enter custom password'}
+                          disabled={readOnly}
+                          style={{ paddingRight: 36 }}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowCustomPassword(!showCustomPassword)}
+                          style={{
+                            position: 'absolute',
+                            right: 10,
+                            top: '50%',
+                            transform: 'translateY(-50%)',
+                            background: 'none',
+                            border: 'none',
+                            cursor: 'pointer',
+                            color: '#64748b',
+                            padding: 0,
+                            display: 'flex',
+                          }}
+                          title={showCustomPassword ? 'Hide password' : 'Show password'}
+                        >
+                          {showCustomPassword ? <EyeOff size={14} /> : <Eye size={14} />}
+                        </button>
+                      </div>
+                      <span className="pa-hint">Min 6 characters recommended. Unique to this agreement.</span>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           </section>
 
@@ -1472,6 +1807,13 @@ export default function AgreementComposer({ agreement, readOnly = false }: Props
         )}
       </div>
 
+      <PasswordUnlockModal
+        open={isTemplateLocked}
+        documentTitle={template?.name || 'Agreement Template'}
+        scope={templateLockScope}
+        onUnlock={handleTemplateUnlock}
+        onCancel={handleTemplateCancel}
+      />
     </>
   );
 }

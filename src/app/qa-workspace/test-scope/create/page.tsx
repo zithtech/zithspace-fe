@@ -712,7 +712,7 @@ useActivitySource({ section: "WORK", module: "QA", page: "CreateTestScope" });
     details: {
       description: '',
       reviewer: '',
-      product: 'Zukvo',
+      product: '',
       modules: [],
       features: [],
       sprint: undefined,
@@ -823,26 +823,27 @@ useActivitySource({ section: "WORK", module: "QA", page: "CreateTestScope" });
 
   /**
    * Reconcile the placeholder Product default with the user's real projects:
-   * pick it automatically when there's only one, otherwise clear it so the user
-   * chooses rather than saving a product they don't own.
+   * pick it automatically from the QA Space header selection when available,
+   * otherwise default when there's only one project.
    */
   useEffect(() => {
-    if (productDefaultRef.current) return;
     if (loadingProjects || projectOptions.length === 0) return;
     if (!qaProjectReady) return; // wait for the remembered project before deciding
 
-    productDefaultRef.current = true;
     const current = formData.details.product;
-    if (current && projectOptions.some(p => p.value === current)) return;
-    if (current && current !== 'Zukvo') return; // user already typed their own
 
     /* Scopes are keyed by project name, which is what the QA lists remember. */
     const fromQaSpace = qaProjectName && projectOptions.some(p => p.value === qaProjectName)
       ? qaProjectName
       : undefined;
-    const next = fromQaSpace ?? (projectOptions.length === 1 ? projectOptions[0].value : undefined);
-    skipDirtyRef.current = true;
-    setFormData((prev: any) => ({ ...prev, details: { ...prev.details, product: next } }));
+
+    const next = fromQaSpace ?? (current && projectOptions.some(p => p.value === current) ? current : (projectOptions.length === 1 ? projectOptions[0].value : undefined));
+
+    if (next && next !== current && !productDefaultRef.current) {
+      productDefaultRef.current = true;
+      skipDirtyRef.current = true;
+      setFormData((prev: any) => ({ ...prev, details: { ...prev.details, product: next } }));
+    }
   }, [projectOptions, loadingProjects, qaProjectReady, qaProjectName]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Warn before losing an in-progress scope

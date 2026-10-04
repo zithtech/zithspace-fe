@@ -12,6 +12,7 @@
  */
 
 import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import {
   Globe,
   Image as ImageIcon,
@@ -24,8 +25,9 @@ import {
   Trash2,
   Upload,
 } from 'lucide-react';
-import { toast } from 'react-hot-toast';
+import { message } from '@/providers/AntdGlobalProvider';
 import ZukvoLoader from '@/components/common/ZukvoLoader';
+import StatCards from '@/components/common/StatCards';
 import DocumentPreview from '@/components/project-agreements/DocumentPreview';
 import { usePermission } from '@/hooks/usePermission';
 import { Branding, ProjectAgreementsService } from '@/services/projectAgreementsService';
@@ -43,8 +45,13 @@ const EMPTY: Branding = {
 };
 
 export default function LetterheadSettings() {
+  const [headerNode, setHeaderNode] = useState<HTMLElement | null>(null);
+  useEffect(() => {
+    setHeaderNode(document.getElementById('pa-settings-header-actions'));
+  }, []);
+
   const perms = usePermission() as unknown as Record<string, any>;
-  const canEdit = Boolean(perms.canManageAgreements);
+  const canEdit = Boolean(perms.canUpdateAgreementSetting);
   const fileRef = useRef<HTMLInputElement>(null);
   const signRef = useRef<HTMLInputElement>(null);
   const [signUploading, setSignUploading] = useState(false);
@@ -52,6 +59,7 @@ export default function LetterheadSettings() {
   const [form, setForm] = useState<Branding>(EMPTY);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
   const [uploading, setUploading] = useState(false);
   const [previewHtml, setPreviewHtml] = useState('');
   const [previewLoading, setPreviewLoading] = useState(true);
@@ -84,7 +92,7 @@ export default function LetterheadSettings() {
         setForm({ ...EMPTY, ...b });
         loadedLogo.current = b.logoUrl ?? null;
       })
-      .catch((e: any) => toast.error(e?.message || 'Could not load your letterhead'))
+      .catch((e: any) => message.error(e?.message || 'Could not load your letterhead'))
       .finally(() => setLoading(false));
     loadPreview();
   }, [loadPreview]);
@@ -92,6 +100,29 @@ export default function LetterheadSettings() {
   const patch = (p: Partial<Branding>) => setForm((f) => ({ ...f, ...p }));
 
   const save = async () => {
+    const next: Record<string, string> = {};
+    if (form.companyName && !/^[a-zA-Z0-9\s\-_]*$/.test(form.companyName.trim())) {
+      next.companyName = 'Special characters are not allowed';
+    }
+    if (form.phone) {
+      const digitsOnly = form.phone.replace(/\D/g, '');
+      if (digitsOnly.length > 0 && (digitsOnly.length < 7 || digitsOnly.length > 15)) {
+        next.phone = 'Phone number must have between 7 and 15 digits';
+      }
+    }
+    if (form.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())) {
+      next.email = 'Please enter a valid email address';
+    }
+    if (form.website && !/^((https?:\/\/)?([a-zA-Z0-9\-]+\.)+[a-zA-Z]{2,})(\/.*)?$/.test(form.website.trim())) {
+      next.website = 'Please enter a valid website URL';
+    }
+
+    setErrors(next);
+    if (Object.keys(next).length > 0) {
+      message.error('Please fix the errors before saving');
+      return;
+    }
+
     setSaving(true);
     try {
       const { logoUrl, ...rest } = form;
@@ -100,13 +131,13 @@ export default function LetterheadSettings() {
       );
       setForm({ ...EMPTY, ...saved });
       loadedLogo.current = saved.logoUrl ?? null;
-      toast.success('Letterhead saved');
+      message.success('Letterhead saved');
       // Re-render rather than patching the preview locally: the server decides
       // how a bare "acme.com" becomes a link, and this is the only honest way
       // to see the result.
       loadPreview();
     } catch (err: any) {
-      toast.error(err?.message || 'Could not save your letterhead');
+      message.error(err?.message || 'Could not save your letterhead');
     } finally {
       setSaving(false);
     }
@@ -115,11 +146,11 @@ export default function LetterheadSettings() {
   const onPickLogo = async (file?: File | null) => {
     if (!file) return;
     if (!file.type.startsWith('image/')) {
-      toast.error('Pick an image file');
+      message.error('Pick an image file');
       return;
     }
     if (file.size > 5 * 1024 * 1024) {
-      toast.error('Logos must be 5MB or smaller');
+      message.error('Logos must be 5MB or smaller');
       return;
     }
 
@@ -134,10 +165,10 @@ export default function LetterheadSettings() {
       const saved = await ProjectAgreementsService.uploadLogo(dataUri);
       setForm((f) => ({ ...f, logoUrl: saved.logoUrl }));
       loadedLogo.current = saved.logoUrl ?? null;
-      toast.success('Logo updated');
+      message.success('Logo updated');
       loadPreview();
     } catch (err: any) {
-      toast.error(err?.message || 'Could not upload that logo');
+      message.error(err?.message || 'Could not upload that logo');
     } finally {
       setUploading(false);
       if (fileRef.current) fileRef.current.value = '';
@@ -147,11 +178,11 @@ export default function LetterheadSettings() {
   const onPickSignature = async (file?: File | null) => {
     if (!file) return;
     if (!file.type.startsWith('image/')) {
-      toast.error('Pick an image file');
+      message.error('Pick an image file');
       return;
     }
     if (file.size > 5 * 1024 * 1024) {
-      toast.error('Signatures must be 5MB or smaller');
+      message.error('Signatures must be 5MB or smaller');
       return;
     }
 
@@ -165,10 +196,10 @@ export default function LetterheadSettings() {
       });
       const saved = await ProjectAgreementsService.uploadSignature(dataUri);
       setForm((f) => ({ ...f, signatureUrl: saved.signatureUrl }));
-      toast.success('Signature updated');
+      message.success('Signature updated');
       loadPreview();
     } catch (err: any) {
-      toast.error(err?.message || 'Could not upload that signature');
+      message.error(err?.message || 'Could not upload that signature');
     } finally {
       setSignUploading(false);
       if (signRef.current) signRef.current.value = '';
@@ -179,10 +210,10 @@ export default function LetterheadSettings() {
     try {
       const saved = await ProjectAgreementsService.removeSignature();
       setForm((f) => ({ ...f, signatureUrl: saved.signatureUrl }));
-      toast.success('Signature removed');
+      message.success('Signature removed');
       loadPreview();
     } catch (err: any) {
-      toast.error(err?.message || 'Could not remove the signature');
+      message.error(err?.message || 'Could not remove the signature');
     }
   };
 
@@ -211,58 +242,51 @@ export default function LetterheadSettings() {
 
   return (
     <>
-      <div className="tl-section-head">
-        <div className="tl-sprint-row1">
-          <div className="tl-sprint-title-block">
-            <span
-              className="tl-sprint-dot"
-              style={{ background: '#3b82f6', boxShadow: '0 0 0 3px #3b82f633' }}
-            />
-            <span className="tl-sprint-title">
-              {form.companyName?.trim() || 'Your letterhead'}
-            </span>
-            <span className="tl-sprint-tags">
+      <StatCards
+        title={form.companyName?.trim() || 'Your letterhead'}
+        statusText=""
+        cells={[
+          { label: 'Set Parts', value: setCount },
+          { label: 'Total Parts', value: pieces.length },
+        ]}
+        extra={
+          <div className="common-sprint-tags" style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <div style={{ display: 'flex', gap: 6 }}>
               {pieces.map(([label, on]) => {
                 const color = on ? '#16a34a' : '#94a3b8';
                 return (
                   <span
                     key={label}
-                    className="tl-sprint-tag"
+                    className="common-sprint-tag"
                     style={{ color, background: `${color}1a`, borderColor: `${color}40` }}
                   >
                     {label}
                   </span>
                 );
               })}
-            </span>
+            </div>
           </div>
-          {/* The tab's own actions: the Settings shell's header is shared by
-              both tabs, so Save has to live with what it saves. */}
-          <div className="tl-sprint-actions">
-            <button type="button" className="pa-btn" onClick={loadPreview}>
-              <RefreshCw size={14} /> Refresh preview
+        }
+      />
+
+      {headerNode && createPortal(
+        <>
+          <button type="button" className="pa-btn" onClick={loadPreview}>
+            <RefreshCw size={14} /> Refresh preview
+          </button>
+          {canEdit && (
+            <button
+              type="button"
+              className="pa-btn pa-btn-primary"
+              onClick={save}
+              disabled={saving}
+            >
+              <Save size={14} /> {saving ? 'Saving…' : 'Save'}
             </button>
-            {canEdit && (
-              <button
-                type="button"
-                className="pa-btn pa-btn-primary"
-                onClick={save}
-                disabled={saving}
-              >
-                <Save size={14} /> {saving ? 'Saving…' : 'Save'}
-              </button>
-            )}
-          </div>
-        </div>
-        <div className="tl-sprint-row2">
-          <span className="tl-sprint-meta">
-            <b>{setCount}</b> of {pieces.length} parts set
-          </span>
-          <span className="tl-sprint-meta">
-            Anything left blank simply does not print
-          </span>
-        </div>
-      </div>
+          )}
+        </>,
+        headerNode
+      )}
 
       <div className="pa-split">
         <div className="pa-split-form">
@@ -326,10 +350,14 @@ export default function LetterheadSettings() {
                 <input
                   className="pa-input"
                   value={form.companyName ?? ''}
-                  onChange={(e) => patch({ companyName: e.target.value })}
+                  onChange={(e) => {
+                    setErrors(prev => ({ ...prev, companyName: '' }));
+                    patch({ companyName: e.target.value.replace(/[^a-zA-Z0-9\s\-_]/g, '') });
+                  }}
                   placeholder="Acme Technologies Pvt Ltd"
                   disabled={!canEdit}
                 />
+                {errors.companyName && <span className="pa-error">{errors.companyName}</span>}
               </div>
 
               <div className="pa-field">
@@ -359,10 +387,24 @@ export default function LetterheadSettings() {
                 <input
                   className="pa-input"
                   value={form.phone ?? ''}
-                  onChange={(e) => patch({ phone: e.target.value })}
+                  onChange={(e) => {
+                    setErrors(prev => ({ ...prev, phone: '' }));
+                    const val = e.target.value.replace(/[^\d\s+\-()]/g, '');
+                    const digits = val.replace(/\D/g, '');
+                    if (digits.length <= 15) {
+                      patch({ phone: val });
+                    }
+                  }}
+                  onBlur={() => {
+                    const digits = form.phone?.replace(/\D/g, '') || '';
+                    if (digits.length > 0 && digits.length < 7) {
+                      setErrors(prev => ({ ...prev, phone: 'Phone number must have at least 7 digits' }));
+                    }
+                  }}
                   placeholder="+91 80 4567 8900"
                   disabled={!canEdit}
                 />
+                {errors.phone && <span className="pa-error">{errors.phone}</span>}
               </div>
               <div className="pa-field">
                 <span className="pa-label pa-label-icon">
@@ -372,10 +414,19 @@ export default function LetterheadSettings() {
                 <input
                   className="pa-input"
                   value={form.email ?? ''}
-                  onChange={(e) => patch({ email: e.target.value })}
+                  onChange={(e) => {
+                    setErrors(prev => ({ ...prev, email: '' }));
+                    patch({ email: e.target.value.replace(/\s/g, '') });
+                  }}
+                  onBlur={() => {
+                    if (form.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())) {
+                      setErrors(prev => ({ ...prev, email: 'Please enter a valid email address' }));
+                    }
+                  }}
                   placeholder="contracts@acme.com"
                   disabled={!canEdit}
                 />
+                {errors.email && <span className="pa-error">{errors.email}</span>}
               </div>
               <div className="pa-field">
                 <span className="pa-label pa-label-icon">
@@ -385,10 +436,19 @@ export default function LetterheadSettings() {
                 <input
                   className="pa-input"
                   value={form.website ?? ''}
-                  onChange={(e) => patch({ website: e.target.value })}
+                  onChange={(e) => {
+                    setErrors(prev => ({ ...prev, website: '' }));
+                    patch({ website: e.target.value.replace(/\s/g, '') });
+                  }}
+                  onBlur={() => {
+                    if (form.website && !/^((https?:\/\/)?([a-zA-Z0-9\-]+\.)+[a-zA-Z]{2,})(\/.*)?$/.test(form.website.trim())) {
+                      setErrors(prev => ({ ...prev, website: 'Please enter a valid website URL' }));
+                    }
+                  }}
                   placeholder="acme.com"
                   disabled={!canEdit}
                 />
+                {errors.website && <span className="pa-error">{errors.website}</span>}
                 <span className="pa-hint">
                   Rendered as a link — https:// is added if you leave it out.
                 </span>
@@ -485,12 +545,12 @@ export default function LetterheadSettings() {
         .pa-label-icon svg { opacity: 0.8; }
         .pa-logo-row { display: flex; align-items: flex-start; gap: 12px; }
         .pa-logo-frame {
-          width: 130px; height: 66px; flex-shrink: 0;
+          width: 160px; height: 100px; flex-shrink: 0;
           border: 1px dashed var(--border-slate-200); border-radius: 10px;
-          display: grid; place-items: center; overflow: hidden;
+          display: flex; align-items: center; justify-content: center; overflow: hidden;
           background: var(--bg-slate-50, #f8fafc); color: var(--text-slate-400);
         }
-        .pa-logo-frame img { max-width: 100%; max-height: 100%; object-fit: contain; }
+        .pa-logo-frame img { width: 100%; height: 100%; object-fit: contain; }
         /* Wider and shorter than the logo frame — a signature is a wide mark,
            and it sits on a line rather than in a box. */
         .pa-sign-frame {

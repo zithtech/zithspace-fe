@@ -14,6 +14,7 @@
  */
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Table, Dropdown, Modal } from 'antd';
 import { EllipsisOutlined } from '@ant-design/icons';
 import {
@@ -26,9 +27,12 @@ import {
   SignalHigh,
   Trash2,
 } from 'lucide-react';
-import { toast } from 'react-hot-toast';
+import { message } from '@/providers/AntdGlobalProvider';
 import NoData from '@/components/common/NoData';
 import ZukvoLoader from '@/components/common/ZukvoLoader';
+import StatCards from '@/components/common/StatCards';
+import FilterBar, { FilterToggleButton } from '@/components/common/FilterBar';
+import ConfirmDialog from '@/components/common/ConfirmDialog';
 import TicketFilterPill from '@/components/projects/TicketFilterPill';
 import { ListFooter, menuLabel } from '@/components/project-agreements/listChrome';
 import { usePermission } from '@/hooks/usePermission';
@@ -52,13 +56,23 @@ const STATUS_OPTIONS = [
 const EMPTY = { name: '', code: '', description: '', status: 'active' as DocumentTypeStatus };
 
 export default function DocumentTypeSettings() {
+  const [headerNode, setHeaderNode] = useState<HTMLElement | null>(null);
+  useEffect(() => {
+    setHeaderNode(document.getElementById('pa-settings-header-actions'));
+  }, []);
+
+  const [deleteTarget, setDeleteTarget] = useState<DocumentType | null>(null);
+
   const perms = usePermission() as unknown as Record<string, any>;
-  const canEdit = Boolean(perms.canManageAgreements);
+  const canCreate = Boolean(perms.canCreateAgreementSetting);
+  const canEdit = Boolean(perms.canUpdateAgreementSetting);
+  const canDelete = Boolean(perms.canDeleteAgreementSetting);
 
   const [types, setTypes] = useState<DocumentType[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState<string>('');
+  const [showFilters, setShowFilters] = useState(true);
   const debouncedSearch = useDebounce(search, 300);
 
   const [page, setPage] = useState(1);
@@ -78,7 +92,7 @@ export default function DocumentTypeSettings() {
         await ProjectAgreementsService.listDocumentTypes({ search: debouncedSearch || undefined })
       );
     } catch (err: any) {
-      toast.error(err?.message || 'Could not load document types');
+      message.error(err?.message || 'Could not load document types');
     } finally {
       setLoading(false);
     }
@@ -131,14 +145,18 @@ export default function DocumentTypeSettings() {
 
   const save = async () => {
     const next: Record<string, string> = {};
-    if (!form.name.trim()) next.name = 'Give the type a name';
+    if (!form.name.trim()) {
+      next.name = 'Give the type a name';
+    } else if (!/^[a-zA-Z0-9\s\-_]+$/.test(form.name.trim())) {
+      next.name = 'Special characters are not allowed';
+    }
     if (!form.code.trim()) next.code = 'A code is required';
     else if (!/^[A-Z][A-Z0-9_]*$/.test(form.code.trim())) {
       next.code = 'Capitals, digits and underscores only, e.g. TEST_PROPOSAL';
     }
     setErrors(next);
     if (Object.keys(next).length > 0) {
-      toast.error(Object.values(next)[0]);
+      message.error(Object.values(next)[0]);
       return;
     }
 
@@ -152,35 +170,40 @@ export default function DocumentTypeSettings() {
       };
       if (editing) {
         await ProjectAgreementsService.updateDocumentType(editing.id, payload);
-        toast.success('Document type updated');
+        message.success('Document type updated');
       } else {
         await ProjectAgreementsService.createDocumentType(payload);
-        toast.success('Document type created');
+        message.success('Document type created');
       }
       setOpen(false);
       load();
     } catch (err: any) {
-      toast.error(err?.message || 'Could not save that document type');
+      message.error(err?.message || 'Could not save that document type');
     } finally {
       setSaving(false);
     }
   };
 
-  const remove = async (row: DocumentType) => {
+  const checkDelete = (row: DocumentType) => {
     const inUse = (row.templateCount ?? 0) + (row.agreementCount ?? 0);
     if (inUse > 0) {
       // The server refuses this too; saying so here saves a round trip and
       // names the alternative rather than just the obstacle.
-      toast.error('Still in use — set it to Inactive instead.');
+      message.error('Still in use — set it to Inactive instead.');
       return;
     }
-    if (!window.confirm(`Delete "${row.name}"?`)) return;
+    setDeleteTarget(row);
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteTarget) return;
     try {
-      await ProjectAgreementsService.deleteDocumentType(row.id);
-      setTypes((prev) => prev.filter((t) => t.id !== row.id));
-      toast.success('Document type deleted');
+      await ProjectAgreementsService.deleteDocumentType(deleteTarget.id);
+      setTypes((prev) => prev.filter((t) => t.id !== deleteTarget.id));
+      message.success('Document type deleted');
+      setDeleteTarget(null);
     } catch (err: any) {
-      toast.error(err?.message || 'Could not delete that document type');
+      message.error(err?.message || 'Could not delete that document type');
     }
   };
 
@@ -247,72 +270,89 @@ export default function DocumentTypeSettings() {
       width: 56,
       fixed: 'right' as const,
       render: (_: unknown, row: DocumentType) =>
-        canEdit ? (
-          <Dropdown
-            overlayClassName="tl-action-pop"
-            trigger={['click']}
-            placement="bottomRight"
-            menu={{
-              items: [
-                {
-                  key: 'edit',
-                  label: menuLabel(<Pencil size={14} />, 'Edit', 'Rename or describe it', '#3b82f6'),
-                  onClick: ({ domEvent }: any) => {
-                    domEvent.stopPropagation();
-                    openEdit(row);
-                  },
-                },
-                { type: 'divider' as const, key: 'd1' },
-                {
-                  key: 'delete',
-                  danger: true,
-                  label: menuLabel(
-                    <Trash2 size={14} />,
-                    'Delete',
-                    'Only while nothing uses it',
-                    '#ef4444'
-                  ),
-                  onClick: ({ domEvent }: any) => {
-                    domEvent.stopPropagation();
-                    remove(row);
-                  },
-                },
-              ],
-            }}
+        canEdit || canDelete ? (
+          <ConfirmDialog
+            open={deleteTarget?.id === row.id}
+            onOpenChange={(open) => !open && setDeleteTarget(null)}
+            tone="danger"
+            title={`Delete "${row.name}"?`}
+            confirmText="Delete"
+            onConfirm={confirmDelete}
           >
-            <button
-              type="button"
-              className="pa-btn"
-              style={{ width: 28, height: 28, padding: 0, justifyContent: 'center' }}
-              onClick={(e) => e.stopPropagation()}
-              aria-label="Actions"
+            <Dropdown
+              overlayClassName="tl-action-pop"
+              trigger={['click']}
+              placement="bottomRight"
+              menu={{
+                items: [
+                  ...(canEdit
+                    ? [
+                        {
+                          key: 'edit',
+                          label: menuLabel(<Pencil size={14} />, 'Edit', 'Rename or describe it', '#3b82f6'),
+                          onClick: ({ domEvent }: any) => {
+                            domEvent.stopPropagation();
+                            openEdit(row);
+                          },
+                        },
+                      ]
+                    : []),
+                  ...(canEdit && canDelete ? [{ type: 'divider' as const, key: 'd1' }] : []),
+                  ...(canDelete
+                    ? [
+                        {
+                          key: 'delete',
+                          danger: true,
+                          label: menuLabel(
+                            <Trash2 size={14} />,
+                            'Delete',
+                            'Only while nothing uses it',
+                            '#ef4444'
+                          ),
+                          onClick: ({ domEvent }: any) => {
+                            domEvent.stopPropagation();
+                            checkDelete(row);
+                          },
+                        },
+                      ]
+                    : []),
+                ],
+              }}
             >
-              <EllipsisOutlined />
-            </button>
-          </Dropdown>
+              <button
+                type="button"
+                className="pa-btn"
+                style={{ width: 28, height: 28, padding: 0, justifyContent: 'center' }}
+                onClick={(e) => e.stopPropagation()}
+                aria-label="Actions"
+              >
+                <EllipsisOutlined />
+              </button>
+            </Dropdown>
+          </ConfirmDialog>
         ) : null,
     },
   ];
 
   return (
     <>
-      <div className="tl-section-head">
-        <div className="tl-sprint-row1">
-          <div className="tl-sprint-title-block">
-            <span
-              className="tl-sprint-dot"
-              style={{ background: '#3b82f6', boxShadow: '0 0 0 3px #3b82f633' }}
-            />
-            <span className="tl-sprint-title">
-              {status ? DOCUMENT_TYPE_STATUS_META[status as DocumentTypeStatus].label : 'All document types'}
-            </span>
-            <span className="tl-sprint-tags">
+      <StatCards
+        title={status ? DOCUMENT_TYPE_STATUS_META[status as DocumentTypeStatus].label : 'All document types'}
+        statusText=""
+        cells={[
+          { label: 'Total', value: counts.active + counts.inactive },
+          { label: 'Active', value: counts.active },
+          ...(activeFilterCount > 0 ? [{ label: 'Matching', value: filtered.length }] : []),
+        ]}
+        extra={
+          <div className="common-sprint-tags" style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <div style={{ display: 'flex', gap: 6 }}>
               {STATUS_KEYS.map((key) => {
                 const meta = DOCUMENT_TYPE_STATUS_META[key];
                 return (
                   <span
                     key={key}
-                    className="tl-sprint-tag"
+                    className="common-sprint-tag"
                     style={{
                       color: meta.color,
                       background: `${meta.color}1a`,
@@ -323,66 +363,55 @@ export default function DocumentTypeSettings() {
                   </span>
                 );
               })}
-            </span>
-          </div>
-          {canEdit && (
-            <div className="tl-sprint-actions">
-              <button type="button" className="pa-btn pa-btn-primary" onClick={openNew}>
-                <Plus size={14} /> New type
-              </button>
             </div>
-          )}
-        </div>
-        <div className="tl-sprint-row2">
-          <span className="tl-sprint-meta">
-            <b>{counts.active}</b> offered in the pickers
-          </span>
-          <span className="tl-sprint-meta">Inactive types stay on documents that cite them</span>
-        </div>
-      </div>
-
-      <div className="tl-filter-row">
-        <div className="tl-filter-row-label">
-          <Filter size={11} />
-          <span>Filters</span>
-          <span className="tl-filter-row-count">{activeFilterCount}</span>
-        </div>
-        <div className="tl-filter-row-pills">
-          <div className="tl-filter-search">
-            <Search size={13} />
-            <input
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search name or code"
-              aria-label="Search document types"
-            />
           </div>
-          <TicketFilterPill
-            icon={<SignalHigh size={11} />}
-            label="Status"
-            value={status}
-            options={STATUS_OPTIONS}
-            onChange={(v: any) => setStatus(v ?? '')}
-            multiple={false}
-            itemNoun="statuses"
+        }
+      />
+
+      {headerNode && createPortal(
+        <>
+          <FilterToggleButton
+            isOpen={showFilters}
+            onToggle={() => setShowFilters(!showFilters)}
+            activeCount={activeFilterCount}
+          />
+          {canCreate && (
+            <button type="button" className="pa-btn pa-btn-primary" onClick={openNew}>
+              <Plus size={14} /> New type
+            </button>
+          )}
+        </>,
+        headerNode
+      )}
+
+      <FilterBar
+        isOpen={showFilters}
+        onClose={() => setShowFilters(false)}
+        onReset={() => {
+          setStatus('');
+          setSearch('');
+        }}
+        activeCount={activeFilterCount}
+      >
+        <div className="tl-filter-search">
+          <Search size={13} />
+          <input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search name or code"
+            aria-label="Search document types"
           />
         </div>
-        {activeFilterCount > 0 && (
-          <div className="tl-filter-row-actions">
-            <button
-              type="button"
-              className="tl-filter-row-reset"
-              onClick={() => {
-                setStatus('');
-                setSearch('');
-              }}
-            >
-              <RotateCcw size={10} />
-              Reset
-            </button>
-          </div>
-        )}
-      </div>
+        <TicketFilterPill
+          icon={<SignalHigh size={11} />}
+          label="Status"
+          value={status}
+          options={STATUS_OPTIONS}
+          onChange={(v: any) => setStatus(v ?? '')}
+          multiple={false}
+          itemNoun="statuses"
+        />
+      </FilterBar>
 
       {loading ? (
         <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -451,7 +480,7 @@ export default function DocumentTypeSettings() {
               className="pa-input"
               value={form.name}
               onChange={(e) => {
-                const name = e.target.value;
+                const name = e.target.value.replace(/[^a-zA-Z0-9\s\-_]/g, '');
                 setForm((f) => ({
                   ...f,
                   name,
@@ -472,7 +501,7 @@ export default function DocumentTypeSettings() {
               className="pa-input pa-code-input"
               value={form.code}
               onChange={(e) =>
-                setForm((f) => ({ ...f, code: e.target.value.toUpperCase().slice(0, 60) }))
+                setForm((f) => ({ ...f, code: e.target.value.toUpperCase().replace(/[^A-Z0-9_]/g, '').slice(0, 60) }))
               }
               placeholder="TEST_PROPOSAL"
             />

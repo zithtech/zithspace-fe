@@ -31,8 +31,9 @@
 
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Eye, FileText, Plus, Save, Send } from 'lucide-react';
-import { toast } from 'react-hot-toast';
+import { ArrowLeft, Eye, EyeOff, FileText, Globe, KeyRound, Plus, Save, Send, ShieldCheck, Sparkles } from 'lucide-react';
+import { Modal, Input } from 'antd';
+import { message } from '@/providers/AntdGlobalProvider';
 import SearchableDropdown from '@/components/common/SearchableDropdown';
 import ZukvoLoader from '@/components/common/ZukvoLoader';
 import AgreementContentEditor, {
@@ -40,6 +41,7 @@ import AgreementContentEditor, {
 } from '@/components/project-agreements/AgreementContentEditor';
 import DocumentPreview from '@/components/project-agreements/DocumentPreview';
 import { usePermission } from '@/hooks/usePermission';
+import PasswordUnlockModal from '@/components/project-agreements/PasswordUnlockModal';
 import {
   AUTO_TOKENS,
   AgreementTemplate,
@@ -51,6 +53,11 @@ import {
   TemplateStatus,
   humanise,
   manualTokensIn,
+  getLockScope,
+  isPasswordLockError,
+  unlockTemplate,
+  getSecuritySettings,
+  PasswordProtectionMode,
 } from '@/services/projectAgreementsService';
 
 interface Props {
@@ -89,10 +96,17 @@ export default function TemplateBuilder({ templateId }: Props) {
   const [bodyHtml, setBodyHtml] = useState('');
   const [status, setStatus] = useState<TemplateStatus>('draft');
   const [version, setVersion] = useState(1);
+  const [isPasswordProtected, setIsPasswordProtected] = useState(false);
+  const [passwordMode, setPasswordMode] = useState<'INHERIT_TENANT' | 'CUSTOM' | 'NONE'>('INHERIT_TENANT');
+  const [customPassword, setCustomPassword] = useState('');
+  const [showCustomPassword, setShowCustomPassword] = useState(false);
   const [fieldMeta, setFieldMeta] = useState<Record<string, TemplatePlaceholder>>({});
 
   const [previewHtml, setPreviewHtml] = useState('');
   const [previewOpen, setPreviewOpen] = useState(false);
+  const [addFieldModalOpen, setAddFieldModalOpen] = useState(false);
+  const [newFieldName, setNewFieldName] = useState('');
+  const [tenantSecurityMode, setTenantSecurityMode] = useState<PasswordProtectionMode | null>(null);
 
   const readOnly = savedId
     ? !perms.canUpdateAgreementTemplate
@@ -103,13 +117,24 @@ export default function TemplateBuilder({ templateId }: Props) {
     // offered for a new one.
     ProjectAgreementsService.listDocumentTypes({ activeOnly: true })
       .then(setDocumentTypes)
-      .catch((e: any) => toast.error(e?.message || 'Could not load document types'));
+      .catch((e: any) => message.error(e?.message || 'Could not load document types'));
 
     ProjectAgreementsService.getBranding()
       .then(setBranding)
       .catch(() => {
         // Decoration only — a missing letterhead must not stop authoring.
       });
+
+    getSecuritySettings()
+      .then((sec) => {
+        setTenantSecurityMode(sec.passwordProtectionMode);
+        if (sec.passwordProtectionMode === 'PER_AGREEMENT') {
+          setPasswordMode('CUSTOM');
+        } else if (sec.passwordProtectionMode === 'TENANT_GLOBAL') {
+          setPasswordMode('INHERIT_TENANT');
+        }
+      })
+      .catch(() => {});
   }, []);
 
   const documentTypeOptions = useMemo(() => {
@@ -129,9 +154,13 @@ export default function TemplateBuilder({ templateId }: Props) {
     return opts;
   }, [documentTypes, documentTypeId]);
 
-  useEffect(() => {
-    if (!templateId) return;
-    ProjectAgreementsService.getTemplate(templateId)
+  const [isLocked, setIsLocked] = useState(false);
+  const [lockScope, setLockScope] = useState<'TENANT' | 'AGREEMENT' | 'TEMPLATE'>('TENANT');
+
+  const loadTemplate = (id: string) => {
+    setLoading(true);
+    setIsLocked(false);
+    ProjectAgreementsService.getTemplate(id)
       .then((t: AgreementTemplate) => {
         setName(t.name);
         setCategory(t.category ?? '');
@@ -140,14 +169,35 @@ export default function TemplateBuilder({ templateId }: Props) {
         setBodyHtml(t.bodyHtml);
         setStatus(t.status);
         setVersion(t.version);
+        setIsPasswordProtected(t.isPasswordProtected ?? false);
+        setPasswordMode(t.passwordMode ?? 'INHERIT_TENANT');
         setFieldMeta(Object.fromEntries(t.placeholders.map((p) => [p.key, p])));
       })
       .catch((e: any) => {
-        toast.error(e?.message || 'Could not load that template');
-        router.replace('/project-agreements/templates');
+        if (isPasswordLockError(e)) {
+          setIsLocked(true);
+          setLockScope(getLockScope(e));
+        } else {
+          message.error(e?.message || 'Could not load that template');
+          router.replace('/project-agreements/templates');
+        }
       })
       .finally(() => setLoading(false));
+  };
+
+  useEffect(() => {
+    if (!templateId) return;
+    loadTemplate(templateId);
   }, [templateId, router]);
+
+  const handleUnlock = async (password: string) => {
+    if (!templateId) return;
+    const result = await unlockTemplate(templateId, password);
+    if (typeof window !== 'undefined') {
+      sessionStorage.setItem(`pa_unlock_${templateId}`, result.unlockToken);
+    }
+    loadTemplate(templateId);
+  };
 
   /** The fields the wording actually asks for, in the order it asks for them. */
   const fields: TemplatePlaceholder[] = useMemo(
@@ -178,17 +228,25 @@ export default function TemplateBuilder({ templateId }: Props) {
     editorRef.current?.insertTextAtCursor(`{{${key}}}`);
   };
 
-  const addField = () => {
-    const raw = window.prompt(
-      'Field name — lowercase letters, numbers and underscores (e.g. contract_value)'
-    );
-    if (!raw) return;
-    const key = raw.trim().toLowerCase().replace(/[^a-z0-9_]/g, '_').replace(/^[^a-z]+/, '');
+  const openAddFieldModal = () => {
+    setNewFieldName('');
+    setAddFieldModalOpen(true);
+  };
+
+  const handleAddFieldSubmit = () => {
+    const raw = newFieldName.trim();
+    if (!raw) {
+      message.error('Please enter a field name');
+      return;
+    }
+    const key = raw.toLowerCase().replace(/[^a-z0-9_]/g, '_').replace(/^[^a-z]+/, '');
     if (!key) {
-      toast.error('That is not a usable field name');
+      message.error('That is not a usable field name. Use lowercase letters, numbers, or underscores.');
       return;
     }
     insertToken(key);
+    setNewFieldName('');
+    setAddFieldModalOpen(false);
   };
 
   const payload = (nextStatus: TemplateStatus): TemplatePayload => ({
@@ -198,6 +256,9 @@ export default function TemplateBuilder({ templateId }: Props) {
     description: description.trim() || null,
     bodyHtml,
     status: nextStatus,
+    isPasswordProtected,
+    passwordMode,
+    customPassword: customPassword.trim() || undefined,
     placeholders: fields.map(({ key, label, dataType, source, required, defaultValue, displayOrder }) => ({
       key,
       label,
@@ -211,15 +272,19 @@ export default function TemplateBuilder({ templateId }: Props) {
 
   const save = async (nextStatus: TemplateStatus) => {
     if (!name.trim()) {
-      toast.error('Give the template a name');
+      message.error('Give the template a name');
       return;
     }
     if (!documentTypeId) {
-      toast.error('Pick the type of document');
+      message.error('Pick the type of document');
       return;
     }
     if (!bodyHtml.replace(/<[^>]*>/g, '').trim()) {
-      toast.error('The template has no wording yet');
+      message.error('The template has no wording yet');
+      return;
+    }
+    if (isPasswordProtected && passwordMode === 'CUSTOM' && !savedId && !customPassword.trim()) {
+      message.error('Please enter a custom password or switch to Global Company Password');
       return;
     }
 
@@ -234,7 +299,7 @@ export default function TemplateBuilder({ templateId }: Props) {
       setStatus(saved.status);
       setVersion(saved.version);
       setFieldMeta(Object.fromEntries(saved.placeholders.map((p) => [p.key, p])));
-      toast.success(nextStatus === 'published' ? 'Template published' : 'Template saved');
+      message.success(nextStatus === 'published' ? 'Template published' : 'Template saved');
 
       if (!savedId) {
         // Put the new id in the URL so a refresh reopens the same template
@@ -242,7 +307,7 @@ export default function TemplateBuilder({ templateId }: Props) {
         router.replace(`/project-agreements/templates/builder?id=${saved.id}`);
       }
     } catch (err: any) {
-      toast.error(err?.message || 'Could not save this template');
+      message.error(err?.message || 'Could not save this template');
     } finally {
       setSaving(false);
     }
@@ -263,10 +328,27 @@ export default function TemplateBuilder({ templateId }: Props) {
       });
       setPreviewHtml(html);
     } catch (err: any) {
-      toast.error(err?.message || 'Could not render the preview');
+      message.error(err?.message || 'Could not render the preview');
       setPreviewOpen(false);
     }
   };
+
+  if (isLocked) {
+    return (
+      <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '80vh' }}>
+        <PasswordUnlockModal
+          open={isLocked}
+          documentTitle={name || 'Template'}
+          scope={lockScope}
+          onUnlock={handleUnlock}
+          onCancel={() => {
+            setIsLocked(false);
+            router.replace('/project-agreements/templates');
+          }}
+        />
+      </div>
+    );
+  }
 
   if (loading) {
     return (
@@ -327,9 +409,10 @@ export default function TemplateBuilder({ templateId }: Props) {
 
       {/* The only two things a template has of its own. Everything else the
           composer's rail asks for belongs to the document, not the template. */}
-      <div className="tl-filter-row pa-builder-meta">
-        <div className="pa-field pa-builder-meta-field">
-          <span className="pa-label">
+      <div className="tl-filter-row pa-builder-meta" style={{ gap: 16, alignItems: 'flex-start', padding: '12px 16px' }}>
+        <div className="pa-field pa-builder-meta-field" style={{ minWidth: 220 }}>
+          <span className="pa-label" style={{ display: 'flex', alignItems: 'center', gap: 6, fontWeight: 600 }}>
+            <FileText size={14} style={{ color: '#2563eb' }} />
             Document type <span style={{ color: '#ef4444' }}>*</span>
           </span>
           <SearchableDropdown
@@ -340,21 +423,139 @@ export default function TemplateBuilder({ templateId }: Props) {
             searchPlaceholder="Find a type"
             itemNoun="types"
             disabled={readOnly}
-            width={320}
+            width={280}
           />
         </div>
-        <div className="pa-field pa-builder-meta-field">
-          <span className="pa-label">
+        <div className="pa-field pa-builder-meta-field" style={{ flex: 1, minWidth: 240 }}>
+          <span className="pa-label" style={{ display: 'flex', alignItems: 'center', gap: 6, fontWeight: 600 }}>
             Document name <span style={{ color: '#ef4444' }}>*</span>
           </span>
           <input
             className="pa-input"
             value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder="Standard Statement of Work"
+            onChange={(e) => {
+              const val = e.target.value.replace(/[^a-zA-Z0-9\s-]/g, '');
+              setName(val);
+            }}
+            placeholder="e.g. Standard Statement of Work"
             disabled={readOnly}
+            style={{ height: 38, borderRadius: 8, fontSize: 13, fontWeight: 500 }}
           />
         </div>
+        <div className="pa-field pa-builder-meta-field" style={{ minWidth: 260 }}>
+          <span className="pa-label" style={{ display: 'flex', alignItems: 'center', gap: 6, fontWeight: 600 }}>
+            <ShieldCheck size={14} style={{ color: isPasswordProtected ? '#2563eb' : '#64748b' }} />
+            Password Protection
+          </span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, height: 38 }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: readOnly ? 'default' : 'pointer' }}>
+              <input
+                type="checkbox"
+                checked={isPasswordProtected}
+                disabled={readOnly}
+                onChange={(e) => {
+                  const checked = e.target.checked;
+                  setIsPasswordProtected(checked);
+                  if (checked) {
+                    if (tenantSecurityMode === 'PER_AGREEMENT') {
+                      setPasswordMode('CUSTOM');
+                    } else if (tenantSecurityMode === 'TENANT_GLOBAL') {
+                      setPasswordMode('INHERIT_TENANT');
+                    } else if (!passwordMode) {
+                      setPasswordMode('INHERIT_TENANT');
+                    }
+                  }
+                }}
+                style={{ width: 16, height: 16, accentColor: '#2563eb' }}
+              />
+              <span style={{ fontSize: 13, fontWeight: 600, color: '#1e293b' }}>Enable</span>
+            </label>
+            {isPasswordProtected && (
+              <SearchableDropdown
+                value={passwordMode}
+                onChange={(v: any) => setPasswordMode(v ?? (tenantSecurityMode === 'PER_AGREEMENT' ? 'CUSTOM' : 'INHERIT_TENANT'))}
+                options={
+                  tenantSecurityMode === 'PER_AGREEMENT'
+                    ? [{ value: 'CUSTOM', label: 'Custom Password' }]
+                    : tenantSecurityMode === 'TENANT_GLOBAL'
+                    ? [{ value: 'INHERIT_TENANT', label: 'Global Company Password' }]
+                    : [
+                        { value: 'INHERIT_TENANT', label: 'Global Company Password' },
+                        { value: 'CUSTOM', label: 'Custom Password' },
+                      ]
+                }
+                hideAvatar
+                allowClear={false}
+                disabled={readOnly}
+                width={190}
+              />
+            )}
+          </div>
+        </div>
+        {isPasswordProtected && passwordMode === 'CUSTOM' && (
+          <div className="pa-field pa-builder-meta-field" style={{ minWidth: 220 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 2 }}>
+              <span className="pa-label" style={{ margin: 0, fontWeight: 600 }}>Custom Password</span>
+              {!readOnly && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    const chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%';
+                    let p = '';
+                    for (let i = 0; i < 12; i++) p += chars.charAt(Math.floor(Math.random() * chars.length));
+                    setCustomPassword(p);
+                    setShowCustomPassword(true);
+                  }}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: '#2563eb',
+                    fontSize: 11,
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 3,
+                    padding: 0,
+                  }}
+                  title="Generate random password"
+                >
+                  <Sparkles size={12} /> Auto
+                </button>
+              )}
+            </div>
+            <div style={{ position: 'relative' }}>
+              <input
+                type={showCustomPassword ? 'text' : 'password'}
+                className="pa-input"
+                value={customPassword}
+                onChange={(e) => setCustomPassword(e.target.value)}
+                placeholder={savedId ? '(Unchanged)' : 'Enter password'}
+                disabled={readOnly}
+                style={{ height: 38, borderRadius: 8, paddingRight: 36, fontSize: 13 }}
+              />
+              <button
+                type="button"
+                onClick={() => setShowCustomPassword(!showCustomPassword)}
+                style={{
+                  position: 'absolute',
+                  right: 10,
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  background: 'none',
+                  border: 'none',
+                  cursor: 'pointer',
+                  color: '#64748b',
+                  padding: 0,
+                  display: 'flex',
+                }}
+                title={showCustomPassword ? 'Hide password' : 'Show password'}
+              >
+                {showCustomPassword ? <EyeOff size={15} /> : <Eye size={15} />}
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       <div className="pa-builder">
@@ -408,7 +609,7 @@ export default function TemplateBuilder({ templateId }: Props) {
             <div className="pa-card-head">
               <div className="pa-card-title">Fill-in fields</div>
               {!readOnly && (
-                <button type="button" className="pa-btn" onClick={addField}>
+                <button type="button" className="pa-btn" onClick={openAddFieldModal}>
                   <Plus size={13} /> Add
                 </button>
               )}
@@ -462,6 +663,230 @@ export default function TemplateBuilder({ templateId }: Props) {
               )}
             </div>
           </section>
+
+          <section className="pa-card">
+            <div className="pa-card-head" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div className="pa-card-title" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <ShieldCheck size={16} style={{ color: isPasswordProtected ? '#2563eb' : '#64748b' }} />
+                Security & Password Protection
+              </div>
+              <span
+                style={{
+                  fontSize: 11,
+                  fontWeight: 600,
+                  padding: '2px 8px',
+                  borderRadius: 12,
+                  background: isPasswordProtected
+                    ? passwordMode === 'CUSTOM'
+                      ? 'rgba(34, 197, 94, 0.15)'
+                      : 'rgba(59, 130, 246, 0.15)'
+                    : 'rgba(148, 163, 184, 0.15)',
+                  color: isPasswordProtected
+                    ? passwordMode === 'CUSTOM'
+                      ? '#22c55e'
+                      : '#3b82f6'
+                    : 'var(--text-slate-500, #64748b)',
+                  border: isPasswordProtected
+                    ? passwordMode === 'CUSTOM'
+                      ? '1px solid rgba(34, 197, 94, 0.3)'
+                      : '1px solid rgba(59, 130, 246, 0.3)'
+                    : '1px solid rgba(148, 163, 184, 0.2)',
+                }}
+              >
+                {isPasswordProtected
+                  ? passwordMode === 'CUSTOM'
+                    ? 'Custom Lock'
+                    : 'Global Lock'
+                  : 'Unprotected'}
+              </span>
+            </div>
+            <div className="pa-card-body" style={{ display: 'grid', gap: 14 }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: readOnly ? 'default' : 'pointer' }}>
+                <input
+                  type="checkbox"
+                  checked={isPasswordProtected}
+                  disabled={readOnly}
+                  onChange={(e) => {
+                    const checked = e.target.checked;
+                    setIsPasswordProtected(checked);
+                    if (checked) {
+                      if (tenantSecurityMode === 'PER_AGREEMENT') {
+                        setPasswordMode('CUSTOM');
+                      } else if (tenantSecurityMode === 'TENANT_GLOBAL') {
+                        setPasswordMode('INHERIT_TENANT');
+                      } else if (!passwordMode) {
+                        setPasswordMode('INHERIT_TENANT');
+                      }
+                    }
+                  }}
+                  style={{ width: 16, height: 16, accentColor: '#2563eb' }}
+                />
+                <span style={{ fontWeight: 600, fontSize: 13, color: 'var(--text-slate-900, #1e293b)' }}>
+                  Require Password Protection
+                </span>
+              </label>
+              <span className="pa-hint" style={{ marginTop: -8 }}>
+                Locks opening or creating agreements from this template behind a password prompt.
+              </span>
+
+              {isPasswordProtected && (
+                <div
+                  style={{
+                    display: 'grid',
+                    gap: 14,
+                    marginTop: 4,
+                    padding: 14,
+                    borderRadius: 10,
+                    backgroundColor: 'rgba(37, 99, 235, 0.05)',
+                    border: '1px solid rgba(37, 99, 235, 0.2)',
+                  }}
+                >
+                  <div className="pa-field">
+                    <span className="pa-label">Protection Mode</span>
+                    <div
+                      style={{
+                        display: 'grid',
+                        gridTemplateColumns:
+                          tenantSecurityMode === 'PER_AGREEMENT' || tenantSecurityMode === 'TENANT_GLOBAL'
+                            ? '1fr'
+                            : '1fr 1fr',
+                        gap: 8,
+                        marginTop: 6,
+                      }}
+                    >
+                      {tenantSecurityMode !== 'PER_AGREEMENT' && (
+                        <button
+                          type="button"
+                          disabled={readOnly}
+                          onClick={() => setPasswordMode('INHERIT_TENANT')}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 8,
+                            padding: '10px 12px',
+                            borderRadius: 8,
+                            border: passwordMode === 'INHERIT_TENANT' ? '2px solid #2563eb' : '1px solid var(--border-slate-300, #cbd5e1)',
+                            backgroundColor: passwordMode === 'INHERIT_TENANT' ? 'var(--bg-pure-white, rgba(37, 99, 235, 0.12))' : 'transparent',
+                            cursor: readOnly ? 'default' : 'pointer',
+                            fontWeight: passwordMode === 'INHERIT_TENANT' ? 600 : 500,
+                            fontSize: 12,
+                            color: passwordMode === 'INHERIT_TENANT' ? '#3b82f6' : 'var(--text-slate-700, #475569)',
+                            textAlign: 'left',
+                            transition: 'all 0.15s ease',
+                          }}
+                        >
+                          <Globe size={16} color={passwordMode === 'INHERIT_TENANT' ? '#3b82f6' : 'var(--text-slate-400, #64748b)'} />
+                          <div>
+                            <div>Global Company Password</div>
+                            <div style={{ fontSize: 10, fontWeight: 400, color: 'var(--text-slate-400, #64748b)' }}>
+                              Uses tenant key
+                            </div>
+                          </div>
+                        </button>
+                      )}
+
+                      {tenantSecurityMode !== 'TENANT_GLOBAL' && (
+                        <button
+                          type="button"
+                          disabled={readOnly}
+                          onClick={() => setPasswordMode('CUSTOM')}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 8,
+                            padding: '10px 12px',
+                            borderRadius: 8,
+                            border: passwordMode === 'CUSTOM' ? '2px solid #2563eb' : '1px solid var(--border-slate-300, #cbd5e1)',
+                            backgroundColor: passwordMode === 'CUSTOM' ? 'var(--bg-pure-white, rgba(37, 99, 235, 0.12))' : 'transparent',
+                            cursor: readOnly ? 'default' : 'pointer',
+                            fontWeight: passwordMode === 'CUSTOM' ? 600 : 500,
+                            fontSize: 12,
+                            color: passwordMode === 'CUSTOM' ? '#3b82f6' : 'var(--text-slate-700, #475569)',
+                            textAlign: 'left',
+                            transition: 'all 0.15s ease',
+                          }}
+                        >
+                          <KeyRound size={16} color={passwordMode === 'CUSTOM' ? '#3b82f6' : 'var(--text-slate-400, #64748b)'} />
+                          <div>
+                            <div>Custom Password</div>
+                            <div style={{ fontSize: 10, fontWeight: 400, color: 'var(--text-slate-400, #64748b)' }}>
+                              Unique password
+                            </div>
+                          </div>
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  {passwordMode === 'CUSTOM' && (
+                    <div className="pa-field">
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                        <span className="pa-label" style={{ margin: 0 }}>Set Custom Password</span>
+                        {!readOnly && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%';
+                              let p = '';
+                              for (let i = 0; i < 12; i++) p += chars.charAt(Math.floor(Math.random() * chars.length));
+                              setCustomPassword(p);
+                              setShowCustomPassword(true);
+                            }}
+                            style={{
+                              background: 'none',
+                              border: 'none',
+                              color: '#2563eb',
+                              fontSize: 11,
+                              fontWeight: 600,
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: 4,
+                              padding: 0,
+                            }}
+                          >
+                            <Sparkles size={12} /> Auto-generate
+                          </button>
+                        )}
+                      </div>
+
+                      <div style={{ position: 'relative' }}>
+                        <input
+                          type={showCustomPassword ? 'text' : 'password'}
+                          className="pa-input"
+                          value={customPassword}
+                          onChange={(e) => setCustomPassword(e.target.value)}
+                          placeholder={savedId ? '(Leave blank to keep existing password)' : 'Enter custom password'}
+                          disabled={readOnly}
+                          style={{ paddingRight: 36 }}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowCustomPassword(!showCustomPassword)}
+                          style={{
+                            position: 'absolute',
+                            right: 10,
+                            top: '50%',
+                            transform: 'translateY(-50%)',
+                            background: 'none',
+                            border: 'none',
+                            cursor: 'pointer',
+                            color: '#64748b',
+                            padding: 0,
+                            display: 'flex',
+                          }}
+                          title={showCustomPassword ? 'Hide password' : 'Show password'}
+                        >
+                          {showCustomPassword ? <EyeOff size={14} /> : <Eye size={14} />}
+                        </button>
+                      </div>
+                      <span className="pa-hint">Min 6 characters recommended. Unique to this template.</span>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          </section>
         </aside>
       </div>
 
@@ -483,6 +908,49 @@ export default function TemplateBuilder({ templateId }: Props) {
           </div>
         </div>
       )}
+
+      <Modal
+        title={
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <Sparkles size={18} style={{ color: '#0f172a' }} />
+            <span>Add Fill-in Field</span>
+          </div>
+        }
+        open={addFieldModalOpen}
+        onOk={handleAddFieldSubmit}
+        onCancel={() => setAddFieldModalOpen(false)}
+        okText="Insert Field"
+        cancelText="Cancel"
+        destroyOnClose
+        centered
+        width={440}
+      >
+        <div style={{ padding: '12px 0' }}>
+          <p style={{ fontSize: 13, color: '#64748b', marginBottom: 14 }}>
+            Define a unique field key. Fill-in fields are completed when generating an agreement from this template.
+          </p>
+          <div style={{ marginBottom: 16 }}>
+            <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#334155', marginBottom: 6 }}>
+              Field Name / Key
+            </label>
+            <Input
+              autoFocus
+              placeholder="e.g. contract_value, payment_terms, start_date"
+              value={newFieldName}
+              onChange={(e) => setNewFieldName(e.target.value)}
+              onPressEnter={handleAddFieldSubmit}
+            />
+          </div>
+          {newFieldName.trim() && (
+            <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 8, padding: '10px 14px' }}>
+              <span style={{ fontSize: 12, color: '#64748b' }}>Inserted Token: </span>
+              <code style={{ fontSize: 13, fontWeight: 600, color: '#0f172a', background: '#e2e8f0', padding: '2px 8px', borderRadius: 4 }}>
+                {`{{${newFieldName.trim().toLowerCase().replace(/[^a-z0-9_]/g, '_').replace(/^[^a-z]+/, '') || 'field_key'}}}`}
+              </code>
+            </div>
+          )}
+        </div>
+      </Modal>
 
       <style jsx global>{`
         .pa-builder {
@@ -542,9 +1010,12 @@ export default function TemplateBuilder({ templateId }: Props) {
           display: flex; flex-direction: column;
         }
         @media (max-width: 1100px) {
-          .pa-builder { grid-template-columns: 1fr; }
-          .pa-builder > .pa-editor-pane { min-height: 70vh; }
-          .pa-builder-side { border-top: 1px solid var(--border-slate-200); }
+          .pa-builder {
+            display: flex; flex-direction: column;
+            overflow-y: auto; overflow-x: hidden;
+          }
+          .pa-builder > .pa-editor-pane { flex: none; min-height: 70vh; order: 2; border-top: 1px solid var(--border-slate-200); }
+          .pa-builder-side { flex: none; overflow-y: visible; order: 1; }
           .pa-builder-meta { flex-wrap: wrap; }
           .pa-builder-meta-field:last-child { max-width: none; }
         }

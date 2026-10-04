@@ -1,4 +1,4 @@
-import { portalApi } from "@/lib/portalAxios";
+import { portalApi, portalClient } from "@/lib/portalAxios";
 
 /**
  * Agreements as the client sees them.
@@ -37,6 +37,8 @@ export interface PortalAgreementListItem {
 export interface PortalAgreementDetail extends PortalAgreementListItem {
   /** The stored snapshot — the wording as it was agreed. */
   contentHtml: string;
+  clientSignatoryName?: string | null;
+  clientSignatureUrl?: string | null;
 }
 
 export interface PortalAgreementStats {
@@ -51,8 +53,41 @@ export const portalAgreementService = {
     portalApi.get("/api/client-portal/agreements"),
 
   /** Opening it is what marks it viewed — first time only. */
-  detail: (id: string): Promise<PortalAgreementDetail> =>
-    portalApi.get(`/api/client-portal/agreements/${id}`),
+  detail: (id: string, unlockToken?: string): Promise<PortalAgreementDetail> => {
+    const headers: Record<string, string> = {};
+    if (unlockToken) headers['X-Agreement-Unlock-Token'] = unlockToken;
+    return portalApi.get(`/api/client-portal/agreements/${id}`, { headers });
+  },
+
+  unlock: (id: string, password: string): Promise<{ unlockToken: string; expiresAt: string }> =>
+    portalApi.post(`/api/client-portal/agreements/${id}/unlock`, { password }),
+
+  downloadPdf: async (id: string, name: string, unlockToken?: string): Promise<void> => {
+    const headers: Record<string, string> = {};
+    if (unlockToken) headers['X-Agreement-Unlock-Token'] = unlockToken;
+    const res = await portalClient.get(`/api/client-portal/agreements/${id}/pdf`, {
+      responseType: 'blob',
+      headers,
+    });
+    const url = URL.createObjectURL(res.data);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${name.replace(/[^a-zA-Z0-9.-]/g, "-")}.pdf`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 5000);
+  },
+
+  sign: (
+    id: string,
+    payload: { signatureText?: string; signatureUrl?: string },
+    unlockToken?: string
+  ): Promise<void> => {
+    const headers: Record<string, string> = {};
+    if (unlockToken) headers['X-Agreement-Unlock-Token'] = unlockToken;
+    return portalApi.post(`/api/client-portal/agreements/${id}/sign`, payload, { headers });
+  },
 };
 
 export default portalAgreementService;

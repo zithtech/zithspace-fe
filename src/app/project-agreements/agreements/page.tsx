@@ -16,7 +16,7 @@
  * filtered set, and slicing it here keeps the counts and the rows in step.
  */
 
-import React, { Suspense, useCallback, useEffect, useMemo, useState } from 'react';
+import React, { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Table, Dropdown, Tooltip } from 'antd';
@@ -37,12 +37,16 @@ import {
   Trash2,
   TriangleAlert,
 } from 'lucide-react';
-import { toast } from 'react-hot-toast';
+import { message } from '@/providers/AntdGlobalProvider';
 import NoData from '@/components/common/NoData';
 import ZukvoLoader from '@/components/common/ZukvoLoader';
 import TicketFilterPill from '@/components/projects/TicketFilterPill';
+import StatCards from '@/components/common/StatCards';
+import FilterBar, { FilterToggleButton } from '@/components/common/FilterBar';
+import ConfirmDialog from '@/components/common/ConfirmDialog';
 import { ListFooter, menuLabel } from '@/components/project-agreements/listChrome';
 import AgreementDetailDrawer from '@/components/project-agreements/AgreementDetailDrawer';
+import PasswordUnlockModal from '@/components/project-agreements/PasswordUnlockModal';
 import { usePermission } from '@/hooks/usePermission';
 import { useDebounce } from '@/hooks/useDebounce';
 import {
@@ -54,6 +58,9 @@ import {
   EXPIRING_SOON_DAYS,
   ProjectAgreementsService,
   ProjectOption,
+  unlockAgreement,
+  isPasswordLockError,
+  getLockScope,
 } from '@/services/projectAgreementsService';
 
 const EMPTY_STATS: AgreementStats = {
@@ -113,6 +120,7 @@ function AgreementsList() {
   const perms = usePermission() as unknown as Record<string, any>;
 
   const [loading, setLoading] = useState(true);
+  const [deleteTarget, setDeleteTarget] = useState<Agreement | null>(null);
   const [items, setItems] = useState<Agreement[]>([]);
   const [stats, setStats] = useState<AgreementStats>(EMPTY_STATS);
   const [projects, setProjects] = useState<ProjectOption[]>([]);
@@ -131,6 +139,11 @@ function AgreementsList() {
   const [pageSize, setPageSize] = useState(20);
   const [pdfBusyId, setPdfBusyId] = useState<string | null>(null);
 
+  const [isLocked, setIsLocked] = useState(false);
+  const [lockScope, setLockScope] = useState<'TENANT' | 'AGREEMENT' | 'TEMPLATE'>('TENANT');
+  const [unlockTargetId, setUnlockTargetId] = useState<string | null>(null);
+  const pendingActionRef = useRef<(() => Promise<void>) | null>(null);
+
   /**
    * Which agreement the drawer is showing. null is closed.
    *
@@ -138,6 +151,7 @@ function AgreementsList() {
    * document it named, and so a refresh keeps the drawer open.
    */
   const [openId, setOpenId] = useState<string | null>(searchParams?.get('open') ?? null);
+  const [showFilters, setShowFilters] = useState(true);
 
   // Keep the URL in step, so the drawer is linkable and the back button closes
   // it rather than leaving the page.
@@ -162,7 +176,7 @@ function AgreementsList() {
       setItems(data.items ?? []);
       setStats(data.stats ?? EMPTY_STATS);
     } catch (err: any) {
-      toast.error(err?.message || 'Could not load agreements');
+      message.error(err?.message || 'Could not load agreements');
     } finally {
       setLoading(false);
     }
@@ -233,10 +247,17 @@ function AgreementsList() {
   const handleDelete = async (id: string) => {
     try {
       await ProjectAgreementsService.deleteAgreement(id);
-      toast.success('Agreement deleted');
+      message.success('Agreement deleted');
       load();
     } catch (err: any) {
-      toast.error(err?.message || 'Could not delete that agreement');
+      if (isPasswordLockError(err)) {
+        setUnlockTargetId(id);
+        pendingActionRef.current = () => handleDelete(id);
+        setIsLocked(true);
+        setLockScope(getLockScope(err));
+      } else {
+        message.error(err?.message || 'Could not delete that agreement');
+      }
     }
   };
 
@@ -249,9 +270,30 @@ function AgreementsList() {
       window.open(pdfUrl, '_blank', 'noopener');
       setItems((prev) => prev.map((a) => (a.id === row.id ? { ...a, pdfUrl } : a)));
     } catch (err: any) {
-      toast.error(err?.message || 'Could not generate the PDF');
+      if (isPasswordLockError(err)) {
+        setUnlockTargetId(row.id);
+        pendingActionRef.current = () => handlePdf(row);
+        setIsLocked(true);
+        setLockScope(getLockScope(err));
+      } else {
+        message.error(err?.message || 'Could not generate the PDF');
+      }
     } finally {
       setPdfBusyId(null);
+    }
+  };
+
+  const handleUnlock = async (password: string) => {
+    if (!unlockTargetId) return;
+    const result = await unlockAgreement(unlockTargetId, password);
+    if (typeof window !== 'undefined') {
+      sessionStorage.setItem(`pa_unlock_${unlockTargetId}`, result.unlockToken);
+    }
+    setIsLocked(false);
+    if (pendingActionRef.current) {
+      const action = pendingActionRef.current;
+      pendingActionRef.current = null;
+      await action();
     }
   };
 
@@ -361,9 +403,21 @@ function AgreementsList() {
       width: 56,
       fixed: 'right' as const,
       render: (_: unknown, row: Agreement) => (
-        <Dropdown
-          overlayClassName="tl-action-pop"
-          trigger={['click']}
+        <ConfirmDialog
+          open={deleteTarget?.id === row.id}
+          onOpenChange={(open) => !open && setDeleteTarget(null)}
+          tone="danger"
+          title={`Delete "${row.title}"?`}
+          description="Generated PDFs stay in storage but the record is removed."
+          confirmText="Delete"
+          onConfirm={async () => {
+            if (deleteTarget) await handleDelete(deleteTarget.id);
+            setDeleteTarget(null);
+          }}
+        >
+          <Dropdown
+            overlayClassName="tl-action-pop"
+            trigger={['click']}
           placement="bottomRight"
           menu={{
             items: [
@@ -419,15 +473,7 @@ function AgreementsList() {
                       ),
                       onClick: ({ domEvent }: any) => {
                         domEvent.stopPropagation();
-                        // antd's menu closes before a popover confirm could
-                        // attach, so the confirmation is a window prompt here.
-                        if (
-                          window.confirm(
-                            `Delete "${row.title}"? Generated PDFs stay in storage but the record is removed.`
-                          )
-                        ) {
-                          handleDelete(row.id);
-                        }
+                        setDeleteTarget(row);
                       },
                     },
                   ]
@@ -445,6 +491,7 @@ function AgreementsList() {
             <EllipsisOutlined />
           </button>
         </Dropdown>
+      </ConfirmDialog>
       ),
     },
   ];
@@ -464,6 +511,11 @@ function AgreementsList() {
           </div>
         </div>
         <div className="pa-header-actions">
+          <FilterToggleButton
+            isOpen={showFilters}
+            onToggle={() => setShowFilters(!showFilters)}
+            activeCount={activeFilterCount + (typeId ? 1 : 0)}
+          />
           <Tooltip title="Refresh">
             <button
               type="button"
@@ -536,7 +588,7 @@ function AgreementsList() {
               className="pa-rail-note"
               onClick={() => {
                 setTypeId('');
-                toast('Sort or scan the Type column for "Not set" to find them.');
+                message.info('Sort or scan the Type column for "Not set" to find them.');
               }}
             >
               <TriangleAlert size={13} />
@@ -561,109 +613,77 @@ function AgreementsList() {
       </aside>
 
       <div className="pa-list-main">
-      {/* What you are looking at, and how the whole set breaks down. The chips
-          are counts for EVERY agreement, not the filtered page. */}
-      <div className="tl-section-head">
-        <div className="tl-sprint-row1">
-          <div className="tl-sprint-title-block">
-            <span
-              className="tl-sprint-dot"
-              style={{ background: '#3b82f6', boxShadow: '0 0 0 3px #3b82f633' }}
-            />
-            <span className="tl-sprint-title">
-              {/* Names what the rail and the pills selected — the heading is
-                  the only confirmation of a filter set in three places. */}
-              {[
-                typeId
-                  ? documentTypes.find((t) => t.id === typeId)?.name ?? 'Document type'
-                  : 'All agreements',
-                projectId ? projects.find((p) => p.id === projectId)?.name : null,
-              ]
-                .filter(Boolean)
-                .join(' · ')}
-            </span>
-            <span className="tl-sprint-tags">
-              {STAT_CHIPS.map(([key, label, color]) => (
-                <span
-                  key={key}
-                  className="tl-sprint-tag"
-                  style={{
-                    color,
-                    background: `${color}1a`,
-                    borderColor: `${color}40`,
-                  }}
-                >
-                  <b>{stats[key] as number}</b> {label}
-                </span>
-              ))}
-            </span>
+      <StatCards
+        title={
+          [
+            typeId
+              ? documentTypes.find((t) => t.id === typeId)?.name ?? 'Document type'
+              : 'All agreements',
+            projectId ? projects.find((p) => p.id === projectId)?.name : null,
+          ]
+            .filter(Boolean)
+            .join(' · ')
+        }
+        statusText=""
+        cells={[
+          { label: 'Total', value: stats.total },
+          { label: 'Active', value: stats.active },
+          ...(narrowed ? [{ label: 'In View', value: items.length }] : []),
+        ]}
+        extra={
+          <div className="common-sprint-tags">
+            {STAT_CHIPS.map(([key, label, color]) => (
+              <span
+                key={key}
+                className="common-sprint-tag"
+                style={{
+                  color,
+                  background: `${color}1a`,
+                  borderColor: `${color}40`,
+                }}
+              >
+                <b>{stats[key as keyof typeof stats] as number}</b> {label}
+              </span>
+            ))}
           </div>
-        </div>
-        <div className="tl-sprint-row2">
-          <span className="tl-sprint-meta">
-            <b>{stats.total}</b> in total
-          </span>
-          <span className="tl-sprint-meta">
-            <b>{stats.active}</b> currently in force
-          </span>
-          {narrowed && (
-            <span className="tl-sprint-meta">
-              <b>{items.length}</b> in this view
-            </span>
-          )}
+        }
+      />
 
-        </div>
-      </div>
-
-      <div className="tl-filter-row">
-        <div className="tl-filter-row-label">
-          <Filter size={11} />
-          <span>Filters</span>
-          <span className="tl-filter-row-count">
-            {activeFilterCount + (typeId ? 1 : 0)}
-          </span>
-        </div>
-        <div className="tl-filter-row-pills">
-          <div className="tl-filter-search">
-            <Search size={13} />
-            <input
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search name, reference, project or counterparty"
-              aria-label="Search agreements"
-            />
-          </div>
-          <TicketFilterPill
-            icon={<Briefcase size={11} />}
-            label="Project"
-            value={projectId}
-            options={projectOptions}
-            onChange={(v: any) => setProjectId(v ?? '')}
-            multiple={false}
-            itemNoun="projects"
-            searchPlaceholder="Find a project"
-          />
-          <TicketFilterPill
-            icon={<SignalHigh size={11} />}
-            label="Status"
-            value={status}
-            options={STATUS_OPTIONS}
-            onChange={(v: any) => setStatus(v ?? '')}
-            multiple={false}
-            itemNoun="statuses"
+      <FilterBar
+        isOpen={showFilters}
+        onClose={() => setShowFilters(false)}
+        onReset={clearAll}
+        activeCount={activeFilterCount + (typeId ? 1 : 0)}
+      >
+        <div className="tl-filter-search">
+          <Search size={13} />
+          <input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search name, reference, project or counterparty"
+            aria-label="Search agreements"
           />
         </div>
-        {narrowed && (
-          <div className="tl-filter-row-actions">
-            {/* Clears the rail too. Below 1100px the rail is hidden, and a
-                selection you cannot see must still be one you can undo. */}
-            <button type="button" className="tl-filter-row-reset" onClick={clearAll}>
-              <RotateCcw size={10} />
-              Reset
-            </button>
-          </div>
-        )}
-      </div>
+        <TicketFilterPill
+          icon={<Briefcase size={11} />}
+          label="Project"
+          value={projectId}
+          options={projectOptions}
+          onChange={(v: any) => setProjectId(v ?? '')}
+          multiple={false}
+          itemNoun="projects"
+          searchPlaceholder="Find a project"
+        />
+        <TicketFilterPill
+          icon={<SignalHigh size={11} />}
+          label="Status"
+          value={status}
+          options={STATUS_OPTIONS}
+          onChange={(v: any) => setStatus(v ?? '')}
+          multiple={false}
+          itemNoun="statuses"
+        />
+      </FilterBar>
 
       {loading ? (
         <div
@@ -729,6 +749,18 @@ function AgreementsList() {
         // A status change or a delete happened inside the drawer; the row and
         // the rail counts behind it are now stale.
         onChanged={load}
+      />
+
+      <PasswordUnlockModal
+        open={isLocked}
+        documentTitle={items.find((i) => i.id === unlockTargetId)?.title || 'Agreement Document'}
+        documentNumber={items.find((i) => i.id === unlockTargetId)?.documentNumber}
+        scope={lockScope}
+        onUnlock={handleUnlock}
+        onCancel={() => {
+          setIsLocked(false);
+          setUnlockTargetId(null);
+        }}
       />
     </div>
   );

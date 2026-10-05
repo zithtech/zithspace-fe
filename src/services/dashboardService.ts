@@ -103,17 +103,25 @@ export interface DashboardSettings {
   id?: string;
   tenantId?: string;
   visibleCards: {
-    heroSection: boolean;
-    quickActions: boolean;
-    attendanceStats: boolean;
-    myTicketsProgress: boolean;
-    recentTickets: boolean;
-    freelancerStats: boolean;
-    recentLeads: boolean;
-    recentInvoices: boolean;
-    calendar: boolean;
-    upcomingBirthdays: boolean;
-    dailyAttendanceCard: boolean;
+    heroSection?: boolean;
+    quickActions?: boolean;
+    attendanceStats?: boolean;
+    myTicketsProgress?: boolean;
+    myWorkProgress?: boolean;
+    recentTickets?: boolean;
+    freelancerStats?: boolean;
+    recentLeads?: boolean;
+    recentInvoices?: boolean;
+    calendar?: boolean;
+    upcomingBirthdays?: boolean;
+    dailyAttendanceCard?: boolean;
+    dailyUpdatesCard?: boolean;
+    metricDailyAttendance?: boolean;
+    metricDailyUpdates?: boolean;
+    metricAvgHours?: boolean;
+    metricMyTickets?: boolean;
+    metricTeamToday?: boolean;
+    [key: string]: boolean | undefined;
   };
 }
 

@@ -4,7 +4,7 @@ import ZukvoLoader from "@/components/common/ZukvoLoader";
 
 import React, { useState, Suspense } from 'react';
 import { Form, Input, Button, Typography, Alert } from 'antd';
-import { UserOutlined, MailOutlined, ArrowLeftOutlined, SendOutlined } from '@ant-design/icons';
+import { MailOutlined, ArrowLeftOutlined, ArrowRightOutlined } from '@ant-design/icons';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { AuthService } from '@/services/authService';
@@ -77,13 +77,13 @@ function ForgotPasswordForm() {
 
   if (success) {
     return (
-      <div style={{ textAlign: 'center' }}>
+      <div>
         <div
           style={{
-            width: 64,
-            height: 64,
+            width: 56,
+            height: 56,
             borderRadius: 999,
-            margin: '0 auto 20px',
+            margin: '0 0 22px',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
@@ -91,7 +91,7 @@ function ForgotPasswordForm() {
             border: '1px solid rgba(59, 130, 246, 0.24)',
           }}
         >
-          <MailOutlined style={{ fontSize: 28, color: '#60A5FA' }} />
+          <MailOutlined style={{ fontSize: 24, color: '#60A5FA' }} />
         </div>
         <Title level={4} style={{ marginTop: 0, marginBottom: 10, color: '#F8FAFC', fontWeight: 600 }}>
           Check your email
@@ -100,7 +100,7 @@ function ForgotPasswordForm() {
           If an account with that email exists, a password reset link has been sent.
         </Text>
         <Link href="/login">
-          <Button type="primary" block icon={<ArrowLeftOutlined />} className="zk-submit" style={authSubmitStyle}>
+          <Button block icon={<ArrowLeftOutlined />} className="zk-ghost" style={authSubmitStyle}>
             Back to sign in
           </Button>
         </Link>
@@ -129,15 +129,16 @@ function ForgotPasswordForm() {
       >
         <Form.Item
           name="email"
+          label="Email"
           rules={[
             { required: true, message: 'Please enter your email' },
             { type: 'email', message: 'Please enter a valid email' },
           ]}
         >
           <Input
-            prefix={<UserOutlined style={{ color: '#5A6982', marginRight: 8 }} />}
-            placeholder="Email address"
+            placeholder="you@company.com"
             autoComplete="email"
+            variant="borderless"
             onKeyDown={(e) => {
               if (e.key === ' ') {
                 e.preventDefault();
@@ -146,17 +147,18 @@ function ForgotPasswordForm() {
           />
         </Form.Item>
 
-        <Form.Item style={{ marginBottom: 0, marginTop: 20 }}>
+        <Form.Item style={{ marginBottom: 0, marginTop: 30 }}>
           <Button
             type="primary"
             htmlType="submit"
             loading={loading}
             block
-            icon={<SendOutlined />}
+            icon={!loading ? <ArrowRightOutlined /> : undefined}
+            iconPosition="end"
             className="zk-submit"
             style={authSubmitStyle}
           >
-            {loading ? 'Sending...' : 'Send reset link'}
+            {loading ? 'Sending…' : 'Send reset link'}
           </Button>
         </Form.Item>
       </Form>
@@ -187,7 +189,16 @@ function ForgotPasswordSkeleton() {
 
 export default function ForgotPasswordPage() {
   return (
-    <AuthShell subtitle="Enter your email and we'll send you a reset link.">
+    <AuthShell
+      heading={
+        <>
+          Forgot your
+          <br />
+          password?
+        </>
+      }
+      subtitle="Enter your email and we'll send you a reset link."
+    >
       <Suspense fallback={<ForgotPasswordSkeleton />}>
         <ForgotPasswordForm />
       </Suspense>

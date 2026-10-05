@@ -648,8 +648,8 @@ export default function ArchivedManagementPage() {
               icon={<UserOutlined />}
               value={assigneeFilter || ""}
               options={membersList.map((m: any) => ({
-                value: m.id,
-                label: m.name || m.email,
+                value: m.value || m.id,
+                label: m.label || m.name || m.email,
                 avatarUrl: m.avatarUrl || undefined,
               }))}
               onChange={(val) => {

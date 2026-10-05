@@ -35,10 +35,10 @@ const { Title, Text } = Typography;
 
 const ME_METRICS = [
   {
-    name: "metricDailyUpdates", requiredFeatures: ["work_daily_updates"],
-    title: "Daily Updates",
-    description: "Overview of BOD and EOD submission status.",
-    icon: Zap,
+    name: "metricDailyAttendance", requiredFeatures: ["hrms_attendance", "my_hub_my_hub_general_attendance"],
+    title: "Daily Attendance",
+    description: "Overview of today's attendance status and clock-in info.",
+    icon: CalendarClock,
     color: "#3B82F6",
   },
   {
@@ -80,6 +80,13 @@ const ME_CARDS = [
     color: "#3B82F6",
   },
   {
+    name: "dailyUpdatesCard", requiredFeatures: ["work_daily_updates"],
+    title: "Daily Updates",
+    description: "BOD and EOD daily update submission status.",
+    icon: Zap,
+    color: "#3B82F6",
+  },
+  {
     name: "quickActions",
     title: "Quick Actions",
     description: "Shortcuts for clocking in, submitting updates, or creating tickets.",
@@ -94,9 +101,9 @@ const ME_CARDS = [
     color: "#F43F5E",
   },
   {
-    name: "myTicketsProgress", requiredFeatures: ["work_projects"],
-    title: "My Tickets",
-    description: "Your open and closed tickets progress.",
+    name: "myWorkProgress", requiredFeatures: ["work_projects"],
+    title: "My Work Progress",
+    description: "Your ticket completion rate and work progress across projects.",
     icon: Ticket,
     color: "#F59E0B",
   },
@@ -237,10 +244,11 @@ export default function DashboardSettingsPage() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   const DEFAULT_SETTINGS = {
-    heroSection: true, quickActions: true, dailyAttendanceCard: true,
+    heroSection: true, quickActions: true, dailyAttendanceCard: true, dailyUpdatesCard: true,
     recentTickets: true, calendar: true, upcomingBirthdays: true,
-    cardTodayLeaves: true, cardSalarySlip: true, metricDailyUpdates: true,
+    cardTodayLeaves: true, cardSalarySlip: true, metricDailyAttendance: true, metricDailyUpdates: true,
     metricAvgHours: true, metricMyTickets: true, metricTeamToday: true,
+    myWorkProgress: true, myTicketsProgress: true,
     metricTotalMembers: true, metricActiveProjects: true, metricOrgTickets: true,
     metricOrgTeamToday: true, cardProjectPulse: true, cardTodaysPulse: true,
     cardOrgUpcomingBirthdays: true, cardTeamInsights: true, cardRecentActivities: true,

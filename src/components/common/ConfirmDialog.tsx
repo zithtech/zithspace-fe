@@ -108,7 +108,7 @@ export default function ConfirmDialog({
   };
 
   const content = (
-    <div style={{ width }}>
+    <div style={{ width }} onClick={(e) => e.stopPropagation()}>
       <div style={{ padding: '14px 16px 12px', display: 'flex', gap: 12 }}>
         <div
           style={{

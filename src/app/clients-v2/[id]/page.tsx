@@ -47,6 +47,7 @@ import {
   CheckCircle2,
   AlertCircle,
   FolderKanban,
+  FileSignature,
   FileText,
   BadgeCheck,
   Calendar,
@@ -75,6 +76,7 @@ import AllocationsTab from "./Tabs/AllocationsTab";
 import DocumentsTab from "./Tabs/DocumentsTab";
 import ProjectsTab from "./Tabs/ProjectsTab";
 import InvoicesTab from "./Tabs/InvoicesTab";
+import AgreementsTab from "./Tabs/AgreementsTab";
 import PortalAccessTab from "./Tabs/PortalAccessTab";
 import MeetingsTab from "./Tabs/MeetingsTab";
 import ChangeRequestsTab from "./Tabs/ChangeRequestsTab";
@@ -477,6 +479,7 @@ export default function ClientV2DetailsPage() {
   const [ticketsCount, setTicketsCount] = useState(0);
   const [envsCount, setEnvsCount] = useState(0);
   const [invoicesCount, setInvoicesCount] = useState(0);
+  const [agreementsCount, setAgreementsCount] = useState(0);
   const [crCount, setCrCount] = useState(0);
   const [approvalsCount, setApprovalsCount] = useState(0);
   const [milestonesCount, setMilestonesCount] = useState(0);
@@ -559,6 +562,7 @@ export default function ClientV2DetailsPage() {
       milestoneService.list(id, { limit: 1 }).then((d) => setMilestonesCount(d.meta?.total ?? d.data?.length ?? 0)).catch(() => { }),
       releaseService.list(id, { limit: 1 }).then((d) => setReleasesCount(d.meta?.total ?? d.data?.length ?? 0)).catch(() => { }),
       apiClient.get(`/api/clients-v2/${id}/invoices?limit=1`).then((res: any) => setInvoicesCount(res.data?.meta?.total ?? res.data?.data?.length ?? 0)).catch(() => { }),
+      apiClient.get(`/api/project-agreements/agreements?clientId=${id}`).then((res: any) => setAgreementsCount(res.data?.stats?.total ?? res.data?.items?.length ?? 0)).catch(() => { }),
     ]);
   }, [params.id]);
 
@@ -1465,6 +1469,24 @@ export default function ClientV2DetailsPage() {
                   children: (
                     <div className="cd-tab-pane">
                       <InvoicesTab clientId={params.id as string} onRefresh={fetchClientDetails} />
+                    </div>
+                  ),
+                },
+                {
+                  // Sits beside Invoices: both answer "what have we exchanged
+                  // with them on paper", and neither belongs under Documents,
+                  // which is uploaded files rather than raised records.
+                  key: "agreements",
+                  label: (
+                    <span className="cd-tab-label">
+                      <FileSignature size={15} />
+                      <span>Agreements</span>
+                      <span className="cd-tab-count">{agreementsCount}</span>
+                    </span>
+                  ),
+                  children: (
+                    <div className="cd-tab-pane">
+                      <AgreementsTab clientId={params.id as string} />
                     </div>
                   ),
                 },

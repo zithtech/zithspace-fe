@@ -101,7 +101,13 @@ const createPortalClient = (): AxiosInstance => {
   client.interceptors.response.use(
     (res) => res,
     (err) => {
-      if (err?.response?.status === 401) {
+      const isLockedError =
+        err?.response?.data?.isLocked ||
+        err?.response?.data?.code === 'PASSWORD_REQUIRED' ||
+        (typeof err?.response?.data?.error === 'string' &&
+          err.response.data.error.toLowerCase().includes('password required'));
+
+      if (err?.response?.status === 401 && !isLockedError) {
         PortalTokenManager.clear();
         if (
           typeof window !== "undefined" &&
@@ -120,17 +126,17 @@ const createPortalClient = (): AxiosInstance => {
 export const portalClient = createPortalClient();
 
 export const portalApi = {
-  async get<T = any>(url: string): Promise<T> {
-    const res = await portalClient.get(url);
+  async get<T = any>(url: string, config?: any): Promise<T> {
+    const res = await portalClient.get(url, config);
     if (res.data?.success === false) {
-      throw new Error(res.data.error || "Request failed");
+      throw res.data;
     }
     return res.data?.data ?? res.data;
   },
-  async post<T = any>(url: string, body?: any): Promise<T> {
-    const res = await portalClient.post(url, body);
+  async post<T = any>(url: string, body?: any, config?: any): Promise<T> {
+    const res = await portalClient.post(url, body, config);
     if (res.data?.success === false) {
-      throw new Error(res.data.error || "Request failed");
+      throw res.data;
     }
     return res.data?.data ?? res.data;
   },

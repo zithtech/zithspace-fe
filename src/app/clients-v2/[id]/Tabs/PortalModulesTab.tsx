@@ -8,6 +8,7 @@ import {
   RotateCw,
   Receipt,
   ClipboardList,
+  FileSignature,
   FileText,
   CalendarCheck,
   Flag,
@@ -32,6 +33,10 @@ type Mode = "light" | "dark";
 
 /** Icon + helper copy per portal module key (matches backend PORTAL_MODULES). */
 const META: Record<string, { icon: LucideIcon; desc: string }> = {
+  agreements: {
+    icon: FileSignature,
+    desc: "Read agreements shared with them. Drafts never appear.",
+  },
   invoices: { icon: Receipt, desc: "View invoices and upload payment proofs." },
   mom: { icon: ClipboardList, desc: "Read minutes of meeting and action items." },
   documents: { icon: FileText, desc: "Access shared documents and files." },

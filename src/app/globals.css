@@ -27656,3 +27656,15 @@ select:-webkit-autofill:focus {
   min-width: 220px !important;
   max-width: 420px !important;
 }
+
+/* ─── Dashboard Top Banner & Quick Action Tiles ───────────────────────── */
+.dash-qa-tile:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 10px 20px -4px rgba(0, 0, 0, 0.08) !important;
+  border-color: rgba(59, 130, 246, 0.35) !important;
+}
+
+.dash-qa-tile:hover .dash-qa-icon-wrap {
+  transform: scale(1.08);
+}
+

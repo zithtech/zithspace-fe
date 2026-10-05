@@ -213,6 +213,29 @@ const createApiClient = (): AxiosInstance => {
           config.headers['X-Tenant-Subdomain'] = subdomain;
         }
 
+        // Attach X-Agreement-Unlock-Token from sessionStorage if available
+        if (typeof window !== 'undefined' && config.url) {
+          let resourceId: string | null = null;
+          const match = config.url.match(/\/(agreements|templates)\/([a-f0-9-]{10,})/i);
+          if (match && match[2] && !['compose-body', 'preview-pdf', 'next-number'].includes(match[2])) {
+            resourceId = match[2];
+          }
+          if (!resourceId && config.data) {
+            try {
+              const body = typeof config.data === 'string' ? JSON.parse(config.data) : config.data;
+              resourceId = body?.templateId || body?.agreementId || body?.id || null;
+            } catch {
+              /* ignore parse errors */
+            }
+          }
+          if (resourceId) {
+            const unlockToken = sessionStorage.getItem(`pa_unlock_${resourceId}`);
+            if (unlockToken) {
+              config.headers['X-Agreement-Unlock-Token'] = unlockToken;
+            }
+          }
+        }
+
         // Activity-log source override: pages call useActivitySource(...) to
         // declare their UX context, and we forward it so the BE files
         // mutations under the correct section/module/page.
@@ -292,6 +315,21 @@ const createApiClient = (): AxiosInstance => {
           status: error.response?.status,
           data: error.response?.data,
         });
+      }
+
+      // Handle 401 Unauthorized - Token expired (Bypass for document/template password protection locks)
+      const errorData = error.response?.data as any;
+      const isUnlockEndpoint = originalRequest?.url?.includes('/unlock');
+      const isPasswordLock =
+        errorData?.isLocked ||
+        errorData?.code === 'PASSWORD_REQUIRED' ||
+        errorData?.code === 'INVALID_PASSWORD' ||
+        isUnlockEndpoint ||
+        (typeof errorData?.error === 'string' && errorData?.error.toLowerCase().includes('password'));
+
+      if (error.response?.status === 401 && isPasswordLock) {
+        const code = isUnlockEndpoint ? 'INVALID_PASSWORD' : (errorData?.code || 'PASSWORD_REQUIRED');
+        return Promise.reject(new ApiError(errorData?.error || 'Password invalid or required', 401, code, errorData));
       }
 
       // Handle 401 Unauthorized - Token expired

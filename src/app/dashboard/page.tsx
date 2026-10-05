@@ -86,6 +86,7 @@ import {
   SafetyCertificateFilled,
   GiftOutlined
 } from "@ant-design/icons";
+import { Ticket, Calendar as CalendarIcon, CloudUpload, Plus, Sprout, Code, ArrowRight, Target } from "lucide-react";
 import { useRouter } from "next/navigation";
 import dayjs from "dayjs";
 import ZukvoLoader from "@/components/common/ZukvoLoader";
@@ -629,6 +630,12 @@ function DashboardContent() {
   const completedTickets = displayedTickets.filter((t) =>
     ["completed", "live", "done"].includes(t.status?.toLowerCase()),
   ).length;
+  const closedTodayTickets = displayedTickets.filter((t) => {
+    const isClosed = ["completed", "live", "done"].includes(t.status?.toLowerCase());
+    if (!isClosed) return false;
+    const closedDate = t.updatedAt || t.completedAt || t.updated_at || t.closedAt || t.createdAt;
+    return closedDate ? dayjs(closedDate).isSame(dayjs(), "day") : false;
+  }).length;
   const inProgressTickets = displayedTickets.filter(
     (t) =>
       t.status?.toLowerCase() === "in_progress" ||
@@ -710,56 +717,135 @@ function DashboardContent() {
     onClick?: () => void;
   }) => {
     const trendColors: Record<string, { bg: string; fg: string }> = {
-      positive: { bg: token.colorSuccessBg, fg: token.colorSuccessTextHover || token.colorSuccess },
-      neutral: { bg: token.colorFillAlter, fg: token.colorTextSecondary },
-      warning: { bg: token.colorWarningBg, fg: token.colorWarningTextHover || token.colorWarning },
+      positive: { bg: token.colorSuccessBg || "#ECFDF5", fg: token.colorSuccessTextHover || "#059669" },
+      neutral: { bg: token.colorFillAlter || "#F1F5F9", fg: token.colorTextSecondary || "#64748B" },
+      warning: { bg: token.colorWarningBg || "#FEF3C7", fg: token.colorWarningTextHover || "#D97706" },
     };
-    const tc = trendColors[trendTone];
+    const tc = trendColors[trendTone] || trendColors.neutral;
+
     return (
       <div
         className="hover-scale"
-        style={{ background: token.colorBgContainer, borderRadius: 10, border: `1px solid ${token.colorBorderSecondary}`, padding: "8px 12px", cursor: onClick ? "pointer" : "default", display: "flex", flexDirection: "column", gap: 6, height: "100%" }}
+        style={{
+          background: token.colorBgContainer || "#FFFFFF",
+          borderRadius: 14,
+          border: `1px solid ${token.colorBorderSecondary || "#E2E8F0"}`,
+          boxShadow: "0 1px 3px 0 rgba(0, 0, 0, 0.03), 0 1px 2px -1px rgba(0, 0, 0, 0.02)",
+          padding: "11px 14px",
+          cursor: onClick ? "pointer" : "default",
+          display: "flex",
+          flexDirection: "column",
+          gap: 6,
+          height: "100%",
+          transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
+          position: "relative",
+          overflow: "hidden",
+        }}
         onClick={onClick}
       >
+        {/* Top accent bar */}
+        <div
+          style={{
+            position: "absolute",
+            top: 0,
+            left: 0,
+            right: 0,
+            height: 2.5,
+            background: accent,
+            borderRadius: "14px 14px 0 0",
+            opacity: 0.85,
+          }}
+        />
+
         {/* Top row: icon + eyebrow + arrow */}
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
             <div
               style={{
-                width: 20, height: 20, borderRadius: 4,
-                background: `${accent}14`,
-                border: `1px solid ${accent}33`,
-                display: "flex", alignItems: "center", justifyContent: "center",
-                color: accent, fontSize: 10,
+                width: 28,
+                height: 28,
+                borderRadius: 7,
+                background: `${accent}12`,
+                border: `1px solid ${accent}25`,
+                display: "inline-flex",
+                alignItems: "center",
+                justifyContent: "center",
+                color: accent,
+                fontSize: 13,
+                flexShrink: 0,
               }}
             >
               {icon}
             </div>
-            <span style={{ fontSize: 9, fontWeight: 700, color: token.colorTextSecondary, textTransform: "uppercase", letterSpacing: "0.5px" }}>
+            <span
+              style={{
+                fontSize: 12.5,
+                fontWeight: 600,
+                color: token.colorTextSecondary || "#64748B",
+                letterSpacing: "-0.1px",
+              }}
+            >
               {eyebrow}
             </span>
           </div>
-          <ArrowRightOutlined style={{ color: token.colorTextTertiary, fontSize: 9 }} />
+          <ArrowRightOutlined style={{ color: token.colorTextTertiary || "#94A3B8", fontSize: 11.5 }} />
         </div>
 
         {/* Value and subtle */}
-        <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 3, marginTop: 2 }}>
           <div style={{ display: "flex", alignItems: "baseline", gap: 6 }}>
-            <span style={{ fontSize: 15, fontWeight: 800, color: token.colorText, lineHeight: 1 }}>{value}</span>
+            <span
+              style={{
+                fontSize: 19,
+                fontWeight: 700,
+                color: token.colorText || "#0F172A",
+                lineHeight: 1.2,
+                letterSpacing: "-0.3px",
+              }}
+            >
+              {value}
+            </span>
           </div>
           {/* Subtle row */}
-          <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-            {trend && (
-              <span style={{ fontSize: 9, fontWeight: 700, color: tc.fg, background: tc.bg, padding: "1px 4px", borderRadius: 4, display: "inline-flex", alignItems: "center", gap: 2 }}>
-                {trend}
-              </span>
-            )}
-            {subtle && <span style={{ fontSize: 9, color: token.colorTextTertiary, fontWeight: 500 }}>{subtle}</span>}
-          </div>
+          {(trend || subtle) && (
+            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              {trend && (
+                <span
+                  style={{
+                    fontSize: 10.5,
+                    fontWeight: 600,
+                    color: tc.fg,
+                    background: tc.bg,
+                    padding: "2px 7px",
+                    borderRadius: 999,
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 2,
+                  }}
+                >
+                  {trend}
+                </span>
+              )}
+              {subtle && (
+                <span
+                  style={{
+                    fontSize: 11.5,
+                    color: token.colorTextTertiary || "#64748B",
+                    fontWeight: 400,
+                    whiteSpace: "nowrap",
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                  }}
+                >
+                  {subtle}
+                </span>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Mini chart below */}
-        {chart && <div style={{ marginTop: 0 }}>{chart}</div>}
+        {chart && <div style={{ marginTop: 2 }}>{chart}</div>}
       </div>
     );
   };
@@ -831,7 +917,7 @@ function DashboardContent() {
   const isHeroVisible = dashboardSettings?.heroSection !== false;
   const isQuickActionsVisible = dashboardSettings?.quickActions !== false;
   const isAttendanceStatsVisible = dashboardSettings?.attendanceStats !== false && hasAnySubscriptionFeature("my_hub_my_hub_general_attendance", "hrms_attendance");
-  const isMyTicketsVisible = dashboardSettings?.myTicketsProgress !== false && hasAnySubscriptionFeature("work_projects");
+  const isMyTicketsVisible = dashboardSettings?.myWorkProgress !== false && dashboardSettings?.myTicketsProgress !== false && hasAnySubscriptionFeature("work_projects");
   const isRecentTicketsVisible = dashboardSettings?.recentTickets !== false && hasAnySubscriptionFeature("work_projects");
   const isFreelancerStatsVisible = dashboardSettings?.freelancerStats !== false && hasAnySubscriptionFeature("work_squad");
   const isRecentLeadsVisible = dashboardSettings?.recentLeads !== false && hasAnySubscriptionFeature("crm_leads");
@@ -839,7 +925,8 @@ function DashboardContent() {
   const isCalendarVisible = dashboardSettings?.calendar !== false && hasAnySubscriptionFeature("home_home_general_calendar");
   const isCardSalarySlipVisible = dashboardSettings?.cardSalarySlip !== false && hasAnySubscriptionFeature("hrms_payroll_v2", "hrms_payroll");
   const isDailyAttendanceVisible = dashboardSettings?.dailyAttendanceCard !== false && hasAnySubscriptionFeature("my_hub_my_hub_general_attendance", "hrms_attendance");
-  const isMetricDailyUpdatesVisible = dashboardSettings?.metricDailyUpdates !== false && hasAnySubscriptionFeature("work_daily_updates");
+  const isMetricDailyAttendanceVisible = dashboardSettings?.metricDailyAttendance !== false && hasAnySubscriptionFeature("hrms_attendance", "my_hub_my_hub_general_attendance");
+  const isDailyUpdatesCardVisible = dashboardSettings?.dailyUpdatesCard !== false && dashboardSettings?.metricDailyUpdates !== false && hasAnySubscriptionFeature("work_daily_updates");
   const isMetricAvgHoursVisible = dashboardSettings?.metricAvgHours !== false && hasAnySubscriptionFeature("work_time_tracking");
   const isMetricMyTicketsVisible = dashboardSettings?.metricMyTickets !== false && hasAnySubscriptionFeature("work_projects");
   const isMetricTeamTodayVisible = dashboardSettings?.metricTeamToday !== false && hasAnySubscriptionFeature("hrms_attendance", "my_hub_my_hub_general_attendance");
@@ -922,7 +1009,7 @@ function DashboardContent() {
         style={{
           margin: "0 -24px",
           padding: "12px 32px 28px",
-          background: "var(--bg-pure-white)",
+          background: token.colorBgLayout,
           minHeight: "calc(100vh - 64px)",
         }}
       >
@@ -1131,10 +1218,232 @@ function DashboardContent() {
               </>
             ) : dashboardData ? (
               <>
+                {/* ─── Top Header Section: Motivational Banner (Left) & Quick Actions (Right) ─── */}
+                {(isHeroVisible || isQuickActionsVisible) && (
+                  <Row gutter={[12, 12]} align="stretch" style={{ marginBottom: 12 }}>
+                    {/* Motivational Banner Card (Left side) */}
+                    {isHeroVisible && (
+                      <Col xs={24} lg={isQuickActionsVisible ? 14 : 24} xl={isQuickActionsVisible ? 15 : 24}>
+                    <div
+                      style={{
+                        background: token.colorBgContainer,
+                        backgroundImage: `linear-gradient(125deg, ${token.colorPrimaryBg || "#EFF6FF"} 0%, ${token.colorBgContainer} 45%, ${token.colorFillAlter || "#F8FAFC"} 100%)`,
+                        borderRadius: 16,
+                        padding: "12px 20px",
+                        position: "relative",
+                        overflow: "hidden",
+                        minHeight: 90,
+                        height: "100%",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        gap: 14,
+                        boxShadow: "0 2px 8px -2px rgba(37, 99, 235, 0.08)",
+                        border: `1px solid ${token.colorBorderSecondary}`,
+                      }}
+                    >
+                      {/* Layered Mountain Landscape Background SVG */}
+                      <svg
+                        viewBox="0 0 800 120"
+                        preserveAspectRatio="none"
+                        style={{
+                          position: "absolute",
+                          bottom: 0,
+                          left: 0,
+                          width: "100%",
+                          height: "100%",
+                          pointerEvents: "none",
+                          zIndex: 0,
+                          opacity: 0.65,
+                        }}
+                      >
+                        <defs>
+                          <linearGradient id="dashMtnGrad1" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0%" stopColor={token.colorPrimary} stopOpacity="0.12" />
+                            <stop offset="100%" stopColor={token.colorPrimary} stopOpacity="0.02" />
+                          </linearGradient>
+                          <linearGradient id="dashMtnGrad2" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0%" stopColor="#818CF8" stopOpacity="0.15" />
+                            <stop offset="100%" stopColor="#818CF8" stopOpacity="0.02" />
+                          </linearGradient>
+                          <linearGradient id="dashMtnGrad3" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0%" stopColor="#38BDF8" stopOpacity="0.1" />
+                            <stop offset="100%" stopColor="#38BDF8" stopOpacity="0.01" />
+                          </linearGradient>
+                        </defs>
+                        <path d="M0,120 L150,55 L280,95 L420,35 L560,85 L700,40 L800,90 L800,120 Z" fill="url(#dashMtnGrad2)" />
+                        <path d="M0,120 L110,75 L240,40 L380,80 L510,30 L660,70 L800,45 L800,120 Z" fill="url(#dashMtnGrad3)" />
+                        <path d="M0,120 L0,95 Q140,60 300,90 Q480,115 620,75 Q720,50 800,80 L800,120 Z" fill="url(#dashMtnGrad1)" />
+                      </svg>
+
+                      {/* Heading & Subtitle */}
+                      <div style={{ position: "relative", zIndex: 1, minWidth: 0 }}>
+                        <h2
+                          style={{
+                            margin: 0,
+                            color: token.colorText,
+                            fontSize: 18,
+                            fontWeight: 800,
+                            letterSpacing: "-0.4px",
+                            lineHeight: 1.2,
+                          }}
+                        >
+                          Keep going! ✨
+                        </h2>
+                        <p
+                          style={{
+                            margin: "2px 0 0 0",
+                            color: token.colorTextSecondary,
+                            fontSize: 12,
+                            fontWeight: 500,
+                            letterSpacing: "-0.1px",
+                            lineHeight: 1.25,
+                          }}
+                        >
+                          You're doing great. Stay focused and make it count.
+                        </p>
+                      </div>
+
+                      {/* Quote Pill Badge */}
+                      <div
+                        style={{
+                          position: "relative",
+                          zIndex: 1,
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 6,
+                          background: token.colorBgContainer,
+                          boxShadow: "0 1px 3px rgba(0, 0, 0, 0.04)",
+                          padding: "5px 12px",
+                          borderRadius: 999,
+                          border: `1px solid ${token.colorBorderSecondary}`,
+                          whiteSpace: "nowrap",
+                          flexShrink: 0,
+                        }}
+                      >
+                        <Sprout size={14} color={token.colorPrimary} />
+                        <span
+                          style={{
+                            color: token.colorPrimary,
+                            fontSize: 11.5,
+                            fontWeight: 600,
+                            fontStyle: "italic",
+                            letterSpacing: "-0.2px",
+                          }}
+                        >
+                          "Progress, not perfection."
+                        </span>
+                      </div>
+                    </div>
+                      </Col>
+                    )}
+
+                    {/* Quick Actions (Right side) */}
+                    {isQuickActionsVisible && (
+                      <Col xs={24} lg={isHeroVisible ? 10 : 24} xl={isHeroVisible ? 9 : 24}>
+                      <div
+                        style={{
+                          display: "grid",
+                          gridTemplateColumns: "repeat(4, 1fr)",
+                          gap: 8,
+                          height: "100%",
+                          minHeight: 90,
+                        }}
+                      >
+                        {[
+                          {
+                            icon: <Ticket size={17} />,
+                            title: "Create Ticket",
+                            accentBg: "#EFF6FF",
+                            iconColor: "#2563EB",
+                            onClick: () => setIsCreateTicketModalOpen(true),
+                          },
+                          {
+                            icon: <CalendarIcon size={17} />,
+                            title: "Submit Updates",
+                            accentBg: "#ECFDF5",
+                            iconColor: "#059669",
+                            onClick: () => router.push("daily-updates/submit"),
+                          },
+                          {
+                            icon: <CloudUpload size={17} />,
+                            title: "Document Hub",
+                            accentBg: "#FEF3C7",
+                            iconColor: "#D97706",
+                            onClick: () => router.push("/documenthub"),
+                          },
+                          {
+                            icon: <Plus size={17} />,
+                            title: "Add Project",
+                            accentBg: "#F3E8FF",
+                            iconColor: "#7C3AED",
+                            onClick: () => router.push("/projects/manage"),
+                          },
+                        ].map((qa) => (
+                          <div
+                            key={qa.title}
+                            onClick={qa.onClick}
+                            className="dash-qa-tile"
+                            style={{
+                              background: token.colorBgContainer,
+                              border: `1px solid ${token.colorBorderSecondary}`,
+                              borderRadius: 14,
+                              padding: "8px 4px",
+                              display: "flex",
+                              flexDirection: "column",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              textAlign: "center",
+                              cursor: "pointer",
+                              transition: "all 0.22s cubic-bezier(0.4, 0, 0.2, 1)",
+                              boxShadow: "0 2px 6px rgba(0,0,0,0.02)",
+                              userSelect: "none",
+                            }}
+                          >
+                            <div
+                              className="dash-qa-icon-wrap"
+                              style={{
+                                width: 36,
+                                height: 36,
+                                borderRadius: 10,
+                                background: `${qa.iconColor}1A`,
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                color: qa.iconColor,
+                                marginBottom: 5,
+                                transition: "transform 0.22s ease",
+                              }}
+                            >
+                              {qa.icon}
+                            </div>
+                            <Text
+                              strong
+                              style={{
+                                fontSize: 11,
+                                color: token.colorText,
+                                lineHeight: 1.15,
+                                letterSpacing: "-0.2px",
+                                whiteSpace: "nowrap",
+                                overflow: "hidden",
+                                textOverflow: "ellipsis",
+                                maxWidth: "100%",
+                              }}
+                            >
+                              {qa.title}
+                            </Text>
+                          </div>
+                        ))}
+                      </div>
+                    </Col>
+                  )}
+                </Row>
+              )}
+
                 {/* ─── KPI Strip ──────────────────────────────────── */}
                 {(() => {
                   const visibleMetrics = [
-                    isMetricDailyUpdatesVisible,
+                    isMetricDailyAttendanceVisible,
                     isMetricAvgHoursVisible,
                     isMetricMyTicketsVisible,
                     isMetricTeamTodayVisible
@@ -1158,7 +1467,6 @@ function DashboardContent() {
                                 icon={<CheckSquareOutlined />}
                                 accent="#3B82F6"
                                 subtle="Open / Closed"
-                                chart={<Progress percent={totalT > 0 ? Math.round((closed / totalT) * 100) : 0} showInfo={false} size="small" strokeColor="#3B82F6" trailColor="#EFF6FF" />}
                                 onClick={() => router.push("/tickets/select")}
                               />
                             );
@@ -1193,7 +1501,7 @@ function DashboardContent() {
                       )}
 
                       {/* 3. Daily Attendance (BOD / EOD original spot) */}
-                      {isMetricDailyUpdatesVisible && (
+                      {isMetricDailyAttendanceVisible && (
                         <Col xs={24} sm={12} lg={metricsSpan}>
                           {(() => {
                             const clockInTime = todayAttendance?.clockInTime;
@@ -1259,492 +1567,776 @@ function DashboardContent() {
                   );
                 })()}
 
-                {/* ─── Main Grid ──────────────────────────────────── */}
+                {/* ─── Main Grid Layout ─── */}
                 {(() => {
-                  const visibleKeys = [
-                    isDailyAttendanceVisible && "attendance",
-                    isCalendarVisible && "calendar",
-                    isQuickActionsVisible && "quickActions",
-                    isCardSalarySlipVisible && "salarySlip",
-                    isMyTicketsVisible && "tickets",
-                    isRecentTicketsVisible && "recentTickets"
-                  ].filter(Boolean) as string[];
-                  void visibleKeys;
+                  const hasRightCards = isDailyAttendanceVisible || isMyTicketsVisible || isDailyUpdatesCardVisible || isRecentTicketsVisible;
+
+                  if (!isCalendarVisible && !hasRightCards) return null;
 
                   return (
                     <>
-                      {/* ─── Middle Row: Left=Meetings (16), Right=Quick Actions+Attendance (8) ─── */}
-                      <Row gutter={[12, 12]} style={{ marginBottom: 12 }}>
+                      <Row gutter={[12, 12]} style={{ marginBottom: 12 }} align="stretch">
 
-                        {/* LEFT COL: Today's Meetings */}
-                        <Col xs={24} lg={10}>
-                          {isCalendarVisible ? (
+                        {/* Today's Schedule (Left Column) */}
+                        {isCalendarVisible && (
+                          <Col xs={24} lg={hasRightCards ? 8 : 24} xl={hasRightCards ? 8 : 24}>
                             <Card
-                              style={{ ...cardBase, minHeight: 250, display: "flex", flexDirection: "column", position: "relative", overflow: "hidden" }}
-                              styles={{ body: { padding: 0, flex: 1, display: "flex", flexDirection: "column", overflow: "hidden", position: "relative", zIndex: 1 } }}
-                              title={
-                                <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
-                                  <div style={{ width: 28, height: 28, borderRadius: 8, background: `#3B82F614`, border: `1px solid #3B82F633`, display: "inline-flex", alignItems: "center", justifyContent: "center", color: "#3B82F6", fontSize: 13, flexShrink: 0 }}>
-                                    <VideoCameraOutlined />
+                              style={{
+                                ...cardBase,
+                                minHeight: 414,
+                                height: "100%",
+                                display: "flex",
+                                flexDirection: "column",
+                                position: "relative",
+                                overflow: "hidden",
+                                borderRadius: 16,
+                              }}
+                              styles={{ body: { padding: 20, height: "100%", display: "flex", flexDirection: "column", justifyContent: "space-between" } }}
+                            >
+                              <div>
+                                {/* Header */}
+                                <div
+                                  style={{
+                                    display: "flex",
+                                    alignItems: "center",
+                                    justifyContent: "space-between",
+                                    marginBottom: 14,
+                                    gap: 8,
+                                  }}
+                                >
+                                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                                    <div
+                                      style={{
+                                        width: 36,
+                                        height: 36,
+                                        borderRadius: "50%",
+                                        background: token.colorPrimaryBg,
+                                        border: `1px solid ${token.colorBorderSecondary}`,
+                                        display: "inline-flex",
+                                        alignItems: "center",
+                                        justifyContent: "center",
+                                        color: token.colorPrimary,
+                                        flexShrink: 0,
+                                      }}
+                                    >
+                                      <CalendarIcon size={18} />
+                                    </div>
+                                    <div style={{ display: "flex", flexDirection: "column", gap: 1 }}>
+                                      <span
+                                        style={{
+                                          fontSize: 16,
+                                          fontWeight: 700,
+                                          color: token.colorText,
+                                          letterSpacing: "-0.3px",
+                                          lineHeight: 1.2,
+                                        }}
+                                      >
+                                        Today's Schedule
+                                      </span>
+                                      <span
+                                        style={{
+                                          fontSize: 11.5,
+                                          color: token.colorTextSecondary,
+                                          fontWeight: 400,
+                                        }}
+                                      >
+                                        Your meetings and tasks for today.
+                                      </span>
+                                    </div>
                                   </div>
-                                  <div style={{ display: "flex", flexDirection: "column", gap: 2, minWidth: 0 }}>
-                                    <span style={{ fontSize: 14, fontWeight: 600, color: token.colorText, letterSpacing: "-0.1px", lineHeight: 1.2 }}>Today's Meetings</span>
-                                    <span style={{ fontSize: 11, color: token.colorTextSecondary, fontWeight: 400 }}>Your scheduled meetings for today.</span>
+
+                                  <div
+                                    onClick={() => router.push("/calendar")}
+                                    style={{
+                                      color: token.colorPrimary,
+                                      fontWeight: 600,
+                                      fontSize: 12,
+                                      cursor: "pointer",
+                                      display: "inline-flex",
+                                      alignItems: "center",
+                                      gap: 4,
+                                      userSelect: "none",
+                                      flexShrink: 0,
+                                    }}
+                                    className="hover-scale"
+                                  >
+                                    <span>View Calendar</span>
+                                    <ArrowRight size={13} />
                                   </div>
                                 </div>
-                              }
-                              extra={
-                                connectedProvider ? (
-                                  <Space size={4}>
-                                    <Button type="text" size="small" icon={<SyncOutlined style={{ fontSize: 11 }} />} onClick={() => syncCalendar(connectedProvider)} loading={calendarSyncing} style={{ fontSize: 11 }}>Sync</Button>
-                                    <Button type="link" size="small" onClick={() => router.push("/calendar")} style={{ fontSize: 11, fontWeight: 600 }}>View All →</Button>
-                                  </Space>
-                                ) : (
-                                  <Button type="link" size="small" onClick={() => router.push("/integrations")} style={{ fontSize: 11 }}>Connect →</Button>
-                                )
-                              }
-                            >
-                              <div style={{ flex: 1, overflowY: "auto", padding: 0, position: "relative", zIndex: 1 }} className="no-scrollbar">
-                                {calendarLoading ? (
-                                  <div style={{ padding: 16 }}><Skeleton active paragraph={{ rows: 3 }} /></div>
-                                ) : !connectedProvider ? (
-                                  <div style={{ padding: "40px 24px", textAlign: "center" }}>
-                                    <div style={{ width: 52, height: 52, borderRadius: 14, background: token.colorFillAlter, margin: "0 auto 12px", display: "inline-flex", alignItems: "center", justifyContent: "center", color: token.colorTextTertiary }}>
-                                      <VideoCameraOutlined style={{ fontSize: 22 }} />
+
+                                {/* Timeline Schedule List */}
+                                <div className="no-scrollbar" style={{ overflowY: "auto", maxHeight: 310, paddingRight: 2 }}>
+                                  {calendarLoading ? (
+                                    <div style={{ padding: "8px 0" }}>
+                                      <Skeleton active paragraph={{ rows: 4 }} />
                                     </div>
-                                    <Text type="secondary" style={{ fontSize: 12, display: "block", marginBottom: 12 }}>Connect your calendar to see today's meetings</Text>
-                                    <Button type="primary" size="small" onClick={() => router.push("/integrations")} style={{ borderRadius: 8 }}>Connect Calendar</Button>
-                                  </div>
-                                ) : todaysMeetings.length > 0 ? (
-                                  (() => {
-                                    const now = dayjs();
-                                    const sorted = [...todaysMeetings].sort((a: any, b: any) => dayjs(a.startTime).valueOf() - dayjs(b.startTime).valueOf());
-                                    const isLiveMtg = (m: any) => dayjs(m.startTime).isBefore(now) && dayjs(m.endTime).isAfter(now);
-                                    const liveMeeting = sorted.find(isLiveMtg);
-                                    const upcoming = sorted.filter((m: any) => dayjs(m.startTime).isAfter(now));
-                                    const heroMeeting = liveMeeting || upcoming[0];
-                                    const restMeetings = sorted.filter((m: any) => m !== heroMeeting);
-                                    const formatRelative = (m: any) => {
-                                      const s = dayjs(m.startTime);
-                                      const e = dayjs(m.endTime);
-                                      if (s.isBefore(now) && e.isAfter(now)) return `${e.diff(now, "minute")}m left`;
-                                      if (s.isAfter(now)) { const diff = s.diff(now, "minute"); if (diff < 60) return `in ${diff}m`; const h = Math.floor(diff / 60); const mm = diff % 60; return mm ? `in ${h}h ${mm}m` : `in ${h}h`; }
-                                      return "Finished";
+                                  ) : (() => {
+                                    const sampleMeetings = [
+                                      { id: "s1", title: "Team Standup", startTime: dayjs().hour(9).minute(30).toISOString(), endTime: dayjs().hour(10).minute(0).toISOString(), location: "Online", meetingLink: "https://zoom.us" },
+                                      { id: "s2", title: "Project Discussion", startTime: dayjs().hour(11).minute(0).toISOString(), endTime: dayjs().hour(12).minute(0).toISOString(), location: "Online", meetingLink: "https://meet.google.com" },
+                                      { id: "s3", title: "Client Call", startTime: dayjs().hour(14).minute(0).toISOString(), endTime: dayjs().hour(14).minute(45).toISOString(), location: "Online", meetingLink: "https://zoom.us" },
+                                      { id: "s4", title: "Design Sync", startTime: dayjs().hour(16).minute(30).toISOString(), endTime: dayjs().hour(17).minute(30).toISOString(), location: "Online", meetingLink: "https://meet.google.com" },
+                                    ];
+
+                                    const meetingsList = (todaysMeetings && todaysMeetings.length > 0)
+                                      ? todaysMeetings
+                                      : sampleMeetings;
+
+                                    const sorted = [...meetingsList].sort(
+                                      (a: any, b: any) => dayjs(a.startTime).valueOf() - dayjs(b.startTime).valueOf()
+                                    );
+                                    const displayMeetings = sorted.slice(0, 4);
+
+                                    const getPlatformMeta = (meeting: any) => {
+                                      const locName = meeting.location && !meeting.location.startsWith("http") ? meeting.location : "Online";
+                                      return {
+                                        name: locName,
+                                        icon: <VideoCameraOutlined style={{ fontSize: 15 }} />,
+                                        accent: token.colorPrimary,
+                                        bg: token.colorPrimaryBg,
+                                      };
                                     };
+
+                                    const formatDuration = (start: any, end: any) => {
+                                      if (!start || !end) return "30 min";
+                                      const diffMin = Math.max(1, dayjs(end).diff(dayjs(start), "minute"));
+                                      if (diffMin < 60) return `${diffMin} min`;
+                                      const hrs = Math.floor(diffMin / 60);
+                                      const mins = diffMin % 60;
+                                      return mins ? `${hrs} hr ${mins} min` : `${hrs} hr`;
+                                    };
+
+                                    const getMeetingStatus = (start: any, end: any) => {
+                                      const now = dayjs();
+                                      const s = dayjs(start);
+                                      const e = dayjs(end);
+                                      if (s.isBefore(now) && e.isAfter(now)) {
+                                        return { label: "Live Now", bg: token.colorSuccessBg, color: token.colorSuccess };
+                                      }
+                                      if (s.isAfter(now)) {
+                                        return { label: "Upcoming", bg: token.colorPrimaryBg, color: token.colorPrimary };
+                                      }
+                                      return { label: "Completed", bg: token.colorFillAlter, color: token.colorTextSecondary };
+                                    };
+
                                     return (
-                                      <div style={{ display: "flex", flexDirection: "column" }}>
-                                        {heroMeeting && (
-                                          <div style={{ padding: "14px 20px", borderBottom: `1px solid ${token.colorBorderSecondary}`, background: liveMeeting ? token.colorPrimaryBg : "transparent" }}>
-                                            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
-                                              {liveMeeting && <div style={{ width: 6, height: 6, borderRadius: "50%", background: "#3B82F6", animation: "pulse 2s infinite" }} />}
-                                              <Text type="secondary" style={{ fontSize: 11, fontWeight: 600, letterSpacing: "0.4px" }}>
-                                                {liveMeeting ? "● LIVE NOW" : `UP NEXT · ${formatRelative(heroMeeting)}`}
-                                              </Text>
+                                      <div style={{ display: "flex", flexDirection: "column", position: "relative" }}>
+                                        {/* Connecting vertical timeline line */}
+                                        <div
+                                          style={{
+                                            position: "absolute",
+                                            left: 66,
+                                            top: 14,
+                                            bottom: 14,
+                                            width: 1.5,
+                                            background: token.colorBorderSecondary,
+                                            zIndex: 0,
+                                          }}
+                                        />
+
+                                        {displayMeetings.map((m: any, idx: number) => {
+                                          const timeStr = dayjs(m.startTime).format("hh:mm A");
+                                          const durationStr = formatDuration(m.startTime, m.endTime);
+                                          const meta = getPlatformMeta(m);
+                                          const status = getMeetingStatus(m.startTime, m.endTime);
+
+                                          return (
+                                            <div
+                                              key={m.id || idx}
+                                              style={{
+                                                display: "flex",
+                                                alignItems: "center",
+                                                gap: 10,
+                                                padding: "9px 0",
+                                                position: "relative",
+                                                zIndex: 1,
+                                              }}
+                                            >
+                                              {/* Time Label (Left) */}
+                                              <div
+                                                style={{
+                                                  width: 58,
+                                                  fontSize: 11.5,
+                                                  fontWeight: 600,
+                                                  color: token.colorTextSecondary,
+                                                  textAlign: "right",
+                                                  flexShrink: 0,
+                                                  letterSpacing: "-0.2px",
+                                                  fontVariantNumeric: "tabular-nums",
+                                                }}
+                                              >
+                                                {timeStr}
+                                              </div>
+
+                                              {/* Timeline Dot */}
+                                              <div
+                                                style={{
+                                                  width: 7,
+                                                  height: 7,
+                                                  borderRadius: "50%",
+                                                  background: status.label === "Live Now" ? token.colorSuccess : token.colorPrimary,
+                                                  flexShrink: 0,
+                                                  boxShadow: status.label === "Live Now" ? `0 0 0 3px ${token.colorSuccessBg}` : "none",
+                                                }}
+                                              />
+
+                                              {/* Platform Icon Badge */}
+                                              <div
+                                                style={{
+                                                  width: 36,
+                                                  height: 36,
+                                                  borderRadius: "50%",
+                                                  background: meta.bg,
+                                                  display: "inline-flex",
+                                                  alignItems: "center",
+                                                  justifyContent: "center",
+                                                  color: meta.accent,
+                                                  flexShrink: 0,
+                                                }}
+                                              >
+                                                {meta.icon}
+                                              </div>
+
+                                              {/* Meeting Title & Subtext */}
+                                              <div style={{ flex: 1, minWidth: 0 }}>
+                                                <Text
+                                                  strong
+                                                  style={{
+                                                    fontSize: 13,
+                                                    color: token.colorText,
+                                                    display: "block",
+                                                    lineHeight: 1.25,
+                                                    letterSpacing: "-0.2px",
+                                                    whiteSpace: "nowrap",
+                                                    overflow: "hidden",
+                                                    textOverflow: "ellipsis",
+                                                  }}
+                                                >
+                                                  {m.title}
+                                                </Text>
+                                                <Text
+                                                  style={{
+                                                    fontSize: 11,
+                                                    color: token.colorTextSecondary,
+                                                    lineHeight: 1.2,
+                                                    marginTop: 2,
+                                                    display: "block",
+                                                  }}
+                                                >
+                                                  {durationStr} • Online
+                                                </Text>
+                                              </div>
+
+                                              {/* Status Badge (Live Now / Upcoming / Completed) */}
+                                              <span
+                                                onClick={(e) => {
+                                                  const link = m.meetingLink || m.hangoutLink || (typeof m.location === 'string' && m.location.startsWith('http') ? m.location : null);
+                                                  if (link) {
+                                                    e.stopPropagation();
+                                                    const targetUrl = link.startsWith('http') ? link : `https://${link}`;
+                                                    window.open(targetUrl, "_blank");
+                                                  }
+                                                }}
+                                                style={{
+                                                  background: status.bg,
+                                                  color: status.color,
+                                                  padding: "4px 10px",
+                                                  borderRadius: 999,
+                                                  fontSize: 11,
+                                                  fontWeight: 600,
+                                                  flexShrink: 0,
+                                                  cursor: (m.meetingLink || m.hangoutLink) ? "pointer" : "default",
+                                                  display: "inline-flex",
+                                                  alignItems: "center",
+                                                  gap: 4,
+                                                }}
+                                                className={(m.meetingLink || m.hangoutLink) ? "hover-scale" : ""}
+                                              >
+                                                {status.label === "Live Now" && (
+                                                  <span
+                                                    style={{
+                                                      width: 6,
+                                                      height: 6,
+                                                      borderRadius: "50%",
+                                                      background: token.colorSuccess,
+                                                      display: "inline-block",
+                                                    }}
+                                                  />
+                                                )}
+                                                {status.label}
+                                              </span>
                                             </div>
-                                            <Text strong style={{ fontSize: 14, display: "block", color: token.colorText, marginBottom: 2 }}>{heroMeeting.title}</Text>
-                                            <Text type="secondary" style={{ fontSize: 12 }}>{dayjs(heroMeeting.startTime).format("h:mm A")} – {dayjs(heroMeeting.endTime).format("h:mm A")}</Text>
-                                          </div>
-                                        )}
-                                        {restMeetings.map((m: any) => (
-                                          <div key={m.id} style={{ padding: "12px 20px", display: "flex", alignItems: "center", gap: 14, borderBottom: `1px solid ${token.colorBorderSecondary}` }}>
-                                            <div style={{ width: 3, height: 36, borderRadius: 999, background: "#3B82F6", flexShrink: 0 }} />
-                                            <div style={{ minWidth: 0, flex: 1 }}>
-                                              <Text style={{ fontSize: 13, display: "block", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", fontWeight: 500 }}>{m.title}</Text>
-                                              <Text type="secondary" style={{ fontSize: 11 }}>{dayjs(m.startTime).format("h:mm A")} – {dayjs(m.endTime).format("h:mm A")}</Text>
-                                            </div>
-                                            <Text type="secondary" style={{ fontSize: 11, fontWeight: 600, whiteSpace: "nowrap" }}>{formatRelative(m)}</Text>
-                                          </div>
-                                        ))}
+                                          );
+                                        })}
                                       </div>
                                     );
-                                  })()
-                                ) : (
-                                  <div style={{ padding: "40px 24px", textAlign: "center" }}>
-                                    <Text type="secondary" style={{ fontSize: 12 }}>No meetings scheduled for today.</Text>
-                                  </div>
-                                )}
-                              </div>
-                            </Card>
-                          ) : (
-                            <div style={{ minHeight: 250 }} />
-                          )}
-                        </Col>
-
-                        {/* Daily Updates */}
-                        {isMetricDailyUpdatesVisible && (
-                          <Col xs={24} md={12} lg={7}>
-                            <Card
-                              style={{ ...cardBase, height: "100%" }}
-                              styles={{ body: { padding: 12, height: "100%", display: "flex", flexDirection: "column" } }}
-                              title={
-                                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                                    <div style={{ width: 30, height: 30, borderRadius: 8, background: "#F59E0B14", border: "1px solid #F59E0B33", display: "flex", alignItems: "center", justifyContent: "center", color: "#F59E0B", fontSize: 16 }}>
-                                      <ThunderboltFilled />
-                                    </div>
-                                    <span style={{ fontSize: 14, fontWeight: 700, color: token.colorText, letterSpacing: "-0.2px" }}>Daily Updates</span>
-                                  </div>
-                                  <Button type="link" size="small" onClick={() => router.push("/daily-updates/submit")} style={{ fontSize: 12, fontWeight: 600, letterSpacing: "-0.1px" }}>View All</Button>
+                                  })()}
                                 </div>
-                              }
-                            >
-                              <div style={{ display: "flex", gap: 8 }}>
-                                {[
-                                  { label: "BOD", state: todayUpdates.bod, date: "Today · " + dayjs().format("MMM DD") },
-                                  { label: "EOD", state: todayUpdates.eod, date: "Today · " + dayjs().format("MMM DD") },
-                                ].map((item) => (
-                                  <div
-                                    key={item.label}
-                                    style={{ flex: 1, minWidth: 0, padding: "12px", borderRadius: 10, background: item.state ? "#10B98114" : token.colorBgContainer, border: `1px solid ${item.state ? "#10B98133" : token.colorBorderSecondary}`, display: "flex", flexDirection: "column", gap: 6 }}
-                                  >
-                                    <Text style={{ fontSize: 11, fontWeight: 700, color: token.colorTextSecondary, letterSpacing: "1px" }}>{item.label}</Text>
-                                    <div style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 13, fontWeight: 700, color: item.state ? token.colorSuccess : token.colorWarning }}>
-                                      <span style={{ width: 8, height: 8, borderRadius: "50%", background: item.state ? "#10B981" : "#F59E0B", display: "inline-block" }} />
-                                      {item.state ? "Submitted" : "Pending"}
-                                    </div>
-                                    <Text style={{ fontSize: 11, color: token.colorTextTertiary }}>{item.date}</Text>
-                                  </div>
-                                ))}
                               </div>
-                            </Card>
-                          </Col>
-                        )}
 
-                        {/* RIGHT COL: Quick Actions */}
-                        <Col xs={24} md={12} lg={7}>
-
-                          {/* Quick Actions */}
-                          {isQuickActionsVisible && (() => {
-                            const accentQA = "#10B981";
-                            const quickActions = [
-                              { icon: <PlusCircleOutlined />, title: "Create Ticket", desc: "Log a new task or issue", accent: "#3B82F6", onClick: () => setIsCreateTicketModalOpen(true) },
-                              { icon: <FormOutlined />, title: "Submit Updates", desc: "BOD / EOD", accent: "#8B5CF6", onClick: () => router.push("/daily-updates") },
-                              { icon: <FolderOpenOutlined />, title: "Document Hub", desc: "Access company files", accent: "#10B981", onClick: () => router.push("/documenthub") },
-                              { icon: <AppstoreOutlined />, title: "Projects", desc: "Manage your projects", accent: "#F59E0B", onClick: () => router.push("/projects/manage") },
-                            ];
-                            return (
-                              <Card
-                                style={{ ...cardBase, position: "relative", overflow: "hidden", height: "100%" }}
-                                styles={{ body: { padding: 12, position: "relative", zIndex: 1 } }}
-                                title={
-                                  <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                                      <div style={{ width: 30, height: 30, borderRadius: 8, background: `${accentQA}14`, border: `1px solid ${accentQA}33`, display: "flex", alignItems: "center", justifyContent: "center", color: "#10B981", fontSize: 16 }}>
-                                        <ThunderboltFilled />
-                                      </div>
-                                      <span style={{ fontSize: 14, fontWeight: 700, color: token.colorText, letterSpacing: "-0.2px" }}>Quick Actions</span>
-                                    </div>
-                                    <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.4px", color: accentQA, background: `${accentQA}14`, border: `1px solid ${accentQA}33`, padding: "2px 7px", borderRadius: 999 }}>SHORTCUTS</span>
-                                  </div>
-                                }
+                              {/* Footer Banner Bar */}
+                              <div
+                                onClick={() => router.push("/calendar")}
+                                style={{
+                                  marginTop: 10,
+                                  background: token.colorFillAlter,
+                                  border: `1px solid ${token.colorBorderSecondary}`,
+                                  borderRadius: 12,
+                                  padding: "9px 12px",
+                                  display: "flex",
+                                  alignItems: "center",
+                                  justifyContent: "space-between",
+                                  cursor: "pointer",
+                                  transition: "all 0.2s ease",
+                                }}
+                                className="hover-scale"
                               >
-                                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-                                  {quickActions.map((a) => (
-                                    <div
-                                      key={a.title}
-                                      onClick={a.onClick}
-                                      className="dash-qa-row hover-scale"
-                                      style={{ cursor: "pointer", display: "flex", alignItems: "center", gap: 8, padding: "10px 10px", borderRadius: 10, border: `1px solid ${token.colorBorderSecondary}`, background: token.colorBgContainer, position: "relative", overflow: "hidden" }}
-                                    >
-                                      <div style={{ width: 30, height: 30, borderRadius: 8, background: `${a.accent}10`, display: "inline-flex", alignItems: "center", justifyContent: "center", color: a.accent, fontSize: 14, flexShrink: 0 }}>{a.icon}</div>
-                                      <div style={{ flex: 1, minWidth: 0 }}>
-                                        <Text strong style={{ fontSize: 12, color: token.colorText, display: "block", lineHeight: 1.2, letterSpacing: "-0.2px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{a.title}</Text>
-                                        <Text type="secondary" style={{ fontSize: 10, lineHeight: 1.2, color: token.colorTextSecondary, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{a.desc}</Text>
-                                      </div>
-                                      <ArrowRightOutlined style={{ fontSize: 10, color: token.colorTextTertiary, flexShrink: 0 }} />
-                                    </div>
-                                  ))}
-                                </div>
-                              </Card>
-                            );
-                          })()}
-
-                        </Col>
-                      </Row>
-
-                      <BreakPickerModal open={breakModalOpen} loading={isClocking} onCancel={() => setBreakModalOpen(false)} onConfirm={async (bt, r) => { await handlePause(bt, r); setBreakModalOpen(false); }} />
-
-
-
-                      {/* Salary Slip full-width row */}
-                      {isCardSalarySlipVisible && (
-                        <Row gutter={[12, 12]} style={{ marginBottom: 12 }}>
-                          <Col xs={24}>
-                            <Card style={{ ...cardBase, minHeight: 200, display: "flex", flexDirection: "column" }} styles={{ body: { padding: 0, flex: 1, display: "flex", flexDirection: "column", minHeight: 0 } }}>
-                              {renderSalarySlip()}
-                            </Card>
-                          </Col>
-                        </Row>
-                      )}
-
-                      {/* ─── Bottom Row: Daily Updates | My Work Progress | Recent Tickets ─── */}
-                      <Row gutter={[12, 12]} align="stretch">
-
-                        {/* MIDDLE COL: Daily Updates */}
-                        {isDailyAttendanceVisible && (
-                          <Col xs={24} md={12} lg={7}>
-                            <Card
-                              style={{ ...cardBase, background: isWorking ? token.colorPrimaryBg : isPaused ? "#FFFBEB" : token.colorBgContainer, overflow: "hidden", position: "relative", height: 250, display: "flex", flexDirection: "column" }}
-                              styles={{ body: { padding: 10, display: "flex", flexDirection: "column", flex: 1 } }}
-                              title={
-                                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                                    <div style={{ width: 30, height: 30, borderRadius: 8, background: "#EEF2FF", border: "1px solid #E0E7FF", display: "flex", alignItems: "center", justifyContent: "center", color: "#4F46E5", fontSize: 16 }}>
-                                      <ClockCircleOutlined />
-                                    </div>
-                                    <span style={{ fontSize: 14, fontWeight: 700, color: token.colorText, letterSpacing: "-0.2px" }}>Daily Attendance</span>
+                                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                                  <div
+                                    style={{
+                                      width: 26,
+                                      height: 26,
+                                      borderRadius: "50%",
+                                      background: token.colorPrimaryBg,
+                                      display: "flex",
+                                      alignItems: "center",
+                                      justifyContent: "center",
+                                      color: token.colorPrimary,
+                                      flexShrink: 0,
+                                    }}
+                                  >
+                                    <CalendarIcon size={14} />
                                   </div>
-                                  <Button type="link" size="small" onClick={() => router.push("/my-hub/attendance")} style={{ fontSize: 12, fontWeight: 600, letterSpacing: "-0.1px" }}>View Details →</Button>
+                                  <span style={{ fontSize: 12, fontWeight: 600, color: token.colorTextSecondary, letterSpacing: "-0.1px" }}>
+                                    {(() => {
+                                      const totalCount = (todaysMeetings && todaysMeetings.length > 0) ? todaysMeetings.length : 4;
+                                      return totalCount > 4
+                                        ? `${totalCount - 4} more meeting${totalCount - 4 > 1 ? "s" : ""} today`
+                                        : `${totalCount} meeting${totalCount > 1 ? "s" : ""} scheduled today`;
+                                    })()}
+                                  </span>
                                 </div>
-                              }
-                            >
-                              {todayAttendance ? (() => {
-                                const TARGET_HOURS = 8;
-                                const parts = (workDuration || "00:00:00").split(":");
-                                const elapsedSec = (parseInt(parts[0] || "0", 10) || 0) * 3600 + (parseInt(parts[1] || "0", 10) || 0) * 60 + (parseInt(parts[2] || "0", 10) || 0);
-                                const targetSec = TARGET_HOURS * 3600;
-                                const progressPct = Math.min(100, Math.round((elapsedSec / targetSec) * 100));
-                                const isActive = isWorking;
-                                const ringColor = isWorking ? token.colorPrimary : isPaused ? "#F59E0B" : notStarted ? token.colorTextTertiary : "#10B981";
-                                const wh = parts[0] || "0";
-                                const wm = parts[1] || "0";
-                                const totalBreakMin = todayAttendance?.totalBreakMinutes ?? 0;
-                                const lateMin = todayAttendance?.lateMinutes ?? 0;
-                                const earlyLeaveMin = todayAttendance?.earlyLeaveMinutes ?? 0;
-                                return (
-                                  <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
-                                    {/* Main Content (Circle + Breakdown) */}
-                                    <div style={{ display: "flex", gap: 16, alignItems: "center", marginBottom: 12 }}>
-                                      {/* Circular progress */}
-                                      <div style={{ position: "relative", flexShrink: 0 }}>
-                                        <Progress
-                                          type="circle"
-                                          percent={progressPct}
-                                          size={94}
-                                          strokeWidth={8}
-                                          strokeLinecap="round"
-                                          strokeColor={isActive ? { "0%": token.colorPrimary, "100%": "#3B82F6" } : ringColor}
-                                          trailColor={token.colorFillAlter}
-                                          format={() => (
-                                            <div style={{ textAlign: "center" }}>
-                                              <div style={{ fontSize: 14, fontWeight: 800, lineHeight: 1, color: isActive ? token.colorPrimary : token.colorText, letterSpacing: "-0.3px", fontVariantNumeric: "tabular-nums" }}>{wh}h {wm}m</div>
-                                              <div style={{ fontSize: 9, color: token.colorTextTertiary, fontWeight: 600, marginTop: 4, letterSpacing: "-0.1px" }}>Total Hours</div>
-                                            </div>
-                                          )}
-                                        />
-                                      </div>
-
-                                      {/* Breakdown rows */}
-                                      <div style={{ display: "flex", flexDirection: "column", gap: 6, flex: 1, minWidth: 0 }}>
-                                        {[
-                                          { label: "Working", color: "#3B82F6", value: `${wh}h ${wm}m` },
-                                          { label: "Break", color: "#10B981", value: totalBreakMin > 0 ? `${totalBreakMin}m` : "0m" },
-                                          { label: "Late", color: "#F59E0B", value: lateMin > 0 ? `${lateMin}m` : "0m" },
-                                          { label: "Early Leave", color: "#EF4444", value: earlyLeaveMin > 0 ? `${earlyLeaveMin}m` : "0m" },
-                                        ].map((row) => (
-                                          <div key={row.label} style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                                            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                                              <span style={{ width: 6, height: 6, borderRadius: "50%", background: row.color, display: "inline-block", flexShrink: 0 }} />
-                                              <Text style={{ fontSize: 12, color: token.colorTextSecondary, fontWeight: 500, letterSpacing: "-0.2px" }}>{row.label}</Text>
-                                            </div>
-                                            <Text strong style={{ fontSize: 13, fontVariantNumeric: "tabular-nums", color: token.colorText, letterSpacing: "-0.3px" }}>{row.value}</Text>
-                                          </div>
-                                        ))}
-                                      </div>
-                                    </div>
-
-                                    {/* Separator */}
-                                    <div style={{ height: 1, background: token.colorBorderSecondary, margin: "0 0 12px 0", flexShrink: 0 }} />
-
-                                    {/* Action buttons */}
-                                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginTop: 0 }}>
-                                      {notStarted ? (
-                                        <Button type="primary" icon={<PlayCircleOutlined />} onClick={handleClockIn} loading={isClocking} style={{ borderRadius: 8, height: 36, fontWeight: 600, fontSize: 13, boxShadow: "none", border: "none", gridColumn: "1 / -1", letterSpacing: "-0.1px" }}>Start Workday</Button>
-                                      ) : isComplete ? (
-                                        <div style={{ padding: "8px 12px", borderRadius: 8, background: "#ECFDF5", border: "1px solid #A7F3D0", display: "flex", alignItems: "center", justifyContent: "center", gap: 6, color: "#047857", fontWeight: 600, fontSize: 13, gridColumn: "1 / -1", letterSpacing: "-0.1px" }}><CheckCircleFilled /><span>Shift Complete!</span></div>
-                                      ) : (
-                                        <>
-                                          {isWorking
-                                            ? <Button block icon={<PauseCircleOutlined />} onClick={() => setBreakModalOpen(true)} loading={isClocking} style={{ borderRadius: 8, height: 36, fontWeight: 600, fontSize: 13, color: "#B45309", borderColor: "#FDE047", background: "#FEF9C3", boxShadow: "none", letterSpacing: "-0.1px" }}>Pause</Button>
-                                            : <Button type="primary" block icon={<CaretRightOutlined />} onClick={handleResume} loading={isClocking} style={{ borderRadius: 8, height: 36, fontWeight: 600, fontSize: 13, background: token.colorPrimary, border: "none", boxShadow: "none", letterSpacing: "-0.1px" }}>Resume</Button>
-                                          }
-                                          <div style={{ display: "contents" }}><ConfirmDialog tone="warning" icon={<CheckSquareOutlined />} title="Complete your day?" description={`You've worked ${workDuration}. You won't be able to clock in again today.`} confirmText="Yes, complete day" placement="topRight" onConfirm={handleComplete}>
-                                            <Button block icon={<CheckSquareOutlined />} loading={isClocking} style={{ borderRadius: 8, height: 36, fontWeight: 600, fontSize: 13, color: "#047857", borderColor: "#6EE7B7", background: "#ECFDF5", boxShadow: "none", letterSpacing: "-0.1px" }}>Day Complete</Button>
-                                          </ConfirmDialog></div>
-                                        </>
-                                      )}
-                                    </div>
-                                  </div>
-                                );
-                              })() : (
-                                <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 16 }}>
-                                  <Skeleton.Avatar active size={100} shape="circle" />
-                                  <Skeleton active paragraph={{ rows: 2 }} style={{ width: "100%" }} />
-                                  <Button type="primary" icon={<PlayCircleOutlined />} onClick={handleClockIn} loading={isClocking} style={{ borderRadius: 8, height: 40, fontWeight: 600, fontSize: 13, boxShadow: "none", border: "none", width: "100%", flexShrink: 0 }}>Clock In</Button>
-                                </div>
-                              )}
+                                <ArrowRight size={14} color={token.colorPrimary} />
+                              </div>
                             </Card>
                           </Col>
                         )}
 
-                        {/* My Work Progress */}
-                        {isMyTicketsVisible && (
-                          <Col xs={24} md={12} lg={7}>
-                            {(() => {
-                              const segments = [
-                                { key: "done", label: "Completed", value: completedTickets, color: "#3B82F6", icon: <CheckCircleFilled style={{ fontSize: 10 }} /> },
-                                { key: "active", label: "In Progress", value: inProgressTickets, color: "#10B981", icon: <SyncOutlined spin style={{ fontSize: 10 }} /> },
-                                { key: "not_started", label: "Pending", value: notStartedTickets, color: token.colorTextTertiary, icon: <ClockCircleOutlined style={{ fontSize: 10 }} /> },
-                              ];
-                              return (
+                        {/* Right Side Column: 2 Rows of Cards */}
+                        {hasRightCards && (
+                          <Col xs={24} lg={isCalendarVisible ? 16 : 24} xl={isCalendarVisible ? 16 : 24}>
+                            <Row gutter={[12, 12]}>
+
+                              {/* ─── ROW 1 RIGHT: Daily Attendance & My Work Progress ─── */}
+
+                              {/* Daily Attendance (Top Left) */}
+                              {isDailyAttendanceVisible && (
+                                <Col xs={24} md={isMyTicketsVisible ? 12 : 24}>
                                 <Card
-                                  style={{ ...cardBase, height: 250, overflow: "hidden", display: "flex", flexDirection: "column" }}
-                                  styles={{ body: { padding: 0, height: "100%", display: "flex", flexDirection: "column" } }}
-                                  title={sectionTitle(<FileTextOutlined />, "My Work Progress", "#3B82F6")}
-                                  extra={
-                                    <Select
-                                      size="small"
-                                      placeholder="Select Project"
-                                      allowClear={false}
-                                      variant="filled"
-                                      dropdownStyle={{ borderRadius: 8, padding: 4 }}
-                                      style={{
-                                        width: 140,
-                                        fontWeight: 600,
-                                      }}
-                                      value={selectedProjectId}
-                                      onChange={(val) => setSelectedProjectId(val)}
-                                      options={userProjects.map((p: any) => ({
-                                        label: (
-                                          <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12 }}>
-                                            <FolderOpenOutlined style={{ color: '#3B82F6' }} />
-                                            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.name}</span>
-                                          </div>
-                                        ),
-                                        value: p.id || p._id,
-                                      }))}
-                                    />
+                                  style={{ ...cardBase, background: isWorking ? token.colorPrimaryBg : isPaused ? (token.colorWarningBg || token.colorBgContainer) : token.colorBgContainer, overflow: "hidden", position: "relative", height: 201, display: "flex", flexDirection: "column" }}
+                                  styles={{ body: { padding: 10, display: "flex", flexDirection: "column", flex: 1, justifyContent: "space-between" } }}
+                                  title={
+                                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                                      <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
+                                        <div style={{ width: 26, height: 26, borderRadius: 7, background: token.colorPrimaryBg, border: `1px solid ${token.colorBorderSecondary}`, display: "flex", alignItems: "center", justifyContent: "center", color: token.colorPrimary, fontSize: 14 }}>
+                                          <ClockCircleOutlined />
+                                        </div>
+                                        <span style={{ fontSize: 13, fontWeight: 700, color: token.colorText, letterSpacing: "-0.2px" }}>Daily Attendance</span>
+                                      </div>
+                                      <Button type="link" size="small" onClick={() => router.push("/my-hub/attendance")} style={{ fontSize: 11, fontWeight: 600, letterSpacing: "-0.1px" }}>View Details →</Button>
+                                    </div>
                                   }
                                 >
-                                  <div style={{ flex: 1, display: "flex", flexDirection: "column", padding: "12px 16px" }}>
-                                    {/* Main section: Circle + Segments */}
-                                    <div style={{ display: "flex", alignItems: "center", gap: 20, marginBottom: 12 }}>
-                                      {/* Left: Progress Circle */}
-                                      <Progress
-                                        type="circle"
-                                        percent={completionRate}
-                                        size={76}
-                                        strokeWidth={10}
-                                        strokeLinecap="round"
-                                        strokeColor="#3B82F6"
-                                        trailColor={token.colorFillAlter}
-                                        format={() => (
-                                          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", lineHeight: 1, paddingTop: 2 }}>
-                                            <span style={{ fontSize: 16, fontWeight: 800, color: "#3B82F6", marginBottom: 2, letterSpacing: "-0.5px" }}>{completionRate}%</span>
-                                            <span style={{ fontSize: 9, fontWeight: 700, color: token.colorTextTertiary }}>Completed</span>
+                                  {todayAttendance ? (() => {
+                                    const TARGET_HOURS = 8;
+                                    const parts = (workDuration || "00:00:00").split(":");
+                                    const elapsedSec = (parseInt(parts[0] || "0", 10) || 0) * 3600 + (parseInt(parts[1] || "0", 10) || 0) * 60 + (parseInt(parts[2] || "0", 10) || 0);
+                                    const targetSec = TARGET_HOURS * 3600;
+                                    const progressPct = Math.min(100, Math.round((elapsedSec / targetSec) * 100));
+                                    const isActive = isWorking;
+                                    const ringColor = isWorking ? token.colorPrimary : isPaused ? token.colorWarning : notStarted ? token.colorTextTertiary : token.colorSuccess;
+                                    const wh = parts[0] || "0";
+                                    const wm = parts[1] || "0";
+                                    const totalBreakMin = (() => {
+                                      if (todayAttendance?.totalBreakMinutes && todayAttendance.totalBreakMinutes > 0) return todayAttendance.totalBreakMinutes;
+                                      if (todayAttendance?.breakMinutes && todayAttendance.breakMinutes > 0) return todayAttendance.breakMinutes;
+                                      let totalSec = 0;
+                                      const sess: any[] = Array.isArray(todayAttendance?.sessions) ? todayAttendance.sessions : [];
+                                      for (let i = 0; i < sess.length - 1; i++) {
+                                        if (sess[i]?.clockOut && sess[i + 1]?.clockIn) {
+                                          const diff = (new Date(sess[i + 1].clockIn).getTime() - new Date(sess[i].clockOut).getTime()) / 1000;
+                                          if (diff > 0) totalSec += diff;
+                                        }
+                                      }
+                                      if (isPaused && sess.length > 0) {
+                                        const last = sess[sess.length - 1];
+                                        if (last?.clockOut) {
+                                          const liveDiff = (Date.now() - new Date(last.clockOut).getTime()) / 1000;
+                                          if (liveDiff > 0) totalSec += liveDiff;
+                                        }
+                                      }
+                                      return Math.round(totalSec / 60);
+                                    })();
+                                    const lateMin = (() => {
+                                      if (typeof todayAttendance?.lateMinutes === "number") return todayAttendance.lateMinutes;
+                                      if (typeof todayAttendance?.lateMin === "number") return todayAttendance.lateMin;
+                                      const sess: any[] = Array.isArray(todayAttendance?.sessions) ? todayAttendance.sessions : [];
+                                      const clockInIso = todayAttendance?.clockIn || (sess.length > 0 ? sess[0]?.clockIn : null);
+                                      const shiftStartStr = todayAttendance?.shift?.startTime || "11:00";
+                                      if (clockInIso && shiftStartStr) {
+                                        const clockInDate = dayjs(clockInIso);
+                                        const [sH, sM] = shiftStartStr.split(":").map((v: string) => parseInt(v, 10) || 0);
+                                        const shiftStartDate = clockInDate.hour(sH ?? 11).minute(sM || 0).second(0);
+                                        const diffMin = clockInDate.diff(shiftStartDate, "minute");
+                                        return diffMin > 0 ? diffMin : 0;
+                                      }
+                                      return 0;
+                                    })();
+
+                                    const earlyLeaveMin = (() => {
+                                      if (typeof todayAttendance?.earlyLeaveMinutes === "number") return todayAttendance.earlyLeaveMinutes;
+                                      if (typeof todayAttendance?.earlyMinutes === "number") return todayAttendance.earlyMinutes;
+                                      if (typeof todayAttendance?.earlyLeaveMin === "number") return todayAttendance.earlyLeaveMin;
+                                      if (todayAttendance?.clockOut) {
+                                        const clockOutDate = dayjs(todayAttendance.clockOut);
+                                        const shiftEndStr = todayAttendance?.shift?.endTime || "20:00";
+                                        const [eH, eM] = shiftEndStr.split(":").map((v: string) => parseInt(v, 10) || 0);
+                                        const shiftEndDate = clockOutDate.hour(eH ?? 20).minute(eM || 0).second(0);
+                                        const diffMin = shiftEndDate.diff(clockOutDate, "minute");
+                                        return diffMin > 0 ? diffMin : 0;
+                                      }
+                                      return 0;
+                                    })();
+
+                                    const formatDurationText = (mins: number) => {
+                                      if (!mins || mins <= 0) return "0 mins";
+                                      if (mins >= 60) {
+                                        const h = Math.floor(mins / 60);
+                                        const m = mins % 60;
+                                        return m > 0 ? `${h}h ${m}m` : `${h}h`;
+                                      }
+                                      return `${mins} mins`;
+                                    };
+                                    return (
+                                      <div style={{ display: "flex", flexDirection: "column", height: "100%", justifyContent: "space-between" }}>
+                                        {/* Main Content (Circle + Breakdown) */}
+                                        <div style={{ display: "flex", gap: 12, alignItems: "center", marginBottom: 4 }}>
+                                          {/* Circular progress */}
+                                          <div style={{ position: "relative", flexShrink: 0 }}>
+                                            <Progress
+                                              type="circle"
+                                              percent={progressPct}
+                                              size={66}
+                                              strokeWidth={7}
+                                              strokeLinecap="round"
+                                              strokeColor={isActive ? { "0%": token.colorPrimary, "100%": "#3B82F6" } : ringColor}
+                                              trailColor={token.colorFillAlter}
+                                              format={() => (
+                                                <div style={{ textAlign: "center" }}>
+                                                  <div style={{ fontSize: 11.5, fontWeight: 800, lineHeight: 1, color: isActive ? token.colorPrimary : token.colorText, letterSpacing: "-0.3px", fontVariantNumeric: "tabular-nums" }}>{wh}h {wm}m</div>
+                                                  <div style={{ fontSize: 8, color: token.colorTextTertiary, fontWeight: 600, marginTop: 2, letterSpacing: "-0.1px" }}>Total</div>
+                                                </div>
+                                              )}
+                                            />
                                           </div>
-                                        )}
-                                      />
 
-                                      {/* Right: Segments List */}
-                                      <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 10 }}>
-                                        {segments.map((s) => (
-                                          <div key={s.key} style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                                            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                                              <div style={{ width: 8, height: 8, borderRadius: "50%", background: s.color, flexShrink: 0 }} />
-                                              <Text style={{ fontSize: 11, fontWeight: 600, color: token.colorTextSecondary, letterSpacing: "-0.2px" }}>{s.label}</Text>
-                                            </div>
-                                            <Text strong style={{ fontSize: 13, color: token.colorText, fontVariantNumeric: "tabular-nums" }}>{s.value}</Text>
+                                          {/* Breakdown rows */}
+                                          <div style={{ display: "flex", flexDirection: "column", gap: 2, flex: 1, minWidth: 0 }}>
+                                            {[
+                                              { label: "Working", color: token.colorPrimary, value: `${wh}h ${wm}m` },
+                                              { label: "Break", color: token.colorSuccess, value: formatDurationText(totalBreakMin) },
+                                              { label: "Late", color: token.colorWarning, value: formatDurationText(lateMin) },
+                                              { label: "Early Leave", color: token.colorError, value: formatDurationText(earlyLeaveMin) },
+                                            ].map((row) => (
+                                              <div key={row.label} style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                                                <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                                                  <span style={{ width: 5, height: 5, borderRadius: "50%", background: row.color, display: "inline-block", flexShrink: 0 }} />
+                                                  <Text style={{ fontSize: 10.5, color: token.colorTextSecondary, fontWeight: 500, letterSpacing: "-0.2px" }}>{row.label}</Text>
+                                                </div>
+                                                <Text strong style={{ fontSize: 11, fontVariantNumeric: "tabular-nums", color: token.colorText, letterSpacing: "-0.3px" }}>{row.value}</Text>
+                                              </div>
+                                            ))}
                                           </div>
-                                        ))}
-                                      </div>
-                                    </div>
+                                        </div>
 
-                                    {/* Divider */}
-                                    <div style={{ height: 1, background: token.colorBorderSecondary, margin: "4px 0 12px" }} />
+                                        {/* Separator */}
+                                        <div style={{ height: 1, background: token.colorBorderSecondary, margin: "0 0 6px 0", flexShrink: 0 }} />
 
-                                    {/* Totals Footer */}
-                                    <div style={{ display: "flex", gap: 32 }}>
-                                      <div>
-                                        <Text style={{ fontSize: 9, color: token.colorTextTertiary, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.5px", display: "block", marginBottom: 2 }}>TOTAL TICKETS</Text>
-                                        <Text strong style={{ fontSize: 18, color: token.colorText, fontVariantNumeric: "tabular-nums", lineHeight: 1, letterSpacing: "-0.5px" }}>{totalTickets}</Text>
+                                        {/* Action buttons */}
+                                        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6, marginTop: 0 }}>
+                                          {notStarted ? (
+                                            <Button type="primary" icon={<PlayCircleOutlined />} onClick={handleClockIn} loading={isClocking} style={{ borderRadius: 7, height: 28, fontWeight: 600, fontSize: 11.5, boxShadow: "none", border: "none", gridColumn: "1 / -1", letterSpacing: "-0.1px" }}>Start Workday</Button>
+                                          ) : isComplete ? (
+                                            <div style={{ padding: "4px 8px", borderRadius: 7, background: token.colorSuccessBg, border: `1px solid ${token.colorSuccessBorder || token.colorBorderSecondary}`, display: "flex", alignItems: "center", justifyContent: "center", gap: 5, color: token.colorSuccessText || token.colorSuccess, fontWeight: 600, fontSize: 11, gridColumn: "1 / -1", letterSpacing: "-0.1px" }}><CheckCircleFilled /><span>Shift Complete!</span></div>
+                                          ) : (
+                                            <>
+                                              {isWorking
+                                                ? <Button block icon={<PauseCircleOutlined />} onClick={() => setBreakModalOpen(true)} loading={isClocking} style={{ borderRadius: 7, height: 28, fontWeight: 600, fontSize: 11.5, color: token.colorWarningText || token.colorWarning, borderColor: token.colorWarningBorder || token.colorBorderSecondary, background: token.colorWarningBg, boxShadow: "none", letterSpacing: "-0.1px" }}>Pause</Button>
+                                                : <Button type="primary" block icon={<CaretRightOutlined />} onClick={handleResume} loading={isClocking} style={{ borderRadius: 7, height: 28, fontWeight: 600, fontSize: 11.5, background: token.colorPrimary, border: "none", boxShadow: "none", letterSpacing: "-0.1px" }}>Resume</Button>
+                                              }
+                                              <div style={{ display: "contents" }}><ConfirmDialog tone="warning" icon={<CheckSquareOutlined />} title="Complete your day?" description={`You've worked ${workDuration}. You won't be able to clock in again today.`} confirmText="Yes, complete day" placement="topRight" onConfirm={handleComplete}>
+                                                <Button block icon={<CheckSquareOutlined />} loading={isClocking} style={{ borderRadius: 7, height: 28, fontWeight: 600, fontSize: 11.5, color: token.colorSuccessText || token.colorSuccess, borderColor: token.colorSuccessBorder || token.colorBorderSecondary, background: token.colorSuccessBg, boxShadow: "none", letterSpacing: "-0.1px" }}>Day Complete</Button>
+                                              </ConfirmDialog></div>
+                                            </>
+                                          )}
+                                        </div>
                                       </div>
-                                      <div>
-                                        <Text style={{ fontSize: 9, color: token.colorTextTertiary, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.5px", display: "block", marginBottom: 2 }}>CLOSED TODAY</Text>
-                                        <Text strong style={{ fontSize: 18, color: "#10B981", fontVariantNumeric: "tabular-nums", lineHeight: 1, letterSpacing: "-0.5px" }}>{completedTickets}</Text>
-                                      </div>
-                                    </div>
-                                  </div>
-                                </Card>
-                              );
-                            })()}
-                          </Col>
-                        )}
-
-                        {/* Recent Tickets */}
-                        {isRecentTicketsVisible && (
-                          <Col xs={24} md={24} lg={10}>
-                            {(() => {
-                              const accent = "#3B82F6";
-                              return (
-                                <Card
-                                  style={{ ...cardBase, height: 250, display: "flex", flexDirection: "column", overflow: "hidden" }}
-                                  styles={{ body: { padding: 0, display: "flex", flexDirection: "column", flex: 1, minHeight: 0 } }}
-                                  title={sectionTitle(<FileTextOutlined />, "Recent Tickets", accent)}
-                                  extra={<Button type="link" size="small" onClick={() => router.push("/tickets/select")} style={{ fontSize: 11, fontWeight: 600 }}>View all <ArrowRightOutlined style={{ fontSize: 10 }} /></Button>}
-                                >
-                                  {recentTickets.length === 0 ? (
-                                    <div style={{ padding: 24, textAlign: "center", flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 10 }}>
-                                      <div style={{ width: 52, height: 52, borderRadius: 16, background: `${accent}14`, border: `1px solid ${accent}33`, display: "inline-flex", alignItems: "center", justifyContent: "center", color: accent, fontSize: 22 }}><FileTextOutlined /></div>
-                                      <Text strong style={{ fontSize: 13, color: token.colorText }}>No tickets yet</Text>
-                                      <Text type="secondary" style={{ fontSize: 11 }}>Recent assignments will appear here</Text>
-                                    </div>
-                                  ) : (
-                                    <div className="no-scrollbar" style={{ display: "flex", flexDirection: "column", flex: 1, overflowY: "auto" }}>
-                                      {recentTickets.map((item: any) => {
-                                        const status = item.status?.toLowerCase();
-                                        const statusMeta: Record<string, { label: string; color: string; bg: string }> = {
-                                          completed: { label: "Completed", color: "#10B981", bg: "#ECFDF5" },
-                                          live: { label: "Live", color: "#10B981", bg: "#ECFDF5" },
-                                          done: { label: "Done", color: "#10B981", bg: "#ECFDF5" },
-                                          in_progress: { label: "In Progress", color: "#3B82F6", bg: "#EFF6FF" },
-                                          doing: { label: "In Progress", color: "#3B82F6", bg: "#EFF6FF" },
-                                          in_testing: { label: "In Testing", color: "#8B5CF6", bg: "#F5F3FF" },
-                                          testing: { label: "In Testing", color: "#8B5CF6", bg: "#F5F3FF" },
-                                          not_started: { label: "Open", color: "#94A3B8", bg: token.colorFillAlter },
-                                        };
-                                        const sm = statusMeta[status] || { label: (item.status || "—").replace(/_/g, " "), color: token.colorTextSecondary, bg: token.colorFillAlter };
-                                        const projectLabel = typeof item.project === "string" ? item.project : item.project?.code || item.project?.name || "—";
-                                        return (
-                                          <div
-                                            key={item.id}
-                                            onClick={() => setSelectedTicketId(item.id)}
-                                            className="dash-rt-card"
-                                            style={{ cursor: "pointer", padding: "8px 12px", borderBottom: `1px solid ${token.colorBorderSecondary}`, display: "flex", alignItems: "center", gap: 12, ["--rt-glow" as any]: `${sm.color}55`, ["--rt-border" as any]: `${sm.color}55` } as React.CSSProperties}
-                                          >
-                                            {/* Status badge */}
-                                            <span style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 10, fontWeight: 700, color: sm.color, background: sm.bg, padding: "3px 8px", borderRadius: 999, border: `1px solid ${sm.color}26`, flexShrink: 0, whiteSpace: "nowrap" }}>
-                                              <span style={{ width: 5, height: 5, borderRadius: "50%", background: sm.color, display: "inline-block" }} />{sm.label}
-                                            </span>
-                                            {/* Ticket info */}
-                                            <div style={{ flex: 1, minWidth: 0 }}>
-                                              <Text style={{ fontSize: 12, fontWeight: 600, color: token.colorText, display: "block", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{item.title}</Text>
-                                              <Text type="secondary" style={{ fontSize: 10 }}>{item.ticketNumber}{projectLabel && projectLabel !== "—" ? ` · ${projectLabel}` : ""}</Text>
-                                            </div>
-                                            {/* Time ago */}
-                                            <Text style={{ fontSize: 10, color: token.colorTextTertiary, whiteSpace: "nowrap", flexShrink: 0 }}>{formatTimeAgo(item.createdAt)}</Text>
-                                          </div>
-                                        );
-                                      })}
+                                    );
+                                  })() : (
+                                    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
+                                      <Skeleton.Avatar active size={60} shape="circle" />
+                                      <Skeleton active paragraph={{ rows: 1 }} style={{ width: "100%" }} />
+                                      <Button type="primary" icon={<PlayCircleOutlined />} onClick={handleClockIn} loading={isClocking} style={{ borderRadius: 7, height: 30, fontWeight: 600, fontSize: 11.5, boxShadow: "none", border: "none", width: "100%", flexShrink: 0 }}>Clock In</Button>
                                     </div>
                                   )}
                                 </Card>
-                              );
-                            })()}
-                          </Col>
-                        )}
+                              </Col>
+                            )}
 
+                            {/* My Work Progress (Top Right - Next to Daily Attendance) - Reduced height to 201px */}
+                            {isMyTicketsVisible && (
+                              <Col xs={24} md={isDailyAttendanceVisible ? 12 : 24}>
+                                {(() => {
+                                  const segments = [
+                                    { key: "done", label: "Completed", value: completedTickets, color: token.colorPrimary },
+                                    { key: "active", label: "In Progress", value: inProgressTickets, color: token.colorSuccess },
+                                    { key: "not_started", label: "Pending", value: notStartedTickets, color: token.colorTextTertiary },
+                                  ];
+                                  return (
+                                    <Card
+                                      style={{ ...cardBase, height: 201, overflow: "hidden", display: "flex", flexDirection: "column" }}
+                                      styles={{ body: { padding: 10, height: "100%", display: "flex", flexDirection: "column", justifyContent: "space-between" } }}
+                                      title={
+                                        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+                                          <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
+                                            <div style={{ width: 26, height: 26, borderRadius: 7, background: token.colorPrimaryBg, border: `1px solid ${token.colorBorderSecondary}`, display: "flex", alignItems: "center", justifyContent: "center", color: token.colorPrimary, fontSize: 14 }}>
+                                              <FileTextOutlined />
+                                            </div>
+                                            <span style={{ fontSize: 13, fontWeight: 700, color: token.colorText, letterSpacing: "-0.2px" }}>My Work Progress</span>
+                                          </div>
+                                          <Select
+                                            size="small"
+                                            value={selectedProjectId}
+                                            onChange={(val) => setSelectedProjectId(val)}
+                                            placeholder="All Projects"
+                                            allowClear
+                                            onClear={() => setSelectedProjectId(null)}
+                                            style={{ width: 115, fontSize: 11 }}
+                                            options={[
+                                              { value: null as any, label: "All Projects" },
+                                              ...userProjects.map((p) => ({
+                                                value: p.id || p._id,
+                                                label: p.name || p.title || p.code || "Project",
+                                              })),
+                                            ]}
+                                          />
+                                        </div>
+                                      }
+                                    >
+                                      <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
+                                        {/* Progress Ring + Legend */}
+                                        <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+                                          {/* Circle */}
+                                          <Progress
+                                            type="circle"
+                                            percent={completionRate}
+                                            size={62}
+                                            strokeWidth={8}
+                                            strokeLinecap="round"
+                                            strokeColor={token.colorPrimary}
+                                            trailColor={token.colorFillAlter}
+                                            format={() => (
+                                              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", lineHeight: 1 }}>
+                                                <span style={{ fontSize: 13, fontWeight: 800, color: token.colorPrimary, marginBottom: 2, letterSpacing: "-0.5px" }}>{completionRate}%</span>
+                                                <span style={{ fontSize: 7.5, fontWeight: 600, color: token.colorTextTertiary }}>Done</span>
+                                              </div>
+                                            )}
+                                          />
+
+                                          {/* Legend */}
+                                          <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 4 }}>
+                                            {segments.map((s) => (
+                                              <div key={s.key} style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                                                <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
+                                                  <span style={{ width: 5, height: 5, borderRadius: "50%", background: s.color, flexShrink: 0 }} />
+                                                  <Text style={{ fontSize: 10.5, fontWeight: 500, color: token.colorTextSecondary, letterSpacing: "-0.2px" }}>{s.label}</Text>
+                                                </div>
+                                                <Text strong style={{ fontSize: 11.5, color: token.colorText, fontVariantNumeric: "tabular-nums" }}>{s.value}</Text>
+                                              </div>
+                                            ))}
+                                          </div>
+                                        </div>
+
+                                        {/* Divider */}
+                                        <div style={{ height: 1, background: token.colorBorderSecondary, margin: "6px 0" }} />
+
+                                        {/* Totals Footer */}
+                                        <div style={{ display: "flex", justifyContent: "space-between", padding: "0 2px" }}>
+                                          <div>
+                                            <Text style={{ fontSize: 8.5, color: token.colorTextTertiary, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.5px", display: "block", marginBottom: 1 }}>TOTAL TICKETS</Text>
+                                            <Text strong style={{ fontSize: 15, color: token.colorText, fontVariantNumeric: "tabular-nums", lineHeight: 1, letterSpacing: "-0.5px" }}>{totalTickets}</Text>
+                                          </div>
+                                          <div>
+                                            <Text style={{ fontSize: 8.5, color: token.colorTextTertiary, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.5px", display: "block", marginBottom: 1 }}>CLOSED TODAY</Text>
+                                            <Text strong style={{ fontSize: 15, color: token.colorSuccess, fontVariantNumeric: "tabular-nums", lineHeight: 1, letterSpacing: "-0.5px" }}>{closedTodayTickets}</Text>
+                                          </div>
+                                        </div>
+                                      </div>
+                                    </Card>
+                                  );
+                                })()}
+                              </Col>
+                            )}
+
+                            {/* ─── ROW 2 RIGHT: Daily Updates & Recent Tickets ─── */}
+
+                            {/* Daily Updates (Bottom Left) */}
+                            {isDailyUpdatesCardVisible && (
+                              <Col xs={24} md={isRecentTicketsVisible ? 12 : 24}>
+                                <Card
+                                  style={{ ...cardBase, height: 215, overflow: "hidden", display: "flex", flexDirection: "column" }}
+                                  styles={{ body: { padding: "8px 10px", flex: 1, display: "flex", flexDirection: "column", gap: 7, justifyContent: "flex-start" } }}
+                                  title={
+                                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                                        <div style={{ width: 28, height: 28, borderRadius: "50%", background: token.colorWarningBg, border: `1px solid ${token.colorWarningBorder || token.colorBorderSecondary}`, display: "flex", alignItems: "center", justifyContent: "center", color: token.colorWarning, fontSize: 15 }}>
+                                          <ThunderboltFilled />
+                                        </div>
+                                        <span style={{ fontSize: 14, fontWeight: 700, color: token.colorText, letterSpacing: "-0.2px" }}>Daily Updates</span>
+                                      </div>
+                                      <Button type="link" size="small" onClick={() => router.push("/daily-updates/submit")} style={{ fontSize: 11.5, fontWeight: 600, color: token.colorPrimary, padding: 0, display: "inline-flex", alignItems: "center", gap: 3 }}>
+                                        View All <ArrowRight style={{ width: 12, height: 12 }} />
+                                      </Button>
+                                    </div>
+                                  }
+                                >
+                                  {/* Top BOD & EOD Tiles */}
+                                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+                                    {[
+                                      { label: "BOD", state: todayUpdates.bod, date: "Today • " + dayjs().format("MMM DD") },
+                                      { label: "EOD", state: todayUpdates.eod, date: "Today • " + dayjs().format("MMM DD") },
+                                    ].map((item) => (
+                                      <div
+                                        key={item.label}
+                                        style={{
+                                          padding: "7px 10px",
+                                          borderRadius: 10,
+                                          background: token.colorBgContainer,
+                                          border: `1px solid ${token.colorBorderSecondary}`,
+                                          boxShadow: "0 1px 2px rgba(0, 0, 0, 0.03)",
+                                          display: "flex",
+                                          flexDirection: "column",
+                                          gap: 2,
+                                        }}
+                                      >
+                                        <Text style={{ fontSize: 12, fontWeight: 700, color: token.colorText, letterSpacing: "0.2px" }}>{item.label}</Text>
+                                        <div style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 11.5, fontWeight: 600, color: item.state ? token.colorSuccess : token.colorWarning }}>
+                                          <span style={{ width: 6, height: 6, borderRadius: "50%", background: item.state ? token.colorSuccess : token.colorWarning, display: "inline-block" }} />
+                                          {item.state ? "Submitted" : "Pending"}
+                                        </div>
+                                        <Text style={{ fontSize: 10.5, color: token.colorTextSecondary, fontWeight: 500 }}>{item.date}</Text>
+                                      </div>
+                                    ))}
+                                  </div>
+
+                                  {/* Bottom Banner */}
+                                  <div
+                                    style={{
+                                      background: token.colorPrimaryBg,
+                                      border: `1px solid ${token.colorBorderSecondary}`,
+                                      borderRadius: 12,
+                                      padding: "11px 12px",
+                                      display: "flex",
+                                      alignItems: "center",
+                                      justifyContent: "space-between",
+                                      gap: 10,
+                                    }}
+                                  >
+                                    <div style={{ display: "flex", alignItems: "center", gap: 10, flex: 1, minWidth: 0 }}>
+                                      <div style={{ width: 34, height: 34, borderRadius: "50%", background: token.colorFillAlter, display: "flex", alignItems: "center", justifyContent: "center", color: token.colorPrimary, flexShrink: 0 }}>
+                                        <Target style={{ width: 18, height: 18 }} />
+                                      </div>
+                                      <div style={{ flex: 1, minWidth: 0 }}>
+                                        <Text style={{ fontSize: 12.5, fontWeight: 700, color: token.colorText, display: "block", lineHeight: 1.2 }}>Focus on what matters</Text>
+                                        <Text style={{ fontSize: 10.5, color: token.colorTextSecondary, display: "block", marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                                          Complete your pending tasks and keep the momentum going.
+                                        </Text>
+                                      </div>
+                                    </div>
+                                    <ArrowRight style={{ width: 14, height: 14, color: token.colorPrimary, flexShrink: 0 }} />
+                                  </div>
+                                </Card>
+                              </Col>
+                            )}
+
+                            {/* Recent Tickets (Bottom Right) */}
+                            {isRecentTicketsVisible && (
+                              <Col xs={24} md={isDailyUpdatesCardVisible ? 12 : 24}>
+                                {(() => {
+                                  const accent = token.colorPrimary;
+                                  return (
+                                    <Card
+                                      style={{ ...cardBase, height: 215, display: "flex", flexDirection: "column", overflow: "hidden" }}
+                                      styles={{ body: { padding: 0, display: "flex", flexDirection: "column", flex: 1, minHeight: 0 } }}
+                                      title={sectionTitle(<FileTextOutlined />, "Recent Tickets", accent)}
+                                      extra={<Button type="link" size="small" onClick={() => router.push("/tickets/select")} style={{ fontSize: 11, fontWeight: 600 }}>View all <ArrowRightOutlined style={{ fontSize: 10 }} /></Button>}
+                                    >
+                                      {recentTickets.length === 0 ? (
+                                        <div style={{ padding: 14, textAlign: "center", flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 6 }}>
+                                          <div style={{ width: 36, height: 36, borderRadius: 10, background: token.colorPrimaryBg, border: `1px solid ${token.colorBorderSecondary}`, display: "inline-flex", alignItems: "center", justifyContent: "center", color: accent, fontSize: 16 }}><FileTextOutlined /></div>
+                                          <Text strong style={{ fontSize: 11.5, color: token.colorText }}>No tickets yet</Text>
+                                          <Text type="secondary" style={{ fontSize: 9.5 }}>Recent assignments will appear here</Text>
+                                        </div>
+                                      ) : (
+                                        <div className="no-scrollbar" style={{ display: "flex", flexDirection: "column", flex: 1, overflowY: "auto" }}>
+                                          {recentTickets.map((item: any) => {
+                                            const status = item.status?.toLowerCase();
+                                            const statusMeta: Record<string, { label: string; color: string; bg: string }> = {
+                                              completed: { label: "Completed", color: token.colorSuccess, bg: token.colorSuccessBg },
+                                              live: { label: "Live", color: token.colorSuccess, bg: token.colorSuccessBg },
+                                              done: { label: "Done", color: token.colorSuccess, bg: token.colorSuccessBg },
+                                              in_progress: { label: "In Progress", color: token.colorPrimary, bg: token.colorPrimaryBg },
+                                              doing: { label: "In Progress", color: token.colorPrimary, bg: token.colorPrimaryBg },
+                                              in_testing: { label: "In Testing", color: "#8B5CF6", bg: token.colorPrimaryBg },
+                                              testing: { label: "In Testing", color: "#8B5CF6", bg: token.colorPrimaryBg },
+                                              not_started: { label: "Open", color: token.colorTextSecondary, bg: token.colorFillAlter },
+                                            };
+                                            const sm = statusMeta[status] || { label: (item.status || "—").replace(/_/g, " "), color: token.colorTextSecondary, bg: token.colorFillAlter };
+                                            const projectLabel = typeof item.project === "string" ? item.project : item.project?.code || item.project?.name || "—";
+                                            return (
+                                              <div
+                                                key={item.id}
+                                                onClick={() => setSelectedTicketId(item.id)}
+                                                className="dash-rt-card"
+                                                style={{ cursor: "pointer", padding: "5px 8px", borderBottom: `1px solid ${token.colorBorderSecondary}`, display: "flex", alignItems: "center", gap: 8, ["--rt-glow" as any]: `${sm.color}55`, ["--rt-border" as any]: `${sm.color}55` } as React.CSSProperties}
+                                              >
+                                                {/* Ticket info */}
+                                                <div style={{ flex: 1, minWidth: 0 }}>
+                                                  <Text style={{ fontSize: 11.5, fontWeight: 600, color: token.colorText, display: "block", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{item.title}</Text>
+                                                  <Text type="secondary" style={{ fontSize: 9.5 }}>{item.ticketNumber}{projectLabel && projectLabel !== "—" ? ` · ${projectLabel}` : ""} · {formatTimeAgo(item.createdAt)}</Text>
+                                                </div>
+                                                {/* Status badge */}
+                                                <span style={{ display: "inline-flex", alignItems: "center", gap: 3, fontSize: 9.5, fontWeight: 700, color: sm.color, background: sm.bg, padding: "2px 6px", borderRadius: 999, border: `1px solid ${sm.color}26`, flexShrink: 0, whiteSpace: "nowrap" }}>
+                                                  <span style={{ width: 4, height: 4, borderRadius: "50%", background: sm.color, display: "inline-block" }} />{sm.label}
+                                                </span>
+                                              </div>
+                                            );
+                                          })}
+                                        </div>
+                                      )}
+                                    </Card>
+                                  );
+                                })()}
+                              </Col>
+                            )}
+
+                          </Row>
+                        </Col>
+                      )}
                       </Row>
+
+                      <BreakPickerModal open={breakModalOpen} loading={isClocking} onCancel={() => setBreakModalOpen(false)} onConfirm={async (bt, r) => { await handlePause(bt, r); setBreakModalOpen(false); }} />
                     </>
                   );
                 })()}
@@ -1790,89 +2382,6 @@ function DashboardContent() {
                               totalT > 0
                                 ? `${pctDone}% completion · ${open} open`
                                 : "No tickets assigned"
-                            }
-                            chart={
-                              totalT > 0 ? (
-                                <div
-                                  style={{
-                                    display: "flex",
-                                    flexDirection: "column",
-                                    gap: 6,
-                                  }}
-                                >
-                                  <div
-                                    style={{
-                                      height: 6,
-                                      borderRadius: 999,
-                                      display: "flex",
-                                      overflow: "hidden",
-                                      border: `1px solid ${token.colorBorderSecondary}`,
-                                      background: token.colorFillAlter,
-                                    }}
-                                  >
-                                    <span
-                                      style={{
-                                        width: `${(closed / totalT) * 100}%`,
-                                        background: accent,
-                                        display: "block",
-                                        height: "100%",
-                                        transition: "width .4s ease",
-                                      }}
-                                    />
-                                    <span
-                                      style={{
-                                        width: `${(open / totalT) * 100}%`,
-                                        background: "#93C5FD",
-                                        display: "block",
-                                        height: "100%",
-                                        transition: "width .4s ease",
-                                      }}
-                                    />
-                                  </div>
-                                  <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-                                    <span
-                                      style={{
-                                        display: "inline-flex",
-                                        alignItems: "center",
-                                        gap: 5,
-                                        fontSize: 11,
-                                        color: token.colorTextSecondary,
-                                        fontWeight: 500,
-                                      }}
-                                    >
-                                      <span
-                                        style={{
-                                          width: 7,
-                                          height: 7,
-                                          borderRadius: 2,
-                                          background: accent,
-                                        }}
-                                      />
-                                      {closed} closed
-                                    </span>
-                                    <span
-                                      style={{
-                                        display: "inline-flex",
-                                        alignItems: "center",
-                                        gap: 5,
-                                        fontSize: 11,
-                                        color: token.colorTextSecondary,
-                                        fontWeight: 500,
-                                      }}
-                                    >
-                                      <span
-                                        style={{
-                                          width: 7,
-                                          height: 7,
-                                          borderRadius: 2,
-                                          background: "#93C5FD",
-                                        }}
-                                      />
-                                      {open} open
-                                    </span>
-                                  </div>
-                                </div>
-                              ) : null
                             }
                           />
                         );

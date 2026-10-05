@@ -111,6 +111,10 @@ export const usePermission = () => {
     canReadLeaveTrash: hasPermission(Permissions.LEAVE_TRASH_READ),
     canRestoreLeaveTrash: hasPermission(Permissions.LEAVE_TRASH_RESTORE),
     canDeleteLeaveTrash: hasPermission(Permissions.LEAVE_TRASH_DELETE),
+    canReadLeaveSetting: hasAnyPermission(Permissions.LEAVE_SETTING_READ, Permissions.LEAVE_MANAGE),
+    canCreateLeaveSetting: hasAnyPermission(Permissions.LEAVE_SETTING_CREATE, Permissions.LEAVE_MANAGE),
+    canUpdateLeaveSetting: hasAnyPermission(Permissions.LEAVE_SETTING_UPDATE, Permissions.LEAVE_MANAGE),
+    canDeleteLeaveSetting: hasAnyPermission(Permissions.LEAVE_SETTING_DELETE, Permissions.LEAVE_MANAGE),
 
     // ─── Shifts ─────────────────────────────────────────────────────
     canCreateShift: hasPermission(Permissions.SHIFT_CREATE),
@@ -141,8 +145,7 @@ export const usePermission = () => {
     canUpdateInvoiceSetting: hasPermission(Permissions.INVOICE_SETTING_UPDATE),
     canDeleteInvoiceSetting: hasPermission(Permissions.INVOICE_SETTING_DELETE),
     canReadInvoiceTrash: hasPermission(Permissions.INVOICE_TRASH_READ),
-    canUpdateInvoiceTrash: hasPermission(Permissions.INVOICE_TRASH_UPDATE),
-    canRestoreInvoiceTrash: hasPermission(Permissions.INVOICE_TRASH_UPDATE),
+    canRestoreInvoiceTrash: hasPermission(Permissions.INVOICE_TRASH_RESTORE),
     canDeleteInvoiceTrash: hasPermission(Permissions.INVOICE_TRASH_DELETE),
     canReadInvoiceHistory: hasPermission(Permissions.INVOICE_HISTORY_READ),
     canSendInvoiceMail: hasPermission(Permissions.INVOICE_MAIL_SEND),
@@ -163,6 +166,9 @@ export const usePermission = () => {
     canReadAccountSetting: hasPermission(Permissions.ACCOUNT_SETTING_READ),
     canUpdateAccountSetting: hasPermission(Permissions.ACCOUNT_SETTING_UPDATE),
     canDeleteAccountSetting: hasPermission(Permissions.ACCOUNT_SETTING_DELETE),
+    canReadAccountTrash: hasPermission(Permissions.ACCOUNT_TRASH_READ),
+    canRestoreAccountTrash: hasPermission(Permissions.ACCOUNT_TRASH_RESTORE),
+    canDeleteAccountTrash: hasPermission(Permissions.ACCOUNT_TRASH_DELETE),
 
 
     // ─── Clients ────────────────────────────────────────────────────
@@ -509,6 +515,10 @@ export const usePermission = () => {
     ),
     canReadCoverageMap: hasAnyPermission(Permissions.QA_COVERAGE_MAP_READ, Permissions.QA_MANAGE),
     canReadQaAnalytics: hasAnyPermission(Permissions.QA_ANALYTICS_READ, Permissions.QA_MANAGE),
+    canReadQaSetting: hasAnyPermission(Permissions.QA_SETTING_READ, Permissions.QA_MANAGE),
+    canCreateQaSetting: hasAnyPermission(Permissions.QA_SETTING_CREATE, Permissions.QA_MANAGE),
+    canUpdateQaSetting: hasAnyPermission(Permissions.QA_SETTING_UPDATE, Permissions.QA_MANAGE),
+    canDeleteQaSetting: hasAnyPermission(Permissions.QA_SETTING_DELETE, Permissions.QA_MANAGE),
     canManageQa: hasPermission(Permissions.QA_MANAGE),
 
     // ─── Playbooks ───────────────────────────────────────────────────

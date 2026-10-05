@@ -28,11 +28,11 @@ export default function ReimbursementV2Layout({ children }: { children: React.Re
     [perms, hasAnySubscriptionFeature]
   );
 
-  // Base guard: must be able to read or manage reimbursements at all, and have at least one visible item.
+  // Base guard: redirect to /dashboard if user has no visible reimbursement items.
   useEffect(() => {
     if (isLoading || !pathname) return;
 
-    if ((!perms.canReadReimbursement && !perms.canManageReimbursements) || visibleItems.length === 0) {
+    if (visibleItems.length === 0) {
       router.replace('/dashboard');
       return;
     }
@@ -43,7 +43,7 @@ export default function ReimbursementV2Layout({ children }: { children: React.Re
     if (!currentAllowed) {
       router.replace(visibleItems[0].href);
     }
-  }, [isLoading, pathname, perms.canReadReimbursement, perms.canManageReimbursements, visibleItems, router]);
+  }, [isLoading, pathname, visibleItems, router]);
 
   useEffect(() => {
     const handler = () => setIsMobileOpen(true);

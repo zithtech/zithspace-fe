@@ -161,6 +161,10 @@ const LEAVE_PAGE_BY_PERM: Record<string, string> = {
   'leave.policy.update': 'Leave Policy',
   'leave.policy.delete': 'Leave Policy',
   'leave.holiday.create': 'Add Government Holidays',
+  'leave.setting.read': 'Configuration',
+  'leave.setting.create': 'Configuration',
+  'leave.setting.update': 'Configuration',
+  'leave.setting.delete': 'Configuration',
   'leave.manage': 'Configuration',
   'leave.trash.read': 'Recycle Bin',
   'leave.trash.restore': 'Recycle Bin',
@@ -226,6 +230,10 @@ const QA_PAGE_BY_PERM: Record<string, string> = {
   'qa.approval.send_back': 'PM Approval',
   'qa.coverage_map.read': 'Coverage Map',
   'qa.analytics.read': 'Analytics',
+  'qa.setting.read': 'QA Settings',
+  'qa.setting.create': 'QA Settings',
+  'qa.setting.update': 'QA Settings',
+  'qa.setting.delete': 'QA Settings',
   'qa.manage': 'QA Settings',
 };
 

@@ -1227,6 +1227,8 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
     requiredSubscriptionFeature: ["finance"],
     requiredAnyPermission: [
       Permissions.ACCOUNT_READ,
+      Permissions.ACCOUNT_SETTING_READ,
+      Permissions.ACCOUNT_TRASH_READ,
       Permissions.INVOICE_READ,
       Permissions.INVOICE_DASHBOARD_READ,
       Permissions.INVOICE_HISTORY_READ,
@@ -1237,6 +1239,7 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
       Permissions.SALARY_READ,
       Permissions.REIMBURSEMENT_READ,
       Permissions.REIMBURSEMENT_CONFIG_READ,
+      Permissions.REIMBURSEMENT_SETTING_READ,
       Permissions.REIMBURSEMENT_DASHBOARD_READ,
       Permissions.REIMBURSEMENT_APPROVE,
       Permissions.REIMBURSEMENT_PAY,
@@ -1248,12 +1251,21 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
     // so a normal user with only their own payslip access won't see this chip.
     requiredChipAnyPermission: [
       Permissions.ACCOUNT_READ,
+      Permissions.ACCOUNT_SETTING_READ,
+      Permissions.ACCOUNT_TRASH_READ,
       Permissions.INVOICE_READ,
       Permissions.INVOICE_DASHBOARD_READ,
       Permissions.INVOICE_MANAGE,
       Permissions.PAYROLL_READ,
       Permissions.PAYROLL_MANAGE,
       Permissions.PAYROLL_SETTING_READ,
+      Permissions.REIMBURSEMENT_READ,
+      Permissions.REIMBURSEMENT_CONFIG_READ,
+      Permissions.REIMBURSEMENT_SETTING_READ,
+      Permissions.REIMBURSEMENT_DASHBOARD_READ,
+      Permissions.REIMBURSEMENT_APPROVE,
+      Permissions.REIMBURSEMENT_PAY,
+      Permissions.REIMBURSEMENT_MANAGE,
     ],
     items: [
       {
@@ -1261,7 +1273,11 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
         label: "Accounts",
         icon: I(Landmark),
         requiredSubscriptionFeature: ["finance_accounts"],
-        requiredPermission: Permissions.ACCOUNT_READ,
+        requiredAnyPermission: [
+          Permissions.ACCOUNT_READ,
+          Permissions.ACCOUNT_SETTING_READ,
+          Permissions.ACCOUNT_TRASH_READ,
+        ],
         children: [
           {
             key: "/accounts/accounts-dashboard",
@@ -1285,7 +1301,7 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
             icon: I(Trash2),
             path: "/accounts/trash",
             requiredSubscriptionFeature: ["finance_accounts_accounts_dashboard"],
-            requiredPermission: Permissions.ACCOUNT_READ,
+            requiredPermission: Permissions.ACCOUNT_TRASH_READ,
           },
         ],
       },
@@ -1388,6 +1404,7 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
         requiredAnyPermission: [
           Permissions.REIMBURSEMENT_READ,
           Permissions.REIMBURSEMENT_CONFIG_READ,
+          Permissions.REIMBURSEMENT_SETTING_READ,
           Permissions.REIMBURSEMENT_DASHBOARD_READ,
           Permissions.REIMBURSEMENT_APPROVE,
           Permissions.REIMBURSEMENT_PAY,

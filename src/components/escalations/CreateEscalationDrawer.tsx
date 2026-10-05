@@ -488,8 +488,10 @@ const CreateEscalationDrawer: React.FC<CreateEscalationDrawerProps> = ({
     <>
       <Drawer
         {...commonDrawerProps}
+        width={860}
         open={open}
         onClose={handleClose}
+        maskClosable={true}
         destroyOnHidden={false}
       >
         <style>{drawerFormStyles}</style>
@@ -563,8 +565,8 @@ const CreateEscalationDrawer: React.FC<CreateEscalationDrawerProps> = ({
             <Form
               form={form}
               layout="horizontal"
-              labelCol={{ span: 8 }}
-              wrapperCol={{ span: 16 }}
+              labelCol={{ span: 7 }}
+              wrapperCol={{ span: 17 }}
               labelAlign="left"
               colon={false}
               className="customer-drawer-form"
@@ -711,12 +713,14 @@ const CreateEscalationDrawer: React.FC<CreateEscalationDrawerProps> = ({
                     <span>
                       <LinkOutlined style={{ marginRight: 6, color: 'var(--text-slate-400)' }} />
                       Related tickets
-                      {!selectedProjectId && (
-                        <span style={{ marginLeft: 8, fontSize: 11, color: 'var(--text-slate-400)', fontWeight: 400 }}>
-                          select a project to load tickets
-                        </span>
-                      )}
                     </span>
+                  }
+                  help={
+                    !selectedProjectId ? (
+                      <span style={{ fontSize: 11, color: 'var(--text-slate-400)' }}>
+                        Select a project first to load tickets
+                      </span>
+                    ) : null
                   }
                 >
                   <SearchableDropdown
@@ -748,7 +752,7 @@ const CreateEscalationDrawer: React.FC<CreateEscalationDrawerProps> = ({
                   <TextArea
                     rows={5}
                     placeholder="Provide clear evidence of the issues. Mention specific instances and reproduction steps."
-                    style={{ padding: '12px 16px', borderRadius: 6 }}
+                    style={{ borderRadius: 6 }}
                     showCount
                     maxLength={2000}
                   />

@@ -1009,7 +1009,7 @@ function DashboardContent() {
         style={{
           margin: "0 -24px",
           padding: "12px 32px 28px",
-          background: "var(--bg-pure-white)",
+          background: token.colorBgLayout,
           minHeight: "calc(100vh - 64px)",
         }}
       >
@@ -1226,7 +1226,8 @@ function DashboardContent() {
                       <Col xs={24} lg={isQuickActionsVisible ? 14 : 24} xl={isQuickActionsVisible ? 15 : 24}>
                     <div
                       style={{
-                        background: "linear-gradient(110deg, #3B82F6 0%, #4F46E5 45%, #7C3AED 75%, #9333EA 100%)",
+                        background: token.colorBgContainer,
+                        backgroundImage: `linear-gradient(125deg, ${token.colorPrimaryBg || "#EFF6FF"} 0%, ${token.colorBgContainer} 45%, ${token.colorFillAlter || "#F8FAFC"} 100%)`,
                         borderRadius: 16,
                         padding: "12px 20px",
                         position: "relative",
@@ -1237,8 +1238,8 @@ function DashboardContent() {
                         alignItems: "center",
                         justifyContent: "space-between",
                         gap: 14,
-                        boxShadow: "0 8px 20px -4px rgba(79, 70, 229, 0.22)",
-                        border: "1px solid rgba(255, 255, 255, 0.2)",
+                        boxShadow: "0 2px 8px -2px rgba(37, 99, 235, 0.08)",
+                        border: `1px solid ${token.colorBorderSecondary}`,
                       }}
                     >
                       {/* Layered Mountain Landscape Background SVG */}
@@ -1253,21 +1254,21 @@ function DashboardContent() {
                           height: "100%",
                           pointerEvents: "none",
                           zIndex: 0,
-                          opacity: 0.85,
+                          opacity: 0.65,
                         }}
                       >
                         <defs>
                           <linearGradient id="dashMtnGrad1" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="0%" stopColor="#FFFFFF" stopOpacity="0.25" />
-                            <stop offset="100%" stopColor="#FFFFFF" stopOpacity="0.05" />
+                            <stop offset="0%" stopColor={token.colorPrimary} stopOpacity="0.12" />
+                            <stop offset="100%" stopColor={token.colorPrimary} stopOpacity="0.02" />
                           </linearGradient>
                           <linearGradient id="dashMtnGrad2" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="0%" stopColor="#FFFFFF" stopOpacity="0.18" />
-                            <stop offset="100%" stopColor="#FFFFFF" stopOpacity="0.02" />
+                            <stop offset="0%" stopColor="#818CF8" stopOpacity="0.15" />
+                            <stop offset="100%" stopColor="#818CF8" stopOpacity="0.02" />
                           </linearGradient>
                           <linearGradient id="dashMtnGrad3" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="0%" stopColor="#818CF8" stopOpacity="0.3" />
-                            <stop offset="100%" stopColor="#312E81" stopOpacity="0.1" />
+                            <stop offset="0%" stopColor="#38BDF8" stopOpacity="0.1" />
+                            <stop offset="100%" stopColor="#38BDF8" stopOpacity="0.01" />
                           </linearGradient>
                         </defs>
                         <path d="M0,120 L150,55 L280,95 L420,35 L560,85 L700,40 L800,90 L800,120 Z" fill="url(#dashMtnGrad2)" />
@@ -1280,19 +1281,19 @@ function DashboardContent() {
                         <h2
                           style={{
                             margin: 0,
-                            color: "#FFFFFF",
-                            fontSize: 19,
+                            color: token.colorText,
+                            fontSize: 18,
                             fontWeight: 800,
-                            letterSpacing: "-0.5px",
+                            letterSpacing: "-0.4px",
                             lineHeight: 1.2,
                           }}
                         >
-                          Keep going!
+                          Keep going! ✨
                         </h2>
                         <p
                           style={{
                             margin: "2px 0 0 0",
-                            color: "rgba(255, 255, 255, 0.88)",
+                            color: token.colorTextSecondary,
                             fontSize: 12,
                             fontWeight: 500,
                             letterSpacing: "-0.1px",
@@ -1311,20 +1312,19 @@ function DashboardContent() {
                           display: "flex",
                           alignItems: "center",
                           gap: 6,
-                          background: "rgba(255, 255, 255, 0.16)",
-                          backdropFilter: "blur(12px)",
-                          WebkitBackdropFilter: "blur(12px)",
+                          background: token.colorBgContainer,
+                          boxShadow: "0 1px 3px rgba(0, 0, 0, 0.04)",
                           padding: "5px 12px",
                           borderRadius: 999,
-                          border: "1px solid rgba(255, 255, 255, 0.25)",
+                          border: `1px solid ${token.colorBorderSecondary}`,
                           whiteSpace: "nowrap",
                           flexShrink: 0,
                         }}
                       >
-                        <Sprout size={14} color="#FFFFFF" />
+                        <Sprout size={14} color={token.colorPrimary} />
                         <span
                           style={{
-                            color: "#FFFFFF",
+                            color: token.colorPrimary,
                             fontSize: 11.5,
                             fontWeight: 600,
                             fontStyle: "italic",
@@ -1406,7 +1406,7 @@ function DashboardContent() {
                                 width: 36,
                                 height: 36,
                                 borderRadius: 10,
-                                background: qa.accentBg,
+                                background: `${qa.iconColor}1A`,
                                 display: "flex",
                                 alignItems: "center",
                                 justifyContent: "center",
@@ -1610,12 +1610,12 @@ function DashboardContent() {
                                         width: 36,
                                         height: 36,
                                         borderRadius: "50%",
-                                        background: "#EFF6FF",
-                                        border: "1px solid #DBEAFE",
+                                        background: token.colorPrimaryBg,
+                                        border: `1px solid ${token.colorBorderSecondary}`,
                                         display: "inline-flex",
                                         alignItems: "center",
                                         justifyContent: "center",
-                                        color: "#2563EB",
+                                        color: token.colorPrimary,
                                         flexShrink: 0,
                                       }}
                                     >
@@ -1626,7 +1626,7 @@ function DashboardContent() {
                                         style={{
                                           fontSize: 16,
                                           fontWeight: 700,
-                                          color: "#1E293B",
+                                          color: token.colorText,
                                           letterSpacing: "-0.3px",
                                           lineHeight: 1.2,
                                         }}
@@ -1636,7 +1636,7 @@ function DashboardContent() {
                                       <span
                                         style={{
                                           fontSize: 11.5,
-                                          color: "#64748B",
+                                          color: token.colorTextSecondary,
                                           fontWeight: 400,
                                         }}
                                       >
@@ -1648,7 +1648,7 @@ function DashboardContent() {
                                   <div
                                     onClick={() => router.push("/calendar")}
                                     style={{
-                                      color: "#2563EB",
+                                      color: token.colorPrimary,
                                       fontWeight: 600,
                                       fontSize: 12,
                                       cursor: "pointer",
@@ -1693,8 +1693,8 @@ function DashboardContent() {
                                       return {
                                         name: locName,
                                         icon: <VideoCameraOutlined style={{ fontSize: 15 }} />,
-                                        accent: "#2563EB",
-                                        bg: "#EFF6FF",
+                                        accent: token.colorPrimary,
+                                        bg: token.colorPrimaryBg,
                                       };
                                     };
 
@@ -1712,12 +1712,12 @@ function DashboardContent() {
                                       const s = dayjs(start);
                                       const e = dayjs(end);
                                       if (s.isBefore(now) && e.isAfter(now)) {
-                                        return { label: "Live Now", bg: "#ECFDF5", color: "#059669" };
+                                        return { label: "Live Now", bg: token.colorSuccessBg, color: token.colorSuccess };
                                       }
                                       if (s.isAfter(now)) {
-                                        return { label: "Upcoming", bg: "#EFF6FF", color: "#2563EB" };
+                                        return { label: "Upcoming", bg: token.colorPrimaryBg, color: token.colorPrimary };
                                       }
-                                      return { label: "Completed", bg: "#F8FAFC", color: "#64748B" };
+                                      return { label: "Completed", bg: token.colorFillAlter, color: token.colorTextSecondary };
                                     };
 
                                     return (
@@ -1730,7 +1730,7 @@ function DashboardContent() {
                                             top: 14,
                                             bottom: 14,
                                             width: 1.5,
-                                            background: "#E2E8F0",
+                                            background: token.colorBorderSecondary,
                                             zIndex: 0,
                                           }}
                                         />
@@ -1759,7 +1759,7 @@ function DashboardContent() {
                                                   width: 58,
                                                   fontSize: 11.5,
                                                   fontWeight: 600,
-                                                  color: "#64748B",
+                                                  color: token.colorTextSecondary,
                                                   textAlign: "right",
                                                   flexShrink: 0,
                                                   letterSpacing: "-0.2px",
@@ -1775,9 +1775,9 @@ function DashboardContent() {
                                                   width: 7,
                                                   height: 7,
                                                   borderRadius: "50%",
-                                                  background: status.label === "Live Now" ? "#10B981" : "#2563EB",
+                                                  background: status.label === "Live Now" ? token.colorSuccess : token.colorPrimary,
                                                   flexShrink: 0,
-                                                  boxShadow: status.label === "Live Now" ? "0 0 0 3px rgba(16, 185, 129, 0.2)" : "none",
+                                                  boxShadow: status.label === "Live Now" ? `0 0 0 3px ${token.colorSuccessBg}` : "none",
                                                 }}
                                               />
 
@@ -1804,7 +1804,7 @@ function DashboardContent() {
                                                   strong
                                                   style={{
                                                     fontSize: 13,
-                                                    color: "#1E293B",
+                                                    color: token.colorText,
                                                     display: "block",
                                                     lineHeight: 1.25,
                                                     letterSpacing: "-0.2px",
@@ -1818,7 +1818,7 @@ function DashboardContent() {
                                                 <Text
                                                   style={{
                                                     fontSize: 11,
-                                                    color: "#64748B",
+                                                    color: token.colorTextSecondary,
                                                     lineHeight: 1.2,
                                                     marginTop: 2,
                                                     display: "block",
@@ -1859,7 +1859,7 @@ function DashboardContent() {
                                                       width: 6,
                                                       height: 6,
                                                       borderRadius: "50%",
-                                                      background: "#10B981",
+                                                      background: token.colorSuccess,
                                                       display: "inline-block",
                                                     }}
                                                   />
@@ -1880,8 +1880,8 @@ function DashboardContent() {
                                 onClick={() => router.push("/calendar")}
                                 style={{
                                   marginTop: 10,
-                                  background: "#F0F9FF",
-                                  border: "1px solid #E0F2FE",
+                                  background: token.colorFillAlter,
+                                  border: `1px solid ${token.colorBorderSecondary}`,
                                   borderRadius: 12,
                                   padding: "9px 12px",
                                   display: "flex",
@@ -1898,17 +1898,17 @@ function DashboardContent() {
                                       width: 26,
                                       height: 26,
                                       borderRadius: "50%",
-                                      background: "#DBEAFE",
+                                      background: token.colorPrimaryBg,
                                       display: "flex",
                                       alignItems: "center",
                                       justifyContent: "center",
-                                      color: "#2563EB",
+                                      color: token.colorPrimary,
                                       flexShrink: 0,
                                     }}
                                   >
                                     <CalendarIcon size={14} />
                                   </div>
-                                  <span style={{ fontSize: 12, fontWeight: 600, color: "#475569", letterSpacing: "-0.1px" }}>
+                                  <span style={{ fontSize: 12, fontWeight: 600, color: token.colorTextSecondary, letterSpacing: "-0.1px" }}>
                                     {(() => {
                                       const totalCount = (todaysMeetings && todaysMeetings.length > 0) ? todaysMeetings.length : 4;
                                       return totalCount > 4
@@ -1917,7 +1917,7 @@ function DashboardContent() {
                                     })()}
                                   </span>
                                 </div>
-                                <ArrowRight size={14} color="#2563EB" />
+                                <ArrowRight size={14} color={token.colorPrimary} />
                               </div>
                             </Card>
                           </Col>
@@ -1934,12 +1934,12 @@ function DashboardContent() {
                               {isDailyAttendanceVisible && (
                                 <Col xs={24} md={isMyTicketsVisible ? 12 : 24}>
                                 <Card
-                                  style={{ ...cardBase, background: isWorking ? token.colorPrimaryBg : isPaused ? "#FFFBEB" : token.colorBgContainer, overflow: "hidden", position: "relative", height: 201, display: "flex", flexDirection: "column" }}
+                                  style={{ ...cardBase, background: isWorking ? token.colorPrimaryBg : isPaused ? (token.colorWarningBg || token.colorBgContainer) : token.colorBgContainer, overflow: "hidden", position: "relative", height: 201, display: "flex", flexDirection: "column" }}
                                   styles={{ body: { padding: 10, display: "flex", flexDirection: "column", flex: 1, justifyContent: "space-between" } }}
                                   title={
                                     <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                                       <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
-                                        <div style={{ width: 26, height: 26, borderRadius: 7, background: "#EEF2FF", border: "1px solid #E0E7FF", display: "flex", alignItems: "center", justifyContent: "center", color: "#4F46E5", fontSize: 14 }}>
+                                        <div style={{ width: 26, height: 26, borderRadius: 7, background: token.colorPrimaryBg, border: `1px solid ${token.colorBorderSecondary}`, display: "flex", alignItems: "center", justifyContent: "center", color: token.colorPrimary, fontSize: 14 }}>
                                           <ClockCircleOutlined />
                                         </div>
                                         <span style={{ fontSize: 13, fontWeight: 700, color: token.colorText, letterSpacing: "-0.2px" }}>Daily Attendance</span>
@@ -1955,7 +1955,7 @@ function DashboardContent() {
                                     const targetSec = TARGET_HOURS * 3600;
                                     const progressPct = Math.min(100, Math.round((elapsedSec / targetSec) * 100));
                                     const isActive = isWorking;
-                                    const ringColor = isWorking ? token.colorPrimary : isPaused ? "#F59E0B" : notStarted ? token.colorTextTertiary : "#10B981";
+                                    const ringColor = isWorking ? token.colorPrimary : isPaused ? token.colorWarning : notStarted ? token.colorTextTertiary : token.colorSuccess;
                                     const wh = parts[0] || "0";
                                     const wm = parts[1] || "0";
                                     const totalBreakMin = (() => {
@@ -2044,10 +2044,10 @@ function DashboardContent() {
                                           {/* Breakdown rows */}
                                           <div style={{ display: "flex", flexDirection: "column", gap: 2, flex: 1, minWidth: 0 }}>
                                             {[
-                                              { label: "Working", color: "#3B82F6", value: `${wh}h ${wm}m` },
-                                              { label: "Break", color: "#10B981", value: formatDurationText(totalBreakMin) },
-                                              { label: "Late", color: "#F59E0B", value: formatDurationText(lateMin) },
-                                              { label: "Early Leave", color: "#EF4444", value: formatDurationText(earlyLeaveMin) },
+                                              { label: "Working", color: token.colorPrimary, value: `${wh}h ${wm}m` },
+                                              { label: "Break", color: token.colorSuccess, value: formatDurationText(totalBreakMin) },
+                                              { label: "Late", color: token.colorWarning, value: formatDurationText(lateMin) },
+                                              { label: "Early Leave", color: token.colorError, value: formatDurationText(earlyLeaveMin) },
                                             ].map((row) => (
                                               <div key={row.label} style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                                                 <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
@@ -2068,15 +2068,15 @@ function DashboardContent() {
                                           {notStarted ? (
                                             <Button type="primary" icon={<PlayCircleOutlined />} onClick={handleClockIn} loading={isClocking} style={{ borderRadius: 7, height: 28, fontWeight: 600, fontSize: 11.5, boxShadow: "none", border: "none", gridColumn: "1 / -1", letterSpacing: "-0.1px" }}>Start Workday</Button>
                                           ) : isComplete ? (
-                                            <div style={{ padding: "4px 8px", borderRadius: 7, background: "#ECFDF5", border: "1px solid #A7F3D0", display: "flex", alignItems: "center", justifyContent: "center", gap: 5, color: "#047857", fontWeight: 600, fontSize: 11, gridColumn: "1 / -1", letterSpacing: "-0.1px" }}><CheckCircleFilled /><span>Shift Complete!</span></div>
+                                            <div style={{ padding: "4px 8px", borderRadius: 7, background: token.colorSuccessBg, border: `1px solid ${token.colorSuccessBorder || token.colorBorderSecondary}`, display: "flex", alignItems: "center", justifyContent: "center", gap: 5, color: token.colorSuccessText || token.colorSuccess, fontWeight: 600, fontSize: 11, gridColumn: "1 / -1", letterSpacing: "-0.1px" }}><CheckCircleFilled /><span>Shift Complete!</span></div>
                                           ) : (
                                             <>
                                               {isWorking
-                                                ? <Button block icon={<PauseCircleOutlined />} onClick={() => setBreakModalOpen(true)} loading={isClocking} style={{ borderRadius: 7, height: 28, fontWeight: 600, fontSize: 11.5, color: "#B45309", borderColor: "#FDE047", background: "#FEF9C3", boxShadow: "none", letterSpacing: "-0.1px" }}>Pause</Button>
+                                                ? <Button block icon={<PauseCircleOutlined />} onClick={() => setBreakModalOpen(true)} loading={isClocking} style={{ borderRadius: 7, height: 28, fontWeight: 600, fontSize: 11.5, color: token.colorWarningText || token.colorWarning, borderColor: token.colorWarningBorder || token.colorBorderSecondary, background: token.colorWarningBg, boxShadow: "none", letterSpacing: "-0.1px" }}>Pause</Button>
                                                 : <Button type="primary" block icon={<CaretRightOutlined />} onClick={handleResume} loading={isClocking} style={{ borderRadius: 7, height: 28, fontWeight: 600, fontSize: 11.5, background: token.colorPrimary, border: "none", boxShadow: "none", letterSpacing: "-0.1px" }}>Resume</Button>
                                               }
                                               <div style={{ display: "contents" }}><ConfirmDialog tone="warning" icon={<CheckSquareOutlined />} title="Complete your day?" description={`You've worked ${workDuration}. You won't be able to clock in again today.`} confirmText="Yes, complete day" placement="topRight" onConfirm={handleComplete}>
-                                                <Button block icon={<CheckSquareOutlined />} loading={isClocking} style={{ borderRadius: 7, height: 28, fontWeight: 600, fontSize: 11.5, color: "#047857", borderColor: "#6EE7B7", background: "#ECFDF5", boxShadow: "none", letterSpacing: "-0.1px" }}>Day Complete</Button>
+                                                <Button block icon={<CheckSquareOutlined />} loading={isClocking} style={{ borderRadius: 7, height: 28, fontWeight: 600, fontSize: 11.5, color: token.colorSuccessText || token.colorSuccess, borderColor: token.colorSuccessBorder || token.colorBorderSecondary, background: token.colorSuccessBg, boxShadow: "none", letterSpacing: "-0.1px" }}>Day Complete</Button>
                                               </ConfirmDialog></div>
                                             </>
                                           )}
@@ -2099,9 +2099,9 @@ function DashboardContent() {
                               <Col xs={24} md={isDailyAttendanceVisible ? 12 : 24}>
                                 {(() => {
                                   const segments = [
-                                    { key: "done", label: "Completed", value: completedTickets, color: "#3B82F6" },
-                                    { key: "active", label: "In Progress", value: inProgressTickets, color: "#10B981" },
-                                    { key: "not_started", label: "Pending", value: notStartedTickets, color: "#94A3B8" },
+                                    { key: "done", label: "Completed", value: completedTickets, color: token.colorPrimary },
+                                    { key: "active", label: "In Progress", value: inProgressTickets, color: token.colorSuccess },
+                                    { key: "not_started", label: "Pending", value: notStartedTickets, color: token.colorTextTertiary },
                                   ];
                                   return (
                                     <Card
@@ -2110,7 +2110,7 @@ function DashboardContent() {
                                       title={
                                         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
                                           <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
-                                            <div style={{ width: 26, height: 26, borderRadius: 7, background: "#EFF6FF", border: "1px solid #DBEAFE", display: "flex", alignItems: "center", justifyContent: "center", color: "#2563EB", fontSize: 14 }}>
+                                            <div style={{ width: 26, height: 26, borderRadius: 7, background: token.colorPrimaryBg, border: `1px solid ${token.colorBorderSecondary}`, display: "flex", alignItems: "center", justifyContent: "center", color: token.colorPrimary, fontSize: 14 }}>
                                               <FileTextOutlined />
                                             </div>
                                             <span style={{ fontSize: 13, fontWeight: 700, color: token.colorText, letterSpacing: "-0.2px" }}>My Work Progress</span>
@@ -2144,11 +2144,11 @@ function DashboardContent() {
                                             size={62}
                                             strokeWidth={8}
                                             strokeLinecap="round"
-                                            strokeColor="#3B82F6"
-                                            trailColor="#F1F5F9"
+                                            strokeColor={token.colorPrimary}
+                                            trailColor={token.colorFillAlter}
                                             format={() => (
                                               <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", lineHeight: 1 }}>
-                                                <span style={{ fontSize: 13, fontWeight: 800, color: "#3B82F6", marginBottom: 2, letterSpacing: "-0.5px" }}>{completionRate}%</span>
+                                                <span style={{ fontSize: 13, fontWeight: 800, color: token.colorPrimary, marginBottom: 2, letterSpacing: "-0.5px" }}>{completionRate}%</span>
                                                 <span style={{ fontSize: 7.5, fontWeight: 600, color: token.colorTextTertiary }}>Done</span>
                                               </div>
                                             )}
@@ -2179,7 +2179,7 @@ function DashboardContent() {
                                           </div>
                                           <div>
                                             <Text style={{ fontSize: 8.5, color: token.colorTextTertiary, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.5px", display: "block", marginBottom: 1 }}>CLOSED TODAY</Text>
-                                            <Text strong style={{ fontSize: 15, color: "#10B981", fontVariantNumeric: "tabular-nums", lineHeight: 1, letterSpacing: "-0.5px" }}>{closedTodayTickets}</Text>
+                                            <Text strong style={{ fontSize: 15, color: token.colorSuccess, fontVariantNumeric: "tabular-nums", lineHeight: 1, letterSpacing: "-0.5px" }}>{closedTodayTickets}</Text>
                                           </div>
                                         </div>
                                       </div>
@@ -2200,12 +2200,12 @@ function DashboardContent() {
                                   title={
                                     <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                                       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                                        <div style={{ width: 28, height: 28, borderRadius: "50%", background: "#FFF7ED", border: "1px solid #FFEDD5", display: "flex", alignItems: "center", justifyContent: "center", color: "#F59E0B", fontSize: 15 }}>
+                                        <div style={{ width: 28, height: 28, borderRadius: "50%", background: token.colorWarningBg, border: `1px solid ${token.colorWarningBorder || token.colorBorderSecondary}`, display: "flex", alignItems: "center", justifyContent: "center", color: token.colorWarning, fontSize: 15 }}>
                                           <ThunderboltFilled />
                                         </div>
-                                        <span style={{ fontSize: 14, fontWeight: 700, color: "#1E293B", letterSpacing: "-0.2px" }}>Daily Updates</span>
+                                        <span style={{ fontSize: 14, fontWeight: 700, color: token.colorText, letterSpacing: "-0.2px" }}>Daily Updates</span>
                                       </div>
-                                      <Button type="link" size="small" onClick={() => router.push("/daily-updates/submit")} style={{ fontSize: 11.5, fontWeight: 600, color: "#2563EB", padding: 0, display: "inline-flex", alignItems: "center", gap: 3 }}>
+                                      <Button type="link" size="small" onClick={() => router.push("/daily-updates/submit")} style={{ fontSize: 11.5, fontWeight: 600, color: token.colorPrimary, padding: 0, display: "inline-flex", alignItems: "center", gap: 3 }}>
                                         View All <ArrowRight style={{ width: 12, height: 12 }} />
                                       </Button>
                                     </div>
@@ -2222,29 +2222,29 @@ function DashboardContent() {
                                         style={{
                                           padding: "7px 10px",
                                           borderRadius: 10,
-                                          background: "#FFFFFF",
-                                          border: "1px solid #E2E8F0",
+                                          background: token.colorBgContainer,
+                                          border: `1px solid ${token.colorBorderSecondary}`,
                                           boxShadow: "0 1px 2px rgba(0, 0, 0, 0.03)",
                                           display: "flex",
                                           flexDirection: "column",
                                           gap: 2,
                                         }}
                                       >
-                                        <Text style={{ fontSize: 12, fontWeight: 700, color: "#1E293B", letterSpacing: "0.2px" }}>{item.label}</Text>
-                                        <div style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 11.5, fontWeight: 600, color: item.state ? "#10B981" : "#F59E0B" }}>
-                                          <span style={{ width: 6, height: 6, borderRadius: "50%", background: item.state ? "#10B981" : "#F59E0B", display: "inline-block" }} />
+                                        <Text style={{ fontSize: 12, fontWeight: 700, color: token.colorText, letterSpacing: "0.2px" }}>{item.label}</Text>
+                                        <div style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 11.5, fontWeight: 600, color: item.state ? token.colorSuccess : token.colorWarning }}>
+                                          <span style={{ width: 6, height: 6, borderRadius: "50%", background: item.state ? token.colorSuccess : token.colorWarning, display: "inline-block" }} />
                                           {item.state ? "Submitted" : "Pending"}
                                         </div>
-                                        <Text style={{ fontSize: 10.5, color: "#64748B", fontWeight: 500 }}>{item.date}</Text>
+                                        <Text style={{ fontSize: 10.5, color: token.colorTextSecondary, fontWeight: 500 }}>{item.date}</Text>
                                       </div>
                                     ))}
                                   </div>
 
-                                  {/* Bottom Purple Banner */}
+                                  {/* Bottom Banner */}
                                   <div
                                     style={{
-                                      background: "#F5F3FF",
-                                      border: "1px solid #E9D5FF",
+                                      background: token.colorPrimaryBg,
+                                      border: `1px solid ${token.colorBorderSecondary}`,
                                       borderRadius: 12,
                                       padding: "11px 12px",
                                       display: "flex",
@@ -2254,17 +2254,17 @@ function DashboardContent() {
                                     }}
                                   >
                                     <div style={{ display: "flex", alignItems: "center", gap: 10, flex: 1, minWidth: 0 }}>
-                                      <div style={{ width: 34, height: 34, borderRadius: "50%", background: "#DDD6FE", display: "flex", alignItems: "center", justifyContent: "center", color: "#7C3AED", flexShrink: 0 }}>
+                                      <div style={{ width: 34, height: 34, borderRadius: "50%", background: token.colorFillAlter, display: "flex", alignItems: "center", justifyContent: "center", color: token.colorPrimary, flexShrink: 0 }}>
                                         <Target style={{ width: 18, height: 18 }} />
                                       </div>
                                       <div style={{ flex: 1, minWidth: 0 }}>
-                                        <Text style={{ fontSize: 12.5, fontWeight: 700, color: "#1E293B", display: "block", lineHeight: 1.2 }}>Focus on what matters</Text>
-                                        <Text style={{ fontSize: 10.5, color: "#64748B", display: "block", marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                                        <Text style={{ fontSize: 12.5, fontWeight: 700, color: token.colorText, display: "block", lineHeight: 1.2 }}>Focus on what matters</Text>
+                                        <Text style={{ fontSize: 10.5, color: token.colorTextSecondary, display: "block", marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                                           Complete your pending tasks and keep the momentum going.
                                         </Text>
                                       </div>
                                     </div>
-                                    <ArrowRight style={{ width: 14, height: 14, color: "#6366F1", flexShrink: 0 }} />
+                                    <ArrowRight style={{ width: 14, height: 14, color: token.colorPrimary, flexShrink: 0 }} />
                                   </div>
                                 </Card>
                               </Col>
@@ -2274,7 +2274,7 @@ function DashboardContent() {
                             {isRecentTicketsVisible && (
                               <Col xs={24} md={isDailyUpdatesCardVisible ? 12 : 24}>
                                 {(() => {
-                                  const accent = "#3B82F6";
+                                  const accent = token.colorPrimary;
                                   return (
                                     <Card
                                       style={{ ...cardBase, height: 215, display: "flex", flexDirection: "column", overflow: "hidden" }}
@@ -2284,7 +2284,7 @@ function DashboardContent() {
                                     >
                                       {recentTickets.length === 0 ? (
                                         <div style={{ padding: 14, textAlign: "center", flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 6 }}>
-                                          <div style={{ width: 36, height: 36, borderRadius: 10, background: `${accent}14`, border: `1px solid ${accent}33`, display: "inline-flex", alignItems: "center", justifyContent: "center", color: accent, fontSize: 16 }}><FileTextOutlined /></div>
+                                          <div style={{ width: 36, height: 36, borderRadius: 10, background: token.colorPrimaryBg, border: `1px solid ${token.colorBorderSecondary}`, display: "inline-flex", alignItems: "center", justifyContent: "center", color: accent, fontSize: 16 }}><FileTextOutlined /></div>
                                           <Text strong style={{ fontSize: 11.5, color: token.colorText }}>No tickets yet</Text>
                                           <Text type="secondary" style={{ fontSize: 9.5 }}>Recent assignments will appear here</Text>
                                         </div>
@@ -2293,14 +2293,14 @@ function DashboardContent() {
                                           {recentTickets.map((item: any) => {
                                             const status = item.status?.toLowerCase();
                                             const statusMeta: Record<string, { label: string; color: string; bg: string }> = {
-                                              completed: { label: "Completed", color: "#10B981", bg: "#ECFDF5" },
-                                              live: { label: "Live", color: "#10B981", bg: "#ECFDF5" },
-                                              done: { label: "Done", color: "#10B981", bg: "#ECFDF5" },
-                                              in_progress: { label: "In Progress", color: "#3B82F6", bg: "#EFF6FF" },
-                                              doing: { label: "In Progress", color: "#3B82F6", bg: "#EFF6FF" },
-                                              in_testing: { label: "In Testing", color: "#8B5CF6", bg: "#F5F3FF" },
-                                              testing: { label: "In Testing", color: "#8B5CF6", bg: "#F5F3FF" },
-                                              not_started: { label: "Open", color: "#94A3B8", bg: token.colorFillAlter },
+                                              completed: { label: "Completed", color: token.colorSuccess, bg: token.colorSuccessBg },
+                                              live: { label: "Live", color: token.colorSuccess, bg: token.colorSuccessBg },
+                                              done: { label: "Done", color: token.colorSuccess, bg: token.colorSuccessBg },
+                                              in_progress: { label: "In Progress", color: token.colorPrimary, bg: token.colorPrimaryBg },
+                                              doing: { label: "In Progress", color: token.colorPrimary, bg: token.colorPrimaryBg },
+                                              in_testing: { label: "In Testing", color: "#8B5CF6", bg: token.colorPrimaryBg },
+                                              testing: { label: "In Testing", color: "#8B5CF6", bg: token.colorPrimaryBg },
+                                              not_started: { label: "Open", color: token.colorTextSecondary, bg: token.colorFillAlter },
                                             };
                                             const sm = statusMeta[status] || { label: (item.status || "—").replace(/_/g, " "), color: token.colorTextSecondary, bg: token.colorFillAlter };
                                             const projectLabel = typeof item.project === "string" ? item.project : item.project?.code || item.project?.name || "—";
@@ -2311,17 +2311,15 @@ function DashboardContent() {
                                                 className="dash-rt-card"
                                                 style={{ cursor: "pointer", padding: "5px 8px", borderBottom: `1px solid ${token.colorBorderSecondary}`, display: "flex", alignItems: "center", gap: 8, ["--rt-glow" as any]: `${sm.color}55`, ["--rt-border" as any]: `${sm.color}55` } as React.CSSProperties}
                                               >
+                                                {/* Ticket info */}
+                                                <div style={{ flex: 1, minWidth: 0 }}>
+                                                  <Text style={{ fontSize: 11.5, fontWeight: 600, color: token.colorText, display: "block", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{item.title}</Text>
+                                                  <Text type="secondary" style={{ fontSize: 9.5 }}>{item.ticketNumber}{projectLabel && projectLabel !== "—" ? ` · ${projectLabel}` : ""} · {formatTimeAgo(item.createdAt)}</Text>
+                                                </div>
                                                 {/* Status badge */}
                                                 <span style={{ display: "inline-flex", alignItems: "center", gap: 3, fontSize: 9.5, fontWeight: 700, color: sm.color, background: sm.bg, padding: "2px 6px", borderRadius: 999, border: `1px solid ${sm.color}26`, flexShrink: 0, whiteSpace: "nowrap" }}>
                                                   <span style={{ width: 4, height: 4, borderRadius: "50%", background: sm.color, display: "inline-block" }} />{sm.label}
                                                 </span>
-                                                {/* Ticket info */}
-                                                <div style={{ flex: 1, minWidth: 0 }}>
-                                                  <Text style={{ fontSize: 11.5, fontWeight: 600, color: token.colorText, display: "block", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{item.title}</Text>
-                                                  <Text type="secondary" style={{ fontSize: 9.5 }}>{item.ticketNumber}{projectLabel && projectLabel !== "—" ? ` · ${projectLabel}` : ""}</Text>
-                                                </div>
-                                                {/* Time ago */}
-                                                <Text style={{ fontSize: 9.5, color: token.colorTextTertiary, whiteSpace: "nowrap", flexShrink: 0 }}>{formatTimeAgo(item.createdAt)}</Text>
                                               </div>
                                             );
                                           })}

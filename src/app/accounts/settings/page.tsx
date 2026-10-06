@@ -108,6 +108,7 @@ export default function AccountsSettingsPage() {
     canCreateAccountConfig,
     canUpdateAccountConfig,
     canDeleteAccountConfig,
+    canReadAccountTrash,
   } = usePermission();
 
   const { data: categoriesResponse, isLoading: loading, refetch, isFetching } = useExpenseCategories(pageSize, (currentPage - 1) * pageSize);
@@ -396,13 +397,15 @@ export default function AccountsSettingsPage() {
               <span className="pp-view-icon" style={{ color: "#3b82f6" }}><ArrowLeftOutlined /></span>
               <span className="pp-view-label">Dashboard</span>
             </button>
-            <button
-              type="button"
-              className="pp-trash"
-              onClick={() => router.push("/accounts/trash")}
-            >
-              <RestOutlined /> Trash
-            </button>
+            {canReadAccountTrash && (
+              <button
+                type="button"
+                className="pp-trash"
+                onClick={() => router.push("/accounts/trash")}
+              >
+                <RestOutlined /> Trash
+              </button>
+            )}
           </div>
         </aside>
 

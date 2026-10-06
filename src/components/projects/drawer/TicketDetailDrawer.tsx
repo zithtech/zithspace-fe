@@ -906,7 +906,7 @@ export const TicketDetailDrawer: React.FC<TicketDetailDrawerProps> = ({
         placement="right"
         onClose={onClose}
         open={open}
-        maskClosable={false}
+        maskClosable={true}
         width={1100} // Increased slightly for better column balance and header single-row fitting
         styles={{
           header: { padding: '12px 20px', borderBottom: '1px solid var(--border-color)', backgroundColor: 'var(--bg-pure-white)' },

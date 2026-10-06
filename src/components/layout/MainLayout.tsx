@@ -130,32 +130,44 @@ export default function MainLayout({ children, noPadding, hideSideNav }: MainLay
       }
 
       // Deep check for specific item permission, inheriting parent denial
-      const checkItemAccess = (items: any[], isParentDenied = false): boolean => {
-        for (const item of items) {
-          const hasItemSubAccess = item.requiredSubscriptionFeature
-            ? hasAnySubscriptionFeature(...item.requiredSubscriptionFeature)
-            : true;
+      const checkItemAccess = (items: any[]): boolean => {
+        const findMatchingTarget = (
+          itemList: any[],
+          isParentDenied = false,
+        ): { item: any; isDenied: boolean }[] => {
+          let matches: { item: any; isDenied: boolean }[] = [];
+          for (const item of itemList) {
+            const hasItemSubAccess = item.requiredSubscriptionFeature
+              ? hasAnySubscriptionFeature(...item.requiredSubscriptionFeature)
+              : true;
 
-          const hasItemPermAccess = !item.requiredPermission && !item.requiredAnyPermission
-            ? true
-            : item.requiredPermission
-              ? hasPermission(item.requiredPermission)
-              : item.requiredAnyPermission ? hasAnyPermission(...item.requiredAnyPermission) : true;
+            const hasItemPermAccess = !item.requiredPermission && !item.requiredAnyPermission
+              ? true
+              : item.requiredPermission
+                ? hasPermission(item.requiredPermission)
+                : item.requiredAnyPermission ? hasAnyPermission(...item.requiredAnyPermission) : true;
 
-          const itemAccess = hasItemSubAccess && hasItemPermAccess;
-          const isCurrentlyDenied = isParentDenied || !itemAccess;
+            const itemAccess = hasItemSubAccess && hasItemPermAccess;
+            const isCurrentlyDenied = isParentDenied || !itemAccess;
 
-          // If this is a routable leaf node and matches the current path
-          if (item.path && pathname.startsWith(item.path)) {
-            if (isCurrentlyDenied) return false;
+            if (item.path) {
+              if (pathname === item.path || pathname.startsWith(`${item.path}/`)) {
+                matches.push({ item, isDenied: isCurrentlyDenied });
+              }
+            }
+
+            if (item.children) {
+              matches.push(...findMatchingTarget(item.children, isCurrentlyDenied));
+            }
           }
+          return matches;
+        };
 
-          // Recurse into children
-          if (item.children && !checkItemAccess(item.children, isCurrentlyDenied)) {
-            return false;
-          }
-        }
-        return true;
+        const matches = findMatchingTarget(items);
+        if (matches.length === 0) return true;
+
+        matches.sort((a, b) => (b.item.path?.length || 0) - (a.item.path?.length || 0));
+        return !matches[0].isDenied;
       };
 
       if (!checkItemAccess(foundModule.items)) {
@@ -293,32 +305,44 @@ export default function MainLayout({ children, noPadding, hideSideNav }: MainLay
       }
 
       // Deep check for specific item permission, inheriting parent denial
-      const checkItemAccess = (items: any[], isParentDenied = false): boolean => {
-        for (const item of items) {
-          const hasItemSubAccess = item.requiredSubscriptionFeature
-            ? hasAnySubscriptionFeature(...item.requiredSubscriptionFeature)
-            : true;
+      const checkItemAccess = (items: any[]): boolean => {
+        const findMatchingTarget = (
+          itemList: any[],
+          isParentDenied = false,
+        ): { item: any; isDenied: boolean }[] => {
+          let matches: { item: any; isDenied: boolean }[] = [];
+          for (const item of itemList) {
+            const hasItemSubAccess = item.requiredSubscriptionFeature
+              ? hasAnySubscriptionFeature(...item.requiredSubscriptionFeature)
+              : true;
 
-          const hasItemPermAccess = !item.requiredPermission && !item.requiredAnyPermission
-            ? true
-            : item.requiredPermission
-              ? hasPermission(item.requiredPermission)
-              : item.requiredAnyPermission ? hasAnyPermission(...item.requiredAnyPermission) : true;
+            const hasItemPermAccess = !item.requiredPermission && !item.requiredAnyPermission
+              ? true
+              : item.requiredPermission
+                ? hasPermission(item.requiredPermission)
+                : item.requiredAnyPermission ? hasAnyPermission(...item.requiredAnyPermission) : true;
 
-          const itemAccess = hasItemSubAccess && hasItemPermAccess;
-          const isCurrentlyDenied = isParentDenied || !itemAccess;
+            const itemAccess = hasItemSubAccess && hasItemPermAccess;
+            const isCurrentlyDenied = isParentDenied || !itemAccess;
 
-          // If this is a routable leaf node and matches the current path
-          if (item.path && pathname.startsWith(item.path)) {
-            if (isCurrentlyDenied) return false;
+            if (item.path) {
+              if (pathname === item.path || pathname.startsWith(`${item.path}/`)) {
+                matches.push({ item, isDenied: isCurrentlyDenied });
+              }
+            }
+
+            if (item.children) {
+              matches.push(...findMatchingTarget(item.children, isCurrentlyDenied));
+            }
           }
+          return matches;
+        };
 
-          // Recurse into children
-          if (item.children && !checkItemAccess(item.children, isCurrentlyDenied)) {
-            return false;
-          }
-        }
-        return true;
+        const matches = findMatchingTarget(items);
+        if (matches.length === 0) return true;
+
+        matches.sort((a, b) => (b.item.path?.length || 0) - (a.item.path?.length || 0));
+        return !matches[0].isDenied;
       };
 
       if (!checkItemAccess(foundModule.items)) {

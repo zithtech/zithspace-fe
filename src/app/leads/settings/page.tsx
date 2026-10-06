@@ -530,6 +530,7 @@ export default function LeadSettingsPage() {
     const { user, isLoading } = useAuth();
     const {
         canManageLeads,
+        canReadLeadSetting,
         canCreateLeadSetting,
         canUpdateLeadSetting,
         canDeleteLeadSetting
@@ -538,10 +539,10 @@ export default function LeadSettingsPage() {
 
     // ─── Route Guard ────────────────────────────────────────────────────────────
     useEffect(() => {
-        if (!isLoading && user && !canManageLeads) {
+        if (!isLoading && user && !canManageLeads && !canReadLeadSetting) {
             router.push("/dashboard");
         }
-    }, [user, isLoading, canManageLeads, router]);
+    }, [user, isLoading, canManageLeads, canReadLeadSetting, router]);
     const [isDrawerOpen, setIsDrawerOpen] = useState(false);
     const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
     const [form] = Form.useForm();

@@ -136,11 +136,12 @@ const shellStyles = `
 .zk-auth__lockup { display: flex; align-items: center; gap: 12px; margin-bottom: 40px; }
 .zk-auth__heading {
   margin: 0;
-  font-size: 34px;
-  line-height: 1.12;
+  font-size: 28px;
+  line-height: 1.15;
   font-weight: 600;
   letter-spacing: -0.03em;
   color: #F8FAFC;
+  white-space: nowrap;
 }
 .zk-auth__sub {
   margin: 12px 0 0;

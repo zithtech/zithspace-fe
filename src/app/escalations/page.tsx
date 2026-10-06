@@ -1176,7 +1176,7 @@ export default function EscalationListPage() {
         placement="right"
         onClose={() => setDrawerVisible(false)}
         open={drawerVisible}
-        width={450}
+        width={680}
         extra={
           canReadActivityLog && selectedEscalation && (
             <Button
@@ -1434,11 +1434,24 @@ export default function EscalationListPage() {
                           border: '1px solid var(--border-slate-200)',
                         }}
                       >
-                        <Space size={4}>
-                          <Text strong style={{ fontSize: 11, color: 'var(--premium-blue)' }}>
+                        <Space size={4} style={{ maxWidth: '100%' }}>
+                          <Text strong style={{ fontSize: 11, color: 'var(--premium-blue)', flexShrink: 0 }}>
                             {t.ticket?.ticketNumber}
                           </Text>
-                          <Text style={{ fontSize: 11, color: 'var(--text-slate-600)' }}>{t.ticket?.title}</Text>
+                          <Text
+                            style={{
+                              fontSize: 11,
+                              color: 'var(--text-slate-600)',
+                              maxWidth: 220,
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                              whiteSpace: 'nowrap',
+                              display: 'inline-block',
+                            }}
+                            title={t.ticket?.title}
+                          >
+                            {t.ticket?.title}
+                          </Text>
                         </Space>
                       </Tag>
                     ))}

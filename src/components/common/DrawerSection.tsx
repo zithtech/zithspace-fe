@@ -108,7 +108,16 @@ export const drawerFormStyles = `
     border: none !important;
     box-shadow: none !important;
     background: transparent !important;
-    padding: 10px 14px !important;
+    padding: 10px 14px 10px 14px !important;
+    vertical-align: top !important;
+    resize: vertical;
+  }
+
+  /* Ensure label column text wraps without pushing into wrapper column */
+  .customer-drawer-form .ant-form-item-label {
+    overflow: visible !important;
+    white-space: normal !important;
+    word-break: break-word;
   }
   
   [data-theme='dark'] .customer-drawer-form .ant-input-textarea-show-count,

@@ -586,10 +586,22 @@ function LoginFormWithParams() {
 
   if (user) {
     return (
-      <div style={{ textAlign: 'center', padding: '20px 0' }}>
+      <div
+        data-theme="dark"
+        style={{
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          textAlign: 'center',
+          width: '100%',
+          minHeight: 240,
+          padding: '20px 0',
+        }}
+      >
         <ZukvoLoader size="lg" />
-        <div style={{ marginTop: 16 }}>
-          <Text type="secondary">Redirecting...</Text>
+        <div style={{ marginTop: 16, width: '100%' }}>
+          <Text style={{ color: 'var(--zk-ash, #94a3b8)', textAlign: 'center' }}>Redirecting...</Text>
         </div>
       </div>
     );
@@ -774,13 +786,7 @@ function LoginFormSkeleton() {
 export default function LoginPage() {
   return (
     <AuthShell
-      heading={
-        <>
-          Welcome
-          <br />
-          back.
-        </>
-      }
+      heading="Welcome back."
       subtitle="Sign in to pick up where you left off."
     >
       <Suspense fallback={<LoginFormSkeleton />}>

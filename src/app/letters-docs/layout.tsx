@@ -315,6 +315,31 @@ export default function LettersDocsLayout({ children }: { children: React.ReactN
               width: 36px; height: 36px; border-radius: 8px; border: 1px solid var(--border-slate-200);
               background: var(--bg-pure-white); color: var(--text-slate-700); cursor: pointer;
             }
+            .lv-header {
+              height: auto;
+              flex-direction: column;
+              align-items: stretch;
+              padding: 12px 14px;
+              gap: 12px;
+            }
+            .lv-header-actions {
+              width: 100%;
+              flex-wrap: wrap;
+              gap: 8px;
+            }
+            .lv-header-actions form {
+              flex: 1;
+              min-width: 200px;
+            }
+            .lv-header-actions form > div {
+              width: 100% !important;
+            }
+            .lv-header-sub {
+              display: none;
+            }
+            .categories-btn-text {
+              display: none;
+            }
           }
 
           /* Footer + pager for pagination */

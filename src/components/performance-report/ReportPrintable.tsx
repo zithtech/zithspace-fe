@@ -282,10 +282,10 @@ const ReportPrintable = forwardRef<HTMLDivElement, Props>(
                               <div className="flex items-start gap-2">
                                 <span className="w-1.5 h-1.5 rounded-full mt-1.5 flex-shrink-0" style={{ background: st.color }} />
                                 <div className="min-w-0 flex-1">
-                                  <div className="font-bold text-[#2563eb] text-[11.5px] leading-tight">
-                                    {t.ticketNumber}
+                                  <div className="font-bold text-[#2563eb] text-[11.5px] leading-tight break-all">
+                                    {t.ticketNumber && t.ticketNumber.length > 20 ? `${t.ticketNumber.substring(0, 8)}...` : t.ticketNumber}
                                     {t.sprintName && (
-                                      <span className="ml-1.5 font-normal text-[9px] text-zinc-400 bg-zinc-100 dark:bg-zinc-800 px-1 py-0.5 rounded">
+                                      <span className="ml-1.5 font-normal text-[9px] text-zinc-400 bg-zinc-100 dark:bg-zinc-800 px-1 py-0.5 rounded inline-block">
                                         {t.sprintName}
                                       </span>
                                     )}

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import dynamic from 'next/dynamic';
 const Joyride = dynamic(() => import('react-joyride').then((mod) => mod.Joyride), { ssr: false });
 import { EventData, STATUS, EVENTS, ACTIONS, TooltipRenderProps } from 'react-joyride';
@@ -11,6 +11,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { apiClient } from '@/lib/axios';
 import { X, ChevronLeft, ChevronRight, Check, Sparkles } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
+import { useProduct } from '@/context/ProductContext';
 import { adminSettingsTourSteps } from './TourSteps';
 
 function CustomTooltip({
@@ -25,6 +26,7 @@ function CustomTooltip({
 }: TooltipRenderProps) {
   const { theme } = useTheme();
   const { user } = useAuth();
+  const { brand } = useProduct();
   const { skipTour, startTour, completeTour, returnTour, currentTourKey, stepIndex: activeStepIndex } = useTour();
   const isDark = theme === 'dark';
 
@@ -36,13 +38,13 @@ function CustomTooltip({
         pointerEvents: 'auto',
         backgroundColor: isDark ? '#111827' : '#ffffff',
         border: isDark ? '1px solid #374151' : '1px solid #e5e7eb',
-        borderRadius: '20px',
-        padding: '24px',
+        borderRadius: '16px',
+        padding: '12px 16px',
         boxSizing: 'border-box',
-        boxShadow: isDark 
-          ? '0 25px 50px -12px rgba(0, 0, 0, 0.5)' 
+        boxShadow: isDark
+          ? '0 25px 50px -12px rgba(0, 0, 0, 0.5)'
           : '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
-        width: '420px',
+        width: '320px',
         maxWidth: '100%',
         fontFamily: 'Inter, sans-serif',
         animation: 'tourFadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
@@ -89,6 +91,12 @@ function CustomTooltip({
         .tour-close-btn:hover {
           background: ${isDark ? '#374151' : '#f3f4f6'} !important;
         }
+        
+        /* Fix stacking context for Project Switcher so it can highlight above the overlay */
+        .sc-header:has([data-tour="qa-project-select"]) {
+          z-index: auto !important;
+          position: static !important;
+        }
       `}</style>
 
       <button
@@ -118,66 +126,60 @@ function CustomTooltip({
         <X size={16} />
       </button>
 
-      {/* Robot Guide Section */}
-      <div style={{ display: 'flex', alignItems: 'flex-start', gap: '16px', marginBottom: '16px' }}>
+      {/* Brand Guide Section */}
+      <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px', marginBottom: '12px' }}>
         <div style={{
-          width: '56px',
-          height: '56px',
+          width: '32px',
+          height: '32px',
           borderRadius: '50%',
           overflow: 'hidden',
           flexShrink: 0,
-          border: '2px solid #4F46E5',
-          animation: 'robotFloat 3s ease-in-out infinite',
-          boxShadow: '0 8px 16px rgba(79, 70, 229, 0.2)'
+          border: '1px solid #4F46E5',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          background: isDark ? '#1f2937' : '#ffffff',
+          boxShadow: '0 2px 4px rgba(79, 70, 229, 0.15)'
         }}>
           <img
-            src="/images/robot-guide.jpg"
-            alt="Guide"
-            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+            src={brand.mark.src}
+            alt="Guide Logo"
+            style={{ width: '60%', height: '60%', objectFit: 'contain' }}
             onError={(e) => {
-              // Graceful fallback to hide broken image icon
               (e.target as HTMLElement).style.display = 'none';
             }}
           />
         </div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', paddingTop: '4px', paddingRight: '28px' }}>
-          <span style={{ fontSize: '11px', fontWeight: 700, color: '#4F46E5', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0px', paddingTop: '0px', paddingRight: '20px' }}>
+          <span style={{ fontSize: '11px', fontWeight: 600, color: '#4F46E5' }}>
             {user?.name ? `Hi, ${user.name}` : 'Hi'}
           </span>
-          <div style={{
-            background: isDark ? '#1f2937' : '#f3f4f6',
-            padding: '8px 12px',
-            borderRadius: '12px',
-            borderTopLeftRadius: '2px',
-            fontSize: '13px',
-            color: isDark ? '#d1d5db' : '#4b5563',
-            fontStyle: 'italic',
-          }}>
-            &ldquo;I will guide you step by step!&rdquo;
+          <div style={{ fontSize: '11.5px', color: isDark ? '#d1d5db' : '#4b5563' }}>
+            Let's get started.
           </div>
         </div>
       </div>
 
       {step.title && (
         <h3 style={{
-          margin: '0 0 8px 0',
-          fontSize: '18px',
+          margin: '0 0 4px 0',
+          fontSize: '14.5px',
           fontWeight: 600,
           color: isDark ? '#f9fafb' : '#111827',
           display: 'flex',
           alignItems: 'center',
-          gap: '8px'
+          gap: '6px'
         }}>
-          {index === 0 ? <span style={{ fontSize: '20px' }}>👋</span> : <Sparkles size={18} style={{ color: '#4F46E5' }} />}
+          {index === 0 ? <span style={{ fontSize: '16px' }}>👋</span> : <Sparkles size={16} style={{ color: '#4F46E5' }} />}
           {step.title}
         </h3>
       )}
 
       <div style={{
-        fontSize: '14px',
+        fontSize: '13px',
         color: isDark ? '#9ca3af' : '#4b5563',
-        lineHeight: 1.6,
-        marginBottom: '24px'
+        lineHeight: 1.4,
+        marginBottom: '16px'
       }}>
         {step.content}
         {(step as any).showProjectTourBtn && (
@@ -283,28 +285,29 @@ function CustomTooltip({
           style={{
             border: 'none',
             outline: 'none',
-            padding: '10px 14px',
-            borderRadius: '10px',
+            padding: '8px 12px',
+            borderRadius: '8px',
             opacity: index > 0 ? 1 : 0,
             pointerEvents: index > 0 ? 'auto' : 'none',
-            fontSize: '14px',
+            fontSize: '13px',
             fontWeight: 600,
             transition: 'all 0.2s',
             display: 'flex',
             alignItems: 'center',
-            gap: '6px',
-            boxSizing: 'border-box'
+            gap: '4px',
+            boxSizing: 'border-box',
+            marginLeft: '-8px'
           }}
         >
-          <ChevronLeft size={16} /> Back
+          <ChevronLeft size={15} /> Back
         </button>
 
         <div style={{ display: 'flex', alignItems: 'center', flexDirection: 'column', flex: 1, padding: '0 16px' }}>
-          <div style={{ 
-            width: '100%', 
-            maxWidth: '120px', 
-            height: '4px', 
-            backgroundColor: isDark ? '#334155' : '#e2e8f0', 
+          <div style={{
+            width: '100%',
+            maxWidth: '120px',
+            height: '4px',
+            backgroundColor: isDark ? '#334155' : '#e2e8f0',
             borderRadius: '4px',
             marginBottom: '8px',
             overflow: 'hidden'
@@ -337,20 +340,20 @@ function CustomTooltip({
             style={{
               border: 'none',
               color: '#ffffff',
-              padding: '10px 20px',
-              borderRadius: '10px',
-              fontSize: '14px',
+              padding: '8px 16px',
+              borderRadius: '8px',
+              fontSize: '13px',
               fontWeight: 600,
               transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
               display: 'flex',
               alignItems: 'center',
-              gap: '8px',
+              gap: '6px',
               boxSizing: 'border-box',
               flexShrink: 0,
               cursor: 'pointer'
             }}
           >
-            {isLastStep ? (returnTour ? 'Return to Tour' : 'Finish') : 'Next'} {isLastStep ? <Check size={16} /> : <ChevronRight size={16} />}
+            {isLastStep ? (returnTour ? 'Return to Tour' : 'Finish') : 'Next'} {isLastStep ? <Check size={15} /> : <ChevronRight size={15} />}
           </button>
         )}
       </div>
@@ -371,7 +374,7 @@ const isTourRouteMatch = (stepRoute?: string, currentPath?: string) => {
   if (cleanStepRoute === '/tickets/select' && cleanCurrentPath.startsWith('/projects/') && cleanCurrentPath.includes('/tickets')) {
     return true;
   }
-  if (cleanStepRoute.startsWith('/qa-workspace') && cleanCurrentPath.startsWith('/projects/') && cleanCurrentPath.includes('/qa-workspace')) {
+  if (cleanStepRoute.startsWith('/qa-workspace') && cleanCurrentPath.startsWith('/projects/') && cleanCurrentPath.includes(cleanStepRoute)) {
     return true;
   }
   return false;
@@ -383,8 +386,9 @@ export const ProductTour: React.FC = () => {
   const pathname = usePathname();
   const { theme } = useTheme();
   const isDark = theme === 'dark';
-  
+
   const [readyStepIndex, setReadyStepIndex] = useState(-1);
+  const lastActionRef = useRef<'next' | 'prev'>('next');
 
   // Toggle a body class so CSS can lower the TopNav z-index below the Joyride overlay
   useEffect(() => {
@@ -427,11 +431,11 @@ export const ProductTour: React.FC = () => {
         return;
       }
 
-      // Auto-open workspace for Document Hub tour steps 2, 3, 4 when user is on /documenthub
+      // Auto-open workspace for Document Hub tour steps when user is on /documenthub
       if (
         currentTourKey === 'testiez-document-hub' &&
         stepIndex >= 2 &&
-        stepIndex <= 4 &&
+        stepIndex <= 3 &&
         pathname === '/documenthub'
       ) {
         setReadyStepIndex(-1);
@@ -451,6 +455,30 @@ export const ProductTour: React.FC = () => {
         } catch (e) {
           console.error('Failed to auto-open document hub for tour:', e);
         }
+      }
+
+      // If user manually created a hub and is on step 1 (Create Hub), advance to step 2
+      if (
+        currentTourKey === 'testiez-document-hub' &&
+        stepIndex === 1 &&
+        pathname.startsWith('/documenthub/') &&
+        pathname !== '/documenthub'
+      ) {
+        setReadyStepIndex(-1);
+        setStepIndex(2);
+        return;
+      }
+
+      // Navigate back to Document Hub list view for steps 4 to 10
+      if (
+        currentTourKey === 'testiez-document-hub' &&
+        stepIndex >= 4 &&
+        stepIndex <= 10 &&
+        (pathname !== '/documenthub' && pathname !== '/documenthub/')
+      ) {
+        setReadyStepIndex(-1);
+        router.push('/documenthub');
+        return;
       }
 
       // Auto-open testcase to highlight Module Test Cases step when user is on /qa-workspace/test-cases
@@ -599,7 +627,7 @@ export const ProductTour: React.FC = () => {
       } else if (
         currentTourKey === 'testiez-members' &&
         stepIndex >= 2 &&
-        stepIndex <= 6
+        stepIndex <= 5
       ) {
         const drawerEl = document.querySelector('[data-tour="member-drawer-profile-details"]');
         if (!drawerEl) {
@@ -610,10 +638,10 @@ export const ProductTour: React.FC = () => {
         }
       } else if (
         currentTourKey === 'testiez-members' &&
-        stepIndex >= 7
+        stepIndex >= 6
       ) {
         const drawerCloseBtn = document.querySelector('.customer-drawer-header button, .mm-drawer .ant-drawer-close, .customer-drawer-footer button') as HTMLElement | null;
-        if (drawerCloseBtn && document.querySelector('.mm-drawer.ant-drawer-open')) {
+        if (drawerCloseBtn && document.querySelector('.leave-drawer-root.ant-drawer-open')) {
           drawerCloseBtn.click();
         }
       }
@@ -637,17 +665,36 @@ export const ProductTour: React.FC = () => {
         };
       };
 
-      // Check for DOM element
-      const el = document.querySelector(currentStepDef.target as string);
+      // Check for DOM element immediately
+      const initialElements = document.querySelectorAll(currentStepDef.target as string);
+      let el: Element | null = null;
+      for (let i = 0; i < initialElements.length; i++) {
+        const e = initialElements[i];
+        const rect = e.getBoundingClientRect();
+        const style = window.getComputedStyle(e);
+        const inViewport = rect.right > 0 && rect.left < (window.innerWidth || document.documentElement.clientWidth);
+        if (rect.width > 0 && rect.height > 0 && style.display !== 'none' && style.visibility !== 'hidden' && inViewport) {
+          el = e;
+          break;
+        }
+      }
       if (el) {
         if (
-          (currentTourKey === 'testiez-members' && stepIndex >= 2 && stepIndex <= 6) ||
+          (currentTourKey === 'testiez-members' && stepIndex >= 2 && stepIndex <= 5) ||
           (currentTourKey === 'testiez-project-manual' && stepIndex >= 2 && stepIndex <= 4)
         ) {
           el.scrollIntoView({ behavior: 'smooth', block: 'center' });
         }
-        setReadyStepIndex(stepIndex);
-        cleanupClickListener = attachButtonClickListener(el);
+        const isAnimatedContainer = el.closest?.('.ant-drawer, .ant-modal, .ant-drawer-content-wrapper');
+        if (isAnimatedContainer) {
+          timeoutId = setTimeout(() => {
+            setReadyStepIndex(stepIndex);
+            cleanupClickListener = attachButtonClickListener(el!);
+          }, 350);
+        } else {
+          setReadyStepIndex(stepIndex);
+          cleanupClickListener = attachButtonClickListener(el);
+        }
         return;
       }
 
@@ -657,46 +704,52 @@ export const ProductTour: React.FC = () => {
       intervalId = setInterval(() => {
         attempts++;
 
-        // If in project drawer steps, ensure drawer is opened
-        if (currentTourKey === 'testiez-project-manual' && stepIndex >= 2 && stepIndex <= 4) {
-          const drawerEl = document.querySelector('[data-tour="project-form-details"]');
-          if (!drawerEl) {
-            const createBtn = document.querySelector('[data-tour="project-create-btn"]') as HTMLElement | null;
-            if (createBtn) {
-              createBtn.click();
-            }
+
+
+        const elements = document.querySelectorAll(currentStepDef.target as string);
+        let found: Element | null = null;
+        for (let i = 0; i < elements.length; i++) {
+          const el = elements[i];
+          const rect = el.getBoundingClientRect();
+          const style = window.getComputedStyle(el);
+          const inViewport = rect.right > 0 && rect.left < (window.innerWidth || document.documentElement.clientWidth);
+          if (rect.width > 0 && rect.height > 0 && style.display !== 'none' && style.visibility !== 'hidden' && inViewport) {
+            found = el;
+            break;
           }
         }
-
-        // If in members drawer steps, ensure drawer is opened
-        if (currentTourKey === 'testiez-members' && stepIndex >= 2 && stepIndex <= 6) {
-          const drawerEl = document.querySelector('[data-tour="member-drawer-profile-details"]');
-          if (!drawerEl) {
-            const createBtn = document.querySelector('[data-tour="members-create-btn"]') as HTMLElement | null;
-            if (createBtn) {
-              createBtn.click();
-            }
-          }
-        }
-
-        const found = document.querySelector(currentStepDef.target as string);
         if (found) {
+          clearInterval(intervalId);
           if (
-            (currentTourKey === 'testiez-members' && stepIndex >= 2 && stepIndex <= 6) ||
+            (currentTourKey === 'testiez-members' && stepIndex >= 2 && stepIndex <= 5) ||
             (currentTourKey === 'testiez-project-manual' && stepIndex >= 2 && stepIndex <= 4)
           ) {
             found.scrollIntoView({ behavior: 'smooth', block: 'center' });
           }
-          setReadyStepIndex(stepIndex);
-          cleanupClickListener = attachButtonClickListener(found);
-          clearInterval(intervalId);
-        } else if (attempts > 30) {
-          // If genuinely missing after 3s
-          clearInterval(intervalId);
-          if (currentStepDef.route && pathname !== currentStepDef.route) {
-            setReadyStepIndex(-1);
+          const isAnimatedContainer = found.closest?.('.ant-drawer, .ant-modal, .ant-drawer-content-wrapper');
+          if (isAnimatedContainer) {
+            timeoutId = setTimeout(() => {
+              setReadyStepIndex(stepIndex);
+              cleanupClickListener = attachButtonClickListener(found!);
+            }, 350);
           } else {
             setReadyStepIndex(stepIndex);
+            cleanupClickListener = attachButtonClickListener(found);
+          }
+        } else if (attempts > 20) {
+          // If genuinely missing after 2s grace period, check if it should be skipped dynamically
+          if (currentStepDef.skipIfNotFound) {
+            clearInterval(intervalId);
+            setReadyStepIndex(-1);
+            setStepIndex(stepIndex + (lastActionRef.current === 'prev' ? -1 : 1));
+          } else if (attempts > 60) {
+            // If genuinely missing after 6s
+            clearInterval(intervalId);
+            if (currentStepDef.route && pathname !== currentStepDef.route) {
+              setReadyStepIndex(-1);
+            } else {
+              setReadyStepIndex(stepIndex);
+            }
           }
         }
       }, 100);
@@ -738,19 +791,36 @@ export const ProductTour: React.FC = () => {
 
       // Only advance or go back if the user explicitly clicked Next or Back
       if (action === 'prev' || action === 'next') {
+        lastActionRef.current = action;
         let increment = action === 'prev' ? -1 : 1;
         const currentStep = steps[index] as any;
-        
+
+        if (action === 'next' && currentStep?.clickOnNext) {
+          if (typeof currentStep.target === 'string') {
+            const el = document.querySelector(currentStep.target) as HTMLElement | null;
+            if (el) {
+              el.click();
+            }
+          }
+        }
+
         // If we clicked Next on a step that is configured to skip the next step
         if (action === 'next' && currentStep?.skipNextOnNext) {
           increment = 2;
         }
-        
+
         const newIndex = index + increment;
         setStepIndex(newIndex);
       }
     } else if (type === EVENTS.TARGET_NOT_FOUND) {
       const targetStep = steps[index];
+      // If the step is marked as skipIfNotFound, automatically jump to the next/prev step
+      if (targetStep?.skipIfNotFound) {
+        const newIndex = index + (action === 'prev' ? -1 : 1);
+        setStepIndex(newIndex);
+        return;
+      }
+
       // If we are on the target route or a matching subroute, ignore the not-found error
       if (targetStep?.route && isTourRouteMatch(targetStep.route, pathname)) {
         return;
@@ -759,7 +829,9 @@ export const ProductTour: React.FC = () => {
         return;
       }
       // Otherwise, the element is genuinely missing on an unrelated page, so skip it
-      const newIndex = index + (action === 'prev' ? -1 : 1);
+      const newAction = action === 'prev' ? 'prev' : 'next';
+      lastActionRef.current = newAction;
+      const newIndex = index + (newAction === 'prev' ? -1 : 1);
       setStepIndex(newIndex);
     }
   };
@@ -773,7 +845,22 @@ export const ProductTour: React.FC = () => {
       scrollToFirstStep
       stepIndex={stepIndex}
       steps={steps.map(s => {
-        const isTargetInDom = typeof s.target === 'string' ? (s.target === 'body' || !!document.querySelector(s.target)) : true;
+        let isTargetInDom = true;
+        if (typeof s.target === 'string' && s.target !== 'body') {
+          const elements = document.querySelectorAll(s.target);
+          let found = false;
+          for (let i = 0; i < elements.length; i++) {
+            const el = elements[i];
+            const rect = el.getBoundingClientRect();
+            const style = window.getComputedStyle(el);
+            const inViewport = rect.right > 0 && rect.left < (window.innerWidth || document.documentElement.clientWidth);
+            if (rect.width > 0 && rect.height > 0 && style.display !== 'none' && style.visibility !== 'hidden' && inViewport) {
+              found = true;
+              break;
+            }
+          }
+          isTargetInDom = found;
+        }
         const effectiveTarget = isTargetInDom ? s.target : 'body';
         return {
           ...s,
@@ -785,6 +872,7 @@ export const ProductTour: React.FC = () => {
           // react-joyride v3: disable close on overlay click and Escape key
           overlayClickAction: '',
           dismissKeyAction: '',
+          scrollOffset: 150,
           spotlightClicks: effectiveTarget !== 'body',
           styles: effectiveTarget === 'body' ? {
             spotlight: { display: 'none' }
@@ -795,7 +883,7 @@ export const ProductTour: React.FC = () => {
       styles={{
         options: {
           arrowColor: isDark ? '#1e293b' : '#fff',
-          zIndex: 10000,
+          zIndex: 1000000,
           overlayColor: isDark ? 'rgba(0, 0, 0, 0.75)' : 'rgba(0, 0, 0, 0.5)',
           spotlightPadding: 4,
           width: 400,

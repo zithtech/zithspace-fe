@@ -30,6 +30,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import DocumentHubService, { DocumentHub } from "@/services/documentHub";
 import { format, formatDistanceToNow } from "date-fns";
 import { usePermission } from "@/hooks/usePermission";
+import ConfirmDialog from "@/components/common/ConfirmDialog";
 
 interface TrashDrawerProps {
     open: boolean;
@@ -130,63 +131,36 @@ const TrashDrawer: React.FC<TrashDrawerProps> = ({ open, onClose }) => {
     };
 
     const handleDeleteHub = async (id: string, name: string) => {
-        modal.confirm({
-            title: "Permanently delete document hub?",
-            content: `"${name}" will be permanently deleted. This action cannot be undone.`,
-            okText: "Delete",
-            okType: "danger",
-            cancelText: "Cancel",
-            onOk: async () => {
-                try {
-                    await DocumentHubService.deleteDocumentHub(id, true);
-                    messageApi.success("Document hub permanently deleted");
-                    refetch();
-                } catch (error) {
-                    console.error(error);
-                    messageApi.error("Failed to delete document hub");
-                }
-            },
-        });
+        try {
+            await DocumentHubService.deleteDocumentHub(id, true);
+            messageApi.success("Document hub permanently deleted");
+            refetch();
+        } catch (error) {
+            console.error(error);
+            messageApi.error("Failed to delete document hub");
+        }
     };
 
     const handleDeleteDocument = async (id: string, title: string) => {
-        modal.confirm({
-            title: "Permanently delete document?",
-            content: `"${title}" will be permanently deleted. This action cannot be undone.`,
-            okText: "Delete",
-            okType: "danger",
-            cancelText: "Cancel",
-            onOk: async () => {
-                try {
-                    await DocumentHubService.deleteDocument(id, true);
-                    messageApi.success("Document permanently deleted");
-                    refetch();
-                } catch (error) {
-                    console.error(error);
-                    messageApi.error("Failed to delete document");
-                }
-            },
-        });
+        try {
+            await DocumentHubService.deleteDocument(id, true);
+            messageApi.success("Document permanently deleted");
+            refetch();
+        } catch (error) {
+            console.error(error);
+            messageApi.error("Failed to delete document");
+        }
     };
 
     const handleDeleteFolder = async (id: string, title: string) => {
-        modal.confirm({
-            title: "Permanently delete folder?",
-            content: `"${title}" will be permanently deleted. This action cannot be undone.`,
-            okText: "Delete",
-            okType: "danger",
-            cancelText: "Cancel",
-            onOk: async () => {
-                try {
-                    await DocumentHubService.deleteTreeNode(id, true);
-                    messageApi.success("Folder permanently deleted");
-                    refetch();
-                } catch (error) {
-                    console.error(error);
-                    messageApi.error("Failed to delete folder");
-                }
-            },
-        });
+        try {
+            await DocumentHubService.deleteTreeNode(id, true);
+            messageApi.success("Folder permanently deleted");
+            refetch();
+        } catch (error) {
+            console.error(error);
+            messageApi.error("Failed to delete folder");
+        }
     };
 
     const handleRestoreFolder = (item: any) => {
@@ -407,21 +381,28 @@ const TrashDrawer: React.FC<TrashDrawerProps> = ({ open, onClose }) => {
                         >
                             Restore
                         </Button>
-                        <Button
-                            size="small"
-                            icon={<DeleteOutlined />}
-                            onClick={onDelete}
-                            danger
-                            style={{
-                                borderRadius: 8,
-                                height: 30,
-                                fontSize: 12,
-                                fontWeight: 600,
-                                paddingInline: 12,
-                            }}
+                        <ConfirmDialog
+                            tone="danger"
+                            title={`Permanently delete ${type === "hub" ? "document hub" : type === "folder" ? "folder" : "document"}?`}
+                            description={`"${title}" will be permanently deleted. This action cannot be undone.`}
+                            confirmText="Delete"
+                            onConfirm={onDelete}
                         >
-                            Delete
-                        </Button>
+                            <Button
+                                size="small"
+                                icon={<DeleteOutlined />}
+                                danger
+                                style={{
+                                    borderRadius: 8,
+                                    height: 30,
+                                    fontSize: 12,
+                                    fontWeight: 600,
+                                    paddingInline: 12,
+                                }}
+                            >
+                                Delete
+                            </Button>
+                        </ConfirmDialog>
                     </div>
                 )}
             </div>

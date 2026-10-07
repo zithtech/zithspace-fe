@@ -5,6 +5,7 @@ import StatCards from "@/components/common/StatCards";
 import { FilterBar, FilterToggleButton, TicketFilterPill } from "@/components/common/FilterBar";
 
 import React, { useState, useEffect, useMemo, Suspense } from 'react';
+import { useTour } from "@/context/TourContext";
 import {
   Row,
   Col,
@@ -70,6 +71,7 @@ function initialsOf(name?: string) {
 }
 
 function ProjectSelectContent() {
+  const { run, currentTourKey, stepIndex, setStepIndex } = useTour();
   const router = useRouter();
   const searchParams = useSearchParams();
   const { user, isLoading: authLoading } = useAuth();
@@ -221,7 +223,7 @@ function ProjectSelectContent() {
 
   return (
     <MainLayout noPadding>
-      <div className="zs-projects-shell" data-tour="tickets-project-view">
+      <div className="zs-projects-shell">
         {/* Hero header */}
         <header className="zs-hero">
           <div className="zs-hero-text">
@@ -397,7 +399,7 @@ function ProjectSelectContent() {
             </div>
           ) : (
             <Row gutter={[14, 14]}>
-              {filteredProjects.map(project => {
+              {filteredProjects.map((project, index) => {
                 const total = project?.totalTickets || 0;
                 const done = project?.completedTickets || 0;
                 const progressPercent = total > 0 ? Math.round((done / total) * 100) : 0;
@@ -407,9 +409,17 @@ function ProjectSelectContent() {
                 return (
                   <Col xs={24} sm={12} md={8} xl={6} key={project?.id || 'unknown'}>
                     <div
+                      data-tour={index === 0 ? "tickets-project-view" : undefined}
                       role="button"
                       tabIndex={0}
-                      onClick={() => project?.id && router.push(`/projects/${project.id}/tickets`)}
+                      onClick={() => {
+                        if (project?.id) {
+                          if (run && currentTourKey === 'testiez-sprints' && stepIndex === 15) {
+                            setStepIndex(16);
+                          }
+                          router.push(`/projects/${project.id}/tickets`);
+                        }
+                      }}
                       onKeyDown={e => {
                         if ((e.key === 'Enter' || e.key === ' ') && project?.id) {
                           e.preventDefault();

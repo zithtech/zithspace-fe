@@ -24,6 +24,7 @@ import { StatCards, PALETTE, TINT } from '@/components/letters/ui';
 import { SnippetsOutlined, FileTextOutlined, CheckCircleOutlined, StarOutlined, AppstoreOutlined, UnorderedListOutlined, ReloadOutlined, EditOutlined, DeleteOutlined, EyeOutlined, MoreOutlined, EllipsisOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import ZukvoLoader from '@/components/common/ZukvoLoader';
+import ConfirmDialog from '@/components/common/ConfirmDialog';
 
 const PAGE_SIZE_OPTIONS = [10, 15, 20, 25, 50, 100];
 
@@ -89,13 +90,11 @@ export default function StructuresManagementPage() {
     }
   };
 
-  const handleDelete = async () => {
-    if (!deleteStructId) return;
+  const handleDelete = async (id: string) => {
     try {
       toast.loading('Deleting structure...', { id: 'del-struct' });
-      await LettersService.deleteStructure(deleteStructId);
+      await LettersService.deleteStructure(id);
       toast.success('Structure deleted successfully!', { id: 'del-struct' });
-      setDeleteStructId(null);
       fetchData();
     } catch (err: any) {
       toast.error(err.message || 'Failed to delete structure', { id: 'del-struct' });
@@ -194,7 +193,24 @@ export default function StructuresManagementPage() {
               ...(record.tenantId !== 'GLOBAL' ? [
                 { type: 'divider' as const },
                 ...(perms.canUpdateLetterFormat ? [{ key: 'edit', label: renderDropdownItem(<Edit size={16} />, 'Edit', 'Open in the builder', 'var(--border-slate-100)', 'var(--text-slate-600)'), onClick: ({ domEvent }: any) => { domEvent.stopPropagation(); router.push(`/letters-docs/structures/builder?editId=${record.id}`); } }] : []),
-                ...(perms.canDeleteLetterFormat ? [{ key: 'delete', label: renderDropdownItem(<Trash2 size={16} />, 'Delete', 'Move to trash', 'var(--bg-red-50)', 'var(--text-leave)', true), onClick: ({ domEvent }: any) => { domEvent.stopPropagation(); setDeleteStructId(record.id); } }] : []),
+                ...(perms.canDeleteLetterFormat ? [{
+                  key: 'delete',
+                  label: (
+                    <div onClick={(e) => e.stopPropagation()}>
+                      <ConfirmDialog
+                        tone="danger"
+                        title="Delete Structure"
+                        description="Are you sure you want to delete this custom structure? This action cannot be undone and will permanently remove this format template."
+                        confirmText="Delete Structure"
+                        onConfirm={() => handleDelete(record.id)}
+                      >
+                        <div style={{ margin: '-4px -12px', padding: '4px 12px' }}>
+                          {renderDropdownItem(<Trash2 size={16} />, 'Delete', 'Move to trash', 'var(--bg-red-50)', 'var(--text-leave)', true)}
+                        </div>
+                      </ConfirmDialog>
+                    </div>
+                  )
+                }] : []),
               ] : []),
             ]
           }}
@@ -343,8 +359,21 @@ export default function StructuresManagementPage() {
                             }] : []),
                             ...(perms.canDeleteLetterFormat ? [{
                               key: 'delete',
-                              label: renderDropdownItem(<Trash2 size={16} />, 'Delete', 'Move to trash', 'var(--bg-red-50)', 'var(--text-leave)', true),
-                              onClick: ({ domEvent }: any) => { domEvent.stopPropagation(); setDeleteStructId(s.id); },
+                              label: (
+                                <div onClick={(e) => e.stopPropagation()}>
+                                  <ConfirmDialog
+                                    tone="danger"
+                                    title="Delete Structure"
+                                    description="Are you sure you want to delete this custom structure? This action cannot be undone and will permanently remove this format template."
+                                    confirmText="Delete Structure"
+                                    onConfirm={() => handleDelete(s.id)}
+                                  >
+                                    <div style={{ margin: '-4px -12px', padding: '4px 12px' }}>
+                                      {renderDropdownItem(<Trash2 size={16} />, 'Delete', 'Move to trash', 'var(--bg-red-50)', 'var(--text-leave)', true)}
+                                    </div>
+                                  </ConfirmDialog>
+                                </div>
+                              )
                             }] : []),
                           ] : []),
                         ],
@@ -426,42 +455,7 @@ export default function StructuresManagementPage() {
         </div>
       </Modal>
 
-      {/* Delete Confirmation Modal */}
-      <Modal
-        title={
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <div style={{ width: '40px', height: '40px', background: 'var(--bg-red-50)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <AlertTriangle color="#ef4444" size={22} />
-            </div>
-            <div>
-              <span style={{ color: 'var(--text-slate-900)', fontSize: '18px', fontWeight: 600 }}>Delete Structure</span>
-            </div>
-          </div>
-        }
-        open={!!deleteStructId}
-        onOk={handleDelete}
-        onCancel={() => setDeleteStructId(null)}
-        okText="Delete Structure"
-        cancelText="Cancel"
-        okButtonProps={{
-          danger: true,
-          style: { borderRadius: '6px', fontWeight: 600, padding: '0 20px', height: '38px', background: '#ef4444', borderColor: '#ef4444' }
-        }}
-        cancelButtonProps={{
-          style: { borderRadius: '6px', fontWeight: 600, padding: '0 20px', height: '38px', color: 'var(--text-slate-600)', borderColor: 'var(--border-slate-200)' }
-        }}
-        styles={{
-          content: { background: 'var(--bg-pure-white) !important', borderRadius: '12px', padding: '24px' },
-          header: { background: 'var(--bg-pure-white) !important', borderBottom: 'none', paddingBottom: '16px' },
-          footer: { background: 'var(--bg-pure-white) !important', borderTop: 'none', paddingTop: '16px', display: 'flex', justifyContent: 'flex-end', gap: '8px' },
-          body: { paddingTop: '8px', paddingBottom: '8px' }
-        }}
-        centered
-      >
-        <p style={{ margin: 0, color: 'var(--text-slate-600) !important', fontSize: '14px', lineHeight: '1.6', marginLeft: '52px' }}>
-          Are you sure you want to delete this custom structure? This action cannot be undone and will permanently remove this format template.
-        </p>
-      </Modal>
+
 
       <style jsx global>{`
         .pc-card {

@@ -209,7 +209,7 @@ export default function CoverageMapPage() {
 
             {/* Right side — the View switch that used to live in the rail,
                 then the ordering and refresh. */}
-            <Space size={10} className="sc-header-right">
+            <Space size={10} className="sc-header-right" data-tour="coverage-gaps-filter">
               <Segmented
                 className="saas-segmented-premium sc-owner-seg"
                 value={gapsOnly ? "gaps" : "all"}
@@ -310,7 +310,7 @@ export default function CoverageMapPage() {
               </div>
             </div>
 
-            <div className="cm-banner__bands">
+            <div className="cm-banner__bands" data-tour="coverage-health-bands">
               {HEALTH_LEGEND.map(l => {
                 const n = bandCounts[l.band];
                 const isOn = bandFilter === l.band;
@@ -351,7 +351,7 @@ export default function CoverageMapPage() {
             )}
 
             <ZukvoLoadingOverlay loading={loading} message="Building the coverage map…" minHeight={loading ? 360 : undefined}>
-              <div className="cm-tree">
+              <div className="cm-tree" data-tour="coverage-module-tree">
                 {!loading && visibleNodes.length === 0 && (
                   <div className="cm-empty">
                     <Sparkles size={26} className="cm-empty__ic" />

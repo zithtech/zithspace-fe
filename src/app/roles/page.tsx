@@ -1179,6 +1179,15 @@ export default function RolesPage() {
 
   const clearAll = () => setSelectedPermIds([]);
 
+  // Tour Target Logic
+  const customRoles = roles.filter((r) => !r.isSystem);
+  const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
+  const recentCustomRoles = customRoles.filter((r) => new Date(r.createdAt) > oneHourAgo);
+
+  const targetTourRoleId = recentCustomRoles.length > 0
+    ? [...recentCustomRoles].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0]?.id
+    : roles.find((r) => r.slug === "user")?.id;
+
   // ── Columns ────────────────────────────────────────────────────────────────
   const columns: ColumnsType<RBACRole> = [
     {
@@ -1261,7 +1270,7 @@ export default function RolesPage() {
           {canAssignRole && (
             <Tooltip title="Manage members">
               <Button
-                data-tour="roles-table-members"
+                data-tour={record.id === targetTourRoleId ? "roles-table-members" : undefined}
                 type="text"
                 icon={<TeamOutlined />}
                 size="small"
@@ -1283,7 +1292,7 @@ export default function RolesPage() {
           {canUpdateRole && (
             <Tooltip title="Edit permissions">
               <Button
-                data-tour="roles-table-perms"
+                data-tour={record.id === targetTourRoleId ? "roles-table-perms" : undefined}
                 type="text"
                 icon={<SettingOutlined />}
                 size="small"

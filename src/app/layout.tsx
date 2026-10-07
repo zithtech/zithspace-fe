@@ -131,14 +131,14 @@ export default async function RootLayout({
                         <QueryProvider>
                           <SocketProvider>
                             <LayoutProvider>
-                              <TicketDrawerProvider>
-                                <TourProvider>
+                              <TourProvider>
+                                <TicketDrawerProvider>
                                   <AppSetupGuard>
                                     {children}
                                     <ProductTour />
                                   </AppSetupGuard>
-                                </TourProvider>
-                              </TicketDrawerProvider>
+                                </TicketDrawerProvider>
+                              </TourProvider>
                             </LayoutProvider>
                           </SocketProvider>
                         </QueryProvider>

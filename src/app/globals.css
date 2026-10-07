@@ -48,13 +48,30 @@ body.tour-active .ant-drawer:not(.ant-drawer-open) {
   pointer-events: none !important;
 }
 
+body.tour-active .ant-drawer.ant-drawer-open {
+  z-index: 9999 !important;
+}
+
 body.tour-active .ant-drawer.ant-drawer-open .ant-drawer-mask {
   display: none !important;
   pointer-events: none !important;
 }
 
-body.tour-active .ant-popover {
-  z-index: 10005 !important;
+body.tour-active .ant-popover,
+body.tour-active .ant-dropdown {
+  z-index: 1000005 !important;
+}
+
+body.tour-active [id^="react-joyride"] {
+  z-index: 1000000 !important;
+}
+
+body.tour-active .react-joyride__overlay {
+  z-index: 1000000 !important;
+}
+
+body.tour-active .react-joyride__tooltip {
+  z-index: 1000001 !important;
 }
 
 body.tour-active [data-tour="tickets-drawer-add-sprint"],

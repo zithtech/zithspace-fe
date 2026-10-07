@@ -341,7 +341,7 @@ export default function DropdownManager({ onDataChange, initialTab, hideTabs }: 
       } else {
         await SettingsService.createDropdownOption(data as CreateDropdownOptionData);
         messageApi.success('New configuration added');
-        setSuccessData({ name: values.label });
+        setModalVisible(false);
       }
 
       await loadDropdownOptions();

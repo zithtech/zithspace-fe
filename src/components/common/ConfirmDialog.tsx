@@ -62,6 +62,8 @@ export interface ConfirmDialogProps {
   onCancel?: () => void;
   /** The trigger element (e.g. the delete button). */
   children: React.ReactNode;
+  /** Optional tour ID attached to the confirm button */
+  confirmButtonTourId?: string;
 }
 
 export default function ConfirmDialog({
@@ -80,6 +82,7 @@ export default function ConfirmDialog({
   onConfirm,
   onCancel,
   children,
+  confirmButtonTourId,
 }: ConfirmDialogProps) {
   const [internalOpen, setInternalOpen] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -164,6 +167,7 @@ export default function ConfirmDialog({
             padding: '0 16px',
             ...(tone !== 'danger' ? { background: t.color, borderColor: t.color } : {}),
           }}
+          {...(confirmButtonTourId ? { 'data-tour': confirmButtonTourId } : {})}
         >
           {confirmText}
         </Button>

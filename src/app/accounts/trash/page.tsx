@@ -82,7 +82,7 @@ export default function AccountTrashPage() {
   const router = useRouter();
   const { user } = useAuth();
   const { message: messageApi } = App.useApp();
-  const { canReadAccount, canDeleteAccount, canUpdateAccount } = usePermission();
+  const { canReadAccountTrash, canDeleteAccountTrash, canRestoreAccountTrash } = usePermission();
 
   // State management
   const [transactions, setTransactions] = useState<Transaction[]>([]);
@@ -239,7 +239,7 @@ export default function AccountTrashPage() {
 
   // Fetch trash transactions
   const fetchTrash = async () => {
-    if (!canReadAccount) return;
+    if (!canReadAccountTrash) return;
     setLoading(true);
     try {
       const response = await TransactionsService.getTrashTransactions({
@@ -267,7 +267,7 @@ export default function AccountTrashPage() {
 
   useEffect(() => {
     fetchTrash();
-  }, [page, pageSize, searchTerm, canReadAccount]);
+  }, [page, pageSize, searchTerm, canReadAccountTrash]);
 
   // Client-side filtering for views / categories / date range
   const filteredTransactions = useMemo(() => {
@@ -462,22 +462,26 @@ export default function AccountTrashPage() {
       {
         type: "divider" as const,
       },
-      {
-        key: "restore",
-        label: (
-          <div className="pp-menu-item">
-            <div className="pp-menu-ic" style={{ background: "rgba(16,185,129,0.12)", color: "#10b981" }}>
-              <RotateCcw size={14} />
-            </div>
-            <div className="pp-menu-text">
-              <span className="pp-menu-title" style={{ color: "#10b981" }}>Restore Item</span>
-              <span className="pp-menu-desc">Move back to active transactions</span>
-            </div>
-          </div>
-        ),
-        onClick: () => handleRestore(record.id),
-      },
-      ...(canDeleteAccount
+      ...(canRestoreAccountTrash
+        ? [
+            {
+              key: "restore",
+              label: (
+                <div className="pp-menu-item">
+                  <div className="pp-menu-ic" style={{ background: "rgba(16,185,129,0.12)", color: "#10b981" }}>
+                    <RotateCcw size={14} />
+                  </div>
+                  <div className="pp-menu-text">
+                    <span className="pp-menu-title" style={{ color: "#10b981" }}>Restore Item</span>
+                    <span className="pp-menu-desc">Move back to active transactions</span>
+                  </div>
+                </div>
+              ),
+              onClick: () => handleRestore(record.id),
+            },
+          ]
+        : []),
+      ...(canDeleteAccountTrash
         ? [
           {
             type: "divider" as const,
@@ -678,16 +682,18 @@ export default function AccountTrashPage() {
       fixed: "right",
       render: (_, record: Transaction) => (
         <Space size={4} onClick={(e) => e.stopPropagation()}>
-          <Tooltip title="Restore Transaction">
-            <Button
-              type="text"
-              size="small"
-              className="pp-icon-btn"
-              icon={<RotateCcw size={14} style={{ color: "#10b981" }} />}
-              onClick={() => handleRestore(record.id)}
-            />
-          </Tooltip>
-          {canDeleteAccount && (
+          {canRestoreAccountTrash && (
+            <Tooltip title="Restore Transaction">
+              <Button
+                type="text"
+                size="small"
+                className="pp-icon-btn"
+                icon={<RotateCcw size={14} style={{ color: "#10b981" }} />}
+                onClick={() => handleRestore(record.id)}
+              />
+            </Tooltip>
+          )}
+          {canDeleteAccountTrash && (
             <Popconfirm
               title="Permanent Delete"
               description="Permanently delete this transaction?"
@@ -725,7 +731,7 @@ export default function AccountTrashPage() {
   const pageCount = Math.max(1, Math.ceil(total / pageSize));
 
   // Access denied fallback
-  if (!canReadAccount) {
+  if (!canReadAccountTrash) {
     return (
       <MainLayout>
         <div className="flex flex-col items-center justify-center h-[60vh]">
@@ -796,16 +802,18 @@ export default function AccountTrashPage() {
               <>
                 <div className="pp-side-section-label">Selected Actions ({selectedRowKeys.length})</div>
                 <div className="pp-side-list">
-                  <button
-                    type="button"
-                    className="pp-view-item"
-                    onClick={handleBulkRestore}
-                    style={{ color: "#10b981" }}
-                  >
-                    <span className="pp-view-icon"><RotateCcw size={14} /></span>
-                    <span className="pp-view-label">Restore Selected</span>
-                  </button>
-                  {canDeleteAccount && (
+                  {canRestoreAccountTrash && (
+                    <button
+                      type="button"
+                      className="pp-view-item"
+                      onClick={handleBulkRestore}
+                      style={{ color: "#10b981" }}
+                    >
+                      <span className="pp-view-icon"><RotateCcw size={14} /></span>
+                      <span className="pp-view-label">Restore Selected</span>
+                    </button>
+                  )}
+                  {canDeleteAccountTrash && (
                     <Popconfirm
                       title="Bulk Permanent Delete"
                       description={`Are you sure you want to permanently delete ${selectedRowKeys.length} items?`}
@@ -870,17 +878,19 @@ export default function AccountTrashPage() {
             {selectedRowKeys.length > 0 && (
               <div className="pp-bulk-bar">
                 <span className="pp-bulk-badge">{selectedRowKeys.length} selected</span>
-                <Button
-                  size="small"
-                  type="primary"
-                  icon={<UndoOutlined />}
-                  onClick={handleBulkRestore}
-                  loading={actionLoading}
-                  style={{ background: "#10b981", borderColor: "#10b981", borderRadius: 6, fontSize: "11.5px" }}
-                >
-                  Restore ({selectedRowKeys.length})
-                </Button>
-                {canDeleteAccount && (
+                {canRestoreAccountTrash && (
+                  <Button
+                    size="small"
+                    type="primary"
+                    icon={<UndoOutlined />}
+                    onClick={handleBulkRestore}
+                    loading={actionLoading}
+                    style={{ background: "#10b981", borderColor: "#10b981", borderRadius: 6, fontSize: "11.5px" }}
+                  >
+                    Restore ({selectedRowKeys.length})
+                  </Button>
+                )}
+                {canDeleteAccountTrash && (
                   <Popconfirm
                     title="Permanent Delete"
                     description={`Permanently delete ${selectedRowKeys.length} selected transactions?`}
@@ -1098,16 +1108,18 @@ export default function AccountTrashPage() {
                           </div>
                         </div>
                         <div style={{ display: "flex", gap: 4 }} onClick={(e) => e.stopPropagation()}>
-                          <Tooltip title="Restore">
-                            <button
-                              type="button"
-                              className="pc-actions"
-                              onClick={() => handleRestore(tx.id)}
-                            >
-                              <RotateCcw size={14} style={{ color: "#10b981" }} />
-                            </button>
-                          </Tooltip>
-                          {canDeleteAccount && (
+                          {canRestoreAccountTrash && (
+                            <Tooltip title="Restore">
+                              <button
+                                type="button"
+                                className="pc-actions"
+                                onClick={() => handleRestore(tx.id)}
+                              >
+                                <RotateCcw size={14} style={{ color: "#10b981" }} />
+                              </button>
+                            </Tooltip>
+                          )}
+                          {canDeleteAccountTrash && (
                             <Popconfirm
                               title="Delete Permanently"
                               description="Irrevocably erase this item?"
@@ -1283,7 +1295,7 @@ export default function AccountTrashPage() {
         destroyOnClose
         extra={
           <Space size={8}>
-            {viewTransaction && (
+            {viewTransaction && canRestoreAccountTrash && (
               <Button
                 type="primary"
                 icon={<RotateCcw size={14} />}
@@ -1294,7 +1306,7 @@ export default function AccountTrashPage() {
                 Restore
               </Button>
             )}
-            {viewTransaction && canDeleteAccount && (
+            {viewTransaction && canDeleteAccountTrash && (
               <Popconfirm
                 title="Permanent Delete"
                 description="This action cannot be undone. Are you sure you want to permanently erase this transaction?"

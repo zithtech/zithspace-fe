@@ -542,7 +542,7 @@ const SEARCHABLE_DROPDOWN_CSS = `
   border: 1px solid rgba(59, 130, 246, 0.22);
 }
 .sd-tag__label {
-  max-width: 170px;
+  max-width: 120px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;

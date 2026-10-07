@@ -155,7 +155,8 @@ export default function AccountsPage() {
     canUpdateAccount,
     canDeleteAccount,
     canReadUser,
-    canReadActivityLog
+    canReadActivityLog,
+    canReadAccountTrash,
   } = usePermission();
 
   const [historyOpen, setHistoryOpen] = useState(false);
@@ -1062,13 +1063,15 @@ export default function AccountsPage() {
             </div>
           </div>
 
-          <button
-            type="button"
-            className="pp-trash"
-            onClick={() => router.push('/accounts/trash')}
-          >
-            <RestOutlined /> Trash
-          </button>
+          {canReadAccountTrash && (
+            <button
+              type="button"
+              className="pp-trash"
+              onClick={() => router.push('/accounts/trash')}
+            >
+              <RestOutlined /> Trash
+            </button>
+          )}
         </aside>
 
         {/* ============================ MAIN ============================ */}

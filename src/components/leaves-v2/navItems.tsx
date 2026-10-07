@@ -113,7 +113,7 @@ export const LEAVE_NAV_ITEMS: LeaveNavItem[] = [
     href: '/leaves-v2/configuration',
     icon: <SettingsIcon size={16} />,
     color: '#64748B',
-    anyPerm: ['canManageLeaves'],
+    anyPerm: ['canManageLeaves', 'canReadLeaveSetting', 'canUpdateLeaveSetting'],
     requiredSubscriptionFeature: ['hrms_leaves_v2_configuration'],
   },
 ];

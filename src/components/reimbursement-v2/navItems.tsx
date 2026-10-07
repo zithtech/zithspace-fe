@@ -104,8 +104,13 @@ export const REIMBURSEMENT_NAV_ITEMS: ReimbursementNavItem[] = [
     href: '/reimbursement-v2/settings',
     icon: <Settings size={16} />,
     color: '#64748B',
-    anyPerm: ['canReadReimbursementConfig'],
-    requiredSubscriptionFeature: ['finance_reimbursement_v2_settings'],
+    anyPerm: [
+      'canReadReimbursementConfig',
+      'canReadReimbursementSetting',
+      'canUpdateReimbursementConfig',
+      'canUpdateReimbursementSetting',
+    ],
+    requiredSubscriptionFeature: ['finance_reimbursement_v2_settings', 'finance_reimbursement_v2', 'finance_reimbursement'],
   },
 ];
 

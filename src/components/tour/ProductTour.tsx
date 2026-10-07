@@ -91,6 +91,12 @@ function CustomTooltip({
         .tour-close-btn:hover {
           background: ${isDark ? '#374151' : '#f3f4f6'} !important;
         }
+        
+        /* Fix stacking context for Project Switcher so it can highlight above the overlay */
+        .sc-header:has([data-tour="qa-project-select"]) {
+          z-index: auto !important;
+          position: static !important;
+        }
       `}</style>
 
       <button
@@ -368,7 +374,7 @@ const isTourRouteMatch = (stepRoute?: string, currentPath?: string) => {
   if (cleanStepRoute === '/tickets/select' && cleanCurrentPath.startsWith('/projects/') && cleanCurrentPath.includes('/tickets')) {
     return true;
   }
-  if (cleanStepRoute.startsWith('/qa-workspace') && cleanCurrentPath.startsWith('/projects/') && cleanCurrentPath.includes('/qa-workspace')) {
+  if (cleanStepRoute.startsWith('/qa-workspace') && cleanCurrentPath.startsWith('/projects/') && cleanCurrentPath.includes(cleanStepRoute)) {
     return true;
   }
   return false;
@@ -788,6 +794,15 @@ export const ProductTour: React.FC = () => {
         lastActionRef.current = action;
         let increment = action === 'prev' ? -1 : 1;
         const currentStep = steps[index] as any;
+
+        if (action === 'next' && currentStep?.clickOnNext) {
+          if (typeof currentStep.target === 'string') {
+            const el = document.querySelector(currentStep.target) as HTMLElement | null;
+            if (el) {
+              el.click();
+            }
+          }
+        }
 
         // If we clicked Next on a step that is configured to skip the next step
         if (action === 'next' && currentStep?.skipNextOnNext) {

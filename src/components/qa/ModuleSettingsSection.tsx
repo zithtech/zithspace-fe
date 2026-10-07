@@ -21,7 +21,6 @@ import { ArrowUpRight, Boxes, FolderKanban, Lock, Pencil, Plus, Trash2, Search }
 import ConfirmDialog from "@/components/common/ConfirmDialog";
 import SearchableDropdown from "@/components/common/SearchableDropdown";
 import ZukvoLoader from "@/components/common/ZukvoLoader";
-import PostCreationSuccessScreen from "@/components/common/PostCreationSuccessScreen";
 import { ProjectService } from "@/services/projectService";
 import { api as axios, apiClient } from "@/lib/axios";
 import { useDebounce } from "@/hooks/useDebounce";
@@ -241,10 +240,11 @@ interface ModulesTableProps {
   onCreate: () => void;
   onEdit: (item: QaModule) => void;
   onChanged?: () => void;
+  refreshTrigger?: number;
 }
 
 export function ModulesTable({
-  canManage, scopeIndex, onCreate, onEdit, onChanged,
+  canManage, scopeIndex, onCreate, onEdit, onChanged, refreshTrigger,
 }: ModulesTableProps) {
   /** "" = every project. Modules are filed per project, so this is how you read the list. */
   const [projectFilter, setProjectFilter] = useState<string>("");
@@ -266,6 +266,12 @@ export function ModulesTable({
     projectId: projectFilter || undefined,
     enabled: true,
   });
+
+  useEffect(() => {
+    if (refreshTrigger && refreshTrigger > 0) {
+      refetch();
+    }
+  }, [refreshTrigger, refetch]);
 
   const handleDelete = async (id: string) => {
     try {
@@ -530,12 +536,11 @@ interface ModuleModalProps {
 export function ModuleModal({ open, editing, defaultProjectId, onClose, onSaved }: ModuleModalProps) {
   const [form] = Form.useForm();
   const [saving, setSaving] = useState(false);
-  const [successData, setSuccessData] = useState<{ name: string } | null>(null);
+
   const { options: projectOptions, loading: loadingProjects } = useProjectOptions(open);
 
   useEffect(() => {
     if (!open) {
-      setSuccessData(null);
       return;
     }
     if (editing) {
@@ -578,8 +583,9 @@ export function ModuleModal({ open, editing, defaultProjectId, onClose, onSaved 
         onClose();
       } else {
         saved = await axios.post("/api/v2/qa/modules", payload);
+        message.success("Created successfully");
         onSaved(saved?.module_name ? (saved as QaModule) : ({ ...payload } as QaModule));
-        setSuccessData({ name: values.module_name?.trim() });
+        onClose();
       }
     } catch (err: any) {
       if (err?.errorFields) return;
@@ -606,18 +612,6 @@ export function ModuleModal({ open, editing, defaultProjectId, onClose, onSaved 
       }}
     >
       <div className="so-modal" data-tour="settings-new-module-modal">
-        {successData ? (
-          <PostCreationSuccessScreen
-            itemType="Module"
-            itemName={successData.name}
-            onCreateAnother={() => {
-              setSuccessData(null);
-              form.resetFields();
-              if (defaultProjectId) form.setFieldsValue({ project_id: defaultProjectId });
-            }}
-            onContinue={onClose}
-          />
-        ) : (
           <>
             <div className="so-head">
               <span className="so-head__icon"><Boxes size={17} /></span>
@@ -677,7 +671,6 @@ export function ModuleModal({ open, editing, defaultProjectId, onClose, onSaved 
               </Button>
             </div>
           </>
-        )}
       </div>
     </Modal>
   );

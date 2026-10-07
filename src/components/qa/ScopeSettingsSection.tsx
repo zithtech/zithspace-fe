@@ -16,7 +16,6 @@ import { Check, CheckCircle2, FileText, Pencil, Plus, Settings, Trash2, Trending
 
 import ConfirmDialog from "@/components/common/ConfirmDialog";
 import ZukvoLoader from "@/components/common/ZukvoLoader";
-import PostCreationSuccessScreen from "@/components/common/PostCreationSuccessScreen";
 import { api as axios, apiClient } from "@/lib/axios";
 import { useDebounce } from "@/hooks/useDebounce";
 
@@ -162,10 +161,11 @@ interface ScopeOptionsTableProps {
   onCreate: () => void;
   onEdit: (item: any) => void;
   onChanged?: () => void;
+  refreshTrigger?: number;
 }
 
 export function ScopeOptionsTable({
-  category, scopes, canManage, onCreate, onEdit, onChanged,
+  category, scopes, canManage, onCreate, onEdit, onChanged, refreshTrigger,
 }: ScopeOptionsTableProps) {
   const meta = SCOPE_SETTING_CATEGORIES.find(c => c.key === category);
 
@@ -181,6 +181,12 @@ export function ScopeOptionsTable({
     search: debouncedSearch,
     enabled: true,
   });
+
+  useEffect(() => {
+    if (refreshTrigger && refreshTrigger > 0) {
+      refetch();
+    }
+  }, [refreshTrigger, refetch]);
 
   /** How many scopes currently reference an option — shown before deleting. */
   const usageCountFor = (record: any) => {
@@ -380,14 +386,13 @@ export function ScopeOptionModal({ open, category, editing, onClose, onSaved }: 
   const [form] = Form.useForm();
   /** Once the user edits the key by hand we stop deriving it from the label. */
   const [keyTouched, setKeyTouched] = useState(false);
-  const [successData, setSuccessData] = useState<{ name: string } | null>(null);
+
   const draftLabel = Form.useWatch("label", form);
   const draftColor = Form.useWatch("color", form);
   const meta = SCOPE_SETTING_CATEGORIES.find(c => c.key === category);
 
   useEffect(() => {
     if (!open) {
-      setSuccessData(null);
       return;
     }
     if (editing) {
@@ -410,8 +415,9 @@ export function ScopeOptionModal({ open, category, editing, onClose, onSaved }: 
         onClose();
       } else {
         await axios.post("/api/v2/qa/test-scopes/settings", { ...values, category });
+        message.success("Created successfully");
         onSaved();
-        setSuccessData({ name: values.label });
+        onClose();
       }
     } catch (err: any) {
       if (err?.errorFields) return;
@@ -436,19 +442,6 @@ export function ScopeOptionModal({ open, category, editing, onClose, onSaved }: 
       }}
     >
       <div className="so-modal" data-tour="settings-new-scope-modal">
-        {successData ? (
-          <PostCreationSuccessScreen
-            itemType={`${SCOPE_CATEGORY_LABELS[category]} option`}
-            itemName={successData.name}
-            onCreateAnother={() => {
-              setSuccessData(null);
-              form.resetFields();
-              form.setFieldsValue({ color: "default" });
-              setKeyTouched(false);
-            }}
-            onContinue={onClose}
-          />
-        ) : (
           <>
             <div className="so-head">
               <span className="so-head__icon">
@@ -532,7 +525,6 @@ export function ScopeOptionModal({ open, category, editing, onClose, onSaved }: 
               </Button>
             </div>
           </>
-        )}
       </div>
     </Modal>
   );

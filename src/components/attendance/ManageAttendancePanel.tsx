@@ -19,7 +19,9 @@ import {
   Avatar,
   Modal,
   Input,
+  Dropdown,
 } from 'antd';
+import { LayoutGrid, List, MoreHorizontal, Edit2, Trash2, PlayCircle } from 'lucide-react';
 import type { ColumnsType } from 'antd/es/table';
 import {
   PlusOutlined,
@@ -178,6 +180,7 @@ export default function ManageAttendancePanel() {
     dayjs().endOf('day'),
   ]);
   const [isFilterRowOpen, setIsFilterRowOpen] = useState(false);
+  const [viewMode, setViewMode] = useState<'list' | 'grid'>('grid');
 
   // pagination (server-side)
   const [tablePage, setTablePage] = useState(1);
@@ -797,6 +800,14 @@ export default function ManageAttendancePanel() {
             onToggle={() => setIsFilterRowOpen((prev) => !prev)}
             activeCount={(statusFilter ? 1 : 0) + (memberFilter ? 1 : 0) + (projectFilter ? 1 : 0) + (dateRange ? 1 : 0)}
           />
+          <div className="att-view-toggles">
+            <button type="button" className={viewMode === "grid" ? "is-active" : ""} onClick={() => setViewMode("grid")}>
+              <LayoutGrid size={14} />
+            </button>
+            <button type="button" className={viewMode === "list" ? "is-active" : ""} onClick={() => setViewMode("list")}>
+              <List size={14} />
+            </button>
+          </div>
           <Tooltip title="Refresh"><button type="button" className="att-ghost-btn" onClick={load}><ReloadOutlined spin={loading} /></button></Tooltip>
           {canCreateAttendance && (
             <Button type="primary" icon={<PlusOutlined />} onClick={openCreate} className="att-add-btn">Add Record</Button>
@@ -866,22 +877,150 @@ export default function ManageAttendancePanel() {
           />
         </FilterBar>
       )}
-      <div className="att-table-wrap" style={{ overflowX: 'auto' }}>
+      <div className="att-table-wrap" style={{ overflowX: 'auto', background: viewMode === 'grid' ? 'transparent' : undefined, border: viewMode === 'grid' ? 'none' : undefined }}>
         <ZukvoLoadingOverlay loading={loading} message="">
-          <Table
-            rowKey="id"
-            size="small"
-            className="att-table"
-            columns={columns}
-            dataSource={rows}
-            pagination={false}
-            scroll={{ x: 'max-content' }}
-            onRow={() => ({ className: 'att-row' })}
-            expandable={{
-              expandedRowRender: renderSessions,
-              rowExpandable: (record) => ((record as ExtendedAttendance).sessions?.length || 0) > 0,
-            }} locale={{ emptyText: <NoData /> }}
-          />
+          {viewMode === 'list' ? (
+            <Table
+              rowKey="id"
+              size="small"
+              className="att-table"
+              columns={columns}
+              dataSource={rows}
+              pagination={false}
+              scroll={{ x: 'max-content' }}
+              onRow={() => ({ className: 'att-row' })}
+              expandable={{
+                expandedRowRender: renderSessions,
+                rowExpandable: (record) => ((record as ExtendedAttendance).sessions?.length || 0) > 0,
+              }} locale={{ emptyText: <NoData /> }}
+            />
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
+              <div style={{ flex: 1, overflowY: 'auto' }}>
+                {rows.length === 0 ? (
+                  <NoData />
+                ) : (
+                  <div className="att-grid">
+                    {rows.map((r) => {
+                      const isToday = r.date ? dayjs(r.date).isSame(dayjs(), 'day') : false;
+                      const live = r.member?.id ? liveStatuses[r.member.id] : undefined;
+                      const meta = STATUS_META[r.status] || STATUS_META.absent;
+                      
+                      return (
+                        <div key={r.id} className="att-list-card">
+                          <div className="att-list-card-head">
+                            <div className="att-list-card-avatar" style={{ background: r.member?.avatarUrl ? 'transparent' : avatarColorFor(r.member?.name || ''), color: '#fff' }}>
+                              {r.member?.avatarUrl ? <img src={r.member.avatarUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 6 }} /> : initialsFor(r.member?.name || '')}
+                            </div>
+                            <div className="att-list-card-body">
+                              <div className="att-list-card-title">
+                                <span>{r.member?.name || '—'}</span>
+                                <span style={{ background: meta.tint, color: meta.color, padding: '2px 6px', borderRadius: 6, fontSize: 10 }}>{meta.label}</span>
+                                {isToday && live && (
+                                  <span style={{ background: live.onBreak ? TINT.amber : TINT.green, color: live.onBreak ? PALETTE.amber : PALETTE.green, padding: '2px 6px', borderRadius: 6, fontSize: 10 }}>
+                                    {live.onBreak ? 'On Break' : 'Working'}
+                                  </span>
+                                )}
+                              </div>
+                              <div className="att-list-card-sub">
+                                <span className="att-list-card-val" style={{ fontWeight: 500 }}>
+                                  {r.member?.position?.title || 'Team Member'}
+                                </span>
+                              </div>
+                            </div>
+                            <Dropdown
+                              menu={{
+                                className: 'att-action-pop',
+                                items: [
+                                  canUpdateAttendance && isToday && r.clockOut ? {
+                                    key: 'reopen',
+                                    label: (
+                                      <div className="att-menu-item">
+                                        <span className="att-menu-ic" style={{ color: PALETTE.green, background: TINT.green }}><PlayCircle size={13} /></span>
+                                        <span className="att-menu-text">
+                                          <span className="att-menu-title">Reopen Day</span>
+                                        </span>
+                                      </div>
+                                    ),
+                                    onClick: (info: any) => { info.domEvent.stopPropagation(); openReopen(r); }
+                                  } : null,
+                                  canUpdateAttendance ? {
+                                    key: 'edit',
+                                    label: (
+                                      <div className="att-menu-item">
+                                        <span className="att-menu-ic" style={{ color: PALETTE.blue, background: TINT.blue }}><Edit2 size={13} /></span>
+                                        <span className="att-menu-text">
+                                          <span className="att-menu-title">Edit Record</span>
+                                        </span>
+                                      </div>
+                                    ),
+                                    onClick: (info: any) => { info.domEvent.stopPropagation(); openEdit(r); }
+                                  } : null,
+                                  canDeleteAttendance ? { type: 'divider' } : null,
+                                  canDeleteAttendance ? {
+                                    key: 'remove',
+                                    danger: true,
+                                    label: (
+                                      <div className="att-menu-item">
+                                        <span className="att-menu-ic" style={{ color: PALETTE.red, background: TINT.red }}><Trash2 size={13} /></span>
+                                        <span className="att-menu-text">
+                                          <span className="att-menu-title">Delete</span>
+                                        </span>
+                                      </div>
+                                    ),
+                                    onClick: (info: any) => {
+                                      info.domEvent.stopPropagation();
+                                      Modal.confirm({
+                                        title: 'Delete this record?',
+                                        content: `Attendance for "${r.member?.name || 'this member'}" on ${r.date ? dayjs(r.date).format('MMM DD') : 'this day'} will be removed.`,
+                                        okText: 'Delete',
+                                        okType: 'danger',
+                                        onOk: () => remove(r)
+                                      });
+                                    }
+                                  } : null
+                                ].filter(Boolean) as any[]
+                              }}
+                              trigger={['click']}
+                            >
+                              <button type="button" className="att-list-card-actions" onClick={e => e.stopPropagation()}>
+                                <MoreHorizontal size={14} />
+                              </button>
+                            </Dropdown>
+                          </div>
+                          
+                          <div className="att-list-card-footer" onClick={e => e.stopPropagation()}>
+                            <div className="att-list-card-row">
+                              <span className="att-list-card-item">
+                                <span className="att-list-card-key">Date:</span>
+                                <span className="att-list-card-val">{r.date ? dayjs(r.date).format('MMM DD, YYYY') : '-'}</span>
+                              </span>
+                              <span className="att-list-card-div" />
+                              <span className="att-list-card-item">
+                                <span className="att-list-card-key">Work:</span>
+                                <span className="att-list-card-val">{formatDuration(r.effectiveWorkMinutes ?? r.totalWorkMinutes)}</span>
+                              </span>
+                            </div>
+                            <div className="att-list-card-row">
+                              <span className="att-list-card-item">
+                                <span className="att-list-card-key">In:</span>
+                                <span className="att-list-card-val">{r.clockIn ? dayjs(r.clockIn).format('h:mm a') : '-'}</span>
+                              </span>
+                              <span className="att-list-card-div" />
+                              <span className="att-list-card-item">
+                                <span className="att-list-card-key">Out:</span>
+                                <span className="att-list-card-val">{r.clockOut ? dayjs(r.clockOut).format('h:mm a') : '-'}</span>
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
         </ZukvoLoadingOverlay>
       </div>
 

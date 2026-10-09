@@ -38,6 +38,9 @@ import {
   Search,
   SignalHigh,
   Trash2,
+  LayoutGrid,
+  List,
+  MoreHorizontal,
 } from 'lucide-react';
 import { message } from '@/providers/AntdGlobalProvider';
 import NoData from '@/components/common/NoData';
@@ -91,6 +94,7 @@ export default function TemplatesPage() {
 
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
+  const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
 
   /** Which template the drawer is showing. null is closed. */
   const [openId, setOpenId] = useState<string | null>(null);
@@ -435,6 +439,14 @@ export default function TemplatesPage() {
             onToggle={() => setShowFilters(!showFilters)}
             activeCount={activeFilterCount}
           />
+          <div className="lv-view-toggles">
+            <button type="button" className={viewMode === "grid" ? "is-active" : ""} onClick={() => setViewMode("grid")}>
+              <LayoutGrid size={14} />
+            </button>
+            <button type="button" className={viewMode === "list" ? "is-active" : ""} onClick={() => setViewMode("list")}>
+              <List size={14} />
+            </button>
+          </div>
           <Tooltip title="Refresh">
             <button
               type="button"
@@ -526,36 +538,209 @@ export default function TemplatesPage() {
         </div>
       ) : (
         <>
-          <div className="pp-table-wrap">
-            <Table
-              className="pp-table"
-              rowKey="id"
-              size="small"
-              columns={columns as any}
-              dataSource={pageItems}
-              pagination={false}
-              scroll={{ x: 'max-content' }}
-              rowClassName="pp-row"
-              onRow={(record) => ({
-                // Opening READS it; editing is the explicit action. Clicking a
-                // row straight into an editor is how wording gets changed by
-                // somebody who only meant to look at it.
-                onClick: () => setOpenId(record.id),
-              })}
-              locale={{
-                emptyText: (
-                  <NoData
-                    title={activeFilterCount > 0 ? 'Nothing matches' : 'No templates yet'}
-                    description={
-                      activeFilterCount > 0
-                        ? 'Clear a filter to widen the search.'
-                        : 'Create one to start raising agreements.'
-                    }
-                    accent="#3b82f6"
-                  />
-                ),
-              }}
-            />
+          <div className="pp-table-wrap" style={{ overflowX: 'auto', background: viewMode === 'grid' ? 'transparent' : undefined, border: viewMode === 'grid' ? 'none' : undefined }}>
+            {viewMode === 'list' ? (
+              <Table
+                className="pp-table"
+                rowKey="id"
+                size="small"
+                columns={columns as any}
+                dataSource={pageItems}
+                pagination={false}
+                scroll={{ x: 'max-content' }}
+                rowClassName="pp-row"
+                onRow={(record) => ({
+                  // Opening READS it; editing is the explicit action. Clicking a
+                  // row straight into an editor is how wording gets changed by
+                  // somebody who only meant to look at it.
+                  onClick: () => setOpenId(record.id),
+                })}
+                locale={{
+                  emptyText: (
+                    <NoData
+                      title={activeFilterCount > 0 ? 'Nothing matches' : 'No templates yet'}
+                      description={
+                        activeFilterCount > 0
+                          ? 'Clear a filter to widen the search.'
+                          : 'Create one to start raising agreements.'
+                      }
+                      accent="#3b82f6"
+                    />
+                  ),
+                }}
+              />
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
+                <div style={{ flex: 1, overflowY: 'auto' }}>
+                  {pageItems.length === 0 ? (
+                    <NoData
+                      title={activeFilterCount > 0 ? 'Nothing matches' : 'No templates yet'}
+                      description={
+                        activeFilterCount > 0
+                          ? 'Clear a filter to widen the search.'
+                          : 'Create one to start raising agreements.'
+                      }
+                      accent="#3b82f6"
+                    />
+                  ) : (
+                    <div className="lv-grid">
+                      {pageItems.map((r) => {
+                        const meta = TEMPLATE_STATUS_META[r.status];
+                        
+                        return (
+                          <div key={r.id} className="lv-list-card" onClick={() => setOpenId(r.id)}>
+                            <div className="lv-list-card-head">
+                              <div className="lv-list-card-avatar" style={{ background: 'rgba(59,130,246,0.10)', color: '#3b82f6' }}>
+                                <FileStack size={18} />
+                              </div>
+                              <div className="lv-list-card-body">
+                                <div className="lv-list-card-title">
+                                  <span>{r.name}</span>
+                                  <span style={{ background: meta.bg, color: meta.color, padding: '2px 6px', borderRadius: 6, fontSize: 10 }}>{meta.label}</span>
+                                </div>
+                                <div className="lv-list-card-sub">
+                                  <span className="lv-list-card-val" style={{ fontWeight: 500, color: 'var(--text-slate-400)' }}>
+                                    {r.documentTypeName || 'No type'} · v{r.version} {r.description ? `· ${r.description}` : ''}
+                                  </span>
+                                </div>
+                              </div>
+                              
+                              <div onClick={e => e.stopPropagation()}>
+                                <Dropdown
+                                  overlayClassName="lv-action-pop"
+                                  trigger={['click']}
+                                  placement="bottomRight"
+                                  menu={{
+                                    items: [
+                                      {
+                                        key: 'view',
+                                        label: menuLabel(<Eye size={14} />, 'Read', 'View the template', '#3b82f6'),
+                                        onClick: ({ domEvent }: any) => {
+                                          domEvent.stopPropagation();
+                                          setOpenId(r.id);
+                                        },
+                                      },
+                                      ...(perms.canUpdateAgreementTemplate
+                                        ? [
+                                            {
+                                              key: 'edit',
+                                              label: menuLabel(
+                                                <Pencil size={14} />,
+                                                'Edit wording',
+                                                'Open the builder'
+                                              ),
+                                              onClick: ({ domEvent }: any) => {
+                                                domEvent.stopPropagation();
+                                                router.push(`/project-agreements/templates/builder?id=${r.id}`);
+                                              },
+                                            },
+                                          ]
+                                        : []),
+                                      ...(perms.canCreateAgreementTemplate
+                                        ? [
+                                            {
+                                              key: 'dup',
+                                              label: menuLabel(
+                                                <Copy size={14} />,
+                                                'Duplicate',
+                                                'Clone it as a new draft'
+                                              ),
+                                              onClick: ({ domEvent }: any) => {
+                                                domEvent.stopPropagation();
+                                                duplicate(r);
+                                              },
+                                            },
+                                          ]
+                                        : []),
+                                      ...(perms.canUpdateAgreementTemplate
+                                        ? [
+                                            { type: 'divider' as const, key: 's1' },
+                                            ...(r.status === 'draft'
+                                              ? [
+                                                  {
+                                                    key: 'pub',
+                                                    label: menuLabel(
+                                                      <CheckCircle2 size={14} />,
+                                                      'Publish',
+                                                      'Make it available for use',
+                                                      '#16a34a'
+                                                    ),
+                                                    onClick: ({ domEvent }: any) => {
+                                                      domEvent.stopPropagation();
+                                                      setTemplateStatus(r, 'published');
+                                                    },
+                                                  },
+                                                ]
+                                              : []),
+                                            ...(r.status === 'published'
+                                              ? [
+                                                  {
+                                                    key: 'arc',
+                                                    label: menuLabel(
+                                                      <Archive size={14} />,
+                                                      'Archive',
+                                                      'Retire this version',
+                                                      '#f59e0b'
+                                                    ),
+                                                    onClick: ({ domEvent }: any) => {
+                                                      domEvent.stopPropagation();
+                                                      setTemplateStatus(r, 'archived');
+                                                    },
+                                                  },
+                                                ]
+                                              : []),
+                                          ]
+                                        : []),
+                                      ...(perms.canDeleteAgreementTemplate
+                                        ? [
+                                            { type: 'divider' as const, key: 'd1' },
+                                            {
+                                              key: 'delete',
+                                              danger: true,
+                                              label: menuLabel(
+                                                <Trash2 size={14} />,
+                                                'Delete',
+                                                'Documents raised keep their wording',
+                                                '#ef4444'
+                                              ),
+                                              onClick: ({ domEvent }: any) => {
+                                                domEvent.stopPropagation();
+                                                checkDelete(r);
+                                              },
+                                            },
+                                          ]
+                                        : []),
+                                    ],
+                                  }}
+                                >
+                                  <button type="button" className="lv-list-card-actions">
+                                    <EllipsisOutlined />
+                                  </button>
+                                </Dropdown>
+                              </div>
+                            </div>
+                            
+                            <div className="lv-list-card-footer" onClick={e => e.stopPropagation()}>
+                              <div className="lv-list-card-row">
+                                <span className="lv-list-card-item">
+                                  <span className="lv-list-card-key">Type:</span>
+                                  <span className="lv-list-card-val">{r.documentTypeCode || 'Not set'}</span>
+                                </span>
+                                <span className="lv-list-card-div" />
+                                <span className="lv-list-card-item">
+                                  <span className="lv-list-card-key">Status:</span>
+                                  <span className="lv-list-card-val">{meta.label}</span>
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
 
           <ListFooter

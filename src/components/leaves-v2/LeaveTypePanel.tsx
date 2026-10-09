@@ -18,8 +18,10 @@ import {
   Row,
   Col,
   Space,
+  Dropdown,
+  Modal,
 } from 'antd';
-import { Menu } from 'lucide-react';
+import { Menu, LayoutGrid, List, MoreHorizontal } from 'lucide-react';
 import { drawerFormStyles as formStyles, SectionCard } from "@/components/common/DrawerSection";
 import { FilterBar, FilterToggleButton, TicketFilterPill } from '@/components/common/FilterBar';
 import type { ColumnsType } from 'antd/es/table';
@@ -40,7 +42,7 @@ import {
   SettingOutlined,
 } from '@ant-design/icons';
 import { usePermission } from '@/hooks/usePermission';
-import { SearchableDropdown } from '@/components/common/SearchableDropdown';
+import { SearchableDropdown, initialsFor } from '@/components/common/SearchableDropdown';
 import ConfirmDialog from '@/components/common/ConfirmDialog';
 import LeaveV2Service, {
   CreateLeaveTypeInput,
@@ -184,6 +186,7 @@ export default function LeaveTypePanel() {
   
   const [tablePage, setTablePage] = useState(1);
   const [tablePageSize, setTablePageSize] = useState(15);
+  const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
 
   // Fetch types with filters for server-side pagination
   const load = useCallback(async (p = tablePage, size = tablePageSize, q = search, u = unitFilter, paid = paidFilter, stat = statusFilter) => {
@@ -404,6 +407,14 @@ export default function LeaveTypePanel() {
             onToggle={() => setIsFilterRowOpen((prev) => !prev)}
             activeCount={(unitFilter !== 'all' ? 1 : 0) + (paidFilter !== 'all' ? 1 : 0) + (statusFilter !== 'all' ? 1 : 0)}
           />
+          <div className="lv-view-toggles">
+            <button type="button" className={viewMode === "grid" ? "is-active" : ""} onClick={() => setViewMode("grid")}>
+              <LayoutGrid size={14} />
+            </button>
+            <button type="button" className={viewMode === "list" ? "is-active" : ""} onClick={() => setViewMode("list")}>
+              <List size={14} />
+            </button>
+          </div>
           <Tooltip title="Refresh"><button type="button" className="lvt-ghost-btn" onClick={() => load()}><ReloadOutlined spin={loading} /></button></Tooltip>
           {canCreateLeaveType && (
             <Button type="primary" icon={<PlusOutlined />} onClick={openCreate} className="lvt-add-btn">New Leave Type</Button>
@@ -466,18 +477,121 @@ export default function LeaveTypePanel() {
       )}
 
       {/* ── 4) TABLE (Proposal table UI) ────────────────────────────────────── */}
-      <div className="lv-table-wrap">
+      <div className="lv-table-wrap" style={{ overflowX: 'auto', background: viewMode === 'grid' ? 'transparent' : undefined, border: viewMode === 'grid' ? 'none' : undefined }}>
         <ZukvoLoadingOverlay loading={loading} message="">
-          <Table
-            rowKey="id"
-            size="small"
-            className="lvt-table"
-            columns={columns}
-            dataSource={pagedRows}
-            pagination={false}
-            scroll={{ x: 'max-content' }}
-            onRow={() => ({ className: 'lvt-row' })} locale={{ emptyText: <NoData /> }}
-          />
+          {viewMode === 'list' ? (
+            <Table
+              rowKey="id"
+              size="small"
+              className="lvt-table"
+              columns={columns}
+              dataSource={pagedRows}
+              pagination={false}
+              scroll={{ x: 'max-content' }}
+              onRow={() => ({ className: 'lvt-row' })} locale={{ emptyText: <NoData /> }}
+            />
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
+              <div style={{ flex: 1, overflowY: 'auto' }}>
+                {pagedRows.length === 0 ? (
+                  <NoData />
+                ) : (
+                  <div className="lv-grid">
+                    {pagedRows.map((r) => {
+                      const hasActions = canUpdateLeaveType || canDeleteLeaveType;
+                      
+                      return (
+                        <div key={r.id} className="lv-list-card">
+                          <div className="lv-list-card-head">
+                            <div className="lv-list-card-avatar" style={{ background: r.color || PALETTE.grey, color: '#fff' }}>
+                              {initialsFor(r.name || '')}
+                            </div>
+                            <div className="lv-list-card-body">
+                              <div className="lv-list-card-title">
+                                <span>{r.name}</span>
+                                {r.isActive ? <span style={{ background: TINT.blue, color: PALETTE.blue, padding: '2px 6px', borderRadius: 6, fontSize: 10 }}>Active</span> : <span style={{ background: 'var(--bg-slate-50)', color: 'var(--text-slate-600)', padding: '2px 6px', borderRadius: 6, fontSize: 10, border: '1px solid var(--border-slate-200)' }}>Inactive</span>}
+                              </div>
+                              <div className="lv-list-card-sub">
+                                <span className="lv-list-card-val" style={{ fontWeight: 500, color: 'var(--text-slate-400)', fontFamily: 'monospace' }}>
+                                  {r.code}
+                                </span>
+                              </div>
+                            </div>
+                            {hasActions && (
+                              <Dropdown
+                                menu={{
+                                  className: 'lv-action-pop',
+                                  items: [
+                                    canUpdateLeaveType ? {
+                                      key: 'edit',
+                                      label: (
+                                        <div className="lv-menu-item">
+                                          <span className="lv-menu-ic" style={{ color: PALETTE.blue, background: TINT.blue }}><EditOutlined style={{ fontSize: 13 }} /></span>
+                                          <span className="lv-menu-text"><span className="lv-menu-title">Edit Type</span></span>
+                                        </div>
+                                      ),
+                                      onClick: (info: any) => {
+                                        info.domEvent.stopPropagation();
+                                        openEdit(r);
+                                      }
+                                    } : null,
+                                    canDeleteLeaveType ? {
+                                      key: 'remove',
+                                      danger: true,
+                                      label: (
+                                        <div className="lv-menu-item">
+                                          <span className="lv-menu-ic" style={{ color: PALETTE.red, background: TINT.red }}><DeleteOutlined style={{ fontSize: 13 }} /></span>
+                                          <span className="lv-menu-text"><span className="lv-menu-title">Delete Type</span></span>
+                                        </div>
+                                      ),
+                                      onClick: (info: any) => {
+                                        info.domEvent.stopPropagation();
+                                        Modal.confirm({
+                                          title: 'Delete this leave type?',
+                                          content: `"${r.name}" will no longer be available for new requests.`,
+                                          okText: 'Delete',
+                                          okType: 'danger',
+                                          onOk: () => remove(r)
+                                        });
+                                      }
+                                    } : null
+                                  ].filter(Boolean) as any[]
+                                }}
+                                trigger={['click']}
+                              >
+                                <button type="button" className="lv-list-card-actions" onClick={e => e.stopPropagation()}>
+                                  <MoreHorizontal size={14} />
+                                </button>
+                              </Dropdown>
+                            )}
+                          </div>
+                          
+                          <div className="lv-list-card-footer" onClick={e => e.stopPropagation()}>
+                            <div className="lv-list-card-row">
+                              <span className="lv-list-card-item">
+                                <span className="lv-list-card-key">Paid:</span>
+                                <span className="lv-list-card-val">{r.isPaid ? 'Yes' : 'No'}</span>
+                              </span>
+                              <span className="lv-list-card-div" />
+                              <span className="lv-list-card-item">
+                                <span className="lv-list-card-key">Unit:</span>
+                                <span className="lv-list-card-val">{r.unit === 'hour' ? 'Hourly' : 'Daily'}</span>
+                              </span>
+                              <span className="lv-list-card-div" />
+                              <span className="lv-list-card-item">
+                                <span className="lv-list-card-key">Approval:</span>
+                                <span className="lv-list-card-val">{r.requiresApproval ? 'Required' : 'Auto'}</span>
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
         </ZukvoLoadingOverlay>
       </div>
 

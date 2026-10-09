@@ -2,7 +2,7 @@
 
 import NoData from "@/components/common/NoData";
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Button, Table, Tag, Avatar, message, Tooltip, DatePicker } from 'antd';
+import { Button, Table, Tag, Avatar, message, Tooltip, DatePicker, Dropdown } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import dayjs, { Dayjs } from 'dayjs';
 import {
@@ -17,9 +17,9 @@ import {
   CloseCircleOutlined,
   RollbackOutlined,
 } from '@ant-design/icons';
-import { Menu } from 'lucide-react';
+import { Menu, LayoutGrid, List, MoreHorizontal } from 'lucide-react';
 import { usePermission } from '@/hooks/usePermission';
-import { SearchableDropdown } from '@/components/common/SearchableDropdown';
+import { SearchableDropdown, initialsFor } from '@/components/common/SearchableDropdown';
 import ConfirmDialog from '@/components/common/ConfirmDialog';
 import LeaveV2Service, { LeaveRequest } from '@/services/leaveV2Service';
 import { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
@@ -57,6 +57,7 @@ export default function ApprovalsPanel() {
   const [tablePage, setTablePage] = useState(1);
   const [tablePageSize, setTablePageSize] = useState(15);
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -341,6 +342,14 @@ export default function ApprovalsPanel() {
             onToggle={() => setIsFilterRowOpen((prev) => !prev)}
             activeCount={(statusFilter !== 'all' ? 1 : 0) + (userFilter ? 1 : 0) + (dateRange ? 1 : 0)}
           />
+          <div className="lv-view-toggles">
+            <button type="button" className={viewMode === "grid" ? "is-active" : ""} onClick={() => setViewMode("grid")}>
+              <LayoutGrid size={14} />
+            </button>
+            <button type="button" className={viewMode === "list" ? "is-active" : ""} onClick={() => setViewMode("list")}>
+              <List size={14} />
+            </button>
+          </div>
           <Tooltip title="Refresh"><button type="button" className="lvap-ghost-btn" onClick={load}><ReloadOutlined spin={loading} /></button></Tooltip>
         </div>
       </div>
@@ -391,19 +400,140 @@ export default function ApprovalsPanel() {
         </FilterBar>
       )}
 
-      <div className="lv-table-wrap">
+      <div className="lv-table-wrap" style={{ overflowX: 'auto', background: viewMode === 'grid' ? 'transparent' : undefined, border: viewMode === 'grid' ? 'none' : undefined }}>
         <ZukvoLoadingOverlay loading={loading} message="">
-          <Table
-            rowKey="id"
-            size="small"
-            className="lvap-table"
-            columns={columns}
-            dataSource={paged}
-            pagination={false}
-            scroll={{ x: 'max-content' }}
-            expandable={{ expandedRowRender: expandedRow, expandRowByClick: true, columnWidth: 32 }}
-            onRow={() => ({ className: 'lvap-row' })} locale={{ emptyText: <NoData /> }}
-          />
+          {viewMode === 'list' ? (
+            <Table
+              rowKey="id"
+              size="small"
+              className="lvap-table"
+              columns={columns}
+              dataSource={paged}
+              pagination={false}
+              scroll={{ x: 'max-content' }}
+              expandable={{ expandedRowRender: expandedRow, expandRowByClick: true, columnWidth: 32 }}
+              onRow={() => ({ className: 'lvap-row' })} locale={{ emptyText: <NoData /> }}
+            />
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
+              <div style={{ flex: 1, overflowY: 'auto' }}>
+                {paged.length === 0 ? (
+                  <NoData />
+                ) : (
+                  <div className="lv-grid">
+                    {paged.map((r) => {
+                      const meta = STATUS_TAG[r.status] || STATUS_TAG.pending;
+                      const hasActions = r.status === 'pending' || r.withdrawalStatus === 'requested';
+                      
+                      return (
+                        <div key={r.id} className="lv-list-card">
+                          <div className="lv-list-card-head">
+                            <div className="lv-list-card-avatar" style={{ background: r.userAvatarUrl ? 'transparent' : TINT.blue, color: PALETTE.blue }}>
+                              {r.userAvatarUrl ? <img src={r.userAvatarUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 6 }} /> : initialsFor(r.userName || '')}
+                            </div>
+                            <div className="lv-list-card-body">
+                              <div className="lv-list-card-title">
+                                <span>{r.userName}</span>
+                                <span style={{ background: `var(--bg-${meta.color}-50)`, color: `var(--text-${meta.color}-600)`, padding: '2px 6px', borderRadius: 6, fontSize: 10 }}>{meta.label}</span>
+                              </div>
+                              <div className="lv-list-card-sub">
+                                <span className="lv-list-card-val" style={{ fontWeight: 500, color: 'var(--text-slate-400)' }}>
+                                  {r.leaveTypeName} • {r.totalUnits} day{r.totalUnits === 1 ? '' : 's'}
+                                </span>
+                              </div>
+                            </div>
+                            {hasActions && (
+                              <Dropdown
+                                menu={{
+                                  className: 'lv-action-pop',
+                                  items: [
+                                    r.status === 'pending' ? {
+                                      key: 'approve',
+                                      label: (
+                                        <div className="lv-menu-item">
+                                          <span className="lv-menu-ic" style={{ color: PALETTE.green, background: TINT.green }}><CheckOutlined style={{ fontSize: 13 }} /></span>
+                                          <span className="lv-menu-text"><span className="lv-menu-title">Approve</span></span>
+                                        </div>
+                                      ),
+                                      onClick: (info: any) => {
+                                        info.domEvent.stopPropagation();
+                                        decide(r, 'approve');
+                                      }
+                                    } : null,
+                                    r.status === 'pending' ? {
+                                      key: 'reject',
+                                      danger: true,
+                                      label: (
+                                        <div className="lv-menu-item">
+                                          <span className="lv-menu-ic" style={{ color: PALETTE.red, background: TINT.red }}><CloseOutlined style={{ fontSize: 13 }} /></span>
+                                          <span className="lv-menu-text"><span className="lv-menu-title">Reject</span></span>
+                                        </div>
+                                      ),
+                                      onClick: (info: any) => {
+                                        info.domEvent.stopPropagation();
+                                        decide(r, 'reject');
+                                      }
+                                    } : null,
+                                    r.withdrawalStatus === 'requested' ? {
+                                      key: 'confirm-withdrawal',
+                                      label: (
+                                        <div className="lv-menu-item">
+                                          <span className="lv-menu-ic" style={{ color: PALETTE.green, background: TINT.green }}><CheckOutlined style={{ fontSize: 13 }} /></span>
+                                          <span className="lv-menu-text"><span className="lv-menu-title">Confirm Withdrawal</span></span>
+                                        </div>
+                                      ),
+                                      onClick: (info: any) => {
+                                        info.domEvent.stopPropagation();
+                                        decideWithdrawal(r, true);
+                                      }
+                                    } : null,
+                                    r.withdrawalStatus === 'requested' ? {
+                                      key: 'decline-withdrawal',
+                                      danger: true,
+                                      label: (
+                                        <div className="lv-menu-item">
+                                          <span className="lv-menu-ic" style={{ color: PALETTE.red, background: TINT.red }}><CloseOutlined style={{ fontSize: 13 }} /></span>
+                                          <span className="lv-menu-text"><span className="lv-menu-title">Decline Withdrawal</span></span>
+                                        </div>
+                                      ),
+                                      onClick: (info: any) => {
+                                        info.domEvent.stopPropagation();
+                                        decideWithdrawal(r, false);
+                                      }
+                                    } : null,
+                                  ].filter(Boolean) as any[]
+                                }}
+                                trigger={['click']}
+                              >
+                                <button type="button" className="lv-list-card-actions" onClick={e => e.stopPropagation()}>
+                                  <MoreHorizontal size={14} />
+                                </button>
+                              </Dropdown>
+                            )}
+                          </div>
+                          
+                          <div className="lv-list-card-footer" onClick={e => e.stopPropagation()}>
+                            <div className="lv-list-card-row">
+                              <span className="lv-list-card-item">
+                                <span className="lv-list-card-key">Dates:</span>
+                                <span className="lv-list-card-val">{fmt(r.fromDate)} {r.toDate !== r.fromDate && `→ ${fmt(r.toDate)}`}</span>
+                              </span>
+                            </div>
+                            <div className="lv-list-card-row">
+                              <span className="lv-list-card-item">
+                                <span className="lv-list-card-key">Applied:</span>
+                                <span className="lv-list-card-val">{fmt(r.createdAt)}</span>
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
         </ZukvoLoadingOverlay>
       </div>
 

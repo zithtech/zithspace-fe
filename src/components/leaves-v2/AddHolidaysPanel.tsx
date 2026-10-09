@@ -2,7 +2,7 @@
 
 import NoData from "@/components/common/NoData";
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Button, Table, Tag, Drawer, Form, Input, Switch, Select, DatePicker, message, Tooltip, Row, Col, Space } from 'antd';
+import { Button, Table, Tag, Drawer, Form, Input, Switch, Select, DatePicker, message, Tooltip, Row, Col, Space, Dropdown, Modal } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import dayjs, { Dayjs } from 'dayjs';
 import {
@@ -20,9 +20,9 @@ import {
   FilterOutlined,
   CloseCircleOutlined,
 } from '@ant-design/icons';
-import { Menu } from 'lucide-react';
+import { Menu, LayoutGrid, List, MoreHorizontal } from 'lucide-react';
 import { usePermission } from '@/hooks/usePermission';
-import { SearchableDropdown } from '@/components/common/SearchableDropdown';
+import { SearchableDropdown, initialsFor } from '@/components/common/SearchableDropdown';
 import ConfirmDialog from '@/components/common/ConfirmDialog';
 import LeaveV2Service, { Holiday, HolidayInput, HolidayType, HolidayRule } from '@/services/leaveV2Service';
 
@@ -82,6 +82,7 @@ export default function AddHolidaysPanel() {
   const [isFilterRowOpen, setIsFilterRowOpen] = useState(false);
   const [tablePage, setTablePage] = useState(1);
   const [tablePageSize, setTablePageSize] = useState(15);
+  const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
 
   // drawer
   const [open, setOpen] = useState(false);
@@ -296,6 +297,14 @@ export default function AddHolidaysPanel() {
             onToggle={() => setIsFilterRowOpen((prev) => !prev)}
             activeCount={(typeFilter !== 'all' ? 1 : 0) + (yearFilter !== dayjs().year() ? 1 : 0)}
           />
+          <div className="lv-view-toggles">
+            <button type="button" className={viewMode === "grid" ? "is-active" : ""} onClick={() => setViewMode("grid")}>
+              <LayoutGrid size={14} />
+            </button>
+            <button type="button" className={viewMode === "list" ? "is-active" : ""} onClick={() => setViewMode("list")}>
+              <List size={14} />
+            </button>
+          </div>
           <Tooltip title="Refresh"><button type="button" className="lvh-ghost-btn" onClick={() => load(yearFilter)}><ReloadOutlined spin={loading} /></button></Tooltip>
           {canCreateLeaveHoliday && <Button type="primary" icon={<PlusOutlined />} onClick={openCreate} className="lvh-add-btn">Add Holiday</Button>}
         </div>
@@ -337,9 +346,109 @@ export default function AddHolidaysPanel() {
         </FilterBar>
       )}
 
-      <div className="lv-table-wrap">
+      <div className="lv-table-wrap" style={{ overflowX: 'auto', background: viewMode === 'grid' ? 'transparent' : undefined, border: viewMode === 'grid' ? 'none' : undefined }}>
         <ZukvoLoadingOverlay loading={loading} message="">
-          <Table rowKey="id" size="small" className="lvh-table" columns={columns} dataSource={paged} pagination={false} scroll={{ x: 'max-content' }} onRow={() => ({ className: 'lvh-row' })} locale={{ emptyText: <NoData /> }} />
+          {viewMode === 'list' ? (
+            <Table rowKey="id" size="small" className="lvh-table" columns={columns} dataSource={paged} pagination={false} scroll={{ x: 'max-content' }} onRow={() => ({ className: 'lvh-row' })} locale={{ emptyText: <NoData /> }} />
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
+              <div style={{ flex: 1, overflowY: 'auto' }}>
+                {paged.length === 0 ? (
+                  <NoData />
+                ) : (
+                  <div className="lv-grid">
+                    {paged.map((r) => {
+                      const hasActions = canUpdateLeaveHoliday || canDeleteLeaveHoliday;
+                      const coverageLabel = r.type === 'Local' ? `${r.districts.length} district${r.districts.length === 1 ? '' : 's'}` : r.type === 'State' ? `${r.states.length} state${r.states.length === 1 ? '' : 's'}` : 'All India';
+                      const coverageIcon = r.type === 'Local' ? <EnvironmentOutlined /> : r.type === 'State' ? <BankOutlined /> : <GlobalOutlined />;
+                      
+                      return (
+                        <div key={r.id} className="lv-list-card">
+                          <div className="lv-list-card-head">
+                            <div className="lv-list-card-avatar" style={{ background: TINT.blue, color: PALETTE.blue }}>
+                              {initialsFor(r.name || '')}
+                            </div>
+                            <div className="lv-list-card-body">
+                              <div className="lv-list-card-title">
+                                <span>{r.name}</span>
+                                {r.isActive ? <span style={{ background: TINT.blue, color: PALETTE.blue, padding: '2px 6px', borderRadius: 6, fontSize: 10 }}>Active</span> : <span style={{ background: 'var(--bg-slate-50)', color: 'var(--text-slate-600)', padding: '2px 6px', borderRadius: 6, fontSize: 10, border: '1px solid var(--border-slate-200)' }}>Inactive</span>}
+                              </div>
+                              <div className="lv-list-card-sub">
+                                <span className="lv-list-card-val" style={{ fontWeight: 500, color: 'var(--text-slate-400)' }}>
+                                  {r.type === 'ALL' ? 'National' : r.type} Holiday
+                                </span>
+                              </div>
+                            </div>
+                            {hasActions && (
+                              <Dropdown
+                                menu={{
+                                  className: 'lv-action-pop',
+                                  items: [
+                                    canUpdateLeaveHoliday ? {
+                                      key: 'edit',
+                                      label: (
+                                        <div className="lv-menu-item">
+                                          <span className="lv-menu-ic" style={{ color: PALETTE.blue, background: TINT.blue }}><EditOutlined style={{ fontSize: 13 }} /></span>
+                                          <span className="lv-menu-text"><span className="lv-menu-title">Edit Holiday</span></span>
+                                        </div>
+                                      ),
+                                      onClick: (info: any) => {
+                                        info.domEvent.stopPropagation();
+                                        openEdit(r);
+                                      }
+                                    } : null,
+                                    canDeleteLeaveHoliday ? {
+                                      key: 'remove',
+                                      danger: true,
+                                      label: (
+                                        <div className="lv-menu-item">
+                                          <span className="lv-menu-ic" style={{ color: PALETTE.red, background: TINT.red }}><DeleteOutlined style={{ fontSize: 13 }} /></span>
+                                          <span className="lv-menu-text"><span className="lv-menu-title">Delete Holiday</span></span>
+                                        </div>
+                                      ),
+                                      onClick: (info: any) => {
+                                        info.domEvent.stopPropagation();
+                                        Modal.confirm({
+                                          title: 'Delete this holiday?',
+                                          content: `"${r.name}" will be removed from the calendar.`,
+                                          okText: 'Delete',
+                                          okType: 'danger',
+                                          onOk: () => remove(r)
+                                        });
+                                      }
+                                    } : null
+                                  ].filter(Boolean) as any[]
+                                }}
+                                trigger={['click']}
+                              >
+                                <button type="button" className="lv-list-card-actions" onClick={e => e.stopPropagation()}>
+                                  <MoreHorizontal size={14} />
+                                </button>
+                              </Dropdown>
+                            )}
+                          </div>
+                          
+                          <div className="lv-list-card-footer" onClick={e => e.stopPropagation()}>
+                            <div className="lv-list-card-row">
+                              <span className="lv-list-card-item">
+                                <span className="lv-list-card-key">Date:</span>
+                                <span className="lv-list-card-val">{fmt(r.fromDate)}{r.toDate !== r.fromDate ? ` → ${dayjs(r.toDate).format('MMM D')}` : ''}</span>
+                              </span>
+                              <span className="lv-list-card-div" />
+                              <span className="lv-list-card-item">
+                                <span className="lv-list-card-key">Coverage:</span>
+                                <span className="lv-list-card-val">{coverageLabel}</span>
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
         </ZukvoLoadingOverlay>
       </div>
 

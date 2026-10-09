@@ -18,6 +18,7 @@ import {
   Pagination,
   Typography,
   Select,
+  Dropdown,
 } from 'antd';
 const { Text } = Typography;
 import type { ColumnsType } from 'antd/es/table';
@@ -39,6 +40,9 @@ import {
   Menu,
   Clock,
   Search,
+  LayoutGrid,
+  List,
+  MoreHorizontal,
 } from 'lucide-react';
 import OnboardingGuard from '@/components/onboarding/OnboardingGuard';
 import ConfirmDialog from '@/components/common/ConfirmDialog';
@@ -152,6 +156,7 @@ function InvitesContent() {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'invited' | 'employee_submitted' | 'completed' | 'expired' | 'revoked'>('all');
   const [isFilterRowOpen, setIsFilterRowOpen] = useState(false);
+  const [viewMode, setViewMode] = useState<'list' | 'grid'>('grid');
   const [total, setTotal] = useState(0);
   const [apiStats, setApiStats] = useState({ total: 0, invited: 0, submitted: 0, completed: 0 });
 
@@ -579,6 +584,14 @@ function InvitesContent() {
             onToggle={() => setIsFilterRowOpen((prev) => !prev)}
             activeCount={statusFilter !== 'all' ? 1 : 0}
           />
+          <div className="onb-view-toggles">
+            <button type="button" className={viewMode === "grid" ? "is-active" : ""} onClick={() => setViewMode("grid")}>
+              <LayoutGrid size={14} />
+            </button>
+            <button type="button" className={viewMode === "list" ? "is-active" : ""} onClick={() => setViewMode("list")}>
+              <List size={14} />
+            </button>
+          </div>
           <Tooltip title="Refresh">
             <button type="button" className="onbi-ghost-btn" onClick={load} aria-label="Refresh">
               <RefreshCw size={15} className={loading ? 'onbi-spin' : ''} />
@@ -639,20 +652,172 @@ function InvitesContent() {
         </FilterBar>
       )}
 
-      {/* ── TABLE ───────────────────────────────────────────────────────── */}
-      <div className="onbi-table-wrap">
+      {/* ── CONTENT ───────────────────────────────────────────────────────── */}
+      <div className="onbi-table-wrap" style={{ background: viewMode === 'grid' ? 'transparent' : undefined, border: viewMode === 'grid' ? 'none' : undefined }}>
         <ZukvoLoadingOverlay loading={loading} message="">
-          <Table
-            rowKey="inviteId"
-            size="small"
-            className="onbi-table"
-            columns={columns}
-            dataSource={pagedRows}
-            pagination={false}
-            onRow={() => ({ className: 'onbi-row' })}
-            locale={{ emptyText: <NoData description={'No invites yet — invite your first employee.'} /> }}
-            scroll={{ x: 'max-content' }}
-          />
+          {viewMode === 'list' ? (
+            <Table
+              rowKey="inviteId"
+              size="small"
+              className="onbi-table"
+              columns={columns}
+              dataSource={pagedRows}
+              pagination={false}
+              onRow={() => ({ className: 'onbi-row' })}
+              locale={{ emptyText: <NoData description={'No invites yet — invite your first employee.'} /> }}
+              scroll={{ x: 'max-content' }}
+            />
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
+              <div style={{ flex: 1, overflowY: 'auto' }}>
+                {pagedRows.length === 0 ? (
+                  <NoData description="No invites yet — invite your first employee." />
+                ) : (
+                  <div className="onb-grid">
+                    {pagedRows.map((r) => {
+                      const name = `${r.firstName ?? ''} ${r.lastName ?? ''}`.trim() || '—';
+                      const initials = `${(r.firstName ?? '').charAt(0)}${(r.lastName ?? '').charAt(0)}`.toUpperCase() || '?';
+                      const meta = STATUS_META[r.status] ?? STATUS_META.invited;
+                      const showExpired = r.isExpired && r.status !== 'completed' && r.status !== 'revoked';
+
+                      return (
+                        <div key={r.inviteId} className="onb-list-card">
+                          <div className="onb-list-card-head">
+                            <div className="onb-list-card-avatar" style={{ background: TINT.blue, color: PALETTE.blue }}>
+                              {initials}
+                            </div>
+                            <div className="onb-list-card-body">
+                              <div className="onb-list-card-title">
+                                <span>{name}</span>
+                                <div style={{ display: 'flex', gap: 4 }}>
+                                  <Tag style={{ margin: 0, border: 'none', background: meta.tint, color: meta.color, fontWeight: 600, borderRadius: 6 }}>
+                                    {meta.label}
+                                  </Tag>
+                                  {showExpired && (
+                                    <Tag style={{ margin: 0, border: 'none', background: TINT.grey, color: PALETTE.grey, fontWeight: 600, borderRadius: 6 }}>
+                                      Expired
+                                    </Tag>
+                                  )}
+                                </div>
+                              </div>
+                              <div className="onb-list-card-sub">
+                                <span className="onb-list-card-key">Code:</span>
+                                <span className="onb-list-card-val" style={{ fontFamily: 'monospace' }}>{r.employeeCode || '—'}</span>
+                              </div>
+                            </div>
+                            <Dropdown
+                              menu={{
+                                className: 'onb-action-pop',
+                                items: [
+                                  (canCreateOnboarding && r.status !== 'completed' && r.status !== 'revoked') ? {
+                                    key: 'edit',
+                                    label: (
+                                      <div className="onb-menu-item">
+                                        <span className="onb-menu-ic" style={{ color: PALETTE.blue, background: TINT.blue }}><Pencil size={13} /></span>
+                                        <span className="onb-menu-text">
+                                          <span className="onb-menu-title">Edit Details</span>
+                                          <span className="onb-menu-desc">Change name & emails</span>
+                                        </span>
+                                      </div>
+                                    ),
+                                    onClick: (info: any) => { info.domEvent.stopPropagation(); openEdit(r); }
+                                  } : null,
+                                  (canCreateOnboarding && r.isExpired && r.status !== 'completed' && r.status !== 'revoked') ? {
+                                    key: 'regenerate',
+                                    label: (
+                                      <div className="onb-menu-item">
+                                        <span className="onb-menu-ic" style={{ color: PALETTE.blue, background: TINT.blue }}><RefreshCw size={13} /></span>
+                                        <span className="onb-menu-text">
+                                          <span className="onb-menu-title">Regenerate</span>
+                                          <span className="onb-menu-desc">Create new invite link</span>
+                                        </span>
+                                      </div>
+                                    ),
+                                    onClick: (info: any) => {
+                                      info.domEvent.stopPropagation();
+                                      Modal.confirm({
+                                        title: 'Regenerate Invite?',
+                                        content: 'This will generate a new invite link and email it to the employee.',
+                                        okText: 'Regenerate',
+                                        onOk: () => regenerate(r)
+                                      });
+                                    }
+                                  } : null,
+                                  (r.status === 'employee_submitted') ? {
+                                    key: 'activate',
+                                    label: (
+                                      <div className="onb-menu-item">
+                                        <span className="onb-menu-ic" style={{ color: PALETTE.green, background: TINT.green }}><CheckCircle2 size={13} /></span>
+                                        <span className="onb-menu-text">
+                                          <span className="onb-menu-title">Activate Employee</span>
+                                          <span className="onb-menu-desc">Mark onboarding as complete</span>
+                                        </span>
+                                      </div>
+                                    ),
+                                    onClick: (info: any) => {
+                                      info.domEvent.stopPropagation();
+                                      Modal.confirm({
+                                        title: 'Activate this employee?',
+                                        content: `${name} will become an active employee.`,
+                                        okText: 'Activate',
+                                        onOk: () => activate(r)
+                                      });
+                                    }
+                                  } : null,
+                                  (r.status !== 'completed' && r.status !== 'revoked') ? {
+                                    key: 'revoke',
+                                    danger: true,
+                                    label: (
+                                      <div className="onb-menu-item">
+                                        <span className="onb-menu-ic" style={{ color: PALETTE.red, background: TINT.red }}><Ban size={13} /></span>
+                                        <span className="onb-menu-text">
+                                          <span className="onb-menu-title">Revoke Invite</span>
+                                          <span className="onb-menu-desc">Disable link immediately</span>
+                                        </span>
+                                      </div>
+                                    ),
+                                    onClick: (info: any) => {
+                                      info.domEvent.stopPropagation();
+                                      Modal.confirm({
+                                        title: 'Revoke this invite?',
+                                        content: 'The public onboarding link will stop working immediately.',
+                                        okText: 'Revoke',
+                                        okType: 'danger',
+                                        onOk: () => revoke(r)
+                                      });
+                                    }
+                                  } : null,
+                                ].filter(Boolean) as any[]
+                              }}
+                              trigger={['click']}
+                            >
+                              <button type="button" className="onb-list-card-actions" onClick={e => e.stopPropagation()}>
+                                <MoreHorizontal size={14} />
+                              </button>
+                            </Dropdown>
+                          </div>
+                          
+                          <div className="onb-list-card-footer" onClick={e => e.stopPropagation()}>
+                            <div className="onb-list-card-row">
+                              <span className="onb-list-card-item">
+                                <span className="onb-list-card-key">Work Email:</span>
+                                <span className="onb-list-card-val">{r.workEmail || '—'}</span>
+                              </span>
+                              <span className="onb-list-card-div" />
+                              <span className="onb-list-card-item">
+                                <span className="onb-list-card-key">Expires:</span>
+                                <span className="onb-list-card-val">{fmtDate(r.expiresAt)}</span>
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
         </ZukvoLoadingOverlay>
       </div>
 

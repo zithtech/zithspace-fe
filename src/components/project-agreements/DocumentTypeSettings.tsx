@@ -26,6 +26,9 @@ import {
   Search,
   SignalHigh,
   Trash2,
+  LayoutGrid,
+  List,
+  MoreHorizontal,
 } from 'lucide-react';
 import { message } from '@/providers/AntdGlobalProvider';
 import NoData from '@/components/common/NoData';
@@ -77,6 +80,7 @@ export default function DocumentTypeSettings() {
 
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
+  const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
 
   // The editor. `editing` is the row being changed, or null for a new one.
   const [open, setOpen] = useState(false);
@@ -375,6 +379,14 @@ export default function DocumentTypeSettings() {
             onToggle={() => setShowFilters(!showFilters)}
             activeCount={activeFilterCount}
           />
+          <div className="lv-view-toggles">
+            <button type="button" className={viewMode === "grid" ? "is-active" : ""} onClick={() => setViewMode("grid")}>
+              <LayoutGrid size={14} />
+            </button>
+            <button type="button" className={viewMode === "list" ? "is-active" : ""} onClick={() => setViewMode("list")}>
+              <List size={14} />
+            </button>
+          </div>
           {canCreate && (
             <button type="button" className="pa-btn pa-btn-primary" onClick={openNew}>
               <Plus size={14} /> New type
@@ -419,33 +431,154 @@ export default function DocumentTypeSettings() {
         </div>
       ) : (
         <>
-          <div className="pp-table-wrap">
-            <Table
-              className="pp-table"
-              rowKey="id"
-              size="small"
-              columns={columns as any}
-              dataSource={pageItems}
-              pagination={false}
-              scroll={{ x: 'max-content' }}
-              rowClassName="pp-row"
-              onRow={(record) => ({
-                onClick: () => canEdit && openEdit(record),
-              })}
-              locale={{
-                emptyText: (
-                  <NoData
-                    title={activeFilterCount > 0 ? 'Nothing matches' : 'No document types yet'}
-                    description={
-                      activeFilterCount > 0
-                        ? 'Clear a filter to widen the search.'
-                        : 'Add one — every template and agreement needs a kind.'
-                    }
-                    accent="#3b82f6"
-                  />
-                ),
-              }}
-            />
+          <div className="pp-table-wrap" style={{ overflowX: 'auto', background: viewMode === 'grid' ? 'transparent' : undefined, border: viewMode === 'grid' ? 'none' : undefined }}>
+            {viewMode === 'list' ? (
+              <Table
+                className="pp-table"
+                rowKey="id"
+                size="small"
+                columns={columns as any}
+                dataSource={pageItems}
+                pagination={false}
+                scroll={{ x: 'max-content' }}
+                rowClassName="pp-row"
+                onRow={(record) => ({
+                  onClick: () => canEdit && openEdit(record),
+                })}
+                locale={{
+                  emptyText: (
+                    <NoData
+                      title={activeFilterCount > 0 ? 'Nothing matches' : 'No document types yet'}
+                      description={
+                        activeFilterCount > 0
+                          ? 'Clear a filter to widen the search.'
+                          : 'Add one — every template and agreement needs a kind.'
+                      }
+                      accent="#3b82f6"
+                    />
+                  ),
+                }}
+              />
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
+                <div style={{ flex: 1, overflowY: 'auto' }}>
+                  {pageItems.length === 0 ? (
+                    <NoData
+                      title={activeFilterCount > 0 ? 'Nothing matches' : 'No document types yet'}
+                      description={
+                        activeFilterCount > 0
+                          ? 'Clear a filter to widen the search.'
+                          : 'Add one — every template and agreement needs a kind.'
+                      }
+                      accent="#3b82f6"
+                    />
+                  ) : (
+                    <div className="lv-grid">
+                      {pageItems.map((r) => {
+                        const meta = DOCUMENT_TYPE_STATUS_META[r.status];
+                        const parts = [
+                          r.templateCount ? `${r.templateCount} template${r.templateCount === 1 ? '' : 's'}` : null,
+                          r.agreementCount ? `${r.agreementCount} agreement${r.agreementCount === 1 ? '' : 's'}` : null,
+                        ].filter(Boolean);
+                        
+                        return (
+                          <div key={r.id} className="lv-list-card" onClick={() => canEdit && openEdit(r)}>
+                            <div className="lv-list-card-head">
+                              <div className="lv-list-card-avatar" style={{ background: 'rgba(59,130,246,0.10)', color: '#3b82f6' }}>
+                                <Layers size={18} />
+                              </div>
+                              <div className="lv-list-card-body">
+                                <div className="lv-list-card-title">
+                                  <span>{r.name}</span>
+                                  <span style={{ background: meta.bg, color: meta.color, padding: '2px 6px', borderRadius: 6, fontSize: 10 }}>{meta.label}</span>
+                                </div>
+                                <div className="lv-list-card-sub">
+                                  <span className="lv-list-card-val" style={{ fontWeight: 500, color: 'var(--text-slate-400)' }}>
+                                    {r.description || 'No description'}
+                                  </span>
+                                </div>
+                              </div>
+                              
+                              {(canEdit || canDelete) && (
+                                <div onClick={e => e.stopPropagation()}>
+                                  <ConfirmDialog
+                                    open={deleteTarget?.id === r.id}
+                                    onOpenChange={(open) => !open && setDeleteTarget(null)}
+                                    tone="danger"
+                                    title={`Delete "${r.name}"?`}
+                                    confirmText="Delete"
+                                    onConfirm={confirmDelete}
+                                  >
+                                    <Dropdown
+                                      overlayClassName="lv-action-pop"
+                                      trigger={['click']}
+                                      placement="bottomRight"
+                                      menu={{
+                                        items: [
+                                          ...(canEdit
+                                            ? [
+                                                {
+                                                  key: 'edit',
+                                                  label: menuLabel(<Pencil size={14} />, 'Edit', 'Rename or describe it', '#3b82f6'),
+                                                  onClick: ({ domEvent }: any) => {
+                                                    domEvent.stopPropagation();
+                                                    openEdit(r);
+                                                  },
+                                                },
+                                              ]
+                                            : []),
+                                          ...(canEdit && canDelete ? [{ type: 'divider' as const, key: 'd1' }] : []),
+                                          ...(canDelete
+                                            ? [
+                                                {
+                                                  key: 'delete',
+                                                  danger: true,
+                                                  label: menuLabel(
+                                                    <Trash2 size={14} />,
+                                                    'Delete',
+                                                    'Only while nothing uses it',
+                                                    '#ef4444'
+                                                  ),
+                                                  onClick: ({ domEvent }: any) => {
+                                                    domEvent.stopPropagation();
+                                                    checkDelete(r);
+                                                  },
+                                                },
+                                              ]
+                                            : []),
+                                        ],
+                                      }}
+                                    >
+                                      <button type="button" className="lv-list-card-actions">
+                                        <MoreHorizontal size={14} />
+                                      </button>
+                                    </Dropdown>
+                                  </ConfirmDialog>
+                                </div>
+                              )}
+                            </div>
+                            
+                            <div className="lv-list-card-footer" onClick={e => e.stopPropagation()}>
+                              <div className="lv-list-card-row">
+                                <span className="lv-list-card-item">
+                                  <span className="lv-list-card-key">Code:</span>
+                                  <span className="lv-list-card-val" style={{ fontFamily: 'monospace' }}>{r.code}</span>
+                                </span>
+                                <span className="lv-list-card-div" />
+                                <span className="lv-list-card-item">
+                                  <span className="lv-list-card-key">In use:</span>
+                                  <span className="lv-list-card-val">{parts.length ? parts.join(' · ') : 'Unused'}</span>
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
 
           <ListFooter

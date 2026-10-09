@@ -90,6 +90,7 @@ import { useTheme } from "@/context/ThemeContext";
 import dayjs from "dayjs";
 import TicketService, { Ticket } from "@/services/ticketService";
 import { ProjectService } from "@/services/projectService";
+import { QaProjectSwitcher } from "@/components/qa/QaProjectGate";
 import {
   PRIORITY_OPTIONS,
   TYPE_OPTIONS,
@@ -3891,58 +3892,11 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
               <Divider type="vertical" style={{ height: 24, margin: 0, opacity: 0.5 }} />
 
               {/* Project Switcher */}
-              <Dropdown
-                menu={{
-                  items: (projects || []).map(p => ({
-                    key: p.value,
-                    label: (
-                      <div className="pp-menu-item" style={{ display: 'flex', alignItems: 'center', gap: 11, padding: '7px 9px' }}>
-                        <span className="pp-menu-ic" style={{
-                          width: 30, height: 30, borderRadius: 6, flexShrink: 0,
-                          display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 10,
-                          color: p.value === projectId ? '#fff' : 'var(--text-slate-500)',
-                          background: p.value === projectId ? 'var(--premium-gradient)' : 'var(--bg-slate-100)',
-                          fontWeight: 800,
-                          boxShadow: p.value === projectId ? 'var(--premium-shadow)' : 'none',
-                        }}>
-                          {(p.code || p.label || "?").slice(0, 3).toUpperCase()}
-                        </span>
-                        <span className="pp-menu-text" style={{ display: 'flex', flexDirection: 'column', minWidth: 0, flex: 1 }}>
-                          <span className="pp-menu-title" style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-slate-900)', letterSpacing: '-0.01em' }}>{p.label}</span>
-                          <span className="pp-menu-desc" style={{ fontSize: 11, color: 'var(--text-slate-400)', marginTop: 1 }}>#{p.code}</span>
-                        </span>
-                        {p.value === projectId && <CheckCircleOutlined style={{ color: '#10b981', fontSize: 12, marginLeft: 'auto' }} />}
-                      </div>
-                    ),
-                    onClick: () => router.push(`/projects/${p.value}/tickets`)
-                  })),
-                }}
-                overlayClassName="project-switch-pop"
-                trigger={['click']}
-              >
-                <div data-tour="tickets-project-view" style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', padding: '2px 6px', borderRadius: 8 }} className="project-switch-trigger transition-colors">
-                  <div style={{
-                    padding: '0 6px',
-                    height: 26,
-                    borderRadius: 6,
-                    background: 'var(--premium-gradient)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    color: '#fff',
-                    fontSize: 9,
-                    fontWeight: 800,
-                    boxShadow: 'var(--premium-shadow-lg)',
-                    minWidth: 30
-                  }}>
-                    {projectCode?.toUpperCase()}
-                  </div>
-                  <div>
-                    <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-slate-900)', lineHeight: 1.2 }}>{projectName}</div>
-                    <div style={{ fontSize: 10, color: 'var(--text-slate-500)', fontWeight: 600 }}>Switch Project <CaretRightOutlined style={{ fontSize: 7 }} /></div>
-                  </div>
-                </div>
-              </Dropdown>
+              <QaProjectSwitcher
+                projects={projects || []}
+                value={projectId}
+                onChange={(id) => id && router.push(`/projects/${id}/tickets`)}
+              />
 
               {/* Action Controls */}
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1 }}>

@@ -15,6 +15,7 @@ import {
   PanelHeader,
   PriorityChip,
   TINT,
+  ViewModeToggle,
   fmtDate,
   relativeDays,
 } from './ui';
@@ -33,6 +34,7 @@ export default function ApprovalsQueuePanel() {
   const [loading, setLoading] = useState(true);
   const [scope, setScope] = useState<'mine' | 'all'>(canSeeAll ? 'all' : 'mine');
   const [busy, setBusy] = useState<string | null>(null);
+  const [viewMode, setViewMode] = useState<'list' | 'card'>('list');
 
   const [rejectingItem, setRejectingItem] = useState<PendingApprovalItem | null>(null);
   const [rejectNote, setRejectNote] = useState('');
@@ -191,6 +193,7 @@ export default function ApprovalsQueuePanel() {
             ]}
           />
         )}
+        <ViewModeToggle mode={viewMode} setMode={setViewMode} />
         <Button icon={<RotateCw size={14} />} loading={loading} onClick={load} />
       </PanelHeader>
 
@@ -198,29 +201,119 @@ export default function ApprovalsQueuePanel() {
         <Skeleton active paragraph={{ rows: 5 }} />
       ) : (
         <div className="opn-table-wrap">
-          <Table<PendingApprovalItem>
-            rowKey={(r) => r.approval.id}
-            size="small"
-            columns={columns}
-            dataSource={rows}
-            scroll={{ x: 1200 }}
-            pagination={false}
-            onRow={(record) => ({ onClick: () => router.push(`/openings/${record.openingId}`) })}
-            locale={{
-              emptyText: (
-                <div className="omp-empty">
-                  <NoData description={
-                                              <>
-                                                <div className="omp-empty-title">Nothing waiting on you</div>
-                                                <div className="omp-empty-sub">
-                                                  Openings appear here when they reach a step you can decide.
-                                                </div>
-                                              </>
-                                            } />
-                </div>
-              ),
-            }}
-          />
+          {viewMode === 'list' ? (
+            <Table<PendingApprovalItem>
+              rowKey={(r) => r.approval.id}
+              size="small"
+              columns={columns}
+              dataSource={rows}
+              scroll={{ x: 1200 }}
+              pagination={false}
+              onRow={(record) => ({ onClick: () => router.push(`/openings/${record.openingId}`) })}
+              locale={{
+                emptyText: (
+                  <div className="omp-empty">
+                    <NoData description={
+                                                <>
+                                                  <div className="omp-empty-title">Nothing waiting on you</div>
+                                                  <div className="omp-empty-sub">
+                                                    Openings appear here when they reach a step you can decide.
+                                                  </div>
+                                                </>
+                                              } />
+                  </div>
+                ),
+              }}
+            />
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
+              <div style={{ flex: 1, overflowY: 'auto' }}>
+                {rows.length === 0 ? (
+                  <div className="omp-empty">
+                    <NoData description={
+                                                <>
+                                                  <div className="omp-empty-title">Nothing waiting on you</div>
+                                                  <div className="omp-empty-sub">
+                                                    Openings appear here when they reach a step you can decide.
+                                                  </div>
+                                                </>
+                                              } />
+                  </div>
+                ) : (
+                  <div className="omp-grid">
+                    {rows.map((r) => (
+                      <div key={r.approval.id} className="omp-list-card" onClick={() => router.push(`/openings/${r.openingId}`)}>
+                        <div className="omp-list-card-head">
+                          <div className="omp-list-card-avatar" style={{ background: '#f59e0b' }}>
+                            {r.jobTitle?.[0]?.toUpperCase() || 'O'}
+                          </div>
+                          <div className="omp-list-card-body">
+                            <div className="omp-list-card-title">
+                              <span>{r.jobTitle}</span>
+                              <PriorityChip priority={r.priority} />
+                            </div>
+                            <div className="omp-list-card-sub">
+                              <span className="omp-list-card-key">Code:</span>
+                              <span className="omp-list-card-val">{r.openingCode}</span>
+                              {[r.departmentName, r.clientName].filter(Boolean).map(x => <span key={x}>· {x}</span>)}
+                            </div>
+                          </div>
+                        </div>
+                        
+                        <div className="omp-list-card-footer" onClick={e => e.stopPropagation()}>
+                          <div className="omp-list-card-row">
+                            <span className="omp-list-card-item">
+                              <span className="omp-list-card-key">Waiting on:</span>
+                              <span className="omp-list-card-val" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
+                                <strong>{r.approval.stepName}</strong>
+                              </span>
+                            </span>
+                            <span className="omp-list-card-div" />
+                            <span className="omp-list-card-item">
+                              <span className="omp-list-card-key">Approver:</span>
+                              <span className="omp-list-card-val">
+                                {r.approval.approverName ?? (r.approval.roleName ? `Anyone with ${r.approval.roleName}` : '—')}
+                                {r.approval.isOptional && ' (optional)'}
+                              </span>
+                            </span>
+                          </div>
+                          <div className="omp-list-card-row">
+                            <span className="omp-list-card-item">
+                              <span className="omp-list-card-key">By:</span>
+                              <span className="omp-list-card-val">{r.submittedByName ?? '—'}</span>
+                            </span>
+                            <span className="omp-list-card-div" />
+                            <span className="omp-list-card-item">
+                              <span className="omp-list-card-key">Submitted:</span>
+                              <span className="omp-list-card-val">{fmtDate(r.submittedAt)} ({relativeDays(r.submittedAt)})</span>
+                            </span>
+                          </div>
+                          <div className="omp-list-card-row" style={{ justifyContent: 'flex-end', background: 'var(--bg-pure-white)' }}>
+                            {perms.canUpdateOpening && (
+                              <div style={{ display: 'flex', gap: 6 }}>
+                                <Button
+                                  size="small"
+                                  type="primary"
+                                  icon={<CheckCircle2 size={13} />}
+                                  loading={busy === r.openingId}
+                                  onClick={() => decide(r, true)}
+                                >
+                                  Approve
+                                </Button>
+                                <Button size="small" danger icon={<XCircle size={13} />} onClick={() => decide(r, false)}>
+                                  Reject
+                                </Button>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
         </div>
       )}
 

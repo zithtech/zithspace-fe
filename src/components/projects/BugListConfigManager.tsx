@@ -174,10 +174,12 @@ export default function BugListConfigManager() {
     } else if (stepIndex === 7 || stepIndex === 8) {
       setActiveKey(MODULES_KEY);
     } else if (stepIndex === 9 || stepIndex === 10) {
-      setActiveKey("severity");
-    } else if (stepIndex === 11 || stepIndex === 12) {
       setActiveKey("type");
+    } else if (stepIndex === 11 || stepIndex === 12) {
+      setActiveKey("severity");
     } else if (stepIndex === 13 || stepIndex === 14) {
+      setActiveKey("bug_type");
+    } else if (stepIndex === 15 || stepIndex === 16) {
       setActiveKey("priority");
     }
   }, [run, currentTourKey, stepIndex]);
@@ -233,6 +235,9 @@ export default function BugListConfigManager() {
   const scopeModuleIndex = useScopeModuleNames(canManageQa);
   /** null while closed; { item: null } means "create a new module". */
   const [moduleEditing, setModuleEditing] = useState<{ item: QaModule | null } | null>(null);
+
+  // Trigger to force tables to refetch when modals save
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   // ── Test Scope option lists ──────────────────────────────────────────────
   const scopeSettings = useScopeSettings(canManageQa);
@@ -457,6 +462,8 @@ export default function BugListConfigManager() {
                       activeSection.key === 'severity'
                         ? "settings-create-bug-severity-btn"
                         : activeSection.key === 'type'
+                        ? "settings-create-type-btn"
+                        : activeSection.key === 'bug_type'
                         ? "settings-create-bug-type-btn"
                         : "settings-create-bug-priority-btn"
                     }
@@ -486,6 +493,7 @@ export default function BugListConfigManager() {
                 onCreate={() => setModuleEditing({ item: null })}
                 onEdit={(item) => setModuleEditing({ item })}
                 onChanged={qaModules.refetch}
+                refreshTrigger={refreshTrigger}
               />
             ) : scopeNavActive ? (
               <ScopeOptionsTable
@@ -498,6 +506,7 @@ export default function BugListConfigManager() {
                 onCreate={() => setScopeEditing({ item: null })}
                 onEdit={(item) => setScopeEditing({ item })}
                 onChanged={scopeSettings.refetch}
+                refreshTrigger={refreshTrigger}
               />
             ) : (
             <ConfigSection
@@ -557,7 +566,10 @@ export default function BugListConfigManager() {
         open={!!moduleEditing}
         editing={moduleEditing?.item ?? null}
         onClose={() => setModuleEditing(null)}
-        onSaved={qaModules.refetch}
+        onSaved={() => {
+          qaModules.refetch();
+          setRefreshTrigger(prev => prev + 1);
+        }}
       />
 
       <ScopeOptionModal
@@ -565,7 +577,10 @@ export default function BugListConfigManager() {
         category={scopeCategory}
         editing={scopeEditing?.item ?? null}
         onClose={() => setScopeEditing(null)}
-        onSaved={scopeSettings.refetch}
+        onSaved={() => {
+          scopeSettings.refetch();
+          setRefreshTrigger(prev => prev + 1);
+        }}
       />
 
       <OptionEditor

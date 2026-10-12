@@ -40,6 +40,7 @@ import { useTheme } from "@/context/ThemeContext";
 import { drawerFormStyles as formStyles, SectionCard, commonDrawerProps } from "@/components/common/DrawerSection";
 import { SearchableDropdown } from "@/components/common/SearchableDropdown";
 import PostCreationSuccessScreen from "@/components/common/PostCreationSuccessScreen";
+import { useTour } from "@/context/TourContext";
 
 const { Title, Text } = Typography;
 const { Option } = Select;
@@ -75,6 +76,8 @@ export const ProjectFormDrawer: React.FC<ProjectFormDrawerProps> = ({
   const [dataLoading, setDataLoading] = useState(false);
   const [createdSuccessData, setCreatedSuccessData] = useState<{ name: string } | null>(null);
   const [members, setMembers] = useState<Member[]>([]);
+  
+  const { currentTourKey, stepIndex, setStepIndex } = useTour();
   const [fullProject, setFullProject] = useState<Project | null>(null);
 
   useEffect(() => {
@@ -195,13 +198,18 @@ export const ProjectFormDrawer: React.FC<ProjectFormDrawerProps> = ({
             .then(() => updateUser({ onboardingCompleted: true }))
             .catch(() => {});
         }
-        setCreatedSuccessData({ name: values.name });
+        handleClose();
         onSuccess();
       }
 
       // Invalidate project queries to sync cached lists
       queryClient.invalidateQueries({ queryKey: ["global", "projects"] });
       queryClient.invalidateQueries({ queryKey: ["global", "allProjects"] });
+      
+      // Advance tour if active
+      if (currentTourKey === 'testiez-project-manual' && stepIndex >= 2 && stepIndex <= 4) {
+        setStepIndex(5);
+      }
     } catch (error: any) {
       notification.error({
         message: "Operation Failed",

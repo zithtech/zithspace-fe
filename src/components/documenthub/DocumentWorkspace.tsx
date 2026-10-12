@@ -2211,7 +2211,7 @@ export default function DocumentWorkspace({ documentId }: DocumentWorkspaceProps
                                     <div className="h-5 w-px mx-1" style={{ backgroundColor: 'var(--border-slate-200)' }} />
                                 </>
                             )}
-                            {selectedDoc && (
+                            {/* {selectedDoc && (
                                 <Segmented
                                     data-tour="dochub-preview-btn"
                                     value={viewMode}
@@ -2224,7 +2224,7 @@ export default function DocumentWorkspace({ documentId }: DocumentWorkspaceProps
                                     size="small"
                                     style={{ borderRadius: 8, background: 'var(--bg-slate-100, #f1f5f9)' }}
                                 />
-                            )}
+                            )} */}
                             <Tooltip title={isFullScreen ? "Exit Full Screen" : "Full Screen"}>
                                 <Button
                                     type="text"

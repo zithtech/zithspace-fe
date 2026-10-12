@@ -381,17 +381,7 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
   const [allTicketIds, setAllTicketIds] = useState<string[]>([]);
   const [sidebarActiveSection, setSidebarActiveSection] = useState<"sprint" | "backlog" | "filtered" | null>("sprint");
 
-  // Automatically close ticket detail drawer when moving past drawer tour steps
-  useEffect(() => {
-    if (!run || currentTourKey !== "testiez-sprints") return;
-    const currentStep = ticketsTourSteps[stepIndex];
-    if (currentStep) {
-      const isDrawerStep = currentStep.target?.toString().includes("tickets-drawer");
-      if (!isDrawerStep && selectedTicketId) {
-        setSelectedTicketId(null);
-      }
-    }
-  }, [run, currentTourKey, stepIndex, selectedTicketId]);
+
 
   const [isMobile, setIsMobile] = useState(false);
   useEffect(() => {
@@ -423,6 +413,58 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
   const [activeSelectedRowKeys, setActiveSelectedRowKeys] = useState<React.Key[]>([]);
   const [backlogSelectedRowKeys, setBacklogSelectedRowKeys] = useState<React.Key[]>([]);
   const recentTicketCardRef = useRef<HTMLDivElement | null>(null);
+
+  // Automatically close ticket detail drawer when moving past drawer tour steps, and auto-open it if needed
+  useEffect(() => {
+    if (!run || currentTourKey !== "testiez-sprints") return;
+    
+    const currentStep = ticketsTourSteps[stepIndex];
+    if (!currentStep) return;
+    
+    const isDrawerStep = currentStep.target?.toString().includes("tickets-drawer");
+
+    // Auto-open drawer if we are on a drawer step and it's not open
+    if (isDrawerStep && !selectedTicketId && recentTicket) {
+      setSelectedTicketId(recentTicket.id);
+      return;
+    }
+
+    // Auto-close if we are NOT on a drawer step
+    if (!isDrawerStep && selectedTicketId) {
+      setSelectedTicketId(null);
+    }
+  }, [run, currentTourKey, stepIndex, selectedTicketId, recentTicket]);
+
+  useEffect(() => {
+    if (run && currentTourKey === "testiez-sprints") {
+      // If stepIndex becomes 17 (Manual Ticket Creation) but the drawer wasn't opened, skip to 23
+      if (stepIndex === 17 && !manualModalOpen) {
+        setTimeout(() => setStepIndex(23), 100);
+      } else if (stepIndex === 23) {
+        setManualModalOpen(false);
+      }
+
+      // Auto-create default ticket if skipped to 23 without creating
+      if (stepIndex === 23 && !recentTicket) {
+        const createDefaultTicket = async () => {
+          try {
+            const defaultTicketData = {
+              title: "Tour Generated Ticket",
+              description: "<p>This is an auto-generated ticket created during the product tour.</p>",
+              project: projectId,
+              status: "todo",
+            };
+            const newTicket = await TicketService.createTicket(defaultTicketData as any);
+            setRecentTicket(newTicket);
+            message.success("Default ticket generated for tour");
+          } catch (e) {
+            console.error("Failed to create default tour ticket", e);
+          }
+        };
+        createDefaultTicket();
+      }
+    }
+  }, [run, currentTourKey, stepIndex, recentTicket, projectId, message]);
 
   // Measure the sticky top header so the sidebar and section anchors line up
   // with its real rendered height (it can wrap on narrow screens). Cascades
@@ -1462,8 +1504,8 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
     setRecentTicket(ticket);
     requestAnimationFrame(() => fireConfettiAtCard());
     message.success(`1 ticket(s) created successfully`);
-    if (run && currentTourKey === "testiez-sprints" && stepIndex === 17) {
-      setStepIndex(18);
+    if (run && currentTourKey === "testiez-sprints" && stepIndex === 22) {
+      setStepIndex(23);
     }
   };
   const activeRowSelection = {
@@ -3969,8 +4011,8 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
                       strong
                       onClick={() => {
                         setSelectedTicketId(recentTicket.id);
-                        if (run && currentTourKey === "testiez-sprints" && stepIndex === 18) {
-                          setStepIndex(19);
+                        if (run && currentTourKey === "testiez-sprints" && stepIndex === 23) {
+                          setTimeout(() => setStepIndex(24), 500);
                         }
                       }}
                       style={{
@@ -4186,7 +4228,12 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
                           key: 'manual',
                           label: 'Manual Creation',
                           icon: <FileTextOutlined />,
-                          onClick: () => setManualModalOpen(true)
+                          onClick: () => {
+                            setManualModalOpen(true);
+                            if (run && currentTourKey === "testiez-sprints" && stepIndex === 16) {
+                              setStepIndex(17);
+                            }
+                          }
                         },
                         {
                           key: 'instant',

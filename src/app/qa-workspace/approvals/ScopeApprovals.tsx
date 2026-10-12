@@ -354,7 +354,7 @@ export default function ScopeApprovals({ onOpenSidebar }: { onOpenSidebar: () =>
     };
   };
 
-  const renderScopeCard = (r: any) => {
+  const renderScopeCard = (r: any, index: number) => {
     const s = scopeSettings.find(set => set.category === "status" && set.value === r.status);
     const color = s?.color && s.color !== "default"
       ? s.color
@@ -364,7 +364,7 @@ export default function ScopeApprovals({ onOpenSidebar }: { onOpenSidebar: () =>
       : r.status === "Draft" ? "#64748b" : "#3b82f6";
 
     return (
-      <div key={r.id} className="pc-card" onClick={() => router.push(`/qa-workspace/test-scope/${r.id}`)}>
+      <div key={r.id} className="pc-card" onClick={() => router.push(`/qa-workspace/test-scope/${r.id}`)} data-tour={index === 0 ? "scope-approvals-row" : undefined}>
         <div className="pc-top">
           <div className="pc-avatar" style={{ background: "linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)" }}>
             {initialsOf(r.name)}
@@ -539,7 +539,6 @@ export default function ScopeApprovals({ onOpenSidebar }: { onOpenSidebar: () =>
           {viewMode === "list" ? (
             <div
               className="sc-tablewrap"
-              data-tour="scope-approvals-table"
               style={{
                 borderLeft: "none",
                 borderRight: "none",
@@ -555,7 +554,10 @@ export default function ScopeApprovals({ onOpenSidebar }: { onOpenSidebar: () =>
                 rowKey="id"
                 pagination={false}
                 scroll={{ x: "max-content" }}
-                onRow={(record) => ({ onClick: () => router.push(`/qa-workspace/test-scope/${record.id}`) })}
+                onRow={(record, index) => ({ 
+                  onClick: () => router.push(`/qa-workspace/test-scope/${record.id}`),
+                  'data-tour': index === 0 ? "scope-approvals-row" : undefined
+                } as React.HTMLAttributes<HTMLElement>)}
                 locale={{
                   emptyText: loading ? (
                     <div style={{ minHeight: 240 }} />
@@ -577,7 +579,7 @@ export default function ScopeApprovals({ onOpenSidebar }: { onOpenSidebar: () =>
               />
             </div>
           ) : (
-            <div className="pp-grid" data-tour="scope-approvals-table">
+            <div className="pp-grid">
               {loading ? null : rows.length === 0 ? (
                 <div className="sc-empty" style={{ gridColumn: "1 / -1" }}>
                   <SendOutlined className="sc-empty__icon" />
@@ -591,7 +593,7 @@ export default function ScopeApprovals({ onOpenSidebar }: { onOpenSidebar: () =>
                   </p>
                 </div>
               ) : (
-                rows.map(renderScopeCard)
+                rows.map((r, index) => renderScopeCard(r, index))
               )}
             </div>
           )}

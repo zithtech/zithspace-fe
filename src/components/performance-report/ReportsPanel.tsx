@@ -230,8 +230,10 @@ export default function ReportsPanel() {
   const visibleSections = useMemo(() => {
     return SECTIONS.filter((s) => {
       if (s.key === 'overview') return true;
+      // If moduleWeights haven't loaded yet, default to false to avoid flashing disabled tabs
+      if (moduleWeights.length === 0) return false;
       const mw = moduleWeights.find((w) => w.key === s.key);
-      return mw ? mw.enabled !== false : true;
+      return mw ? mw.enabled === true : false;
     });
   }, [moduleWeights]);
 
@@ -1092,6 +1094,45 @@ export default function ReportsPanel() {
           margin-bottom: 10px;
         }
         .prr-help-note--muted { color: var(--text-slate-500); background: var(--bg-secondary); }
+
+        /* Sticky table pagination for attendance and daily updates */
+        .prr-att .ant-table-pagination,
+        .prr-du .ant-table-pagination {
+          position: sticky;
+          bottom: -24px; /* compensate for .prr-results padding */
+          z-index: 30;
+          background: var(--bg-pure-white) !important;
+          padding: 10px 24px !important;
+          margin: auto -24px -24px -24px !important; /* stretch to edges and push to bottom */
+          border-top: 1px solid var(--border-slate-200) !important;
+          box-shadow: 0 -4px 14px rgba(15, 23, 42, 0.08);
+          display: flex;
+          justify-content: flex-end;
+          width: calc(100% + 48px);
+        }
+        
+        .prr-att, .prr-du {
+          display: flex; flex-direction: column; flex: 1; min-height: 0;
+        }
+        .prr-att .ant-table-wrapper, .prr-du .ant-table-wrapper,
+        .prr-att .ant-spin-nested-loading, .prr-du .ant-spin-nested-loading,
+        .prr-att .ant-spin-container, .prr-du .ant-spin-container,
+        .prr-att .zlo, .prr-du .zlo,
+        .prr-att .zlo__content, .prr-du .zlo__content {
+          display: flex; flex-direction: column; flex: 1; min-height: 0;
+        }
+
+        /* Table borders and radius */
+        .prr-att .ant-table, .prr-du .ant-table,
+        .prr-att .ant-table-container, .prr-du .ant-table-container,
+        .prr-att .ant-table-thead > tr > th:first-child, .prr-du .ant-table-thead > tr > th:first-child,
+        .prr-att .ant-table-thead > tr > th:last-child, .prr-du .ant-table-thead > tr > th:last-child {
+          border-radius: 0 !important;
+        }
+        .prr-att .ant-table-container, .prr-du .ant-table-container {
+          border-left: 1px solid var(--border-slate-200);
+          border-right: 1px solid var(--border-slate-200);
+        }
       `}</style>
     </div>
   );

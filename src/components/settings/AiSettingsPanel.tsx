@@ -532,7 +532,7 @@ export default function AiSettingsPanel({ canManage = true }: Props) {
                 </div>
               ) : (
                 <>
-                  <div data-tour="ai-settings-provider-credentials">
+                  <div data-tour="ai-settings-provider">
                     <div className="aip-step">
                       <span className="aip-step-num">02</span>
                       <span className="aip-step-title">Provider &amp; credentials</span>
@@ -557,7 +557,7 @@ export default function AiSettingsPanel({ canManage = true }: Props) {
                     </span>
                   </div>
 
-                  <div>
+                  <div data-tour="ai-settings-api-key">
                     <span className="aip-label">
                       API key
                       {hasSavedKey && (
@@ -581,7 +581,7 @@ export default function AiSettingsPanel({ canManage = true }: Props) {
                   </div>
 
                   {showBaseUrl && (
-                    <div>
+                    <div data-tour="ai-settings-base-url">
                       <span className="aip-label">Base URL</span>
                       <Input
                         value={baseUrl}
@@ -597,7 +597,7 @@ export default function AiSettingsPanel({ canManage = true }: Props) {
                     </div>
                   )}
 
-                  <div>
+                  <div data-tour="ai-settings-byo-model">
                     <div className="aip-step">
                       <span className="aip-step-num">03</span>
                       <span className="aip-step-title">Model</span>

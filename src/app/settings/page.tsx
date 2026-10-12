@@ -1151,8 +1151,8 @@ export default function SettingsPage() {
                       />
                     </Form.Item>
 
+                    <div data-tour="settings-company-logo">
                     <Form.Item
-                      data-tour="settings-company-logo"
                       label={
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
                           <Space size={8}>
@@ -1230,6 +1230,7 @@ export default function SettingsPage() {
                         </Button>
                       </Form.Item>
                     )}
+                    </div>
 
                     <Form.Item style={{ marginBottom: 0 }}>
                       <Button
@@ -1532,13 +1533,18 @@ export default function SettingsPage() {
                   </div>
                 </Space>
                 {companyDetails && !isCompanyEditing && canUpdateSettings && (
-                  <Button
-                    icon={<EditOutlined />}
-                    onClick={startEditingCompany}
-                    style={{ borderRadius: 8, height: 36, fontWeight: 600 }}
+                  <span 
+                    data-tour="settings-company-registered settings-company-address"
+                    style={{ scrollMarginTop: 150, display: 'inline-block' }}
                   >
-                    Edit
-                  </Button>
+                    <Button
+                      icon={<EditOutlined />}
+                      onClick={startEditingCompany}
+                      style={{ borderRadius: 8, height: 36, fontWeight: 600 }}
+                    >
+                      Edit
+                    </Button>
+                  </span>
                 )}
               </div>
 
@@ -1546,6 +1552,7 @@ export default function SettingsPage() {
                 {companyDetails && !isCompanyEditing ? (
                   /* ── Saved details, read-only ──────────────────────────── */
                   <>
+                    <div style={{ display: 'block', width: '100%', overflow: 'hidden', minHeight: 40, padding: 4 }}>
                     <Row gutter={[16, 0]}>
                       <Col xs={24} md={12} lg={8}>
                         <DetailField
@@ -1594,7 +1601,9 @@ export default function SettingsPage() {
                         />
                       </Col>
                     </Row>
+                    </div>
 
+                    <div>
                     <div style={{
                       display: 'flex',
                       alignItems: 'center',
@@ -1622,6 +1631,7 @@ export default function SettingsPage() {
                         </Col>
                       ))}
                     </Row>
+                    </div>
                   </>
                 ) : (
                 <Form
@@ -1631,6 +1641,7 @@ export default function SettingsPage() {
                   disabled={!canUpdateSettings}
                   requiredMark="optional"
                 >
+                  <div data-tour="settings-company-registered" style={{ display: 'block', width: '100%', overflow: 'hidden', minHeight: 40, padding: 4 }}>
                   <Row gutter={[16, 0]}>
                     <Col xs={24} md={12} lg={8}>
                       <Form.Item
@@ -1697,94 +1708,9 @@ export default function SettingsPage() {
                       </Form.Item>
                     </Col>
                   </Row>
-
-                  <div style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 10,
-                    margin: '4px 0 16px',
-                    paddingBottom: 10,
-                    borderBottom: `1px dashed ${token.colorBorderSecondary}`,
-                  }}>
-                    <EnvironmentOutlined style={{ color: '#2563EB', fontSize: 15 }} />
-                    <Text strong style={{ fontSize: 13, color: 'var(--text-primary)' }}>
-                      Registered Address
-                    </Text>
-                    <Text type="secondary" style={{ fontSize: 11, color: 'var(--text-secondary)' }}>
-                      The full postal address of your head office
-                    </Text>
                   </div>
 
-                  <Row gutter={[16, 0]}>
-                    {COMPANY_ADDRESS_FIELDS.map((field) => (
-                      <Col xs={24} md={12} lg={8} key={field.name}>
-                        <Form.Item
-                          name={field.name}
-                          label={<Text strong style={{ color: 'var(--text-primary)', fontSize: 13 }}>{field.label}</Text>}
-                          rules={field.rules}
-                          normalize={field.normalize}
-                        >
-                          <Input placeholder="e.g. Zithspace Technologies Pvt Ltd" />
-                        </Form.Item>
-                      </Col>
-                    ))}
-                      <Col xs={24} md={12} lg={8}>
-                        <Form.Item
-                          name="gstNumber"
-                          label={<Text strong style={{ color: 'var(--text-primary)', fontSize: 13 }}>GST Number</Text>}
-                          normalize={(v) => (v || '').toUpperCase().replace(/[^A-Z0-9]/g, '')}
-                          rules={[{
-                            pattern: /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/,
-                            message: 'Enter a valid 15-character GSTIN',
-                          }]}
-                        >
-                          <Input placeholder="e.g. 29ABCDE1234F1Z5" maxLength={15} prefix={<NumberOutlined style={{ color: 'var(--text-slate-400)' }} />} />
-                        </Form.Item>
-                      </Col>
-                      <Col xs={24} md={12} lg={8}>
-                        <Form.Item
-                          name="primaryEmail"
-                          label={<Text strong style={{ color: 'var(--text-primary)', fontSize: 13 }}>Primary Company Email</Text>}
-                          normalize={(v) => (v || '').replace(/[^a-zA-Z0-9@.]/g, '')}
-                          rules={[
-                            { required: true, message: 'Primary email is required' },
-                            { pattern: /^\S+$/, message: 'Spaces are not allowed in email' },
-                            { pattern: /^[a-zA-Z0-9@.]+$/, message: 'Email can only contain letters, numbers, @, and .' },
-                            { type: 'email', message: 'Enter a valid email address' },
-                          ]}
-                        >
-                          <Input placeholder="e.g. accounts@company.com" prefix={<MailOutlined style={{ color: 'var(--text-slate-400)' }} />} />
-                        </Form.Item>
-                      </Col>
-                      <Col xs={24} md={12} lg={8}>
-                        <Form.Item
-                          name="primaryPhone"
-                          label={<Text strong style={{ color: 'var(--text-primary)', fontSize: 13 }}>Primary Phone</Text>}
-                          rules={[
-                            { required: true, whitespace: true, message: 'Primary phone is required' },
-                            { pattern: /^[0-9]{1,10}$/, message: 'Phone number cannot exceed 10 digits' }
-                          ]}
-                          getValueFromEvent={(e) => e.target.value.replace(/\D/g, '').slice(0, 10)}
-                        >
-                          <Input placeholder="e.g. +91 98765 43210" prefix={<PhoneOutlined style={{ color: 'var(--text-slate-400)' }} />} />
-                        </Form.Item>
-                      </Col>
-                      <Col xs={24} md={12} lg={8}>
-                        <Form.Item
-                          name="website"
-                          label={<Text strong style={{ color: 'var(--text-primary)', fontSize: 13 }}>Website URL</Text>}
-                          // The server prefixes a missing scheme, so accept a bare
-                          // domain here and only reject obviously broken input.
-                          rules={[{
-                            pattern: /^(https?:\/\/)?[\w-]+(\.[\w-]+)+([/?#][^\s]*)?$/i,
-                            message: 'Enter a valid website URL',
-                          }]}
-                        >
-                          <Input placeholder="e.g. www.company.com" prefix={<LinkOutlined style={{ color: 'var(--text-slate-400)' }} />} />
-                        </Form.Item>
-                      </Col>
-                    </Row>
-
+                  <div data-tour="settings-company-address" style={{ display: 'block', width: '100%', overflow: 'hidden', minHeight: 40, padding: 4, scrollMarginTop: 150 }}>
                     <div style={{
                       display: 'flex',
                       alignItems: 'center',
@@ -1835,6 +1761,7 @@ export default function SettingsPage() {
                         </Button>
                       </div>
                     )}
+                    </div>
                   </Form>
                 )}
               </div>

@@ -81,6 +81,7 @@ export default function TicketSettings() {
               {NAV_SECTIONS.map(s => (
                 <button
                   key={s.key}
+                  data-tour={`tickets-setting-${s.key}`}
                   className={`pp-nav-item ${activeKey === s.key ? 'is-active' : ''}`}
                   onClick={() => handleNavClick(s.key)}
                 >

@@ -378,30 +378,6 @@ export default function PortalCrListPage() {
               onClick={() => setIsFilterRowOpen((v) => !v)}
             />
           </Space.Compact>
-
-          {/* View Toggle */}
-          <div
-            className="premium-view-toggle"
-            role="group"
-            aria-label="View mode"
-          >
-            <button
-              type="button"
-              data-active={viewMode === "table" ? "true" : "false"}
-              onClick={() => setViewMode("table")}
-              title="Table View"
-            >
-              <ListIcon size={13} />
-            </button>
-            <button
-              type="button"
-              data-active={viewMode === "card" ? "true" : "false"}
-              onClick={() => setViewMode("card")}
-              title="Card View"
-            >
-              <LayoutGrid size={13} />
-            </button>
-          </div>
         </div>
 
         <Space size={10} className="sc-header-right">
@@ -439,6 +415,30 @@ export default function PortalCrListPage() {
               }}
             />
           </Tooltip>
+
+          {/* View Toggle */}
+          <div
+            className="premium-view-toggle"
+            role="group"
+            aria-label="View mode"
+          >
+            <button
+              type="button"
+              data-active={viewMode === "table" ? "true" : "false"}
+              onClick={() => setViewMode("table")}
+              title="Table View"
+            >
+              <ListIcon size={13} />
+            </button>
+            <button
+              type="button"
+              data-active={viewMode === "card" ? "true" : "false"}
+              onClick={() => setViewMode("card")}
+              title="Card View"
+            >
+              <LayoutGrid size={13} />
+            </button>
+          </div>
         </Space>
       </div>
 

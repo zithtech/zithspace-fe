@@ -241,6 +241,24 @@ export default function PortalEnvironmentsListPage() {
               onClick={() => setIsFilterRowOpen((v) => !v)}
             />
           </Space.Compact>
+        </div>
+
+        <Space size={10} className="sc-header-right">
+          <Tooltip title="Refresh environments">
+            <Button
+              icon={<ReloadOutlined spin={refreshing} />}
+              onClick={() => load(true)}
+              disabled={loading}
+              style={{
+                width: 32,
+                height: 32,
+                borderRadius: 8,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            />
+          </Tooltip>
 
           {/* View Toggle */}
           <div
@@ -265,24 +283,6 @@ export default function PortalEnvironmentsListPage() {
               <LayoutGrid size={13} />
             </button>
           </div>
-        </div>
-
-        <Space size={10} className="sc-header-right">
-          <Tooltip title="Refresh environments">
-            <Button
-              icon={<ReloadOutlined spin={refreshing} />}
-              onClick={() => load(true)}
-              disabled={loading}
-              style={{
-                width: 32,
-                height: 32,
-                borderRadius: 8,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-              }}
-            />
-          </Tooltip>
         </Space>
       </div>
 

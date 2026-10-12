@@ -279,13 +279,6 @@ export default function PortalAgreementsPage() {
         {/* Spacer */}
         <div style={{ flex: 1 }} />
 
-        {/* View toggle */}
-        <div style={{ display: "inline-flex", border: `1px solid ${p.border}`, borderRadius: 8, overflow: "hidden" }}>
-          <ViewBtn mode="card" Icon={ListIcon} title="Card view" />
-          <div style={{ width: 1, background: p.border }} />
-          <ViewBtn mode="table" Icon={LayoutGrid} title="Table view" />
-        </div>
-
         {/* Refresh */}
         <Tooltip title="Refresh">
           <Button
@@ -295,6 +288,13 @@ export default function PortalAgreementsPage() {
             style={{ width: 32, height: 32, borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center", border: `1px solid ${p.border}` }}
           />
         </Tooltip>
+
+        {/* View toggle */}
+        <div style={{ display: "inline-flex", border: `1px solid ${p.border}`, borderRadius: 8, overflow: "hidden" }}>
+          <ViewBtn mode="card" Icon={ListIcon} title="Card view" />
+          <div style={{ width: 1, background: p.border }} />
+          <ViewBtn mode="table" Icon={LayoutGrid} title="Table view" />
+        </div>
       </div>
 
       {/* ── Filter pills ── */}

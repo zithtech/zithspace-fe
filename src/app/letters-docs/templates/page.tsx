@@ -182,14 +182,12 @@ export default function TemplateManagementPage() {
     }
   };
 
-  const handleDeleteTemplate = async () => {
-    if (!deleteTemplateId) return;
+  const handleDeleteTemplate = async (id: string) => {
     try {
       toast.loading('Deleting template...', { id: 'del' });
-      await LettersService.deleteTemplate(deleteTemplateId);
+      await LettersService.deleteTemplate(id);
       toast.success('Template deleted', { id: 'del' });
-      setTemplates(templates.filter((t) => t.id !== deleteTemplateId));
-      setDeleteTemplateId(null);
+      setTemplates(templates.filter((t) => t.id !== id));
     } catch (err: any) {
       toast.error(err.message || 'Failed to delete template', { id: 'del' });
     }
@@ -400,7 +398,21 @@ export default function TemplateManagementPage() {
               ...(perms.canUpdateLetterTemplate ? [{ key: 'edit', label: renderDropdownItem(<Edit size={16} />, 'Edit', 'Open in the builder', 'var(--border-slate-100)', 'var(--text-slate-600)'), onClick: (e: any) => { e.domEvent.stopPropagation(); router.push(`/letters-docs/templates/builder?id=${tpl.id}`); } }] : []),
               ...(perms.canCreateLetterTemplate ? [{ key: 'dup', label: renderDropdownItem(<Copy size={16} />, 'Duplicate', 'Clone this template', 'var(--bg-green-50)', 'var(--text-holiday)'), onClick: (e: any) => { e.domEvent.stopPropagation(); handleDuplicate(tpl); } }] : []),
               { type: 'divider' as const },
-              ...(perms.canDeleteLetterTemplate ? [{ key: 'del', label: renderDropdownItem(<Trash2 size={16} />, 'Delete', 'Move to trash', 'var(--bg-red-50)', 'var(--text-leave)', true), onClick: (e: any) => { e.domEvent.stopPropagation(); setDeleteTemplateId(tpl.id); } }] : []),
+              ...(perms.canDeleteLetterTemplate ? [{ key: 'del', label: (
+                <div onClick={(e) => e.stopPropagation()}>
+                  <ConfirmDialog
+                    tone="danger"
+                    title="Delete Document Template"
+                    description="Are you sure you want to delete this template? Any generated letters referencing this template will remain intact, but you will no longer be able to generate new documents from it."
+                    confirmText="Delete Template"
+                    onConfirm={() => handleDeleteTemplate(tpl.id)}
+                  >
+                    <div style={{ margin: '-4px -12px', padding: '4px 12px' }}>
+                      {renderDropdownItem(<Trash2 size={16} />, 'Delete', 'Move to trash', 'var(--bg-red-50)', 'var(--text-leave)', true)}
+                    </div>
+                  </ConfirmDialog>
+                </div>
+              ) }] : []),
             ]
           }}
         >
@@ -632,7 +644,21 @@ export default function TemplateManagementPage() {
                           ...(perms.canUpdateLetterTemplate ? [{ key: 'edit', label: renderDropdownItem(<Edit size={16} />, 'Edit', 'Open in the builder', 'var(--border-slate-100)', 'var(--text-slate-600)'), onClick: (e: any) => { e.domEvent.stopPropagation(); router.push(`/letters-docs/templates/builder?id=${tpl.id}`); } }] : []),
                           ...(perms.canCreateLetterTemplate ? [{ key: 'dup', label: renderDropdownItem(<Copy size={16} />, 'Duplicate', 'Clone this template', 'var(--bg-green-50)', 'var(--text-holiday)'), onClick: (e: any) => { e.domEvent.stopPropagation(); handleDuplicate(tpl); } }] : []),
                           { type: 'divider' as const },
-                          ...(perms.canDeleteLetterTemplate ? [{ key: 'del', label: renderDropdownItem(<Trash2 size={16} />, 'Delete', 'Move to trash', 'var(--bg-red-50)', 'var(--text-leave)', true), onClick: (e: any) => { e.domEvent.stopPropagation(); setDeleteTemplateId(tpl.id); } }] : []),
+                          ...(perms.canDeleteLetterTemplate ? [{ key: 'del', label: (
+                            <div onClick={(e) => e.stopPropagation()}>
+                              <ConfirmDialog
+                                tone="danger"
+                                title="Delete Document Template"
+                                description="Are you sure you want to delete this template? Any generated letters referencing this template will remain intact, but you will no longer be able to generate new documents from it."
+                                confirmText="Delete Template"
+                                onConfirm={() => handleDeleteTemplate(tpl.id)}
+                              >
+                                <div style={{ margin: '-4px -12px', padding: '4px 12px' }}>
+                                  {renderDropdownItem(<Trash2 size={16} />, 'Delete', 'Move to trash', 'var(--bg-red-50)', 'var(--text-leave)', true)}
+                                </div>
+                              </ConfirmDialog>
+                            </div>
+                          ) }] : []),
                         ]
                       }}
                       trigger={['click']}
@@ -891,41 +917,7 @@ export default function TemplateManagementPage() {
           router.push(`/letters-docs/templates/builder?id=${id}`);
         }}
       />
-      <Modal
-        open={!!deleteTemplateId}
-        title={
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <div style={{ width: '40px', height: '40px', background: 'var(--bg-red-50)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <AlertTriangle color="#ef4444" size={22} />
-            </div>
-            <div>
-              <span style={{ color: 'var(--text-slate-900)', fontSize: '18px', fontWeight: 600 }}>Delete Document Template</span>
-            </div>
-          </div>
-        }
-        onOk={handleDeleteTemplate}
-        onCancel={() => setDeleteTemplateId(null)}
-        okText="Delete Template"
-        cancelText="Cancel"
-        okButtonProps={{
-          danger: true,
-          style: { borderRadius: '6px', fontWeight: 600, padding: '0 20px', height: '38px', background: '#ef4444', borderColor: '#ef4444' }
-        }}
-        cancelButtonProps={{
-          style: { borderRadius: '6px', fontWeight: 600, padding: '0 20px', height: '38px', color: 'var(--text-slate-600)', borderColor: 'var(--border-slate-200)' }
-        }}
-        styles={{
-          content: { background: 'var(--bg-pure-white) !important', borderRadius: '12px', padding: '24px' },
-          header: { background: 'var(--bg-pure-white) !important', borderBottom: 'none', paddingBottom: '10px' },
-          footer: { background: 'var(--bg-pure-white) !important', borderTop: 'none', paddingTop: '16px', display: 'flex', justifyContent: 'flex-end', gap: '8px' },
-          body: { paddingTop: '2px', paddingBottom: '2px' }
-        }}
-        centered
-      >
-        <p style={{ margin: 0, color: 'var(--text-slate-600) !important', fontSize: '14px', lineHeight: '1.6', marginLeft: '48px' }}>
-          Are you sure you want to delete this template? Any generated letters referencing this template will remain intact, but you will no longer be able to generate new documents from it.
-        </p>
-      </Modal>
+
 
       {/* Settings Modal */}
       {isSettingsModalOpen && (

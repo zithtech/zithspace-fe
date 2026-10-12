@@ -606,7 +606,7 @@ function ApprovalsContent() {
             </div>
           </div>
 
-          <div className="dh-sidebar-scroll">
+          <div className="dh-sidebar-scroll" data-tour="approvals-queue">
             {canReadPmApproval && <span className="pp-nav-caption">Queue</span>}
             {canReadPmApproval && BUCKETS.map((b) => (
               <button
@@ -701,8 +701,9 @@ function ApprovalsContent() {
 
           <div className="dh-main-scroll" style={{ padding: 0 }}>
             {/* StatCards */}
-            <StatCards
-              title="Approvals Queue"
+            <div data-tour="approvals-stats">
+              <StatCards
+                title="Approvals Queue"
               statusText="QUEUE"
               statusColor="#3b82f6"
               style={{ margin: 0, borderRadius: 0 }}
@@ -719,6 +720,7 @@ function ApprovalsContent() {
                 { label: "All Submissions", value: tileValue("total"), icon: <Layers size={14} />, color: "#64748b" },
               ]}
             />
+            </div>
 
             {/* Unified FilterBar */}
             {isFilterOpen && (

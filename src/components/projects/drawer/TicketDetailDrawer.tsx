@@ -102,6 +102,7 @@ import AiCreateHubModal from "@/components/documenthub/AiCreateHubModal";
 import { Dropdown } from "antd";
 import type { MenuProps } from "antd";
 import { useRouter } from "next/navigation";
+import { useTour } from "@/context/TourContext";
 
 // Add relativeTime plugin
 import relativeTime from "dayjs/plugin/relativeTime";
@@ -124,6 +125,8 @@ export const TicketDetailDrawer: React.FC<TicketDetailDrawerProps> = ({
   ticketIds = [],
   onNavigate,
 }) => {
+  const { run, currentTourKey, stepIndex, advanceTour } = useTour();
+  const isActiveTourDrawer = open && run && currentTourKey === 'testiez-sprints';
   const [descriptionEditorOpen, setDescriptionEditorOpen] = useState(false);
   const [editorContent, setEditorContent] = useState('');
 
@@ -544,6 +547,7 @@ export const TicketDetailDrawer: React.FC<TicketDetailDrawerProps> = ({
   return (
     <>
       <Drawer
+        rootClassName="full-tickets-drawer-tour-target"
         title={
           <div style={{
             display: 'flex',
@@ -686,17 +690,24 @@ export const TicketDetailDrawer: React.FC<TicketDetailDrawerProps> = ({
 
 
             <Space size={8} wrap>
-              {isInBacklog && activeSprint && (canUpdateTicket || canManageTickets) && (
+              {( (isInBacklog && activeSprint) || (typeof document !== 'undefined' && document.body.classList.contains('tour-active')) ) && (canUpdateTicket || canManageTickets) && (
                 <ConfirmDialog
                   tone="primary"
-                  title={`Add to ${activeSprint.version || activeSprint.name || "Sprint"}`}
+                  title={`Add to ${activeSprint?.version || activeSprint?.name || "Sprint"}`}
                   description="Are you sure you want to add this ticket to the active sprint?"
                   confirmText="Add to Sprint"
-                  onConfirm={() => handleSprintAssignment("add")}
+                  onConfirm={() => {
+                    if (isActiveTourDrawer) advanceTour();
+                    handleSprintAssignment("add");
+                  }}
+                  onCancel={() => {
+                    if (isActiveTourDrawer) advanceTour();
+                  }}
                   placement="bottomRight"
+                  confirmButtonTourId={isActiveTourDrawer ? "tickets-drawer-add-sprint-confirm" : undefined}
                 >
                   <Button
-                    data-tour="tickets-drawer-add-sprint"
+                    {...(isActiveTourDrawer ? { 'data-tour': 'tickets-drawer-add-sprint' } : {})}
                     type="default"
                     size="middle"
                     icon={<PlusCircleOutlined style={{ color: "#52c41a" }} />}
@@ -725,7 +736,7 @@ export const TicketDetailDrawer: React.FC<TicketDetailDrawerProps> = ({
                   placement="bottomRight"
                 >
                   <Button
-                    data-tour="tickets-drawer-remove-sprint"
+                    {...(isActiveTourDrawer ? { 'data-tour': 'tickets-drawer-remove-sprint' } : {})}
                     danger
                     type="default"
                     size="middle"
@@ -856,7 +867,7 @@ export const TicketDetailDrawer: React.FC<TicketDetailDrawerProps> = ({
                 }}
               >
                 <Button
-                  data-tour="tickets-drawer-create-doc"
+                  {...(isActiveTourDrawer ? { 'data-tour': 'tickets-drawer-create-doc' } : {})}
                   size="middle"
                   icon={<FileTextOutlined />}
                   style={{
@@ -878,7 +889,7 @@ export const TicketDetailDrawer: React.FC<TicketDetailDrawerProps> = ({
 
               <Tooltip title="Copy Public Link">
                 <Button
-                  data-tour="tickets-drawer-share"
+                  {...(isActiveTourDrawer ? { 'data-tour': 'tickets-drawer-share' } : {})}
                   type="text"
                   icon={<ShareAltOutlined style={{ fontSize: 16, color: '#8c8c8c' }} />}
                   onClick={() => {
@@ -894,7 +905,7 @@ export const TicketDetailDrawer: React.FC<TicketDetailDrawerProps> = ({
               </Tooltip>
               <Divider type="vertical" style={{ margin: '0 4px', height: 20 }} />
               <Button
-                data-tour="tickets-drawer-close"
+                {...(isActiveTourDrawer ? { 'data-tour': 'tickets-drawer-close' } : {})}
                 type="text"
                 icon={<CloseOutlined style={{ fontSize: 16, color: '#8c8c8c' }} />}
                 onClick={onClose}
@@ -917,7 +928,7 @@ export const TicketDetailDrawer: React.FC<TicketDetailDrawerProps> = ({
         {!ticket ? (
           <div style={{ padding: 40, textAlign: "center", background: "var(--bg-pure-white)" }}><Text>Loading</Text></div>
         ) : (
-          <Row data-tour="tickets-drawer-details" style={{ height: '100%', backgroundColor: 'var(--bg-pure-white)' }}>
+          <Row style={{ height: '100%', backgroundColor: 'var(--bg-pure-white)' }}>
             {/* LEFT COLUMN: Main Content (Title, Description, Activity) */}
             <Col
               xs={24}

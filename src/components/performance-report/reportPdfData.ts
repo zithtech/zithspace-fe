@@ -230,7 +230,7 @@ export async function gatherReportData(opts: Opts): Promise<ReportModel> {
         label: STAGE_LABELS[key],
         score: scoreByKey[key],
         weight: w?.weight ?? 0,
-        enabled: w?.enabled ?? true,
+        enabled: w ? w.enabled : (opts.weights.length > 0 ? false : true),
       };
     }
   );

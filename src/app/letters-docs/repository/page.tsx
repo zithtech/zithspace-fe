@@ -194,13 +194,11 @@ export default function DocumentRepositoryPage() {
     }
   };
 
-  const handleDeleteDocument = async () => {
-    if (!deleteDocId) return;
+  const handleDeleteDocument = async (id: string) => {
     try {
       toast.loading('Deleting document record...', { id: 'del' });
-      await LettersService.deleteGeneratedLetter(deleteDocId);
+      await LettersService.deleteGeneratedLetter(id);
       toast.success('Generated document deleted', { id: 'del' });
-      setDeleteDocId(null);
       fetchData();
     } catch (err: any) {
       toast.error(err.message || 'Failed to delete document', { id: 'del' });
@@ -311,7 +309,21 @@ export default function DocumentRepositoryPage() {
               { key: 'pdf', label: renderDropdownItem(<Download size={16} />, 'Download PDF', 'Export as PDF', 'var(--bg-green-50)', 'var(--text-holiday)'), onClick: (e) => { e.domEvent.stopPropagation(); handleDownload(doc.id, 'pdf', `${doc.documentNumber}.pdf`); } },
               { key: 'docx', label: renderDropdownItem(<Download size={16} />, 'Download DOCX', 'Export as Word Document', 'var(--bg-green-50)', 'var(--text-holiday)'), onClick: (e) => { e.domEvent.stopPropagation(); handleDownload(doc.id, 'docx', `${doc.documentNumber}.docx`); } },
               { type: 'divider' as const },
-              ...(perms.canDeleteLetter ? [{ key: 'del', label: renderDropdownItem(<Trash2 size={16} />, 'Delete', 'Move to trash', 'var(--bg-red-50)', 'var(--text-leave)', true), onClick: (e: any) => { e.domEvent.stopPropagation(); setDeleteDocId(doc.id); } }] : []),
+              ...(perms.canDeleteLetter ? [{ key: 'del', label: (
+                <div onClick={(e) => e.stopPropagation()}>
+                  <ConfirmDialog
+                    tone="danger"
+                    title="Delete Document"
+                    description="Are you sure you want to delete this document from the repository? This action cannot be undone."
+                    confirmText="Delete Document"
+                    onConfirm={() => handleDeleteDocument(doc.id)}
+                  >
+                    <div style={{ margin: '-4px -12px', padding: '4px 12px' }}>
+                      {renderDropdownItem(<Trash2 size={16} />, 'Delete', 'Move to trash', 'var(--bg-red-50)', 'var(--text-leave)', true)}
+                    </div>
+                  </ConfirmDialog>
+                </div>
+              ) }] : []),
             ]
           }}
         >
@@ -521,7 +533,21 @@ export default function DocumentRepositoryPage() {
                           { key: 'pdf', label: renderDropdownItem(<Download size={16} />, 'Download PDF', 'Export as PDF', 'var(--bg-green-50)', 'var(--text-holiday)'), onClick: (e) => { e.domEvent.stopPropagation(); LettersService.downloadLetter(doc.id, 'pdf', `${doc.documentNumber}.pdf`); } },
                           { key: 'docx', label: renderDropdownItem(<Download size={16} />, 'Download DOCX', 'Export as Word Document', 'var(--bg-green-50)', 'var(--text-holiday)'), onClick: (e) => { e.domEvent.stopPropagation(); LettersService.downloadLetter(doc.id, 'docx', `${doc.documentNumber}.docx`); } },
                           { type: 'divider' as const },
-                          ...(perms.canDeleteLetter ? [{ key: 'del', label: renderDropdownItem(<Trash2 size={16} />, 'Delete', 'Move to trash', 'var(--bg-red-50)', 'var(--text-leave)', true), onClick: (e: any) => { e.domEvent.stopPropagation(); setDeleteDocId(doc.id); } }] : []),
+                          ...(perms.canDeleteLetter ? [{ key: 'del', label: (
+                            <div onClick={(e) => e.stopPropagation()}>
+                              <ConfirmDialog
+                                tone="danger"
+                                title="Delete Document"
+                                description="Are you sure you want to delete this document from the repository? This action cannot be undone."
+                                confirmText="Delete Document"
+                                onConfirm={() => handleDeleteDocument(doc.id)}
+                              >
+                                <div style={{ margin: '-4px -12px', padding: '4px 12px' }}>
+                                  {renderDropdownItem(<Trash2 size={16} />, 'Delete', 'Move to trash', 'var(--bg-red-50)', 'var(--text-leave)', true)}
+                                </div>
+                              </ConfirmDialog>
+                            </div>
+                          ) }] : []),
                         ]
                       }}
                       trigger={['click']}
@@ -577,43 +603,7 @@ export default function DocumentRepositoryPage() {
         </div>
       )}
 
-      {/* Delete Confirmation Modal */}
-      <Modal
-        title={
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <div style={{ width: '40px', height: '40px', background: 'var(--bg-red-50)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <AlertTriangle color="#ef4444" size={22} />
-            </div>
-            <div>
-              <span style={{ color: 'var(--text-slate-900)', fontSize: '18px', fontWeight: 600 }}>Delete Document</span>
-            </div>
-          </div>
-        }
-        open={!!deleteDocId}
-        onOk={handleDeleteDocument}
-        onCancel={() => setDeleteDocId(null)}
-        okText="Delete Document"
-        cancelText="Cancel"
-        okButtonProps={{
-          danger: true,
-          style: { borderRadius: '6px', fontWeight: 600, padding: '0 20px', height: '38px', background: '#ef4444', borderColor: '#ef4444' }
-        }}
-        cancelButtonProps={{
-          style: { borderRadius: '6px', fontWeight: 600, padding: '0 20px', height: '38px', color: 'var(--text-slate-600)', borderColor: 'var(--border-slate-200)' }
-        }}
-        styles={{
-          content: { background: 'var(--bg-pure-white) !important', borderRadius: '12px', padding: '24px' },
-          header: { background: 'var(--bg-pure-white) !important', borderBottom: 'none', paddingBottom: '10px' },
-          footer: { background: 'var(--bg-pure-white) !important', borderTop: 'none', paddingTop: '16px', display: 'flex', justifyContent: 'flex-end', gap: '8px' },
-          body: { paddingTop: '2px', paddingBottom: '2px' }
-        }}
-        centered
 
-      >
-        <p style={{ margin: 0, color: 'var(--text-slate-600) !important', fontSize: '14px', lineHeight: '1.6', marginLeft: '48px' }}>
-          Are you sure you want to delete this document from the repository? This action cannot be undone.
-        </p>
-      </Modal>
 
       {/* Document Preview Drawer */}
       <Drawer

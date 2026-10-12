@@ -111,6 +111,15 @@ export default function HivebugSidebar({
   const updateSheet = useUpdateBugSheet();
 
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
+  const hasInitializedExpansion = React.useRef(false);
+
+  React.useEffect(() => {
+    if (folders && folders.length > 0 && !hasInitializedExpansion.current) {
+      setExpanded({ [folders[0].id]: true });
+      hasInitializedExpansion.current = true;
+    }
+  }, [folders]);
+
   const [workspaceExpanded, setWorkspaceExpanded] = useState(true);
   const toggle = (id: string) => setExpanded((p) => ({ ...p, [id]: !p[id] }));
 

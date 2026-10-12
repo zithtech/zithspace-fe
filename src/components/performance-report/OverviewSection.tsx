@@ -298,16 +298,18 @@ export default function OverviewSection({
         <span className="ov-section-rule" />
       </div>
       <div className="ov-grid">
-        {ORDER.map((key) => {
+        {ORDER.filter((key) => {
+          const w = weightOf(key);
+          return w ? w.enabled : true; // Only show if enabled (default to true if settings haven't loaded)
+        }).map((key) => {
           const meta = META[key];
           const s = scores[key];
           const w = weightOf(key);
           const b = performanceBand(s);
-          const disabled = !w?.enabled;
           return (
             <div
               key={key}
-              className={`ov-card ${disabled ? 'is-off' : ''}`}
+              className="ov-card"
               style={{ ['--accent' as any]: meta.color }}
             >
               <div className="ov-card-top">
@@ -321,7 +323,7 @@ export default function OverviewSection({
                 </span>
                 <span className="ov-card-score-max">/ 100</span>
                 <span className="ov-card-band" style={{ color: b.color, background: `${b.color}14` }}>
-                  {disabled ? 'Excluded' : b.label}
+                  {b.label}
                 </span>
               </div>
               <div className="ov-bar">

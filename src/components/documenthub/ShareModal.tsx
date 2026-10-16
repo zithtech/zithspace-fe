@@ -25,6 +25,7 @@ interface ShareModalProps {
     currentVisibility?: string;
     currentShareToken?: string | null;
     currentSharedWith?: string[];
+    onSuccess?: () => void;
 }
 
 type VisibilityOption = {
@@ -67,6 +68,7 @@ const ShareModal: React.FC<ShareModalProps> = ({
     currentVisibility = 'private',
     currentShareToken = null,
     currentSharedWith = [],
+    onSuccess,
 }) => {
     const [visibility, setVisibility] = useState(currentVisibility);
     const [shareToken, setShareToken] = useState<string | null>(currentShareToken);
@@ -123,6 +125,7 @@ const ShareModal: React.FC<ShareModalProps> = ({
             setVisibility(newVisibility);
             setShareToken(result.shareToken || null);
             messageApi.success('Sharing settings updated');
+            onSuccess?.();
         } catch (error) {
             console.error(error);
             messageApi.error('Failed to update sharing settings');
@@ -148,6 +151,7 @@ const ShareModal: React.FC<ShareModalProps> = ({
             setVisibility('private');
             setShareToken(null);
             messageApi.success('Sharing access revoked');
+            onSuccess?.();
         } catch (error) {
             console.error(error);
             messageApi.error('Failed to revoke sharing');

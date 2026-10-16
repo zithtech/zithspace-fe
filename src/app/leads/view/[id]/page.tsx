@@ -18,6 +18,7 @@ import {
   Tag,
   Tooltip,
   Typography,
+  Popconfirm,
   Row,
   Col,
   Select,
@@ -25,6 +26,7 @@ import {
 } from "antd";
 import {
   ArrowLeft,
+  ArrowRight,
   Layers,
   FileText,
   ShieldCheck,
@@ -62,10 +64,17 @@ import {
   FolderPlus,
   FileEdit,
   Send,
+  MessageSquare,
   Building2,
   Linkedin,
   MapPin,
   Users,
+  Plus,
+  Check,
+  Lock,
+  Trash2,
+  Eye,
+  Copy,
 } from "lucide-react";
 import { useParams, useRouter } from "next/navigation";
 import { useLeads } from "@/hooks/useLeads";
@@ -158,6 +167,155 @@ export default function LeadProfilePage() {
     } finally {
       setMailsLoading(false);
     }
+  };
+
+  // Notes modal state & multi-note support
+  const [noteModalOpen, setNoteModalOpen] = useState(false);
+  const [noteContent, setNoteContent] = useState("");
+  const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
+  const [viewingNote, setViewingNote] = useState<any | null>(null);
+  const [savingNote, setSavingNote] = useState(false);
+  const [noteModalTab, setNoteModalTab] = useState<"write" | "preview">("write");
+
+  const handleOpenViewNoteModal = (note: any) => {
+    setViewingNote(note);
+  };
+
+  const handleOpenAddNoteModal = () => {
+    setEditingNoteId(null);
+    setNoteContent("");
+    setNoteModalTab("write");
+    setNoteModalOpen(true);
+  };
+
+  const handleOpenNoteModal = handleOpenAddNoteModal;
+
+  const handleOpenEditNoteModal = (note: { id: string; content: string }) => {
+    setEditingNoteId(note.id);
+    setNoteContent(note.content);
+    setNoteModalTab("write");
+    setNoteModalOpen(true);
+  };
+
+  const handleSaveNote = async () => {
+    if (!lead?.id) return;
+    if (!noteContent.trim()) {
+      messageStatic.warning("Please enter note content");
+      return;
+    }
+    setSavingNote(true);
+    try {
+      const fd = (lead.form_data as any) || {};
+      const existingNotes: any[] = Array.isArray(fd.notes)
+        ? [...fd.notes]
+        : (fd.internalNotes || lead.internal_notes)
+          ? [{
+              id: "legacy-1",
+              content: fd.internalNotes || lead.internal_notes,
+              createdAt: lead.created_at || new Date().toISOString(),
+            }]
+          : [];
+
+      let updatedNotes: any[];
+      if (editingNoteId) {
+        // Edit existing note
+        updatedNotes = existingNotes.map((n) =>
+          n.id === editingNoteId
+            ? { ...n, content: noteContent.trim(), updatedAt: new Date().toISOString() }
+            : n
+        );
+      } else {
+        // Add new note (prepend so newest is first)
+        const newNote = {
+          id: `note-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+          content: noteContent.trim(),
+          createdAt: new Date().toISOString(),
+        };
+        updatedNotes = [newNote, ...existingNotes];
+      }
+
+      const summaryNotes = updatedNotes.map((n) => n.content).join("\n\n---\n\n");
+
+      const updated = await updateLead(lead.id, {
+        internalNotes: summaryNotes,
+        internal_notes: summaryNotes,
+        formData: {
+          ...fd,
+          notes: updatedNotes,
+          internalNotes: summaryNotes,
+        },
+      });
+
+      if (updated) {
+        messageStatic.success(editingNoteId ? "Note updated successfully" : "Note added successfully");
+      }
+      setNoteModalOpen(false);
+      setEditingNoteId(null);
+      setNoteContent("");
+      fetchLeadById(lead.id);
+    } catch (err: any) {
+      messageStatic.error(err.message || "Failed to save note");
+    } finally {
+      setSavingNote(false);
+    }
+  };
+
+  const handleDeleteNote = async (noteId: string) => {
+    if (!lead?.id) return;
+    try {
+      const fd = (lead.form_data as any) || {};
+      const existingNotes: any[] = Array.isArray(fd.notes)
+        ? [...fd.notes]
+        : (fd.internalNotes || lead.internal_notes)
+          ? [{
+              id: "legacy-1",
+              content: fd.internalNotes || lead.internal_notes,
+              createdAt: lead.created_at || new Date().toISOString(),
+            }]
+          : [];
+
+      const updatedNotes = existingNotes.filter((n) => n.id !== noteId);
+      const summaryNotes = updatedNotes.map((n) => n.content).join("\n\n---\n\n");
+
+      const updated = await updateLead(lead.id, {
+        internalNotes: summaryNotes,
+        internal_notes: summaryNotes,
+        formData: {
+          ...fd,
+          notes: updatedNotes,
+          internalNotes: summaryNotes,
+        },
+      });
+
+      if (updated) {
+        messageStatic.success("Note deleted successfully");
+      }
+      fetchLeadById(lead.id);
+    } catch (err: any) {
+      messageStatic.error(err.message || "Failed to delete note");
+    }
+  };
+
+  const handleAppendTimestamp = () => {
+    const stamp = `[${dayjs().format("MMM D, YYYY · h:mm A")}] - `;
+    setNoteContent((prev) => {
+      const prefix = prev && !prev.endsWith("\n") ? "\n\n" : (prev ? "\n" : "");
+      return `${prev || ""}${prefix}${stamp}`;
+    });
+  };
+
+  const handleInsertTag = (tag: string) => {
+    setNoteContent((prev) => {
+      const prefix = prev && !prev.endsWith("\n") ? "\n" : "";
+      return `${prev || ""}${prefix}${tag} `;
+    });
+  };
+
+  const handleInsertFormat = (prefix: string, suffix: string = "") => {
+    setNoteContent((prev) => {
+      const newline = prev && !prev.endsWith("\n") ? "\n" : "";
+      return `${prev || ""}${newline}${prefix}${suffix}`;
+    });
   };
 
   const openTimeline = async () => {
@@ -377,7 +535,29 @@ export default function LeadProfilePage() {
   const isIntake = lead.lead_source_kind === "intake";
   const fd: any = (lead.form_data && typeof lead.form_data === "object") ? lead.form_data : {};
   const decisionMakers: any[] = Array.isArray(fd.decisionMakers) ? fd.decisionMakers : [];
+  const displayContacts: any[] = decisionMakers.length > 0
+    ? decisionMakers
+    : (lead.contact_name || fd.contactName || lead.client_mail || lead.client_phone)
+      ? [{
+          name: lead.contact_name || fd.contactName || "Key Contact",
+          designation: fd.contactRole || "Primary Contact",
+          email: lead.client_mail,
+          phone: lead.client_phone,
+          linkedin: fd.linkedin,
+          notes: fd.contactNotes || "",
+          isPrimary: true
+        }]
+      : [];
   const intakeCompanyName = lead.company || lead.client_name || "Unnamed company";
+  const currentNotesList: any[] = Array.isArray(fd.notes)
+    ? fd.notes
+    : (fd.internalNotes || lead.internal_notes)
+      ? [{
+          id: "legacy-1",
+          content: fd.internalNotes || lead.internal_notes,
+          createdAt: lead.updated_at || lead.created_at || new Date().toISOString(),
+        }]
+      : [];
 
   // Shared meta card — status, ownership, proposal & mail signals. Used in
   // both the platform and intake right rails.
@@ -406,8 +586,17 @@ export default function LeadProfilePage() {
           <span className="lv-fact-val">{lead.updated_at ? dayjs(lead.updated_at).fromNow() : "—"}</span>
         </div>
         <div className="lv-fact">
-          <span className="lv-fact-key"><FileText size={13} /> Proposal</span>
-          <span className={`lv-fact-badge ${lead.proposal_id ? "ok" : "off"}`}>{lead.proposal_id ? "Created" : "None"}</span>
+          <span className="lv-fact-key"><FileText size={13} /> Agreement</span>
+          <span
+            className={`lv-fact-badge ${lead.agreement_id || lead.proposal_id ? "ok" : "off"}`}
+            style={{ cursor: (lead.agreement_id || lead.proposal_id) ? "pointer" : undefined }}
+            onClick={() => {
+              if (lead.agreement_id) router.push(`/project-agreements/agreements?open=${lead.agreement_id}`);
+              else if (lead.proposal_id) router.push(`/proposals/builder?id=${lead.proposal_id}`);
+            }}
+          >
+            {lead.agreement_id ? "View Agreement" : lead.proposal_id ? "View Proposal" : "None"}
+          </span>
         </div>
         <div className="lv-fact">
           <span className="lv-fact-key"><Mail size={13} /> Last email</span>
@@ -548,14 +737,14 @@ export default function LeadProfilePage() {
                   Initialize Project
                 </Button>
               )}
-              <Button
+              {/* <Button
                 icon={<History size={14} />}
                 className="lv-secondary-btn"
                 onClick={openTimeline}
               >
                 View Timeline
-              </Button>
-              {canReadActivityLog && (
+              </Button> */}
+              {/* {canReadActivityLog && (
                 <Button
                   icon={<History size={14} />}
                   className="lv-secondary-btn"
@@ -563,7 +752,7 @@ export default function LeadProfilePage() {
                 >
                   Transaction History
                 </Button>
-              )}
+              )} */}
             </div>
           </div>
 
@@ -572,7 +761,7 @@ export default function LeadProfilePage() {
             title={
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <History size={16} style={{ color: '#3b82f6' }} />
-                <span>Lead Activity Timeline</span>
+                <span>Activity history</span>
               </div>
             }
             open={timelineOpen}
@@ -626,13 +815,13 @@ export default function LeadProfilePage() {
                             {item.action}
                           </Tag>
                         </div>
-                        <div style={{ fontSize: 12, color: '#64748b', display: 'flex', alignItems: 'center', gap: 6 }}>
-                          <span>by <strong style={{ color: '#475569' }}>{userName}</strong></span>
+                        <div className="lv-tl-author" style={{ fontSize: 12, display: 'flex', alignItems: 'center', gap: 6 }}>
+                          <span>by <strong className="lv-tl-user">{userName}</strong></span>
                           <span>·</span>
                           <span>{dayjs(item.createdAt).format('DD MMM YYYY, h:mm A')}</span>
                         </div>
                         {item.metadata && (
-                          <div style={{ marginTop: 6, fontSize: 11, color: '#94a3b8', background: 'rgba(0,0,0,0.03)', borderRadius: 6, padding: '4px 8px', border: '1px solid rgba(0,0,0,0.05)' }}>
+                          <div className="lv-tl-metadata" style={{ marginTop: 6, fontSize: 11, borderRadius: 6, padding: '4px 8px' }}>
                             {item.action === 'MAIL_SENT' && `To: ${(item.metadata.to || []).join(', ')} · Subject: ${item.metadata.subject || ''}`}
                             {item.action === 'CLIENT_CREATED' && `Client: ${item.metadata.clientName || item.metadata.clientId}`}
                             {item.action === 'PROJECT_CREATED' && `Project: ${item.metadata.projectName || item.metadata.projectId}`}
@@ -648,212 +837,601 @@ export default function LeadProfilePage() {
             )}
           </Drawer>
 
-          <div className="lv-body">
+          <div className={isIntake ? "lv-body lv-body-intake" : "lv-body"}>
             {isIntake ? (
-              /* ==================== INTAKE detail body ==================== */
-              <>
-                <div className="lv-grid">
-                  {/* LEFT — Company · Contacts · Notes */}
-                  <main className="lv-main">
-                    {/* 1. Company info */}
-                    <section className="lv-section lv-cinfo">
-                      <div className="lv-cinfo-head">
-                        <div className="lv-avatar lv-avatar-sq lv-avatar-lg">{getInitials(intakeCompanyName)}</div>
-                        <div style={{ minWidth: 0, flex: 1 }}>
-                          <div className="lv-cinfo-titlerow">
-                            <h2 className="lv-cinfo-name">{intakeCompanyName}</h2>
-                            {fd.companyType && <span className="lv-cinfo-badge"><Briefcase size={11} />{fd.companyType}</span>}
+              /* ==================== INTAKE detail body (3-column layout with vertical & horizontal dividers) ==================== */
+              <div className="lv-intake-3col-layout">
+                {/* ==================== 1ST COLUMN: COMPANY DETAILS FULL ==================== */}
+                <div className="lv-intake-col lv-intake-col-1">
+                  <section className="lv-intake-card lv-cinfo">
+                    <div className="lv-card-head">
+                      <div className="lv-card-head-left">
+                        <div className="lv-card-icon-circle" style={{ background: '#eef2ff', color: '#4f46e5' }}>
+                          <Building2 size={16} />
+                        </div>
+                        <div style={{ minWidth: 0 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                            <h2 className="lv-card-head-title">{intakeCompanyName}</h2>
+                            {fd.companyType && (
+                              <span className="lv-company-type-tag">
+                                {fd.companyType}
+                              </span>
+                            )}
                           </div>
-                          <div className="lv-cinfo-sub">
-                            <span className="lv-cinfo-kind"><Building2 size={11} /> Lead Intake</span>
-                            <span className="lv-dot" />
-                            <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}>
-                              <Clock size={11} /> Added {lead.created_at ? dayjs(lead.created_at).fromNow() : (lead.posted_on ? dayjs(lead.posted_on).fromNow() : "recently")}
-                            </span>
+                          <div className="lv-card-head-sub">
+                            Organization Profile · Added {lead.created_at ? dayjs(lead.created_at).fromNow() : (lead.posted_on ? dayjs(lead.posted_on).fromNow() : "recently")}
                           </div>
                         </div>
                       </div>
+                      {fd.website ? (
+                        <a className="lv-card-head-action" href={/^https?:\/\//.test(fd.website) ? fd.website : `https://${fd.website}`} target="_blank" rel="noreferrer">
+                          Website →
+                        </a>
+                      ) : (
+                        <span className="lv-card-head-action lv-card-head-action-muted" style={{ cursor: 'default' }}>
+                          Profile →
+                        </span>
+                      )}
+                    </div>
 
-                      <div className="lv-cinfo-grid">
-                        <div className="lv-cinfo-item">
-                          <span className="lv-cinfo-key"><Mail size={12} /> Email</span>
-                          {lead.client_mail ? <a className="lv-cinfo-val lv-cinfo-link" href={`mailto:${lead.client_mail}`} title={lead.client_mail}>{lead.client_mail}</a> : <span className="lv-cinfo-val">—</span>}
-                        </div>
-                        <div className="lv-cinfo-item">
-                          <span className="lv-cinfo-key"><Phone size={12} /> Phone</span>
-                          <span className="lv-cinfo-val">{lead.client_phone || "—"}</span>
-                        </div>
-                        <div className="lv-cinfo-item">
-                          <span className="lv-cinfo-key"><Globe size={12} /> Website</span>
-                          {fd.website ? <a className="lv-cinfo-val lv-cinfo-link" href={/^https?:\/\//.test(fd.website) ? fd.website : `https://${fd.website}`} target="_blank" rel="noreferrer" title={fd.website}>{fd.website}</a> : <span className="lv-cinfo-val">—</span>}
-                        </div>
-                        <div className="lv-cinfo-item">
-                          <span className="lv-cinfo-key"><Linkedin size={12} /> LinkedIn</span>
-                          {fd.linkedin ? <a className="lv-cinfo-val lv-cinfo-link" href={/^https?:\/\//.test(fd.linkedin) ? fd.linkedin : `https://${fd.linkedin}`} target="_blank" rel="noreferrer" title={fd.linkedin}>{fd.linkedin}</a> : <span className="lv-cinfo-val">—</span>}
-                        </div>
-                        <div className="lv-cinfo-item">
-                          <span className="lv-cinfo-key"><MapPin size={12} /> Location</span>
-                          <span className="lv-cinfo-val">{fd.location || lead.client_location || "—"}</span>
-                        </div>
-                        <div className="lv-cinfo-item">
-                          <span className="lv-cinfo-key"><Users size={12} /> Team size</span>
-                          <span className="lv-cinfo-val">{fd.teamSize || lead.company_size || "—"}</span>
+                    {(lead.contact_name || fd.contactName) && (
+                      <div className="lv-card-highlight-banner">
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
+                          <div className="lv-card-icon-circle-sm" style={{ background: '#dbeafe', color: '#1d4ed8' }}>
+                            <UserCheck size={14} />
+                          </div>
+                          <div>
+                            <div className="lv-highlight-label">Key Contact Person</div>
+                            <div className="lv-highlight-val">{lead.contact_name || fd.contactName}</div>
+                          </div>
                         </div>
                       </div>
+                    )}
 
-                      <div className="lv-cinfo-details">
-                        <span className="lv-meta-label">Company details</span>
-                        {fd.coreBusiness && (
-                          <div className="lv-cinfo-core"><Briefcase size={12} /> {fd.coreBusiness}</div>
-                        )}
-                        <div className="lv-prose" style={{ marginTop: fd.coreBusiness ? 10 : 6 }}>
+                    {/* Metadata 6-tiles grid */}
+                    <div className="lv-cinfo-grid-tiles">
+                      <div className="lv-info-tile">
+                        <span className="lv-info-tile-label"><Mail size={11} /> Email</span>
+                        {lead.client_mail ? (
+                          <a className="lv-info-tile-val lv-info-tile-link" href={`mailto:${lead.client_mail}`} title={lead.client_mail}>
+                            {lead.client_mail}
+                          </a>
+                        ) : <span className="lv-info-tile-val lv-tile-val-empty">—</span>}
+                      </div>
+
+                      <div className="lv-info-tile">
+                        <span className="lv-info-tile-label"><Phone size={11} /> Phone</span>
+                        {lead.client_phone ? (
+                          <a className="lv-info-tile-val lv-info-tile-link" href={`tel:${lead.client_phone}`} title={lead.client_phone}>
+                            {lead.client_phone}
+                          </a>
+                        ) : <span className="lv-info-tile-val lv-tile-val-empty">—</span>}
+                      </div>
+
+                      <div className="lv-info-tile">
+                        <span className="lv-info-tile-label"><Globe size={11} /> Website</span>
+                        {fd.website ? (
+                          <a className="lv-info-tile-val lv-info-tile-link" href={/^https?:\/\//.test(fd.website) ? fd.website : `https://${fd.website}`} target="_blank" rel="noreferrer" title={fd.website}>
+                            {fd.website.replace(/^https?:\/\//, '')}
+                          </a>
+                        ) : <span className="lv-info-tile-val lv-tile-val-empty">—</span>}
+                      </div>
+
+                      <div className="lv-info-tile">
+                        <span className="lv-info-tile-label"><Linkedin size={11} /> LinkedIn</span>
+                        {fd.linkedin ? (
+                          <a className="lv-info-tile-val lv-info-tile-link" href={/^https?:\/\//.test(fd.linkedin) ? fd.linkedin : `https://${fd.linkedin}`} target="_blank" rel="noreferrer" title={fd.linkedin}>
+                            Company Page
+                          </a>
+                        ) : <span className="lv-info-tile-val lv-tile-val-empty">—</span>}
+                      </div>
+
+                      <div className="lv-info-tile">
+                        <span className="lv-info-tile-label"><MapPin size={11} /> Location</span>
+                        <span className="lv-info-tile-val" title={fd.location || lead.client_location || "Not specified"}>
+                          {fd.location || lead.client_location || "—"}
+                        </span>
+                      </div>
+
+                      <div className="lv-info-tile">
+                        <span className="lv-info-tile-label"><Users size={11} /> Team Size</span>
+                        <span className="lv-info-tile-val" title={fd.teamSize || lead.company_size || "Not specified"}>
+                          {fd.teamSize || lead.company_size || "—"}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="lv-cinfo-details" style={{ marginTop: 12 }}>
+                      {fd.coreBusiness && (
+                        <div style={{ marginBottom: 8 }}>
+                          <span className="lv-core-tag"><Sparkles size={11} /> {fd.coreBusiness}</span>
+                        </div>
+                      )}
+                      <div className="lv-about-box">
+                        <div className="lv-about-box-head">
+                          <Info size={12} className="lv-about-head-ic" style={{ color: '#4f46e5' }} /> About Organization
+                        </div>
+                        <div className="lv-prose lv-about-prose" style={{ lineHeight: 1.6, fontSize: 12.5, whiteSpace: 'pre-wrap' }}>
                           {fd.companyDescription || lead.summary || "No company description provided."}
                         </div>
-                        {fd.reviews && (
-                          <div className="lv-cinfo-reviews">
-                            <span className="lv-meta-label" style={{ display: "flex", alignItems: "center", gap: 6 }}><Star size={12} /> Reviews & research</span>
-                            <div className="lv-prose" style={{ marginTop: 6 }}>{fd.reviews}</div>
-                          </div>
-                        )}
                       </div>
-                    </section>
-
-                    {/* 2. Contacts (decision makers) */}
-                    <section className="lv-section">
-                      <header className="lv-section-head">
-                        <div className="lv-section-icon" style={{ ["--lv-section-accent" as any]: "#10b981" }}><Users size={14} /></div>
-                        <h3 className="lv-section-title">Contacts</h3>
-                        {decisionMakers.length > 0 && <span className="lv-section-count">{decisionMakers.length}</span>}
-                      </header>
-                      <div className="lv-section-body">
-                        {decisionMakers.length > 0 ? (
-                          <div className="lv-dm-list">
-                            {decisionMakers.map((c, i) => (
-                              <div key={i} className="lv-dm-card">
-                                <div className="lv-dm-card-head">
-                                  <div className="lv-dm-avatar">{getInitials(c.name)}</div>
-                                  <div style={{ minWidth: 0 }}>
-                                    <div className="lv-dm-name">{c.name || "Unnamed contact"}</div>
-                                    {c.designation && <div className="lv-dm-role-sub">{c.designation}</div>}
-                                  </div>
-                                </div>
-                                <div className="lv-dm-fields">
-                                  <div className="lv-dm-field">
-                                    <span className="lv-dm-k">Designation</span>
-                                    <span className="lv-dm-v">{c.designation || "—"}</span>
-                                  </div>
-                                  <div className="lv-dm-field">
-                                    <span className="lv-dm-k">Phone</span>
-                                    {c.phone ? <a className="lv-dm-v lv-dm-vlink" href={`tel:${c.phone}`}>{c.phone}</a> : <span className="lv-dm-v">—</span>}
-                                  </div>
-                                  <div className="lv-dm-field">
-                                    <span className="lv-dm-k">Mail</span>
-                                    {c.email ? <a className="lv-dm-v lv-dm-vlink" href={`mailto:${c.email}`} title={c.email}>{c.email}</a> : <span className="lv-dm-v">—</span>}
-                                  </div>
-                                  <div className="lv-dm-field">
-                                    <span className="lv-dm-k">LinkedIn URL</span>
-                                    {c.linkedin ? <a className="lv-dm-v lv-dm-vlink" href={/^https?:\/\//.test(c.linkedin) ? c.linkedin : `https://${c.linkedin}`} target="_blank" rel="noreferrer" title={c.linkedin}>{c.linkedin}</a> : <span className="lv-dm-v">—</span>}
-                                  </div>
-                                  {c.notes && (
-                                    <div className="lv-dm-field">
-                                      <span className="lv-dm-k">Notes</span>
-                                      <span className="lv-dm-v" title={c.notes}>{c.notes}</span>
-                                    </div>
-                                  )}
-                                </div>
-                              </div>
-                            ))}
+                      {fd.reviews && (
+                        <div className="lv-reviews-box">
+                          <div className="lv-about-box-head lv-reviews-head">
+                            <Star size={12} className="lv-reviews-head-ic" style={{ color: '#d97706' }} /> Market Research & Reviews
                           </div>
-                        ) : (
-                          <div className="lv-empty-state">
-                            <Users size={24} style={{ color: '#cbd5e1', marginBottom: 8 }} />
-                            <Text className="lv-muted">No contacts added yet.</Text>
+                          <div className="lv-prose lv-reviews-prose" style={{ maxHeight: 120, overflowY: "auto", fontSize: 12.5, lineHeight: 1.55 }}>
+                            {fd.reviews}
                           </div>
-                        )}
-                      </div>
-                    </section>
+                        </div>
+                      )}
+                    </div>
+                  </section>
 
-                    {/* 3. Notes */}
-                    <section className="lv-section">
-                      <header className="lv-section-head">
-                        <div className="lv-section-icon" style={{ ["--lv-section-accent" as any]: "#64748b" }}><Edit2 size={13} /></div>
-                        <h3 className="lv-section-title">Notes</h3>
-                      </header>
-                      <div className="lv-section-body">
-                        <div className="lv-notes">
-                          {(fd.internalNotes || lead.internal_notes) ? (
-                            <Paragraph style={{ margin: 0, color: "var(--text-slate-700)" }}>{fd.internalNotes || lead.internal_notes}</Paragraph>
-                          ) : (
-                            <Text className="lv-muted">No notes recorded. Add context for your team.</Text>
-                          )}
+                  {/* Contact details */}
+                  <section className="lv-intake-card lv-intake-contacts-card">
+                    <div className="lv-card-head">
+                      <div className="lv-card-head-left">
+                        <div className="lv-card-icon-circle" style={{ background: '#ecfdf5', color: '#10b981' }}>
+                          <Users size={16} />
+                        </div>
+                        <div>
+                          <h3 className="lv-card-head-title">Contact Details</h3>
+                          <div className="lv-card-head-sub">Decision makers & stakeholders</div>
                         </div>
                       </div>
-                    </section>
-
-                    {/* Mailing history */}
-                    <section className="lv-section">
-                      <header className="lv-section-head">
-                        <div className="lv-section-icon" style={{ ["--lv-section-accent" as any]: "#ec4899" }}><Mail size={14} /></div>
-                        <h3 className="lv-section-title">Mailing History</h3>
-                        {mails.length > 0 && <span className="lv-section-count">{mails.length}</span>}
-                      </header>
-                      <div className="lv-section-body">
-                        {mailsLoading ? (
-                          <Skeleton active paragraph={{ rows: 2 }} />
-                        ) : mails.length > 0 ? (
-                          <div className="lv-mailing-history">
-                            {mails.map((mail) => (
-                              <div key={mail.id} className="lv-mail-item">
-                                <div className="lv-mail-item-head">
-                                  <span className="lv-mail-subject">{mail.subject}</span>
-                                  <span className="lv-mail-date">{dayjs(mail.sent_at).format("MMM D, YYYY · h:mm A")}</span>
+                      {displayContacts.length > 0 && (
+                        <span className="lv-card-head-action" style={{ cursor: 'default' }}>
+                          {displayContacts.length} {displayContacts.length === 1 ? 'contact' : 'contacts'} →
+                        </span>
+                      )}
+                    </div>
+                    <div>
+                      {displayContacts.length > 0 ? (
+                        <div className="lv-contacts-enhanced-list" style={{ maxHeight: 280, overflowY: "auto", display: "flex", flexDirection: "column", gap: 9 }}>
+                          {displayContacts.map((c, i) => (
+                            <div key={i} className="lv-contact-box">
+                              <div className="lv-contact-box-top">
+                                <div className="lv-contact-box-identity">
+                                  <div className="lv-contact-avatar-pill">
+                                    {getInitials(c.name)}
+                                  </div>
+                                  <div style={{ minWidth: 0, flex: 1 }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                                      <span className="lv-contact-name-txt" title={c.name}>{c.name || "Unnamed contact"}</span>
+                                      {c.isPrimary && (
+                                        <span className="lv-contact-primary-tag">Primary</span>
+                                      )}
+                                    </div>
+                                    <div className="lv-contact-role-txt">
+                                      <Briefcase size={10} style={{ color: '#94a3b8' }} />
+                                      <span>{c.designation || "Stakeholder"}</span>
+                                    </div>
+                                  </div>
                                 </div>
-                                <div className="lv-mail-recipient">To: {mail.recipient_email}</div>
-                                <div className="lv-mail-excerpt">{mail.body.replace(/<[^>]*>?/gm, '').slice(0, 120)}...</div>
+
+                                {c.linkedin && (
+                                  <div className="lv-contact-quick-actions">
+                                    <a className="lv-caction-btn lv-caction-linkedin" href={/^https?:\/\//.test(c.linkedin) ? c.linkedin : `https://${c.linkedin}`} target="_blank" rel="noreferrer" title="LinkedIn Profile">
+                                      <Linkedin size={10} /> Profile
+                                    </a>
+                                  </div>
+                                )}
                               </div>
-                            ))}
+
+                              {c.notes && (
+                                <div className="lv-contact-note-strip">
+                                  <MessageSquare size={11} className="lv-contact-note-ic" style={{ color: '#059669', flexShrink: 0, marginTop: 2 }} />
+                                  <div className="lv-contact-note-text" style={{ flex: 1, minWidth: 0, fontSize: 11.5, lineHeight: 1.45 }}>
+                                    <strong className="lv-contact-note-strong" style={{ color: '#059669', marginRight: 4, fontWeight: 700 }}>Note:</strong>
+                                    {c.notes}
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="lv-card-empty-state">
+                          <div className="lv-card-icon-circle-sm" style={{ background: '#ecfdf5', color: '#10b981', width: 34, height: 34, marginBottom: 6 }}>
+                            <Users size={16} />
                           </div>
-                        ) : (
-                          <div className="lv-empty-state">
-                            <Mail size={24} style={{ color: '#cbd5e1', marginBottom: 8 }} />
-                            <Text className="lv-muted">No emails sent yet.</Text>
+                          <div className="lv-empty-state-title">No contacts added yet</div>
+                          <div className="lv-empty-state-desc">Decision makers and stakeholders will appear here.</div>
+                        </div>
+                      )}
+                    </div>
+                  </section>
+                </div>
+
+                {/* ==================== 2ND COLUMN: NOTES + EMAIL HISTORY ==================== */}
+                <div className="lv-intake-col lv-intake-col-2">
+                  {/* Notes */}
+                  <section className="lv-intake-card lv-intake-notes-card">
+                    <div className="lv-card-head">
+                      <div className="lv-card-head-left">
+                        <div className="lv-card-icon-circle" style={{ background: '#eff6ff', color: '#2563eb' }}>
+                          <Edit2 size={16} />
+                        </div>
+                        <div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                            <h3 className="lv-card-head-title">Notes</h3>
+                            {currentNotesList.length > 0 && (
+                              <span style={{ fontSize: 11, fontWeight: 700, padding: '1px 7px', borderRadius: 999, background: '#eff6ff', color: '#2563eb' }}>
+                                {currentNotesList.length}
+                              </span>
+                            )}
                           </div>
-                        )}
+                          <div className="lv-card-head-sub">Internal notes & takeaways</div>
+                        </div>
                       </div>
-                    </section>
-                  </main>
+                      <button
+                        type="button"
+                        className="lv-card-head-action"
+                        onClick={handleOpenAddNoteModal}
+                      >
+                        <Plus size={13} style={{ marginRight: 2 }} /> Add Note
+                      </button>
+                    </div>
+                    <div>
+                      {currentNotesList.length > 0 ? (
+                        <div style={{ maxHeight: 280, overflowY: "auto", display: "flex", flexDirection: "column", gap: 10 }}>
+                          {currentNotesList.map((noteItem: any, idx: number) => {
+                            const contentStr = typeof noteItem.content === "string" ? noteItem.content : "";
+                            const isBig = contentStr.length > 140 || contentStr.split("\n").length > 3;
 
-                  {/* RIGHT — Key facts · Documents */}
-                  <aside className="lv-side">
-                    {/* 4. Key facts */}
-                    {renderKeyFacts()}
-
-                    {/* 5. Documents */}
-                    <section className="lv-side-card">
-                      <header className="lv-side-head">Documents</header>
-                      <div className="lv-docs">
-                        {lead.documents && lead.documents.length > 0 ? (
-                          lead.documents.map((doc: any, i: number) => {
-                            const d = typeof doc === "string" ? { name: doc, url: doc } : doc;
                             return (
-                              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-                                <button type="button" onClick={() => handleDownload(d.url, d.name, 'inline')} className="lv-doc-row" style={{ flex: 1, minWidth: 0, marginBottom: 0, textAlign: 'left', border: 'none', background: 'transparent', cursor: 'pointer' }}>
-                                  <FileText size={13} />
-                                  <span className="lv-doc-name" title={d.name}>{d.name || "Attachment"}</span>
-                                  <ExternalLink size={11} className="lv-doc-ext" />
-                                </button>
-                                <Button type="text" size="small" icon={<Download size={14} />} onClick={() => handleDownload(d.url, d.name, 'attachment')} style={{ color: '#3b82f6', background: 'rgba(99, 102, 241, 0.05)', borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center' }} />
+                              <div key={noteItem.id || idx} className="lv-note-box">
+                                <div className="lv-note-box-head">
+                                  <div style={{ display: "flex", alignItems: "center", gap: 7, flexWrap: "wrap" }}>
+                                    <span className="lv-note-badge">
+                                      <FileEdit size={11} /> Note {currentNotesList.length - idx}
+                                    </span>
+                                    <span style={{ fontSize: 11, color: '#94a3b8' }}>
+                                      {noteItem.createdAt ? dayjs(noteItem.createdAt).format("MMM D, YYYY · h:mm A") : "recently"}
+                                    </span>
+                                  </div>
+                                  <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                                    {isBig && (
+                                      <button
+                                        type="button"
+                                        onClick={() => handleOpenViewNoteModal(noteItem)}
+                                        className="lv-note-action-btn"
+                                        title="View full note"
+                                        style={{
+                                          background: "none",
+                                          border: "none",
+                                          padding: "2px 6px",
+                                          fontSize: 11,
+                                          fontWeight: 600,
+                                          color: "#059669",
+                                          cursor: "pointer",
+                                          display: "inline-flex",
+                                          alignItems: "center",
+                                          gap: 3,
+                                          borderRadius: 4,
+                                        }}
+                                      >
+                                        <Eye size={11} /> View
+                                      </button>
+                                    )}
+                                    <button
+                                      type="button"
+                                      onClick={() => handleOpenEditNoteModal(noteItem)}
+                                      className="lv-note-action-btn"
+                                      title="Edit note"
+                                      style={{
+                                        background: "none",
+                                        border: "none",
+                                        padding: "2px 6px",
+                                        fontSize: 11,
+                                        fontWeight: 600,
+                                        color: "#2563eb",
+                                        cursor: "pointer",
+                                        display: "inline-flex",
+                                        alignItems: "center",
+                                        gap: 3,
+                                        borderRadius: 4,
+                                      }}
+                                    >
+                                      <Edit2 size={11} /> Edit
+                                    </button>
+                                    <Popconfirm
+                                      title="Delete note"
+                                      description="Are you sure you want to delete this note?"
+                                      okText="Delete"
+                                      cancelText="Cancel"
+                                      okButtonProps={{ danger: true, size: "small" }}
+                                      cancelButtonProps={{ size: "small" }}
+                                      onConfirm={() => handleDeleteNote(noteItem.id)}
+                                    >
+                                      <button
+                                        type="button"
+                                        title="Delete note"
+                                        style={{
+                                          background: "none",
+                                          border: "none",
+                                          padding: "2px 4px",
+                                          fontSize: 11,
+                                          color: "#ef4444",
+                                          cursor: "pointer",
+                                          display: "inline-flex",
+                                          alignItems: "center",
+                                          borderRadius: 4,
+                                        }}
+                                      >
+                                        <Trash2 size={12} />
+                                      </button>
+                                    </Popconfirm>
+                                  </div>
+                                </div>
+                                <div
+                                  className="lv-note-clamped-text"
+                                  onClick={() => {
+                                    if (isBig) handleOpenViewNoteModal(noteItem);
+                                  }}
+                                  style={{ cursor: isBig ? "pointer" : "default" }}
+                                  title={isBig ? "Click to view full note" : undefined}
+                                >
+                                  {noteItem.content}
+                                </div>
+                                {isBig && (
+                                  <button
+                                    type="button"
+                                    onClick={() => handleOpenViewNoteModal(noteItem)}
+                                    style={{
+                                      background: "none",
+                                      border: "none",
+                                      padding: "3px 0 0 0",
+                                      color: "#2563eb",
+                                      fontSize: 11.5,
+                                      fontWeight: 600,
+                                      cursor: "pointer",
+                                      display: "inline-flex",
+                                      alignItems: "center",
+                                      gap: 3,
+                                      width: "fit-content",
+                                    }}
+                                  >
+                                    <Eye size={11} /> View note →
+                                  </button>
+                                )}
                               </div>
                             );
-                          })
-                        ) : (
-                          <Text className="lv-muted">No documents attached.</Text>
-                        )}
+                          })}
+                        </div>
+                      ) : (
+                        <div className="lv-card-empty-state">
+                          <div className="lv-card-icon-circle-sm" style={{ background: '#eff6ff', color: '#2563eb', width: 34, height: 34, marginBottom: 6 }}>
+                            <Edit2 size={16} />
+                          </div>
+                          <div className="lv-empty-state-title">No internal notes yet</div>
+                          <div className="lv-empty-state-desc" style={{ marginBottom: 10, maxWidth: 220 }}>Record key client requirements, call takeaways, or scope caveats.</div>
+                          <Button
+                            type="primary"
+                            size="small"
+                            icon={<Plus size={12} />}
+                            onClick={handleOpenAddNoteModal}
+                            style={{ borderRadius: 8, height: 28, fontSize: 11.5, fontWeight: 600, background: '#2563eb' }}
+                          >
+                            Add Note
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  </section>
+
+                  {/* Email History */}
+                  <section className="lv-intake-card lv-intake-emails-card">
+                    <div className="lv-card-head">
+                      <div className="lv-card-head-left">
+                        <div className="lv-card-icon-circle" style={{ background: '#fdf2f8', color: '#ec4899' }}>
+                          <Mail size={16} />
+                        </div>
+                        <div>
+                          <h3 className="lv-card-head-title">Email History</h3>
+                          <div className="lv-card-head-sub">Communications log</div>
+                        </div>
                       </div>
-                    </section>
-                  </aside>
+                      {mails.length > 0 && (
+                        <span className="lv-card-head-action" style={{ cursor: 'default' }}>
+                          {mails.length} {mails.length === 1 ? 'sent' : 'sent'} →
+                        </span>
+                      )}
+                    </div>
+                    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 280 }}>
+                      {mailsLoading ? (
+                        <Skeleton active paragraph={{ rows: 4 }} />
+                      ) : mails.length > 0 ? (
+                        <div className="lv-intake-items-list" style={{ flex: 1, minHeight: 280, maxHeight: 460, overflowY: "auto" }}>
+                          {mails.map((mail) => (
+                            <div key={mail.id} className="lv-intake-row-item">
+                              <div style={{ minWidth: 0, flex: 1 }}>
+                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 2 }}>
+                                  <span className="lv-row-title" style={{ fontSize: 12.5 }}>{mail.subject || "No Subject"}</span>
+                                  <span className="lv-item-date-badge">• {dayjs(mail.sent_at).fromNow()}</span>
+                                </div>
+                                <div className="lv-mail-to">
+                                  <Mail size={10} style={{ color: '#94a3b8' }} /> To: {mail.recipient_email}
+                                </div>
+                                <div className="lv-mail-snippet">
+                                  {mail.body.replace(/<[^>]*>?/gm, '').slice(0, 95)}...
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="lv-card-empty-state" style={{ flex: 1, minHeight: 240, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+                          <div className="lv-card-icon-circle-sm" style={{ background: '#fdf2f8', color: '#ec4899', width: 34, height: 34, marginBottom: 6 }}>
+                            <Mail size={16} />
+                          </div>
+                          <div className="lv-empty-state-title">No emails sent yet</div>
+                          <div className="lv-empty-state-desc">Outbound communications will appear here.</div>
+                        </div>
+                      )}
+                    </div>
+                  </section>
                 </div>
-              </>
+
+                {/* ==================== 3RD COLUMN: KEY FACTS + DOCUMENTS ==================== */}
+                <div className="lv-intake-col lv-intake-col-3">
+                  {/* Key facts */}
+                  <section className="lv-intake-card lv-intake-facts-card">
+                    <div className="lv-card-head">
+                      <div className="lv-card-head-left">
+                        <div className="lv-card-icon-circle" style={{ background: '#eff6ff', color: '#3b82f6' }}>
+                          <Activity size={16} />
+                        </div>
+                        <div>
+                          <h3 className="lv-card-head-title">Key Facts</h3>
+                          <div className="lv-card-head-sub">Status & telemetry</div>
+                        </div>
+                      </div>
+                      {/* <button
+                        type="button"
+                        className="lv-card-head-action"
+                        onClick={openTimeline}
+                      >
+                        Timeline →
+                      </button> */}
+                    </div>
+                    <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                      <div className="lv-intake-facts-vlist">
+                        <div className="lv-fact-bullet-item">
+                          <span className="lv-fact-bullet-left">
+                            <span className="lv-fact-dot" style={{ background: statusColor || '#3b82f6' }} />
+                            Status
+                          </span>
+                          {lead.status ? (
+                            <span style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "2px 10px", borderRadius: 999, fontSize: 11.5, fontWeight: 600, color: statusColor, background: `${statusColor}14`, border: `1px solid ${statusColor}33` }}>
+                              • {lead.status}
+                            </span>
+                          ) : <span className="lv-fact-bullet-val">—</span>}
+                        </div>
+                        <div className="lv-fact-bullet-item">
+                          <span className="lv-fact-bullet-left">
+                            <span className="lv-fact-dot" style={{ background: '#3b82f6' }} />
+                            Created by
+                          </span>
+                          <span className="lv-fact-bullet-val">{(lead as any).created_by_name || "—"}</span>
+                        </div>
+                        <div className="lv-fact-bullet-item">
+                          <span className="lv-fact-bullet-left">
+                            <span className="lv-fact-dot" style={{ background: '#8b5cf6' }} />
+                            Created
+                          </span>
+                          <span className="lv-fact-bullet-val">{lead.created_at ? dayjs(lead.created_at).format("MMM D, YYYY") : "—"}</span>
+                        </div>
+                        <div className="lv-fact-bullet-item">
+                          <span className="lv-fact-bullet-left">
+                            <span className="lv-fact-dot" style={{ background: '#06b6d4' }} />
+                            Updated
+                          </span>
+                          <span className="lv-fact-bullet-val">{lead.updated_at ? dayjs(lead.updated_at).fromNow() : "—"}</span>
+                        </div>
+                        <div className="lv-fact-bullet-item">
+                          <span className="lv-fact-bullet-left">
+                            <span className="lv-fact-dot" style={{ background: '#10b981' }} />
+                            Agreement
+                          </span>
+                          <span
+                            className={`lv-proposal-badge ${lead.agreement_id || lead.proposal_id ? 'has-proposal' : 'no-proposal'}`}
+                            style={{ cursor: (lead.agreement_id || lead.proposal_id) ? 'pointer' : undefined }}
+                            onClick={() => {
+                              if (lead.agreement_id) router.push(`/project-agreements/agreements?open=${lead.agreement_id}`);
+                              else if (lead.proposal_id) router.push(`/proposals/builder?id=${lead.proposal_id}`);
+                            }}
+                          >
+                            {lead.agreement_id ? "View Agreement" : lead.proposal_id ? "View Proposal" : "None"}
+                          </span>
+                        </div>
+                        <div className="lv-fact-bullet-item">
+                          <span className="lv-fact-bullet-left">
+                            <span className="lv-fact-dot" style={{ background: '#ec4899' }} />
+                            Last email
+                          </span>
+                          <span className="lv-fact-bullet-val">{lead.last_mail_at ? dayjs(lead.last_mail_at).format("MMM D, YYYY") : "None"}</span>
+                        </div>
+                      </div>
+
+                      {(canReadActivityLog !== false) && (
+                        <div
+                          className="lv-card-footer-banner"
+                          onClick={() => setTransactionHistoryOpen(true)}
+                          role="button"
+                          tabIndex={0}
+                          style={{ marginTop: 0 }}
+                        >
+                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 7 }}>
+                            <History size={13} style={{ color: '#2563eb' }} />
+                            <span>Transaction History</span>
+                          </span>
+                          <ArrowRight size={13} style={{ color: '#94a3b8' }} />
+                        </div>
+                      )}
+                    </div>
+                  </section>
+
+                  {/* Documents */}
+                  <section className="lv-intake-card lv-intake-docs-card">
+                    <div className="lv-card-head">
+                      <div className="lv-card-head-left">
+                        <div className="lv-card-icon-circle" style={{ background: '#f5f3ff', color: '#7c3aed' }}>
+                          <FileText size={16} />
+                        </div>
+                        <div>
+                          <h3 className="lv-card-head-title">Documents</h3>
+                          <div className="lv-card-head-sub">Files & collateral</div>
+                        </div>
+                      </div>
+                      {lead.documents && lead.documents.length > 0 && (
+                        <span className="lv-card-head-action" style={{ cursor: 'default' }}>
+                          {lead.documents.length} {lead.documents.length === 1 ? 'file' : 'files'} →
+                        </span>
+                      )}
+                    </div>
+                    <div>
+                      {lead.documents && lead.documents.length > 0 ? (
+                        <div className="lv-intake-items-list" style={{ maxHeight: 220, overflowY: "auto" }}>
+                          {lead.documents.map((doc: any, i: number) => {
+                            const d = typeof doc === "string" ? { name: doc, url: doc } : doc;
+                            return (
+                              <div key={i} className="lv-intake-row-item" style={{ padding: '7px 0' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 9, minWidth: 0, flex: 1 }}>
+                                  <div className="lv-doc-icon-badge">
+                                    <FileText size={14} />
+                                  </div>
+                                  <div style={{ minWidth: 0, flex: 1 }}>
+                                    <div className="lv-row-title" title={d.name}>{d.name || "Attachment"}</div>
+                                    <div className="lv-row-subtitle">Attached document</div>
+                                  </div>
+                                </div>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                                  <button type="button" onClick={() => handleDownload(d.url, d.name, 'inline')} className="lv-doc-action-btn" title="Open preview">
+                                    <ExternalLink size={12} />
+                                  </button>
+                                  <button type="button" onClick={() => handleDownload(d.url, d.name, 'attachment')} className="lv-doc-action-btn" title="Download">
+                                    <Download size={12} />
+                                  </button>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      ) : (
+                        <div className="lv-card-empty-state">
+                          <div className="lv-card-icon-circle-sm" style={{ background: '#f5f3ff', color: '#7c3aed', width: 34, height: 34, marginBottom: 6 }}>
+                            <FileText size={16} />
+                          </div>
+                          <div className="lv-empty-state-title">No documents attached</div>
+                          <div className="lv-empty-state-desc">Proposals and files attached to this lead appear here.</div>
+                        </div>
+                      )}
+                    </div>
+                  </section>
+                </div>
+              </div>
             ) : (
               /* ==================== PLATFORM detail body ==================== */
               <>
@@ -1195,15 +1773,47 @@ export default function LeadProfilePage() {
                       <Edit2 size={13} />
                     </div>
                     <h3 className="lv-section-title">Internal notes</h3>
+                    <Button
+                      size="small"
+                      type="primary"
+                      icon={<Plus size={12} />}
+                      onClick={handleOpenNoteModal}
+                      style={{
+                        marginLeft: "auto",
+                        borderRadius: 6,
+                        height: 28,
+                        fontSize: 12,
+                        fontWeight: 600,
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 4,
+                      }}
+                    >
+                      {lead.internal_notes ? "Edit Notes" : "Add Note"}
+                    </Button>
                   </header>
                   <div className="lv-section-body">
-                    <div className="lv-notes">
-                      {lead.internal_notes ? (
-                        <Paragraph style={{ margin: 0, color: "var(--text-slate-700)" }}>{lead.internal_notes}</Paragraph>
-                      ) : (
-                        <Text className="lv-muted">No notes recorded. Add context for your team.</Text>
-                      )}
-                    </div>
+                    {lead.internal_notes ? (
+                      <div className="lv-notes">
+                        <Paragraph style={{ margin: 0, color: "var(--text-slate-700)", whiteSpace: "pre-wrap" }}>
+                          {lead.internal_notes}
+                        </Paragraph>
+                      </div>
+                    ) : (
+                      <div style={{ padding: "16px 8px", textAlign: "center" }}>
+                        <Text className="lv-muted" style={{ display: "block", marginBottom: 10 }}>
+                          No notes recorded. Add context for your team.
+                        </Text>
+                        <Button
+                          type="dashed"
+                          icon={<Plus size={13} />}
+                          onClick={handleOpenNoteModal}
+                          style={{ borderRadius: 6, fontSize: 12, fontWeight: 600 }}
+                        >
+                          Add Note
+                        </Button>
+                      </div>
+                    )}
                   </div>
                 </section>
               </main>
@@ -1384,6 +1994,368 @@ export default function LeadProfilePage() {
               </>
             )}
           </div>
+
+          {/* ----------------------- Enhanced Add / Edit Note Modal ----------------------- */}
+          <Modal
+            open={noteModalOpen}
+            onCancel={() => setNoteModalOpen(false)}
+            footer={null}
+            destroyOnClose
+            centered
+            closable={false}
+            width={680}
+            className="lv-note-modal"
+          >
+            <div className="lv-note-modal-head">
+              <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+                <div className="lv-note-modal-icon">
+                  <Edit2 size={18} />
+                </div>
+                <div>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 3 }}>
+                    <span className="lv-note-modal-title">
+                      {editingNoteId ? "Edit Internal Note" : "Add Internal Note"}
+                    </span>
+                    <span className="lv-note-badge-blue">
+                      <Lock size={10} /> Workspace Private
+                    </span>
+                  </div>
+                  <div className="lv-note-modal-sub">
+                    Keep shared takeaways, meeting minutes & follow-ups for <strong>{lead?.company || lead?.client_name || lead?.title || "this lead"}</strong>.
+                  </div>
+                </div>
+              </div>
+              <button
+                type="button"
+                className="lv-note-close-btn"
+                onClick={() => setNoteModalOpen(false)}
+                aria-label="Close"
+              >
+                <X size={15} />
+              </button>
+            </div>
+
+            <div className="lv-note-modal-body">
+              {/* Quick Template Chips & Tab Mode */}
+              <div style={{ marginBottom: 12 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+                  <span style={{ fontSize: 10.5, fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.06em", color: "var(--text-slate-400)" }}>
+                    Quick Templates
+                  </span>
+                  <div style={{ display: "flex", gap: 3, background: "var(--bg-slate-100, #f1f5f9)", padding: 2, borderRadius: 6 }}>
+                    <button
+                      type="button"
+                      onClick={() => setNoteModalTab("write")}
+                      className={`lv-note-tab-btn ${noteModalTab === "write" ? "is-active" : ""}`}
+                    >
+                      Write
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setNoteModalTab("preview")}
+                      className={`lv-note-tab-btn ${noteModalTab === "preview" ? "is-active" : ""}`}
+                    >
+                      Preview
+                    </button>
+                  </div>
+                </div>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                  <button
+                    type="button"
+                    className="lv-note-quick-chip chip-time"
+                    onClick={handleAppendTimestamp}
+                    title="Insert current date & time"
+                  >
+                    <Clock size={11} />
+                    <span>+ Timestamp</span>
+                  </button>
+                  <button
+                    type="button"
+                    className="lv-note-quick-chip chip-call"
+                    onClick={() => handleInsertTag(`📞 [Call Notes · ${dayjs().format("MMM D")}]:`)}
+                  >
+                    <span>📞 Call Notes</span>
+                  </button>
+                  <button
+                    type="button"
+                    className="lv-note-quick-chip chip-meet"
+                    onClick={() => handleInsertTag(`💬 [Meeting Note · ${dayjs().format("MMM D")}]:`)}
+                  >
+                    <span>💬 Meeting Note</span>
+                  </button>
+                  <button
+                    type="button"
+                    className="lv-note-quick-chip chip-action"
+                    onClick={() => handleInsertTag("🎯 [Action Item]:")}
+                  >
+                    <span>🎯 Action Item</span>
+                  </button>
+                  <button
+                    type="button"
+                    className="lv-note-quick-chip chip-step"
+                    onClick={() => handleInsertTag("⚡ [Next Step]:")}
+                  >
+                    <span>⚡ Next Step</span>
+                  </button>
+                  <button
+                    type="button"
+                    className="lv-note-quick-chip chip-warn"
+                    onClick={() => handleInsertTag("⚠️ [Risk/Blocker]:")}
+                  >
+                    <span>⚠️ Blocker</span>
+                  </button>
+                </div>
+              </div>
+
+              {noteModalTab === "write" ? (
+                <>
+                  {/* Mini Formatting Toolbar */}
+                  <div className="lv-note-toolbar">
+                    <div style={{ display: "flex", gap: 4, alignItems: "center" }}>
+                      <button
+                        type="button"
+                        className="lv-note-tool-btn"
+                        onClick={() => handleInsertFormat("**", "**")}
+                        title="Bold text"
+                      >
+                        <strong>B</strong>
+                      </button>
+                      <button
+                        type="button"
+                        className="lv-note-tool-btn"
+                        onClick={() => handleInsertFormat("• ")}
+                        title="Bullet point"
+                      >
+                        • Bullet
+                      </button>
+                      <button
+                        type="button"
+                        className="lv-note-tool-btn"
+                        onClick={() => handleInsertFormat("- [ ] ")}
+                        title="Task checklist"
+                      >
+                        ☐ Task
+                      </button>
+                    </div>
+                    {noteContent && (
+                      <button
+                        type="button"
+                        className="lv-note-tool-btn lv-note-tool-clear"
+                        onClick={() => setNoteContent("")}
+                        title="Clear notes"
+                      >
+                        Clear text
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Textarea */}
+                  <Input.TextArea
+                    value={noteContent}
+                    onChange={(e) => setNoteContent(e.target.value)}
+                    onKeyDown={(e) => {
+                      if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
+                        e.preventDefault();
+                        handleSaveNote();
+                      }
+                    }}
+                    rows={8}
+                    placeholder="Type key discussion points, client requirements, budget constraints, or next steps..."
+                    className="lv-note-textarea"
+                    autoFocus
+                  />
+                </>
+              ) : (
+                /* Note Preview */
+                <div className="lv-note-preview-box">
+                  {noteContent.trim() ? (
+                    <div className="lv-note-preview-content">
+                      {noteContent.split("\n").map((line, idx) => {
+                        const trimmed = line.trim();
+                        if (!trimmed) return <div key={idx} style={{ height: 10 }} />;
+                        if (trimmed.startsWith("📞") || trimmed.startsWith("💬") || trimmed.startsWith("🎯") || trimmed.startsWith("⚡") || trimmed.startsWith("⚠️")) {
+                          return (
+                            <div key={idx} className="lv-note-preview-badge-line">
+                              {line}
+                            </div>
+                          );
+                        }
+                        if (trimmed.startsWith("[") && trimmed.includes("] -")) {
+                          return (
+                            <div key={idx} className="lv-note-preview-time-line">
+                              <Clock size={11} /> {line}
+                            </div>
+                          );
+                        }
+                        if (trimmed.startsWith("- [ ]") || trimmed.startsWith("- [x]")) {
+                          const isDone = trimmed.startsWith("- [x]");
+                          return (
+                            <div key={idx} className="lv-note-preview-task-line">
+                              <input type="checkbox" checked={isDone} readOnly />
+                              <span style={{ textDecoration: isDone ? "line-through" : "none" }}>
+                                {trimmed.substring(5)}
+                              </span>
+                            </div>
+                          );
+                        }
+                        if (trimmed.startsWith("• ") || trimmed.startsWith("- ")) {
+                          return (
+                            <div key={idx} className="lv-note-preview-bullet-line">
+                              <span className="lv-note-preview-dot">•</span>
+                              <span>{trimmed.substring(2)}</span>
+                            </div>
+                          );
+                        }
+                        return <p key={idx} style={{ margin: "0 0 6px" }}>{line}</p>;
+                      })}
+                    </div>
+                  ) : (
+                    <div style={{ textAlign: "center", padding: "36px 0", color: "var(--text-slate-400)", fontSize: 13 }}>
+                      Nothing to preview yet. Switch back to Write to add your thoughts.
+                    </div>
+                  )}
+                </div>
+              )}
+
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 10 }}>
+                <span style={{ fontSize: 11.5, color: "var(--text-slate-400)", display: "inline-flex", alignItems: "center", gap: 5 }}>
+                  <ShieldCheck size={12} style={{ color: "#10b981" }} /> Visible to all workspace teammates
+                </span>
+                <span style={{ fontSize: 11.5, color: "var(--text-slate-400)", fontVariantNumeric: "tabular-nums" }}>
+                  {noteContent.trim() ? noteContent.trim().split(/\s+/).length : 0} words · {noteContent.length} chars
+                </span>
+              </div>
+            </div>
+
+            <div className="lv-note-modal-footer">
+              <span style={{ fontSize: 11.5, color: "var(--text-slate-400)", display: "flex", alignItems: "center", gap: 6 }}>
+                Press <kbd style={{ background: "var(--bg-slate-200, #e2e8f0)", color: "var(--text-slate-700)", border: "1px solid var(--border-slate-300, #cbd5e1)", padding: "1px 6px", borderRadius: 4, fontSize: 10.5, fontWeight: 700 }}>⌘ + Enter</kbd> to save
+              </span>
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <Button
+                  onClick={() => setNoteModalOpen(false)}
+                  style={{ borderRadius: 8, height: 38, fontWeight: 600, padding: "0 16px" }}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="primary"
+                  loading={savingNote}
+                  onClick={handleSaveNote}
+                  icon={<Check size={14} />}
+                  style={{
+                    borderRadius: 8,
+                    height: 38,
+                    fontWeight: 700,
+                    padding: "0 18px",
+                    background: "linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)",
+                    border: "none",
+                    boxShadow: "0 4px 14px rgba(59, 130, 246, 0.38)",
+                  }}
+                >
+                  {editingNoteId ? "Save Changes" : "Add Note"}
+                </Button>
+              </div>
+            </div>
+          </Modal>
+
+          {/* ----------------------- View Note Detail Modal ----------------------- */}
+          <Modal
+            open={!!viewingNote}
+            onCancel={() => setViewingNote(null)}
+            footer={null}
+            destroyOnClose
+            centered
+            closable={false}
+            width={640}
+            className="lv-note-modal"
+          >
+            <div className="lv-note-modal-head">
+              <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+                <div className="lv-note-modal-icon lv-note-modal-icon-view">
+                  <FileText size={18} />
+                </div>
+                <div>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 3 }}>
+                    <span className="lv-note-modal-title">
+                      Internal Note Details
+                    </span>
+                    <span className="lv-note-private-badge">
+                      <Lock size={10} /> Workspace Private
+                    </span>
+                  </div>
+                  <div className="lv-note-modal-sub">
+                    {viewingNote?.createdAt ? (
+                      <>Recorded on <strong>{dayjs(viewingNote.createdAt).format("MMMM D, YYYY · h:mm A")}</strong> ({dayjs(viewingNote.createdAt).fromNow()})</>
+                    ) : "Note recorded for this lead"}
+                  </div>
+                </div>
+              </div>
+              <button
+                type="button"
+                className="lv-note-close-btn"
+                onClick={() => setViewingNote(null)}
+                aria-label="Close"
+              >
+                <X size={15} />
+              </button>
+            </div>
+
+            <div className="lv-note-modal-body">
+              <div className="lv-note-view-box">
+                {viewingNote?.content}
+              </div>
+
+              <div className="lv-note-view-meta">
+                <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}>
+                  <ShieldCheck size={12} style={{ color: "#10b981" }} /> Visible to all workspace teammates
+                </span>
+                <span style={{ fontVariantNumeric: "tabular-nums" }}>
+                  {viewingNote?.content?.trim() ? viewingNote.content.trim().split(/\s+/).length : 0} words · {viewingNote?.content?.length || 0} chars
+                </span>
+              </div>
+            </div>
+
+            <div className="lv-note-modal-footer">
+              <Button
+                icon={<Copy size={13} />}
+                onClick={() => {
+                  if (viewingNote?.content) {
+                    navigator.clipboard.writeText(viewingNote.content);
+                    messageStatic.success("Note copied to clipboard");
+                  }
+                }}
+                style={{ borderRadius: 8, height: 36, fontWeight: 600 }}
+              >
+                Copy Content
+              </Button>
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <Button
+                  onClick={() => setViewingNote(null)}
+                  style={{ borderRadius: 8, height: 36, fontWeight: 600, padding: "0 16px" }}
+                >
+                  Close
+                </Button>
+                <Button
+                  type="primary"
+                  icon={<Edit2 size={13} />}
+                  onClick={() => {
+                    const noteToEdit = viewingNote;
+                    setViewingNote(null);
+                    handleOpenEditNoteModal(noteToEdit);
+                  }}
+                  style={{
+                    borderRadius: 8,
+                    height: 36,
+                    fontWeight: 700,
+                    padding: "0 18px",
+                  }}
+                >
+                  Edit Note
+                </Button>
+              </div>
+            </div>
+          </Modal>
 
           {/* ----------------------- Initialize Project modal ----------------------- */}
           <Modal
@@ -2273,9 +3245,742 @@ const leadViewStyles = (
       }
       .lv-contact-row svg { color: var(--text-slate-400); flex-shrink: 0; }
 
-      /* ---------- Lead Intake additions ---------- */
-      .lv-avatar-sq { border-radius: 10px; background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%); }
-      .lv-avatar-lg { width: 54px; height: 54px; font-size: 18px; border-radius: 12px; }
+      /* ---------- Lead Intake additions (3-column layout with vertical & horizontal dividers) ---------- */
+      .lv-body-intake {
+        padding: 0 !important;
+        max-width: 100% !important;
+        margin: 0 !important;
+      }
+      .lv-intake-3col-layout {
+        display: grid;
+        grid-template-columns: minmax(0, 1.35fr) minmax(0, 1.15fr) minmax(0, 1fr);
+        gap: 0;
+        background: var(--bg-pure-white, #ffffff);
+        border: none;
+        border-radius: 0;
+        overflow: hidden;
+        align-items: stretch;
+        min-height: calc(100vh - 55px);
+      }
+      @media (max-width: 1200px) {
+        .lv-intake-3col-layout {
+          grid-template-columns: 1fr;
+        }
+      }
+      .lv-intake-col {
+        display: flex;
+        flex-direction: column;
+        gap: 0;
+        min-width: 0;
+      }
+      .lv-intake-col:not(:last-child) {
+        border-right: 1px solid var(--border-slate-200, #e2e8f0);
+      }
+      @media (max-width: 1200px) {
+        .lv-intake-col:not(:last-child) {
+          border-right: none;
+          border-bottom: 1px solid var(--border-slate-200, #e2e8f0);
+        }
+      }
+      .lv-intake-card {
+        border-radius: 0 !important;
+        border: none !important;
+        box-shadow: none !important;
+        overflow: hidden;
+        background: transparent !important;
+        display: flex;
+        flex-direction: column;
+        padding: 22px 24px !important;
+        transition: none !important;
+      }
+      .lv-intake-card:not(:last-child) {
+        border-bottom: 1px solid var(--border-slate-200, #e2e8f0) !important;
+      }
+      .lv-intake-card:last-child {
+        flex: 1;
+        padding-bottom: 36px !important;
+      }
+      .lv-intake-emails-card {
+        min-height: 360px;
+      }
+      .lv-intake-emails-card > div:last-child {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+      }
+      .lv-intake-card:hover {
+        border-color: transparent !important;
+        box-shadow: none !important;
+      }
+      .lv-card-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 16px;
+        gap: 12px;
+      }
+      .lv-card-head-left {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        min-width: 0;
+      }
+      .lv-card-icon-circle {
+        width: 38px;
+        height: 38px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+      }
+      .lv-card-icon-circle-sm {
+        width: 28px;
+        height: 28px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+      }
+      .lv-card-head-title {
+        font-size: 15px;
+        font-weight: 700;
+        color: var(--text-slate-900, #111827);
+        line-height: 1.25;
+        margin: 0;
+        letter-spacing: -0.01em;
+      }
+      .lv-card-head-sub {
+        font-size: 12px;
+        color: var(--text-slate-400, #64748b);
+        margin-top: 2px;
+        line-height: 1.2;
+        font-weight: 400;
+      }
+      .lv-card-head-action {
+        color: #2563eb;
+        font-size: 13px;
+        font-weight: 600;
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        background: none;
+        border: none;
+        padding: 0;
+        cursor: pointer;
+        text-decoration: none;
+        flex-shrink: 0;
+        transition: color 0.15s ease;
+      }
+      .lv-card-head-action:hover {
+        color: #1d4ed8;
+      }
+      .lv-intake-card.lv-cinfo {
+        padding: 22px 24px !important;
+      }
+
+      /* Card Highlight Banner (e.g. Contact Person) */
+      .lv-card-highlight-banner {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 9px 12px;
+        background: #f0f7ff;
+        border: 1px solid #e0effe;
+        border-radius: 12px;
+        margin-bottom: 12px;
+      }
+      .lv-card-banner-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        font-size: 11.5px;
+        font-weight: 600;
+        color: #2563eb;
+        background: #ffffff;
+        border: 1px solid #bfdbfe;
+        padding: 3px 9px;
+        border-radius: 999px;
+        text-decoration: none;
+        transition: all 0.15s ease;
+      }
+      .lv-card-banner-btn:hover {
+        background: #eff6ff;
+        border-color: #93c5fd;
+      }
+
+      /* Card Footer Banner (e.g. Key Facts bottom timeline link) */
+      .lv-card-footer-banner {
+        margin-top: 14px;
+        background: #f8fafc;
+        border: 1px solid #f1f5f9;
+        border-radius: 12px;
+        padding: 9px 12px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        font-size: 12.5px;
+        font-weight: 500;
+        color: #475569;
+        cursor: pointer;
+        transition: all 0.15s ease;
+      }
+      .lv-card-footer-banner:hover {
+        background: #f1f5f9;
+        color: #1e293b;
+        border-color: #e2e8f0;
+      }
+
+      /* Facts Bullet List */
+      .lv-intake-facts-vlist {
+        display: flex;
+        flex-direction: column;
+        background: transparent;
+      }
+      .lv-fact-bullet-item {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 8px 0;
+        border-bottom: 1px solid #f8fafc;
+        font-size: 12.5px;
+      }
+      .lv-fact-bullet-item:last-child {
+        border-bottom: none;
+      }
+      .lv-fact-bullet-left {
+        display: flex;
+        align-items: center;
+        gap: 7px;
+        color: #64748b;
+        font-weight: 500;
+        font-size: 12.5px;
+      }
+      .lv-fact-dot {
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        flex-shrink: 0;
+      }
+      .lv-fact-bullet-val {
+        font-weight: 600;
+        color: var(--text-slate-900, #0f172a);
+        font-size: 12.5px;
+      }
+
+      /* Intake items list & rows (Contacts, Email History, Docs) */
+      .lv-intake-items-list {
+        display: flex;
+        flex-direction: column;
+      }
+      .lv-intake-row-item {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 9px 0;
+        border-bottom: 1px solid #f1f5f9;
+        gap: 12px;
+        transition: background 0.12s ease;
+      }
+      .lv-intake-row-item:last-child {
+        border-bottom: none;
+      }
+      .lv-row-title {
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--text-slate-900, #0f172a);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .lv-row-subtitle {
+        font-size: 11.5px;
+        color: var(--text-slate-400, #64748b);
+        margin-top: 1px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .lv-row-excerpt {
+        font-size: 11.5px;
+        color: #94a3b8;
+        margin-top: 2px;
+        line-height: 1.35;
+      }
+      .lv-item-date-badge {
+        font-size: 10.5px;
+        color: #94a3b8;
+        font-weight: 500;
+        flex-shrink: 0;
+      }
+      .lv-item-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        padding: 2px 8px;
+        border-radius: 999px;
+        font-size: 11px;
+        font-weight: 500;
+        background: #ffffff;
+        border: 1px solid #e2e8f0;
+        color: #475569;
+        text-decoration: none;
+        transition: all 0.15s ease;
+        white-space: nowrap;
+      }
+      .lv-item-pill:hover {
+        background: #eff6ff;
+        border-color: #bfdbfe;
+        color: #2563eb;
+      }
+      .lv-contact-circle-avatar {
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        background: #eff6ff;
+        color: #2563eb;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 11.5px;
+        font-weight: 700;
+        flex-shrink: 0;
+      }
+      .lv-doc-icon-badge {
+        width: 30px;
+        height: 30px;
+        border-radius: 8px;
+        background: #f5f3ff;
+        color: #7c3aed;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+      }
+      .lv-doc-action-btn {
+        width: 26px;
+        height: 26px;
+        border-radius: 6px;
+        border: 1px solid #e2e8f0;
+        background: #ffffff;
+        color: #64748b;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: all 0.15s ease;
+      }
+      .lv-doc-action-btn:hover {
+        background: #eff6ff;
+        border-color: #bfdbfe;
+        color: #2563eb;
+      }
+      .lv-card-empty-state {
+        padding: 24px 14px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        flex: 1;
+        background: #f8fafc;
+        border-radius: 12px;
+        border: 1px dashed #e2e8f0;
+        text-align: center;
+      }
+
+      /* Enhanced Intake Interior: Metadata 6-tiles grid */
+      .lv-cinfo-grid-tiles {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px;
+        margin-top: 10px;
+      }
+      @media (max-width: 500px) {
+        .lv-cinfo-grid-tiles {
+          grid-template-columns: 1fr;
+        }
+      }
+      .lv-info-tile {
+        background: #f8fafc;
+        border: 1px solid #f1f5f9;
+        border-radius: 10px;
+        padding: 8px 10px;
+        display: flex;
+        flex-direction: column;
+        gap: 3px;
+        min-width: 0;
+        transition: all 0.15s ease;
+      }
+      .lv-info-tile:hover {
+        background: #f1f5f9;
+        border-color: #e2e8f0;
+      }
+      .lv-info-tile-label {
+        font-size: 10.5px;
+        font-weight: 600;
+        color: #64748b;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+      }
+      .lv-info-tile-val {
+        font-size: 12.5px;
+        font-weight: 600;
+        color: #0f172a;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        min-width: 0;
+      }
+      a.lv-info-tile-link {
+        color: #2563eb;
+        text-decoration: none;
+      }
+      a.lv-info-tile-link:hover {
+        text-decoration: underline;
+        color: #1d4ed8;
+      }
+
+      /* Core Tag, About Box, and Reviews Box */
+      .lv-core-tag {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        font-size: 11px;
+        font-weight: 600;
+        color: #4f46e5;
+        background: #eef2ff;
+        border: 1px solid #e0e7ff;
+        padding: 3px 9px;
+        border-radius: 999px;
+      }
+      .lv-about-box {
+        background: #f8fafc;
+        border: 1px solid #f1f5f9;
+        border-radius: 12px;
+        padding: 10px 12px;
+      }
+      .lv-about-box-head {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 11.5px;
+        font-weight: 700;
+        color: #334155;
+        margin-bottom: 6px;
+        letter-spacing: -0.01em;
+      }
+      .lv-reviews-box {
+        margin-top: 8px;
+        background: #fffbeb;
+        border: 1px solid #fef3c7;
+        border-radius: 12px;
+        padding: 10px 12px;
+      }
+
+      /* Key Facts Metric Tiles (BOD/EOD reference style) */
+      .lv-facts-tiles-row {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px;
+        margin-bottom: 12px;
+      }
+      .lv-metric-tile {
+        background: #f8fafc;
+        border: 1px solid #f1f5f9;
+        border-radius: 12px;
+        padding: 10px 12px;
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+      }
+      .lv-metric-tile-title {
+        font-size: 11px;
+        font-weight: 600;
+        color: #64748b;
+        text-transform: uppercase;
+        letter-spacing: 0.03em;
+      }
+      .lv-tile-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        font-size: 12px;
+        font-weight: 700;
+        padding: 2px 8px;
+        border-radius: 999px;
+        width: fit-content;
+      }
+      .lv-metric-tile-sub {
+        font-size: 10.5px;
+        color: #94a3b8;
+        font-weight: 500;
+      }
+
+      /* Note Box (in Notes card) */
+      .lv-note-box {
+        background: #f8fafc;
+        border: 1px solid #f1f5f9;
+        border-radius: 12px;
+        padding: 12px 14px;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        transition: all 0.15s ease;
+      }
+      .lv-note-box:hover {
+        background: #ffffff;
+        border-color: #cbd5e1;
+        box-shadow: 0 4px 12px -2px rgba(15, 23, 42, 0.05);
+      }
+      .lv-note-clamped-text {
+        margin: 0;
+        color: var(--text-slate-700);
+        font-size: 13px;
+        line-height: 1.6;
+        max-height: 4.8em !important;
+        display: -webkit-box !important;
+        -webkit-line-clamp: 3 !important;
+        -webkit-box-orient: vertical !important;
+        overflow: hidden !important;
+        text-overflow: ellipsis !important;
+        word-break: break-word;
+        white-space: pre-wrap;
+      }
+      .lv-note-clamped-text:hover {
+        color: var(--text-slate-900);
+      }
+      [data-theme='dark'] .lv-note-clamped-text {
+        color: var(--text-slate-300);
+      }
+      [data-theme='dark'] .lv-note-clamped-text:hover {
+        color: var(--text-slate-100);
+      }
+      .lv-note-box-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        padding-bottom: 6px;
+        border-bottom: 1px solid #f1f5f9;
+      }
+      .lv-note-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        font-size: 11px;
+        font-weight: 700;
+        color: #2563eb;
+        background: #eff6ff;
+        border: 1px solid #dbeafe;
+        padding: 2px 7px;
+        border-radius: 6px;
+      }
+
+      /* Enhanced Contact Details Card */
+      .lv-contact-box {
+        background: #f8fafc;
+        border: 1px solid #f1f5f9;
+        border-radius: 12px;
+        padding: 10px 12px;
+        display: flex;
+        flex-direction: column;
+        gap: 7px;
+        transition: all 0.15s ease;
+      }
+      .lv-contact-box:hover {
+        background: #ffffff;
+        border-color: #cbd5e1;
+        box-shadow: 0 4px 12px -2px rgba(15, 23, 42, 0.06);
+      }
+      .lv-contact-box-top {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+      }
+      .lv-contact-box-identity {
+        display: flex;
+        align-items: center;
+        gap: 9px;
+        min-width: 0;
+        flex: 1;
+      }
+      .lv-contact-avatar-pill {
+        width: 34px;
+        height: 34px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
+        border: 1px solid #a7f3d0;
+        color: #047857;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 12px;
+        font-weight: 700;
+        flex-shrink: 0;
+      }
+      .lv-contact-name-txt {
+        font-size: 13px;
+        font-weight: 700;
+        color: var(--text-slate-900, #0f172a);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .lv-contact-primary-tag {
+        font-size: 9.5px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        padding: 1px 6px;
+        border-radius: 999px;
+        background: #ecfdf5;
+        color: #059669;
+        border: 1px solid #a7f3d0;
+      }
+      .lv-contact-role-txt {
+        font-size: 11.5px;
+        color: #64748b;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        margin-top: 1px;
+      }
+      .lv-contact-quick-actions {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        flex-shrink: 0;
+      }
+      .lv-caction-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        padding: 3px 8px;
+        border-radius: 999px;
+        font-size: 10.5px;
+        font-weight: 600;
+        text-decoration: none;
+        transition: all 0.15s ease;
+        white-space: nowrap;
+      }
+      .lv-caction-phone {
+        background: #ffffff;
+        border: 1px solid #d1fae5;
+        color: #059669;
+      }
+      .lv-caction-phone:hover {
+        background: #ecfdf5;
+        border-color: #a7f3d0;
+      }
+      .lv-caction-email {
+        background: #ffffff;
+        border: 1px solid #e0e7ff;
+        color: #4f46e5;
+      }
+      .lv-caction-email:hover {
+        background: #eef2ff;
+        border-color: #c7d2fe;
+      }
+      .lv-caction-linkedin {
+        background: #ffffff;
+        border: 1px solid #dbeafe;
+        color: #2563eb;
+      }
+      .lv-caction-linkedin:hover {
+        background: #eff6ff;
+        border-color: #bfdbfe;
+      }
+      .lv-contact-comms-row {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        flex-wrap: wrap;
+        padding-top: 5px;
+        border-top: 1px dashed #e2e8f0;
+      }
+      .lv-contact-comm-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        background: #ffffff;
+        border: 1px solid #e2e8f0;
+        border-radius: 6px;
+        padding: 2px 7px;
+        font-size: 11px;
+        color: #475569;
+        text-decoration: none;
+        max-width: 100%;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        transition: all 0.15s ease;
+      }
+      .lv-contact-comm-chip:hover {
+        border-color: #94a3b8;
+        color: #0f172a;
+      }
+      .lv-comm-icon {
+        color: #94a3b8;
+        flex-shrink: 0;
+      }
+      .lv-comm-text {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .lv-contact-note-strip {
+        display: flex;
+        align-items: flex-start;
+        gap: 6px;
+        background: #ffffff;
+        border: 1px solid #e2e8f0;
+        border-left: 3px solid #10b981;
+        border-radius: 0 8px 8px 0;
+        padding: 5px 8px;
+      }
+
+      /* Decision Maker / Contacts Callout */
+      .lv-dm-notes-callout {
+        margin-top: 4px;
+        background: #f8fafc;
+        border-left: 2px solid #3b82f6;
+        border-radius: 0 6px 6px 0;
+        padding: 5px 8px;
+        font-size: 11.5px;
+        color: #475569;
+        line-height: 1.4;
+      }
+      .lv-dm-note-tag {
+        font-weight: 700;
+        color: #3b82f6;
+        margin-right: 4px;
+      }
+
+      /* Email Snippet & To line */
+      .lv-mail-to {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        font-size: 11px;
+        color: #64748b;
+        margin-bottom: 3px;
+      }
+      .lv-mail-snippet {
+        font-size: 11.5px;
+        color: #64748b;
+        line-height: 1.4;
+        background: #f8fafc;
+        padding: 6px 8px;
+        border-radius: 6px;
+        border: 1px solid #f1f5f9;
+        margin-top: 3px;
+      }
+
 
       /* Company info card */
       .lv-cinfo { padding: 20px; }
@@ -2537,6 +4242,797 @@ const leadViewStyles = (
       .lv-doc-ext { color: var(--text-slate-400); }
 
       .lv-muted { color: var(--text-slate-500) !important; font-size: 12.5px; }
+
+      /* ===================== Enhanced Note Modal ===================== */
+      .lv-note-modal .ant-modal-content {
+        padding: 0 !important;
+        border-radius: 16px !important;
+        border: 1px solid var(--border-slate-100);
+        overflow: hidden;
+        background: var(--bg-pure-white);
+        box-shadow: 0 24px 60px -15px rgba(15, 23, 42, 0.25), 0 0 0 1px rgba(148, 163, 184, 0.1) !important;
+      }
+      .lv-note-modal .ant-modal-body {
+        padding: 0 !important;
+      }
+      .lv-note-modal-head {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 14px;
+        padding: 22px 24px 18px;
+        position: relative;
+        background: linear-gradient(180deg, rgba(59, 130, 246, 0.05) 0%, rgba(255, 255, 255, 0) 100%);
+        border-bottom: 1px solid var(--border-slate-100);
+      }
+      .lv-note-modal-icon {
+        width: 44px;
+        height: 44px;
+        border-radius: 12px;
+        background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+        color: #fff;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        box-shadow: 0 8px 18px -4px rgba(59, 130, 246, 0.45);
+      }
+      .lv-note-close-btn {
+        width: 32px;
+        height: 32px;
+        border-radius: 8px;
+        border: 1px solid var(--border-slate-100);
+        background: var(--bg-pure-white);
+        color: var(--text-slate-400);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: all 0.18s ease;
+      }
+      .lv-note-close-btn:hover {
+        color: var(--text-slate-900);
+        border-color: var(--border-slate-300);
+        background: var(--bg-slate-50);
+        transform: scale(1.04);
+      }
+      .lv-note-modal-body {
+        padding: 20px 24px;
+      }
+      .lv-note-tab-btn {
+        padding: 3px 10px;
+        border-radius: 5px;
+        font-size: 11px;
+        font-weight: 700;
+        border: none;
+        cursor: pointer;
+        background: transparent;
+        color: var(--text-slate-500);
+        transition: all 0.15s ease;
+      }
+      .lv-note-tab-btn.is-active {
+        background: var(--bg-pure-white);
+        color: #2563eb;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+      }
+      .lv-note-quick-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        padding: 4px 10px;
+        border-radius: 7px;
+        font-size: 11.5px;
+        font-weight: 600;
+        cursor: pointer;
+        background: var(--bg-slate-100, #f1f5f9);
+        color: var(--text-slate-700, #334155);
+        border: 1px solid var(--border-slate-200, #e2e8f0);
+        transition: all 0.18s ease;
+        user-select: none;
+      }
+      .lv-note-quick-chip:hover {
+        transform: translateY(-1px);
+      }
+      .lv-note-quick-chip.chip-time:hover {
+        background: rgba(59, 130, 246, 0.12);
+        color: #2563eb;
+        border-color: rgba(59, 130, 246, 0.35);
+      }
+      .lv-note-quick-chip.chip-call:hover {
+        background: rgba(16, 185, 129, 0.12);
+        color: #059669;
+        border-color: rgba(16, 185, 129, 0.35);
+      }
+      .lv-note-quick-chip.chip-meet:hover {
+        background: rgba(139, 92, 246, 0.12);
+        color: #7c3aed;
+        border-color: rgba(139, 92, 246, 0.35);
+      }
+      .lv-note-quick-chip.chip-action:hover {
+        background: rgba(245, 158, 11, 0.12);
+        color: #d97706;
+        border-color: rgba(245, 158, 11, 0.35);
+      }
+      .lv-note-quick-chip.chip-step:hover {
+        background: rgba(6, 182, 212, 0.12);
+        color: #0891b2;
+        border-color: rgba(6, 182, 212, 0.35);
+      }
+      .lv-note-quick-chip.chip-warn:hover {
+        background: rgba(239, 68, 68, 0.12);
+        color: #dc2626;
+        border-color: rgba(239, 68, 68, 0.35);
+      }
+      .lv-note-toolbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 6px 10px;
+        background: var(--bg-slate-50, #f8fafc);
+        border: 1px solid var(--border-slate-200, #cbd5e1);
+        border-bottom: none;
+        border-radius: 10px 10px 0 0;
+      }
+      .lv-note-tool-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 3px;
+        padding: 3px 8px;
+        border-radius: 5px;
+        font-size: 11px;
+        font-weight: 600;
+        cursor: pointer;
+        border: 1px solid transparent;
+        background: transparent;
+        color: var(--text-slate-600);
+        transition: all 0.15s ease;
+      }
+      .lv-note-tool-btn:hover {
+        background: var(--bg-slate-200, #e2e8f0);
+        color: var(--text-slate-900);
+      }
+      .lv-note-tool-clear {
+        color: var(--text-slate-400);
+        font-size: 10.5px;
+      }
+      .lv-note-tool-clear:hover {
+        color: #ef4444;
+        background: rgba(239, 68, 68, 0.08);
+      }
+      .lv-note-textarea {
+        border-radius: 0 0 10px 10px !important;
+        font-size: 13.5px !important;
+        line-height: 1.65 !important;
+        padding: 12px 14px !important;
+        border: 1px solid var(--border-slate-200, #cbd5e1) !important;
+        background: var(--bg-slate-50, #f8fafc) !important;
+        color: var(--text-slate-900, #0f172a) !important;
+        transition: all 0.18s ease !important;
+      }
+      .lv-note-textarea:focus {
+        background: var(--bg-pure-white, #ffffff) !important;
+        border-color: #3b82f6 !important;
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15) !important;
+      }
+      .lv-note-preview-box {
+        border-radius: 10px;
+        padding: 14px 16px;
+        min-height: 220px;
+        max-height: 320px;
+        overflow-y: auto;
+        background: var(--bg-slate-50, #f8fafc);
+        border: 1px solid var(--border-slate-200, #cbd5e1);
+        font-size: 13.5px;
+        line-height: 1.65;
+        color: var(--text-slate-800);
+      }
+      .lv-note-preview-content {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+      }
+      .lv-note-preview-badge-line {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 4px 10px;
+        border-radius: 6px;
+        background: rgba(59, 130, 246, 0.08);
+        color: #1d4ed8;
+        font-weight: 600;
+        font-size: 12.5px;
+        margin: 4px 0;
+      }
+      .lv-note-preview-time-line {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        color: var(--text-slate-500);
+        font-size: 12px;
+        font-weight: 600;
+        margin: 4px 0;
+      }
+      .lv-note-preview-task-line {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 2px 0;
+      }
+      .lv-note-preview-bullet-line {
+        display: flex;
+        align-items: flex-start;
+        gap: 8px;
+        padding: 1px 0;
+      }
+      .lv-note-preview-dot {
+        color: #3b82f6;
+        font-weight: 800;
+      }
+      .lv-note-modal-title {
+        font-size: 16.5px;
+        font-weight: 800;
+        color: var(--text-slate-900, #0f172a);
+        letter-spacing: -0.015em;
+      }
+      .lv-note-modal-sub {
+        font-size: 12px;
+        color: var(--text-slate-500, #64748b);
+        font-weight: 500;
+      }
+      .lv-note-modal-sub strong {
+        color: var(--text-slate-700, #334155);
+      }
+      .lv-note-badge-blue {
+        font-size: 10px;
+        font-weight: 700;
+        padding: 2px 8px;
+        border-radius: 20px;
+        background: rgba(59, 130, 246, 0.1);
+        color: #2563eb;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        display: inline-flex;
+        align-items: center;
+        gap: 3px;
+      }
+      .lv-note-private-badge {
+        font-size: 10px;
+        font-weight: 700;
+        padding: 2px 8px;
+        border-radius: 20px;
+        background: rgba(16, 185, 129, 0.1);
+        color: #059669;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        display: inline-flex;
+        align-items: center;
+        gap: 3px;
+      }
+      .lv-note-modal-icon-view {
+        background: rgba(16, 185, 129, 0.12) !important;
+        color: #10b981 !important;
+        box-shadow: 0 8px 18px -4px rgba(16, 185, 129, 0.35) !important;
+      }
+      .lv-note-view-box {
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        padding: 16px 18px;
+        max-height: 380px;
+        overflow-y: auto;
+        color: #1e293b;
+        font-size: 13.5px;
+        line-height: 1.7;
+        white-space: pre-wrap;
+        word-break: break-word;
+        box-shadow: inset 0 1px 2px rgba(15, 23, 42, 0.03);
+      }
+      .lv-note-view-box::-webkit-scrollbar {
+        width: 6px;
+      }
+      .lv-note-view-box::-webkit-scrollbar-thumb {
+        background: #cbd5e1;
+        border-radius: 4px;
+      }
+      .lv-note-view-meta {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-top: 12px;
+        font-size: 11.5px;
+        color: #64748b;
+      }
+      .lv-note-modal-footer {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 16px 24px;
+        background: var(--bg-slate-50, #f8fafc);
+        border-top: 1px solid var(--border-slate-100, #e2e8f0);
+      }
+      [data-theme='dark'] .lv-note-modal .ant-modal-content {
+        background: #0f172a !important;
+        border-color: #1e293b !important;
+      }
+      [data-theme='dark'] .lv-note-modal-head {
+        border-color: #1e293b !important;
+        background: linear-gradient(180deg, rgba(59, 130, 246, 0.08) 0%, rgba(15, 23, 42, 0) 100%) !important;
+      }
+      [data-theme='dark'] .lv-note-modal-title {
+        color: #f1f5f9 !important;
+      }
+      [data-theme='dark'] .lv-note-modal-sub {
+        color: #94a3b8 !important;
+      }
+      [data-theme='dark'] .lv-note-modal-sub strong {
+        color: #cbd5e1 !important;
+      }
+      [data-theme='dark'] .lv-note-badge-blue {
+        background: rgba(59, 130, 246, 0.18) !important;
+        color: #60a5fa !important;
+        border: 1px solid rgba(59, 130, 246, 0.3) !important;
+      }
+      [data-theme='dark'] .lv-note-private-badge {
+        background: rgba(16, 185, 129, 0.18) !important;
+        color: #34d399 !important;
+        border: 1px solid rgba(16, 185, 129, 0.3) !important;
+      }
+      [data-theme='dark'] .lv-note-modal-icon-view {
+        background: rgba(16, 185, 129, 0.2) !important;
+        color: #34d399 !important;
+        box-shadow: 0 8px 18px -4px rgba(16, 185, 129, 0.25) !important;
+      }
+      [data-theme='dark'] .lv-note-view-box {
+        background: #0b1120 !important;
+        border-color: #334155 !important;
+        color: #f1f5f9 !important;
+        box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.4) !important;
+      }
+      [data-theme='dark'] .lv-note-view-box::-webkit-scrollbar-thumb {
+        background: #334155 !important;
+      }
+      [data-theme='dark'] .lv-note-view-meta {
+        color: #94a3b8 !important;
+      }
+      [data-theme='dark'] .lv-note-close-btn {
+        background: #1e293b;
+        border-color: #334155;
+        color: #94a3b8;
+      }
+      [data-theme='dark'] .lv-note-close-btn:hover {
+        background: #334155;
+        color: #f8fafc;
+      }
+      [data-theme='dark'] .lv-note-tab-btn.is-active {
+        background: #1e293b;
+        color: #60a5fa;
+      }
+      [data-theme='dark'] .lv-note-modal-footer {
+        background: #0b1120 !important;
+        border-color: #1e293b !important;
+      }
+      [data-theme='dark'] .lv-note-modal-footer .ant-btn:not(.ant-btn-primary) {
+        background: #1e293b !important;
+        border-color: #334155 !important;
+        color: #e2e8f0 !important;
+      }
+      [data-theme='dark'] .lv-note-modal-footer .ant-btn:not(.ant-btn-primary):hover {
+        background: #334155 !important;
+        border-color: #475569 !important;
+        color: #ffffff !important;
+      }
+      [data-theme='dark'] .lv-note-modal-footer .ant-btn-primary {
+        background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%) !important;
+        border: none !important;
+        color: #ffffff !important;
+      }
+      [data-theme='dark'] .lv-note-toolbar {
+        background: #0b1120 !important;
+        border-color: #334155 !important;
+      }
+      [data-theme='dark'] .lv-note-tool-btn {
+        color: #94a3b8 !important;
+      }
+      [data-theme='dark'] .lv-note-tool-btn:hover {
+        background: #1e293b !important;
+        color: #f8fafc !important;
+      }
+      [data-theme='dark'] .lv-note-textarea {
+        background: #0b1120 !important;
+        border-color: #334155 !important;
+        color: #f1f5f9 !important;
+      }
+      [data-theme='dark'] .lv-note-textarea:focus {
+        background: #0f172a !important;
+        border-color: #3b82f6 !important;
+      }
+      [data-theme='dark'] .lv-note-preview-box {
+        background: #0b1120 !important;
+        border-color: #334155 !important;
+        color: #e2e8f0 !important;
+      }
+      [data-theme='dark'] .lv-note-preview-badge-line {
+        background: rgba(59, 130, 246, 0.15) !important;
+        color: #93c5fd !important;
+      }
+      [data-theme='dark'] .lv-note-quick-chip {
+        background: rgba(255, 255, 255, 0.04) !important;
+        border-color: #334155 !important;
+        color: #cbd5e1 !important;
+      }
+      [data-theme='dark'] .lv-note-quick-chip:hover {
+        background: rgba(59, 130, 246, 0.15) !important;
+        border-color: #3b82f6 !important;
+        color: #93c5fd !important;
+      }
+
+      /* Tag and Badge styles */
+      .lv-company-type-tag {
+        font-size: 11px;
+        font-weight: 600;
+        color: #4f46e5;
+        background: #eef2ff;
+        border: 1px solid #c7d2fe;
+        padding: 2px 8px;
+        border-radius: 999px;
+      }
+      .lv-highlight-label {
+        font-size: 10.5px;
+        color: #64748b;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+      }
+      .lv-highlight-val {
+        font-size: 13.5px;
+        font-weight: 700;
+        color: var(--text-slate-900, #0f172a);
+      }
+      .lv-tile-val-empty {
+        color: var(--text-slate-400, #94a3b8) !important;
+      }
+      .lv-card-head-action-muted {
+        color: var(--text-slate-400, #64748b) !important;
+      }
+      .lv-about-prose {
+        color: var(--text-slate-700, #334155);
+      }
+      .lv-reviews-head {
+        color: #b45309;
+      }
+      .lv-reviews-prose {
+        color: #451a03;
+      }
+      .lv-contact-note-text {
+        color: var(--text-slate-600, #475569);
+      }
+      .lv-empty-state-title {
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--text-slate-900, #0f172a);
+        margin-bottom: 2px;
+      }
+      .lv-empty-state-desc {
+        font-size: 11.5px;
+        color: var(--text-slate-400, #64748b);
+      }
+      .lv-proposal-badge {
+        font-size: 11px;
+        font-weight: 600;
+        padding: 2px 8px;
+        border-radius: 999px;
+      }
+      .lv-proposal-badge.has-proposal {
+        background: #ecfdf5;
+        color: #059669;
+        border: 1px solid #a7f3d0;
+      }
+      .lv-proposal-badge.no-proposal {
+        background: #f1f5f9;
+        color: #64748b;
+        border: 1px solid #e2e8f0;
+      }
+      .lv-tl-author {
+        color: var(--text-slate-400, #64748b);
+      }
+      .lv-tl-user {
+        color: var(--text-slate-700, #475569);
+      }
+      .lv-tl-metadata {
+        color: var(--text-slate-400, #94a3b8);
+        background: rgba(0,0,0,0.03);
+        border: 1px solid rgba(0,0,0,0.05);
+      }
+
+      /* Dark mode overrides for Intake cards and elements */
+      [data-theme='dark'] .lv-intake-3col-layout {
+        background: var(--bg-secondary) !important;
+        border: none !important;
+      }
+      [data-theme='dark'] .lv-intake-col:not(:last-child) {
+        border-right-color: var(--border-slate-100) !important;
+      }
+      @media (max-width: 1200px) {
+        [data-theme='dark'] .lv-intake-col:not(:last-child) {
+          border-bottom-color: var(--border-slate-100) !important;
+        }
+      }
+      [data-theme='dark'] .lv-intake-card {
+        background: transparent !important;
+        border: none !important;
+        box-shadow: none !important;
+      }
+      [data-theme='dark'] .lv-intake-card:not(:last-child) {
+        border-bottom: 1px solid var(--border-slate-100) !important;
+      }
+      [data-theme='dark'] .lv-intake-card:hover {
+        border-color: transparent !important;
+        box-shadow: none !important;
+      }
+      [data-theme='dark'] .lv-company-type-tag {
+        color: #a5b4fc !important;
+        background: rgba(99, 102, 241, 0.15) !important;
+        border-color: rgba(99, 102, 241, 0.3) !important;
+      }
+      [data-theme='dark'] .lv-card-head-title {
+        color: var(--text-slate-100) !important;
+      }
+      [data-theme='dark'] .lv-card-head-sub {
+        color: var(--text-slate-400) !important;
+      }
+      [data-theme='dark'] .lv-card-head-action {
+        color: #60a5fa !important;
+      }
+      [data-theme='dark'] .lv-card-head-action-muted {
+        color: var(--text-slate-500) !important;
+      }
+      [data-theme='dark'] .lv-card-icon-circle {
+        background: rgba(255, 255, 255, 0.05) !important;
+        border: 1px solid rgba(255, 255, 255, 0.08) !important;
+      }
+      [data-theme='dark'] .lv-card-icon-circle-sm {
+        background: rgba(255, 255, 255, 0.05) !important;
+        border: 1px solid rgba(255, 255, 255, 0.08) !important;
+      }
+      [data-theme='dark'] .lv-card-highlight-banner {
+        background: rgba(59, 130, 246, 0.12) !important;
+        border-color: rgba(59, 130, 246, 0.25) !important;
+      }
+      [data-theme='dark'] .lv-highlight-label {
+        color: #93c5fd !important;
+      }
+      [data-theme='dark'] .lv-highlight-val {
+        color: #ffffff !important;
+      }
+      [data-theme='dark'] .lv-intake-facts-vlist {
+        background: transparent !important;
+      }
+      [data-theme='dark'] .lv-fact-bullet-item {
+        border-color: var(--border-slate-100) !important;
+      }
+      [data-theme='dark'] .lv-fact-bullet-left {
+        color: var(--text-slate-400) !important;
+      }
+      [data-theme='dark'] .lv-fact-bullet-val {
+        color: var(--text-slate-100) !important;
+      }
+      [data-theme='dark'] .lv-proposal-badge.has-proposal {
+        background: rgba(16, 185, 129, 0.15) !important;
+        color: #34d399 !important;
+        border-color: rgba(16, 185, 129, 0.3) !important;
+      }
+      [data-theme='dark'] .lv-proposal-badge.no-proposal {
+        background: rgba(255, 255, 255, 0.04) !important;
+        color: var(--text-slate-400) !important;
+        border-color: var(--border-slate-100) !important;
+      }
+      [data-theme='dark'] .lv-card-footer-banner {
+        background: rgba(255, 255, 255, 0.03) !important;
+        border-color: var(--border-slate-100) !important;
+        color: var(--text-slate-300) !important;
+      }
+      [data-theme='dark'] .lv-card-footer-banner:hover {
+        background: rgba(255, 255, 255, 0.06) !important;
+        border-color: #334155 !important;
+        color: #ffffff !important;
+      }
+      [data-theme='dark'] .lv-card-footer-banner svg {
+        color: #60a5fa !important;
+      }
+      [data-theme='dark'] .lv-intake-row-item {
+        border-bottom-color: var(--border-slate-100) !important;
+      }
+      [data-theme='dark'] .lv-row-title {
+        color: var(--text-slate-100) !important;
+      }
+      [data-theme='dark'] .lv-row-subtitle {
+        color: var(--text-slate-400) !important;
+      }
+      [data-theme='dark'] .lv-item-pill {
+        background: var(--bg-primary) !important;
+        border-color: var(--border-slate-100) !important;
+        color: var(--text-slate-300) !important;
+      }
+      [data-theme='dark'] .lv-item-pill:hover {
+        border-color: #3b82f6 !important;
+        color: #60a5fa !important;
+      }
+      [data-theme='dark'] .lv-doc-icon-badge {
+        background: rgba(124, 58, 237, 0.15) !important;
+        color: #a78bfa !important;
+        border: 1px solid rgba(124, 58, 237, 0.3) !important;
+      }
+      [data-theme='dark'] .lv-doc-action-btn {
+        background: var(--bg-primary) !important;
+        border-color: var(--border-slate-100) !important;
+        color: var(--text-slate-300) !important;
+      }
+      [data-theme='dark'] .lv-doc-action-btn:hover {
+        background: rgba(59, 130, 246, 0.15) !important;
+        border-color: rgba(59, 130, 246, 0.3) !important;
+        color: #60a5fa !important;
+      }
+      [data-theme='dark'] .lv-card-empty-state {
+        background: rgba(255, 255, 255, 0.02) !important;
+        border-color: var(--border-slate-100) !important;
+      }
+      [data-theme='dark'] .lv-empty-state-title {
+        color: var(--text-slate-100) !important;
+      }
+      [data-theme='dark'] .lv-empty-state-desc {
+        color: var(--text-slate-400) !important;
+      }
+      [data-theme='dark'] .lv-info-tile {
+        background: rgba(255, 255, 255, 0.03) !important;
+        border-color: var(--border-slate-100) !important;
+      }
+      [data-theme='dark'] .lv-info-tile:hover {
+        background: rgba(255, 255, 255, 0.06) !important;
+      }
+      [data-theme='dark'] .lv-info-tile-label {
+        color: var(--text-slate-400) !important;
+      }
+      [data-theme='dark'] .lv-info-tile-val {
+        color: var(--text-slate-100) !important;
+      }
+      [data-theme='dark'] .lv-tile-val-empty {
+        color: var(--text-slate-500) !important;
+      }
+      [data-theme='dark'] a.lv-info-tile-link {
+        color: #60a5fa !important;
+      }
+      [data-theme='dark'] .lv-about-box {
+        background: rgba(255, 255, 255, 0.02) !important;
+        border-color: var(--border-slate-100) !important;
+      }
+      [data-theme='dark'] .lv-about-box-head {
+        color: var(--text-slate-200) !important;
+      }
+      [data-theme='dark'] .lv-about-head-ic {
+        color: #818cf8 !important;
+      }
+      [data-theme='dark'] .lv-about-prose {
+        color: var(--text-slate-300) !important;
+      }
+      [data-theme='dark'] .lv-reviews-box {
+        background: rgba(245, 158, 11, 0.08) !important;
+        border-color: rgba(245, 158, 11, 0.22) !important;
+      }
+      [data-theme='dark'] .lv-reviews-head {
+        color: #fde68a !important;
+      }
+      [data-theme='dark'] .lv-reviews-head-ic {
+        color: #fbbf24 !important;
+      }
+      [data-theme='dark'] .lv-reviews-prose {
+        color: #fef3c7 !important;
+      }
+      [data-theme='dark'] .lv-metric-tile {
+        background: rgba(255, 255, 255, 0.03) !important;
+        border-color: var(--border-slate-100) !important;
+      }
+      [data-theme='dark'] .lv-metric-tile-title {
+        color: var(--text-slate-400) !important;
+      }
+      [data-theme='dark'] .lv-note-box {
+        background: rgba(255, 255, 255, 0.02) !important;
+        border-color: var(--border-slate-100) !important;
+      }
+      [data-theme='dark'] .lv-note-box-head {
+        border-bottom-color: var(--border-slate-100) !important;
+      }
+      [data-theme='dark'] .lv-note-badge {
+        background: rgba(59, 130, 246, 0.15) !important;
+        border-color: rgba(59, 130, 246, 0.3) !important;
+        color: #93c5fa !important;
+      }
+      [data-theme='dark'] .lv-dm-notes-callout {
+        background: rgba(255, 255, 255, 0.03) !important;
+        color: var(--text-slate-300) !important;
+      }
+      [data-theme='dark'] .lv-mail-to {
+        color: var(--text-slate-400) !important;
+      }
+      [data-theme='dark'] .lv-mail-snippet {
+        background: rgba(255, 255, 255, 0.03) !important;
+        border-color: var(--border-slate-100) !important;
+        color: var(--text-slate-300) !important;
+      }
+      [data-theme='dark'] .lv-contact-box {
+        background: rgba(255, 255, 255, 0.03) !important;
+        border-color: var(--border-slate-100) !important;
+      }
+      [data-theme='dark'] .lv-contact-box:hover {
+        background: rgba(255, 255, 255, 0.05) !important;
+        border-color: #334155 !important;
+      }
+      [data-theme='dark'] .lv-contact-avatar-pill {
+        background: rgba(16, 185, 129, 0.15) !important;
+        border-color: rgba(16, 185, 129, 0.3) !important;
+        color: #34d399 !important;
+      }
+      [data-theme='dark'] .lv-contact-name-txt {
+        color: var(--text-slate-100) !important;
+      }
+      [data-theme='dark'] .lv-contact-role-txt {
+        color: var(--text-slate-400) !important;
+      }
+      [data-theme='dark'] .lv-contact-primary-tag {
+        background: rgba(16, 185, 129, 0.15) !important;
+        border-color: rgba(16, 185, 129, 0.3) !important;
+        color: #34d399 !important;
+      }
+      [data-theme='dark'] .lv-caction-btn {
+        background: var(--bg-primary) !important;
+      }
+      [data-theme='dark'] .lv-caction-phone {
+        border-color: rgba(16, 185, 129, 0.3) !important;
+        color: #34d399 !important;
+      }
+      [data-theme='dark'] .lv-caction-email {
+        border-color: rgba(99, 102, 241, 0.3) !important;
+        color: #818cf8 !important;
+      }
+      [data-theme='dark'] .lv-caction-linkedin {
+        border-color: rgba(59, 130, 246, 0.3) !important;
+        color: #60a5fa !important;
+      }
+      [data-theme='dark'] .lv-contact-note-strip {
+        background: rgba(255, 255, 255, 0.02) !important;
+        border-color: var(--border-slate-100) !important;
+        border-left-color: #10b981 !important;
+      }
+      [data-theme='dark'] .lv-contact-note-text {
+        color: var(--text-slate-300) !important;
+      }
+
+      /* Dark mode for Timeline Drawer */
+      [data-theme='dark'] .lv-timeline-drawer .ant-drawer-content,
+      [data-theme='dark'] .lv-timeline-drawer .ant-drawer-header {
+        background: var(--bg-secondary) !important;
+        border-color: var(--border-slate-100) !important;
+      }
+      [data-theme='dark'] .lv-timeline-drawer .ant-drawer-title {
+        color: var(--text-slate-100) !important;
+      }
+      [data-theme='dark'] .lv-timeline-drawer .ant-drawer-close {
+        color: var(--text-slate-400) !important;
+      }
+      [data-theme='dark'] .lv-timeline-drawer .ant-drawer-close:hover {
+        color: #ffffff !important;
+      }
+      [data-theme='dark'] .lv-tl-author {
+        color: var(--text-slate-400) !important;
+      }
+      [data-theme='dark'] .lv-tl-user {
+        color: var(--text-slate-200) !important;
+      }
+      [data-theme='dark'] .lv-tl-metadata {
+        color: var(--text-slate-400) !important;
+        background: rgba(255, 255, 255, 0.04) !important;
+        border-color: rgba(255, 255, 255, 0.08) !important;
+      }
+
 
       /* ===================== Initialize Project modal ===================== */
       .lv-init-modal .ant-modal-content {
@@ -2905,6 +5401,10 @@ const leadViewStyles = (
       .lv-input.lv-input-textarea.ant-input { padding: 10px 12px !important; }
 
       /* ===================== Dark theme ===================== */
+      [data-theme='dark'] .lv-page {
+        background: var(--bg-primary);
+        color: var(--text-slate-100);
+      }
       [data-theme='dark'] .lv-topbar { background: var(--bg-secondary); border-bottom-color: var(--border-slate-100); }
       [data-theme='dark'] .lv-back-btn.ant-btn,
       [data-theme='dark'] .lv-secondary-btn.ant-btn,
@@ -2915,6 +5415,35 @@ const leadViewStyles = (
         background: var(--bg-secondary) !important;
         border-color: var(--border-slate-100) !important;
       }
+      [data-theme='dark'] .lv-back-btn.ant-btn:hover,
+      [data-theme='dark'] .lv-secondary-btn.ant-btn:hover {
+        background: rgba(255, 255, 255, 0.06) !important;
+        border-color: #334155 !important;
+        color: #ffffff !important;
+      }
+      [data-theme='dark'] .lv-hero-title,
+      [data-theme='dark'] .lv-section-title,
+      [data-theme='dark'] .lv-kpi-value,
+      [data-theme='dark'] .lv-cinfo-name,
+      [data-theme='dark'] .lv-dm-name {
+        color: var(--text-slate-100) !important;
+      }
+      [data-theme='dark'] .lv-hero-sub,
+      [data-theme='dark'] .lv-section-sub,
+      [data-theme='dark'] .lv-hero-meta,
+      [data-theme='dark'] .lv-cinfo-sub {
+        color: var(--text-slate-400) !important;
+      }
+      [data-theme='dark'] .lv-cinfo-val,
+      [data-theme='dark'] .lv-dm-v,
+      [data-theme='dark'] .lv-fact-val {
+        color: var(--text-slate-100) !important;
+      }
+      [data-theme='dark'] .lv-cinfo-key,
+      [data-theme='dark'] .lv-dm-k,
+      [data-theme='dark'] .lv-fact-key {
+        color: var(--text-slate-400) !important;
+      }
       [data-theme='dark'] .lv-kpi,
       [data-theme='dark'] .lv-notes,
       [data-theme='dark'] .lv-doc-row,
@@ -2924,6 +5453,24 @@ const leadViewStyles = (
       }
       [data-theme='dark'] .lv-verify.off { background: var(--bg-primary); border-color: var(--border-slate-100); }
       [data-theme='dark'] .lv-section-count { background: var(--bg-primary); border-color: var(--border-slate-100); }
+      [data-theme='dark'] .lv-timeline-grid {
+        background: transparent !important;
+      }
+      [data-theme='dark'] .lv-timeline-item {
+        border-color: var(--border-slate-100) !important;
+      }
+      [data-theme='dark'] .lv-timeline-label {
+        color: var(--text-slate-400) !important;
+      }
+      [data-theme='dark'] .lv-timeline-date {
+        color: var(--text-slate-100) !important;
+      }
+      [data-theme='dark'] .lv-input.ant-input,
+      [data-theme='dark'] .lv-input.ant-input-affix-wrapper {
+        background: var(--bg-primary) !important;
+        border-color: var(--border-slate-100) !important;
+        color: var(--text-slate-100) !important;
+      }
 
       /* Form Details */
       .lv-form-details-grid {

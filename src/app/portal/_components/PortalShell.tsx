@@ -23,6 +23,8 @@ import {
   LogOut,
   KeyRound,
   LucideIcon,
+  Menu,
+  X,
 } from "lucide-react";
 import { Dropdown } from "antd";
 import { useClientPortalAuth } from "@/context/ClientPortalAuthContext";
@@ -73,6 +75,11 @@ export default function PortalShell({
   const router = useRouter();
   const { user, loading, logout } = useClientPortalAuth();
   const [changePwOpen, setChangePwOpen] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  useEffect(() => {
+    setSidebarOpen(false);
+  }, [pathname]);
 
   // A page disabled for this client should not be reachable even by typing the
   // URL directly. Backward-compatible: if enabledModules is missing, allow all.
@@ -129,20 +136,31 @@ export default function PortalShell({
     .toUpperCase();
 
   return (
-    <div style={{ minHeight: "100vh", background: "#fafafa", display: "flex" }}>
-      {/* Sidebar */}
-      <aside
-        style={{
-          width: 248,
-          background: "#ffffff",
-          borderRight: "1px solid #e5e7eb",
-          display: "flex",
-          flexDirection: "column",
-          position: "sticky",
-          top: 0,
-          height: "100vh",
-        }}
-      >
+    <div style={{ minHeight: "100vh", background: "#fafafa", display: "flex", flexDirection: "column" }}>
+      {/* Mobile Header */}
+      <div className="portal-mobile-header">
+        <button onClick={() => setSidebarOpen(true)} className="hamburger-btn">
+          <Menu size={20} />
+        </button>
+        <div className="mobile-header-title">{tenantDisplayName}</div>
+      </div>
+
+      <div style={{ flex: 1, display: "flex", position: "relative" }}>
+        {/* Overlay */}
+        {sidebarOpen && (
+          <div
+            className="portal-sidebar-overlay"
+            onClick={() => setSidebarOpen(false)}
+          />
+        )}
+
+        {/* Sidebar */}
+        <aside className={`portal-sidebar ${sidebarOpen ? "open" : ""}`}>
+          <div className="sidebar-mobile-close">
+            <button onClick={() => setSidebarOpen(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4 }}>
+              <X size={20} color="#64748b" />
+            </button>
+          </div>
         {/* Brand */}
         <div
           style={{
@@ -367,6 +385,83 @@ export default function PortalShell({
         open={changePwOpen}
         onClose={() => setChangePwOpen(false)}
       />
+
+      <style jsx global>{`
+        .portal-mobile-header {
+          display: none;
+          align-items: center;
+          gap: 12px;
+          padding: 12px 16px;
+          background: #ffffff;
+          border-bottom: 1px solid #e5e7eb;
+          position: sticky;
+          top: 0;
+          z-index: 40;
+        }
+        .hamburger-btn {
+          background: none;
+          border: none;
+          padding: 4px;
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          color: #0f172a;
+        }
+        .mobile-header-title {
+          font-size: 15px;
+          font-weight: 700;
+          color: #0f172a;
+        }
+        .portal-sidebar {
+          width: 248px;
+          background: #ffffff;
+          border-right: 1px solid #e5e7eb;
+          display: flex;
+          flex-direction: column;
+          position: sticky;
+          top: 0;
+          height: 100vh;
+          flex-shrink: 0;
+          transition: transform 0.3s ease;
+          z-index: 9999;
+        }
+        .sidebar-mobile-close {
+          display: none;
+          padding: 12px;
+          text-align: right;
+          border-bottom: 1px solid #f1f5f9;
+        }
+        .portal-sidebar-overlay {
+          display: none;
+        }
+        @media (max-width: 900px) {
+          .portal-mobile-header {
+            display: flex;
+          }
+          .portal-sidebar {
+            position: fixed;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            transform: translateX(-100%);
+          }
+          .portal-sidebar.open {
+            transform: translateX(0);
+          }
+          .sidebar-mobile-close {
+            display: block;
+          }
+          .portal-sidebar-overlay {
+            display: block;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.4);
+            z-index: 9998;
+          }
+        }
+      `}</style>
+      </div>
     </div>
   );
 }

@@ -2,6 +2,7 @@
 
 import NoData from "@/components/common/NoData";
 import React, { useState, useMemo } from "react";
+import { QaProjectSwitcher } from "@/components/qa/QaProjectGate";
 import {
   Table,
   Button,
@@ -520,50 +521,18 @@ export default function TrashManagementPage() {
         <div style={{ width: 1, height: 22, background: "var(--border-slate-200)", flexShrink: 0 }} />
 
         {/* Project Switcher Dropdown (identical to TicketList) */}
-        <Dropdown
-          menu={{ items: projectMenuItems }}
-          overlayClassName="project-switch-pop"
-          trigger={["click"]}
-        >
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 8,
-              cursor: "pointer",
-              padding: "2px 6px",
-              borderRadius: 8,
-            }}
-            className="project-switch-trigger transition-colors"
-          >
-            <div
-              style={{
-                padding: "0 6px",
-                height: 26,
-                borderRadius: 6,
-                background: "var(--premium-gradient, #3b82f6)",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                color: "#fff",
-                fontSize: 9,
-                fontWeight: 800,
-                boxShadow: "var(--premium-shadow-lg, 0 2px 6px rgba(59,130,246,0.3))",
-                minWidth: 30,
-              }}
-            >
-              {displayCode}
-            </div>
-            <div>
-              <div style={{ fontSize: 12, fontWeight: 700, color: "var(--text-slate-900)", lineHeight: 1.2 }}>
-                {displayName}
-              </div>
-              <div style={{ fontSize: 10, color: "var(--text-slate-500)", fontWeight: 600, display: "flex", alignItems: "center", gap: 3 }}>
-                Switch Project <CaretRightOutlined style={{ fontSize: 7 }} />
-              </div>
-            </div>
-          </div>
-        </Dropdown>
+        <QaProjectSwitcher
+          projects={(userProjects || []).map((p: any) => ({
+            value: p.id || p.value,
+            label: p.name || p.label,
+            code: p.code
+          }))}
+          value={projectFilter || null}
+          onChange={(id) => {
+            setProjectFilter(id || undefined);
+            setPagination((p) => ({ ...p, current: 1 }));
+          }}
+        />
 
         <div style={{ width: 1, height: 22, background: "var(--border-slate-200)", flexShrink: 0 }} />
 

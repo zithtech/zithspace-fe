@@ -23,6 +23,7 @@ import {
   Upload,
   message,
   Pagination,
+  Dropdown,
 } from 'antd';
 import {
   CloudUploadOutlined,
@@ -47,6 +48,11 @@ import {
   Menu,
   RotateCw,
   User,
+  LayoutGrid,
+  List,
+  MoreHorizontal,
+  Download,
+  Trash2,
 } from 'lucide-react';
 import type { UploadFile } from 'antd/es/upload/interface';
 import type { RcFile } from 'antd/es/upload';
@@ -410,6 +416,7 @@ export default function OnboardingDocumentsPanel() {
   const [filterType, setFilterType] = useState<string | undefined>();
   const [filterStatus, setFilterStatus] = useState<string | undefined>();
   const [isFilterRowOpen, setIsFilterRowOpen] = useState(false);
+  const [viewMode, setViewMode] = useState<'list' | 'grid'>('grid');
   const [tablePage, setTablePage] = useState(1);
   const [tablePageSize, setTablePageSize] = useState(15);
   const [total, setTotal] = useState(0);
@@ -562,6 +569,14 @@ export default function OnboardingDocumentsPanel() {
             onToggle={() => setIsFilterRowOpen((prev) => !prev)}
             activeCount={(filterStatus ? 1 : 0) + (filterEmployee ? 1 : 0) + (filterType ? 1 : 0)}
           />
+          <div className="onb-view-toggles">
+            <button type="button" className={viewMode === "grid" ? "is-active" : ""} onClick={() => setViewMode("grid")}>
+              <LayoutGrid size={14} />
+            </button>
+            <button type="button" className={viewMode === "list" ? "is-active" : ""} onClick={() => setViewMode("list")}>
+              <List size={14} />
+            </button>
+          </div>
           <Tooltip title="Refresh">
             <button
               type="button"
@@ -636,99 +651,219 @@ export default function OnboardingDocumentsPanel() {
       )}
 
       {/* ── Table ───────────────────────────────────────────────────────── */}
-      <div className="ob-doc-table-wrap">
-        {/* Header row */}
-        <div className="ob-doc-table-head">
-          <div className="ob-doc-col ob-doc-col--employee">Employee</div>
-          <div className="ob-doc-col ob-doc-col--name">Document Name</div>
-          <div className="ob-doc-col ob-doc-col--type">Type</div>
-          <div className="ob-doc-col ob-doc-col--date">Upload Date</div>
-          <div className="ob-doc-col ob-doc-col--by">Uploaded By</div>
-          <div className="ob-doc-col ob-doc-col--status">Status</div>
-          <div className="ob-doc-col ob-doc-col--actions">Actions</div>
-        </div>
+      <div className="ob-doc-table-wrap" style={{ background: viewMode === 'grid' ? 'transparent' : undefined, border: viewMode === 'grid' ? 'none' : undefined }}>
+        {viewMode === 'list' ? (
+          <>
+            {/* Header row */}
+            <div className="ob-doc-table-head">
+              <div className="ob-doc-col ob-doc-col--employee">Employee</div>
+              <div className="ob-doc-col ob-doc-col--name">Document Name</div>
+              <div className="ob-doc-col ob-doc-col--type">Type</div>
+              <div className="ob-doc-col ob-doc-col--date">Upload Date</div>
+              <div className="ob-doc-col ob-doc-col--by">Uploaded By</div>
+              <div className="ob-doc-col ob-doc-col--status">Status</div>
+              <div className="ob-doc-col ob-doc-col--actions">Actions</div>
+            </div>
 
-        {/* Body */}
-        {loading ? (
-          <div className="ob-doc-center">
-            <Space direction="vertical" align="center">
-              <ZukvoLoader size="lg" />
-              <div style={{ color: 'var(--text-slate-500)', fontSize: 13, marginTop: 4 }}>Loading documents…</div>
-            </Space>
-          </div>
-        ) : documents.length === 0 ? (
-          <div className="ob-doc-center">
-            <NoData description={
-                                          <Text style={{ color: 'var(--text-slate-400)', fontSize: 13 }}>
-                                            No documents found. Click <strong>Add Document</strong> to upload the first one.
-                                          </Text>
-                                        } />
-          </div>
-        ) : (
-          pagedDocs.map((doc) => {
-            const st = effectiveStatus(doc);
-            const stCfg = STATUS_CONFIG[st] || STATUS_CONFIG.uploaded;
-            return (
-              <div key={doc.id} className="ob-doc-row">
-                {/* Employee */}
-                <div className="ob-doc-col ob-doc-col--employee">
-                  <Avatar size={30} style={{ background: 'var(--bg-blue-50)', color: '#3b82f6', fontSize: 12, fontWeight: 700, flexShrink: 0 }}>
-                    {doc.employeeName?.charAt(0)?.toUpperCase() || '?'}
-                  </Avatar>
-                  <span className="ob-doc-emp-name">{doc.employeeName || '—'}</span>
-                </div>
-                {/* Document Name */}
-                <div className="ob-doc-col ob-doc-col--name">
-                  <FilePdfOutlined style={{ color: '#ef4444', flexShrink: 0 }} />
-                  <span className="ob-doc-doc-name">{doc.documentName}</span>
-                </div>
-                {/* Type */}
-                <div className="ob-doc-col ob-doc-col--type">
-                  <span className="ob-doc-type-badge">{doc.documentType}</span>
-                </div>
-                {/* Date */}
-                <div className="ob-doc-col ob-doc-col--date ob-doc-muted">
-                  {doc.uploadedAt ? dayjs(doc.uploadedAt).format('MMM D, YYYY') : '—'}
-                </div>
-                {/* By */}
-                <div className="ob-doc-col ob-doc-col--by ob-doc-muted">
-                  {doc.uploadedByName || '—'}
-                </div>
-                {/* Status */}
-                <div className="ob-doc-col ob-doc-col--status">
-                  <span
-                    className="ob-doc-status-badge"
-                    style={{ color: stCfg.color, background: stCfg.bg }}
-                  >
-                    {stCfg.label}
-                  </span>
-                </div>
-                {/* Actions */}
-                <div className="ob-doc-col ob-doc-col--actions">
-                  <Tooltip title="Download">
-                    <a href={doc.documentUrl} download className="ob-doc-action-btn">
-                      <DownloadOutlined />
-                    </a>
-                  </Tooltip>
-                  <Popconfirm
-                    title="Delete this document?"
-                    description="This cannot be undone."
-                    onConfirm={() => handleDelete(doc.id)}
-                    okText="Delete"
-                    okButtonProps={{ danger: true }}
-                  >
-                    <button
-                      type="button"
-                      className="ob-doc-action-btn ob-doc-action-btn--danger"
-                      disabled={deleting === doc.id}
-                    >
-                      <DeleteOutlined />
-                    </button>
-                  </Popconfirm>
-                </div>
+            {/* Body */}
+            {loading ? (
+              <div className="ob-doc-center">
+                <Space direction="vertical" align="center">
+                  <ZukvoLoader size="lg" />
+                  <div style={{ color: 'var(--text-slate-500)', fontSize: 13, marginTop: 4 }}>Loading documents…</div>
+                </Space>
               </div>
-            );
-          })
+            ) : documents.length === 0 ? (
+              <div className="ob-doc-center">
+                <NoData description={
+                                              <Text style={{ color: 'var(--text-slate-400)', fontSize: 13 }}>
+                                                No documents found. Click <strong>Add Document</strong> to upload the first one.
+                                              </Text>
+                                            } />
+              </div>
+            ) : (
+              pagedDocs.map((doc) => {
+                const st = effectiveStatus(doc);
+                const stCfg = STATUS_CONFIG[st] || STATUS_CONFIG.uploaded;
+                return (
+                  <div key={doc.id} className="ob-doc-row">
+                    {/* Employee */}
+                    <div className="ob-doc-col ob-doc-col--employee">
+                      <Avatar size={30} style={{ background: 'var(--bg-blue-50)', color: '#3b82f6', fontSize: 12, fontWeight: 700, flexShrink: 0 }}>
+                        {doc.employeeName?.charAt(0)?.toUpperCase() || '?'}
+                      </Avatar>
+                      <span className="ob-doc-emp-name">{doc.employeeName || '—'}</span>
+                    </div>
+                    {/* Document Name */}
+                    <div className="ob-doc-col ob-doc-col--name">
+                      <FilePdfOutlined style={{ color: '#ef4444', flexShrink: 0 }} />
+                      <span className="ob-doc-doc-name">{doc.documentName}</span>
+                    </div>
+                    {/* Type */}
+                    <div className="ob-doc-col ob-doc-col--type">
+                      <span className="ob-doc-type-badge">{doc.documentType}</span>
+                    </div>
+                    {/* Date */}
+                    <div className="ob-doc-col ob-doc-col--date ob-doc-muted">
+                      {doc.uploadedAt ? dayjs(doc.uploadedAt).format('MMM D, YYYY') : '—'}
+                    </div>
+                    {/* By */}
+                    <div className="ob-doc-col ob-doc-col--by ob-doc-muted">
+                      {doc.uploadedByName || '—'}
+                    </div>
+                    {/* Status */}
+                    <div className="ob-doc-col ob-doc-col--status">
+                      <span
+                        className="ob-doc-status-badge"
+                        style={{ color: stCfg.color, background: stCfg.bg }}
+                      >
+                        {stCfg.label}
+                      </span>
+                    </div>
+                    {/* Actions */}
+                    <div className="ob-doc-col ob-doc-col--actions">
+                      <Tooltip title="Download">
+                        <a href={doc.documentUrl} download className="ob-doc-action-btn">
+                          <DownloadOutlined />
+                        </a>
+                      </Tooltip>
+                      <Popconfirm
+                        title="Delete this document?"
+                        description="This cannot be undone."
+                        onConfirm={() => handleDelete(doc.id)}
+                        okText="Delete"
+                        okButtonProps={{ danger: true }}
+                      >
+                        <button
+                          type="button"
+                          className="ob-doc-action-btn ob-doc-action-btn--danger"
+                          disabled={deleting === doc.id}
+                        >
+                          <DeleteOutlined />
+                        </button>
+                      </Popconfirm>
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
+            <div style={{ flex: 1, overflowY: 'auto' }}>
+              {loading ? (
+                <div className="ob-doc-center">
+                  <Space direction="vertical" align="center">
+                    <ZukvoLoader size="lg" />
+                    <div style={{ color: 'var(--text-slate-500)', fontSize: 13, marginTop: 4 }}>Loading documents…</div>
+                  </Space>
+                </div>
+              ) : documents.length === 0 ? (
+                <NoData description={
+                  <Text style={{ color: 'var(--text-slate-400)', fontSize: 13 }}>
+                    No documents found. Click <strong>Add Document</strong> to upload the first one.
+                  </Text>
+                } />
+              ) : (
+                <div className="onb-grid">
+                  {pagedDocs.map((doc) => {
+                    const st = effectiveStatus(doc);
+                    const stCfg = STATUS_CONFIG[st] || STATUS_CONFIG.uploaded;
+                    const initials = doc.employeeName?.charAt(0)?.toUpperCase() || '?';
+                    return (
+                      <div key={doc.id} className="onb-list-card">
+                        <div className="onb-list-card-head">
+                          <div className="onb-list-card-avatar" style={{ background: '#eff6ff', color: '#3b82f6' }}>
+                            {initials}
+                          </div>
+                          <div className="onb-list-card-body">
+                            <div className="onb-list-card-title">
+                              <span>{doc.employeeName || '—'}</span>
+                              <Tag style={{ margin: 0, border: 'none', background: stCfg.bg, color: stCfg.color, fontWeight: 600, borderRadius: 6 }}>
+                                {stCfg.label}
+                              </Tag>
+                            </div>
+                            <div className="onb-list-card-sub">
+                              <span className="onb-list-card-key">Doc Name:</span>
+                              <a href={doc.documentUrl} target="_blank" rel="noreferrer" className="onb-list-card-val" style={{ color: '#3b82f6' }}>
+                                {doc.documentName}
+                              </a>
+                            </div>
+                          </div>
+                          <Dropdown
+                            menu={{
+                              className: 'onb-action-pop',
+                              items: [
+                                {
+                                  key: 'download',
+                                  label: (
+                                    <a href={doc.documentUrl} download className="onb-menu-item" style={{ color: 'inherit', display: 'flex' }}>
+                                      <span className="onb-menu-ic" style={{ color: '#3b82f6', background: 'rgba(59,130,246,0.1)' }}><Download size={13} /></span>
+                                      <span className="onb-menu-text">
+                                        <span className="onb-menu-title">Download</span>
+                                      </span>
+                                    </a>
+                                  )
+                                },
+                                { type: 'divider' },
+                                {
+                                  key: 'delete',
+                                  danger: true,
+                                  label: (
+                                    <div className="onb-menu-item">
+                                      <span className="onb-menu-ic" style={{ color: '#ef4444', background: 'rgba(239,68,68,0.1)' }}><Trash2 size={13} /></span>
+                                      <span className="onb-menu-text">
+                                        <span className="onb-menu-title">Delete</span>
+                                      </span>
+                                    </div>
+                                  ),
+                                  onClick: (info: any) => {
+                                    info.domEvent.stopPropagation();
+                                    Modal.confirm({
+                                      title: 'Delete this document?',
+                                      content: 'This cannot be undone.',
+                                      okText: 'Delete',
+                                      okType: 'danger',
+                                      onOk: () => handleDelete(doc.id)
+                                    });
+                                  }
+                                }
+                              ].filter(Boolean) as any[]
+                            }}
+                            trigger={['click']}
+                          >
+                            <button type="button" className="onb-list-card-actions" onClick={e => e.stopPropagation()}>
+                              <MoreHorizontal size={14} />
+                            </button>
+                          </Dropdown>
+                        </div>
+                        
+                        <div className="onb-list-card-footer" onClick={e => e.stopPropagation()}>
+                          <div className="onb-list-card-row">
+                            <span className="onb-list-card-item">
+                              <span className="onb-list-card-key">Type:</span>
+                              <span className="onb-list-card-val">{doc.documentType}</span>
+                            </span>
+                            <span className="onb-list-card-div" />
+                            <span className="onb-list-card-item">
+                              <span className="onb-list-card-key">Uploaded:</span>
+                              <span className="onb-list-card-val">{doc.uploadedAt ? dayjs(doc.uploadedAt).format('MMM D, YYYY') : '—'}</span>
+                            </span>
+                          </div>
+                          <div className="onb-list-card-row">
+                            <span className="onb-list-card-item">
+                              <span className="onb-list-card-key">By:</span>
+                              <span className="onb-list-card-val">{doc.uploadedByName || 'System'}</span>
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
         )}
       </div>
 

@@ -2,7 +2,7 @@
 
 import NoData from "@/components/common/NoData";
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Button, Table, Tag, Drawer, Form, Input, InputNumber, DatePicker, message, Tooltip, Row, Col, Space, Avatar } from 'antd';
+import { Button, Table, Tag, Drawer, Form, Input, InputNumber, DatePicker, message, Tooltip, Row, Col, Space, Avatar, Dropdown, Modal } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import dayjs, { Dayjs } from 'dayjs';
 import {
@@ -19,10 +19,10 @@ import {
   CloseCircleOutlined,
   DeleteOutlined,
 } from '@ant-design/icons';
-import { Menu } from 'lucide-react';
+import { Menu, LayoutGrid, List, MoreHorizontal } from 'lucide-react';
 import { usePermission } from '@/hooks/usePermission';
 import ConfirmDialog from '@/components/common/ConfirmDialog';
-import { SearchableDropdown } from '@/components/common/SearchableDropdown';
+import { SearchableDropdown, initialsFor } from '@/components/common/SearchableDropdown';
 import LeaveV2Service, {
   AdjustmentKind,
   CreateAdjustmentInput,
@@ -71,6 +71,7 @@ export default function LeaveAdjustmentPanel() {
   const [isFilterRowOpen, setIsFilterRowOpen] = useState(false);
   const [tablePage, setTablePage] = useState(1);
   const [tablePageSize, setTablePageSize] = useState(15);
+  const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
 
   // drawer
   const [open, setOpen] = useState(false);
@@ -285,6 +286,14 @@ export default function LeaveAdjustmentPanel() {
             onToggle={() => setIsFilterRowOpen((prev) => !prev)}
             activeCount={dirFilter !== 'all' ? 1 : 0}
           />
+          <div className="lv-view-toggles">
+            <button type="button" className={viewMode === "grid" ? "is-active" : ""} onClick={() => setViewMode("grid")}>
+              <LayoutGrid size={14} />
+            </button>
+            <button type="button" className={viewMode === "list" ? "is-active" : ""} onClick={() => setViewMode("list")}>
+              <List size={14} />
+            </button>
+          </div>
           <Tooltip title="Refresh"><button type="button" className="lvadj-ghost-btn" onClick={() => load()}><ReloadOutlined spin={loading} /></button></Tooltip>
           {canCreateLeaveAdjustment && <Button type="primary" icon={<PlusOutlined />} onClick={openNew} className="lvadj-add-btn">New Adjustment</Button>}
         </div>
@@ -322,9 +331,98 @@ export default function LeaveAdjustmentPanel() {
         </FilterBar>
       )}
 
-      <div className="lv-table-wrap">
+      <div className="lv-table-wrap" style={{ overflowX: 'auto', background: viewMode === 'grid' ? 'transparent' : undefined, border: viewMode === 'grid' ? 'none' : undefined }}>
         <ZukvoLoadingOverlay loading={loading} message="">
-          <Table rowKey="id" size="small" className="lvadj-table" columns={columns} dataSource={paged} pagination={false} scroll={{ x: 'max-content' }} onRow={() => ({ className: 'lvadj-row' })} locale={{ emptyText: <NoData /> }} />
+          {viewMode === 'list' ? (
+            <Table rowKey="id" size="small" className="lvadj-table" columns={columns} dataSource={paged} pagination={false} scroll={{ x: 'max-content' }} onRow={() => ({ className: 'lvadj-row' })} locale={{ emptyText: <NoData /> }} />
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
+              <div style={{ flex: 1, overflowY: 'auto' }}>
+                {paged.length === 0 ? (
+                  <NoData />
+                ) : (
+                  <div className="lv-grid">
+                    {paged.map((r) => {
+                      const hasActions = canDeleteLeaveAdjustment;
+                      const sign = kindSign(r.entryType as any);
+                      const signEl = sign > 0 ? '+' : '−';
+                      const color = sign > 0 ? PALETTE.green : PALETTE.red;
+                      const tint = sign > 0 ? TINT.green : TINT.red;
+                      
+                      return (
+                        <div key={r.id} className="lv-list-card">
+                          <div className="lv-list-card-head">
+                            <div className="lv-list-card-avatar" style={{ background: r.userAvatarUrl ? 'transparent' : TINT.blue, color: PALETTE.blue }}>
+                              {r.userAvatarUrl ? <img src={r.userAvatarUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 6 }} /> : initialsFor(r.userName || '')}
+                            </div>
+                            <div className="lv-list-card-body">
+                              <div className="lv-list-card-title">
+                                <span>{r.userName}</span>
+                                <span style={{ background: tint, color: color, padding: '2px 6px', borderRadius: 6, fontSize: 10 }}>{ENTRY_LABEL[r.entryType as string] || r.entryType}</span>
+                              </div>
+                              <div className="lv-list-card-sub">
+                                <span className="lv-list-card-val" style={{ fontWeight: 500, color: 'var(--text-slate-400)' }}>
+                                  {r.leaveTypeName}
+                                </span>
+                              </div>
+                            </div>
+                            {hasActions && (
+                              <Dropdown
+                                menu={{
+                                  className: 'lv-action-pop',
+                                  items: [
+                                    {
+                                      key: 'remove',
+                                      danger: true,
+                                      label: (
+                                        <div className="lv-menu-item">
+                                          <span className="lv-menu-ic" style={{ color: PALETTE.red, background: TINT.red }}><DeleteOutlined style={{ fontSize: 13 }} /></span>
+                                          <span className="lv-menu-text"><span className="lv-menu-title">Delete Adjustment</span></span>
+                                        </div>
+                                      ),
+                                      onClick: (info: any) => {
+                                        info.domEvent.stopPropagation();
+                                        Modal.confirm({
+                                          title: 'Delete this adjustment?',
+                                          content: `Are you sure you want to delete this adjustment? This action cannot be undone.`,
+                                          okText: 'Delete',
+                                          okType: 'danger',
+                                          onOk: () => remove(r)
+                                        });
+                                      }
+                                    }
+                                  ]
+                                }}
+                                trigger={['click']}
+                              >
+                                <button type="button" className="lv-list-card-actions" onClick={e => e.stopPropagation()}>
+                                  <MoreHorizontal size={14} />
+                                </button>
+                              </Dropdown>
+                            )}
+                          </div>
+                          
+                          <div className="lv-list-card-footer" onClick={e => e.stopPropagation()}>
+                            <div className="lv-list-card-row">
+                              <span className="lv-list-card-item">
+                                <span className="lv-list-card-key">Amount:</span>
+                                <span className="lv-list-card-val" style={{ color }}>{signEl}{r.units}</span>
+                              </span>
+                              <span className="lv-list-card-div" />
+                              <span className="lv-list-card-item">
+                                <span className="lv-list-card-key">Date:</span>
+                                <span className="lv-list-card-val">{dayjs(r.effectiveDate).format('MMM DD, YYYY')}</span>
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
         </ZukvoLoadingOverlay>
       </div>
 

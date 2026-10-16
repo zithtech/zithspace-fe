@@ -378,6 +378,9 @@ export default function PortalDocumentsPage() {
     };
   }, [docs, sourceCounts, meta?.categories]);
 
+  const docsProgressPct =
+    total > 0 ? Math.min(100, Math.round((stats.internal / total) * 100)) : 0;
+
   const activeSourceLabel = useMemo(() => {
     if (source === "client") return "From your team";
     if (source === "internal") return "From Zukvo";
@@ -465,30 +468,6 @@ export default function PortalDocumentsPage() {
               onClick={() => setIsFilterRowOpen((v) => !v)}
             />
           </Space.Compact>
-
-          {/* View Toggle */}
-          <div
-            className="premium-view-toggle"
-            role="group"
-            aria-label="View mode"
-          >
-            <button
-              type="button"
-              data-active={viewMode === "table" ? "true" : "false"}
-              onClick={() => setViewMode("table")}
-              title="Table View"
-            >
-              <ListIcon size={13} />
-            </button>
-            <button
-              type="button"
-              data-active={viewMode === "card" ? "true" : "false"}
-              onClick={() => setViewMode("card")}
-              title="Card View"
-            >
-              <LayoutGrid size={13} />
-            </button>
-          </div>
         </div>
 
         <Space size={10} className="sc-header-right">
@@ -526,6 +505,30 @@ export default function PortalDocumentsPage() {
               }}
             />
           </Tooltip>
+
+          {/* View Toggle */}
+          <div
+            className="premium-view-toggle"
+            role="group"
+            aria-label="View mode"
+          >
+            <button
+              type="button"
+              data-active={viewMode === "table" ? "true" : "false"}
+              onClick={() => setViewMode("table")}
+              title="Table View"
+            >
+              <ListIcon size={13} />
+            </button>
+            <button
+              type="button"
+              data-active={viewMode === "card" ? "true" : "false"}
+              onClick={() => setViewMode("card")}
+              title="Card View"
+            >
+              <LayoutGrid size={13} />
+            </button>
+          </div>
         </Space>
       </div>
 
@@ -690,24 +693,10 @@ export default function PortalDocumentsPage() {
           <div className="tl-sprint-progress-bar">
             <div
               className="tl-sprint-progress-fill"
-              style={{
-                width: `${
-                  total > 0
-                    ? Math.min(
-                        100,
-                        Math.round((stats.internal / total) * 100)
-                      )
-                    : 100
-                }%`,
-              }}
+              style={{ width: `${docsProgressPct}%` }}
             />
           </div>
-          <span className="tl-sprint-progress-pct">
-            {total > 0
-              ? Math.round((stats.internal / total) * 100)
-              : 100}
-            %
-          </span>
+          <span className="tl-sprint-progress-pct">{docsProgressPct}%</span>
         </div>
       </div>
 

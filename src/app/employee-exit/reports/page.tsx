@@ -1,33 +1,37 @@
 'use client';
-import React, { useState, useEffect, useMemo } from 'react';
-import { Table, Button, Row, Col, Card } from 'antd';
+
+import React, { useState, useEffect } from 'react';
+import { Table, Button, Row, Col } from 'antd';
 import {
   BarChart3,
   TrendingDown,
   Users,
   Download,
-  ArrowUpRight,
-  Clock
+  Clock,
+  RotateCw
 } from 'lucide-react';
 import { EmployeeExitService, EmployeeExitRequest } from '@/services/employeeExitService';
 import { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
+import { StatCards } from '@/components/common/StatCards';
+import NoData from '@/components/common/NoData';
 
 export default function ReportsPage() {
   const [requests, setRequests] = useState<EmployeeExitRequest[]>([]);
   const [loading, setLoading] = useState(false);
 
+  const fetchRequests = async () => {
+    try {
+      setLoading(true);
+      const data = await EmployeeExitService.getExitRequests();
+      setRequests(data || []);
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const fetchRequests = async () => {
-      try {
-        setLoading(true);
-        const data = await EmployeeExitService.getExitRequests();
-        setRequests(data || []);
-      } catch (error) {
-        console.error(error);
-      } finally {
-        setLoading(false);
-      }
-    };
     fetchRequests();
   }, []);
 
@@ -51,85 +55,141 @@ export default function ReportsPage() {
       title: 'DEPARTMENT',
       dataIndex: 'department',
       key: 'department',
-      render: (text: string) => <span style={{ color: 'var(--text-primary)', fontWeight: 500 }}>{text}</span>
+      render: (text: string) => <span style={{ color: 'var(--text-slate-800, #1e293b)', fontWeight: 600 }}>{text}</span>
     },
     {
       title: 'TOTAL EXITS',
       dataIndex: 'count',
       key: 'count',
-      render: (text: string) => <span style={{ color: 'var(--text-slate-400)' }}>{text}</span>
+      render: (text: string) => <span style={{ color: 'var(--text-slate-500, #64748b)' }}>{text}</span>
     }
   ];
 
   return (
     <>
       <div className="exit-page-header">
-
-        <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-          <span style={{ color: 'var(--text-primary)', fontWeight: 600, fontSize: 18 }}>Attrition & Exit Reports</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <span className="exit-topbar-meta">
+            <span className="exit-pulse" style={{ background: '#3b82f6' }} />
+            <strong style={{ fontSize: 16 }}>Attrition & Exit Reports</strong>
+          </span>
         </div>
-        <Button icon={<Download size={14} />} style={{ background: 'transparent', borderColor: 'var(--border-slate-200)', color: 'var(--text-slate-400)' }}>
-          Export Report
-        </Button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <Button
+            icon={<Download size={13} />}
+            style={{
+              background: 'var(--bg-pure-white, #ffffff)',
+              borderColor: 'var(--border-slate-200, #e2e8f0)',
+              color: 'var(--text-slate-600, #475569)',
+              fontSize: 12.5,
+              fontWeight: 500,
+              borderRadius: 6,
+              height: 32,
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 6
+            }}
+          >
+            Export Report
+          </Button>
+        </div>
       </div>
-      <div style={{ padding: '24px', maxWidth: 1400, margin: '0 auto', width: '100%' }}>
 
-        {/* Stats Row */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16, marginBottom: 24 }}>
-          <div className="exit-stat-card">
-            <div className="exit-stat-card-header">
-              <TrendingDown size={14} color="#ef4444" />
-              Total Exits (YTD)
-            </div>
-            <div className="exit-stat-card-body">
-              <div className="exit-stat-card-value">{totalExits}</div>
-              <div className="exit-stat-card-label">All-time</div>
-            </div>
-          </div>
-          <div className="exit-stat-card">
-            <div className="exit-stat-card-header">
-              <Users size={14} color="#f59e0b" />
-              Voluntary Attrition
-            </div>
-            <div className="exit-stat-card-body">
-              <div className="exit-stat-card-value">{voluntaryExits}</div>
-              <div className="exit-stat-card-label">Resignations</div>
-            </div>
-          </div>
-          <div className="exit-stat-card">
-            <div className="exit-stat-card-header">
-              <Clock size={14} color="#3b82f6" />
-              Pending Approvals
-            </div>
-            <div className="exit-stat-card-body">
-              <div className="exit-stat-card-value">{pendingApprovals}</div>
-              <div className="exit-stat-card-label">Awaiting action</div>
-            </div>
-          </div>
+      <div className="exit-body">
+        <StatCards
+          title="Attrition Overview"
+          statusText="LIVE"
+          progressPct={totalExits > 0 ? Math.round(((totalExits - pendingApprovals) / totalExits) * 100) : 0}
+          cells={[
+            {
+              title: 'Total Exits (YTD)',
+              value: totalExits,
+              icon: <TrendingDown size={14} />,
+              color: '#ef4444',
+              tint: 'rgba(239,68,68,0.1)',
+              hint: 'All-time exits'
+            },
+            {
+              title: 'Voluntary Attrition',
+              value: voluntaryExits,
+              icon: <Users size={14} />,
+              color: '#f59e0b',
+              tint: 'rgba(245,158,11,0.1)',
+              hint: 'Resignations'
+            },
+            {
+              title: 'Pending Approvals',
+              value: pendingApprovals,
+              icon: <Clock size={14} />,
+              color: '#3b82f6',
+              tint: 'rgba(59,130,246,0.1)',
+              hint: 'Awaiting action'
+            },
+          ]}
+        />
+
+        <div style={{ padding: '0 24px 24px' }}>
+          <Row gutter={[20, 20]} style={{ marginTop: 8 }}>
+            <Col span={12}>
+              <div style={{
+                border: '1px solid var(--border-slate-200, #e2e8f0)',
+                borderRadius: 8,
+                background: 'var(--bg-pure-white, #ffffff)',
+                overflow: 'hidden',
+                boxShadow: '0 1px 2px rgba(15,23,42,0.03)'
+              }}>
+                <div style={{
+                  padding: '14px 20px',
+                  borderBottom: '1px solid var(--border-slate-200, #e2e8f0)',
+                  color: 'var(--text-slate-900, #0f172a)',
+                  fontWeight: 600,
+                  fontSize: 13.5
+                }}>
+                  Exits by Department
+                </div>
+                <ZukvoLoadingOverlay loading={loading} message="">
+                  <Table
+                    columns={columns}
+                    dataSource={depChartData}
+                    rowKey="department"
+                    pagination={false}
+                    className="exit-table"
+                    locale={{
+                      emptyText: (
+                        <NoData
+                          title="No Department Data"
+                          description="No department exit statistics available."
+                        />
+                      )
+                    }}
+                  />
+                </ZukvoLoadingOverlay>
+              </div>
+            </Col>
+            <Col span={12}>
+              <div style={{
+                border: '1px solid var(--border-slate-200, #e2e8f0)',
+                borderRadius: 8,
+                background: 'var(--bg-pure-white, #ffffff)',
+                height: '100%',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                padding: 40,
+                boxShadow: '0 1px 2px rgba(15,23,42,0.03)'
+              }}>
+                <BarChart3 size={44} color="var(--border-slate-300, #cbd5e1)" style={{ marginBottom: 14 }} />
+                <div style={{ color: 'var(--text-slate-700, #334155)', fontWeight: 600, fontSize: 15, marginBottom: 6 }}>
+                  More insights coming soon
+                </div>
+                <div style={{ color: 'var(--text-slate-400, #94a3b8)', fontSize: 12.5, textAlign: 'center', maxWidth: 300 }}>
+                  We are gathering enough data to generate predictive attrition insights.
+                </div>
+              </div>
+            </Col>
+          </Row>
         </div>
-
-        <Row gutter={[24, 24]} style={{ marginTop: 24 }}>
-          <Col span={12}>
-            <div style={{ border: '1px solid var(--border-color)', borderRadius: 8, background: 'var(--bg-secondary)', overflow: 'hidden' }}>
-              <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border-color)', color: 'var(--text-primary)', fontWeight: 600 }}>Exits by Department</div>
-              <ZukvoLoadingOverlay loading={loading} message="">
-                <Table
-                  columns={columns}
-                  dataSource={depChartData}
-                  rowKey="department"
-                  pagination={false}
-                />
-              </ZukvoLoadingOverlay>
-            </div>
-          </Col>
-          <Col span={12}>
-            <div style={{ border: '1px solid var(--border-color)', borderRadius: 8, background: 'var(--bg-secondary)', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 40 }}>
-              <BarChart3 size={48} color="var(--border-slate-200)" style={{ marginBottom: 16 }} />
-              <div style={{ color: 'var(--text-slate-400)', fontWeight: 600, fontSize: 16, marginBottom: 8 }}>More insights coming soon</div>
-              <div style={{ color: 'var(--text-slate-600)', fontSize: 13, textAlign: 'center', maxWidth: 300 }}>We are gathering enough data to generate predictive attrition insights.</div>
-            </div>
-          </Col>
-        </Row>
       </div>
     </>
   );

@@ -10,6 +10,7 @@ import "@blocknote/core/fonts/inter.css";
 import "@blocknote/mantine/style.css";
 import { FloatButton, Tooltip, message } from 'antd'
 import { FilePdfOutlined } from '@ant-design/icons'
+import { productFromHostname, manifestFor } from '@/lib/product'
 
 import { useAuth } from '@/context/AuthContext'
 import ZukvoLoader from '@/components/common/ZukvoLoader'
@@ -29,7 +30,9 @@ function PreviewContent({ content, title, documentData }: { content: any, title:
 
         const hide = message.loading('Generating PDF...', 0);
         try {
-            const blob = await documentHubService.downloadDocumentPdf(documentData.id);
+            const productKey = productFromHostname(typeof window !== 'undefined' ? window.location.hostname : undefined);
+            const brandName = manifestFor(productKey).name;
+            const blob = await documentHubService.downloadDocumentPdf(documentData.id, brandName);
             const url = window.URL.createObjectURL(blob);
             const link = window.document.createElement('a');
             link.href = url;

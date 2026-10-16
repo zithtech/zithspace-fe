@@ -548,6 +548,7 @@ export const TicketDetailDrawer: React.FC<TicketDetailDrawerProps> = ({
     <>
       <Drawer
         rootClassName="full-tickets-drawer-tour-target"
+        zIndex={isActiveTourDrawer ? 1000002 : undefined}
         title={
           <div style={{
             display: 'flex',
@@ -917,6 +918,7 @@ export const TicketDetailDrawer: React.FC<TicketDetailDrawerProps> = ({
         placement="right"
         onClose={onClose}
         open={open}
+        mask={!isActiveTourDrawer}
         maskClosable={true}
         width={1100} // Increased slightly for better column balance and header single-row fitting
         styles={{

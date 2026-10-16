@@ -1,15 +1,31 @@
 'use client';
+
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import {  Button, Table, Dropdown, Select , App } from 'antd';
-import { Search, MoreVertical, ArrowUpRight, CheckCircle, Clock, XCircle } from 'lucide-react';
+import { Button, Table, Select, Tooltip, App } from 'antd';
+import {
+  Search,
+  ArrowUpRight,
+  CheckCircle,
+  Clock,
+  XCircle,
+  RotateCw,
+  X,
+  Check,
+  X as CloseIcon
+} from 'lucide-react';
 import dayjs from 'dayjs';
 import { EmployeeExitService, EmployeeExitRequest } from '@/services/employeeExitService';
 import { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
+import { StatCards } from '@/components/common/StatCards';
+import { FilterBar, FilterToggleButton, TicketFilterPill } from '@/components/common/FilterBar';
+import NoData from '@/components/common/NoData';
 
 export default function ApprovalsPage() {
   const [requests, setRequests] = useState<EmployeeExitRequest[]>([]);
   const [loading, setLoading] = useState(false);
   const [searchText, setSearchText] = useState("");
+  const [noticeFilter, setNoticeFilter] = useState<string | undefined>(undefined);
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
   const { message: messageApi } = App.useApp();
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
@@ -26,7 +42,9 @@ export default function ApprovalsPage() {
     }
   }, [messageApi]);
 
-  useEffect(() => { fetchApprovals(); }, [fetchApprovals]);
+  useEffect(() => {
+    fetchApprovals();
+  }, [fetchApprovals]);
 
   const handleUpdateStatus = async (id: string, status: string) => {
     try {
@@ -42,13 +60,16 @@ export default function ApprovalsPage() {
 
   const filteredRequests = useMemo(() => {
     return requests.filter(r => {
+      if (noticeFilter === 'waived' && !r.waiveNoticePeriod) return false;
+      if (noticeFilter === 'standard' && r.waiveNoticePeriod) return false;
+      if (!searchText) return true;
       const q = searchText.toLowerCase();
       const n1 = (r.employee?.first_name || '').toLowerCase();
       const n2 = (r.employee?.last_name || '').toLowerCase();
       const code = (r.employee?.employee_code || '').toLowerCase();
       return n1.includes(q) || n2.includes(q) || code.includes(q);
     });
-  }, [requests, searchText]);
+  }, [requests, searchText, noticeFilter]);
 
   const stats = useMemo(() => {
     const total = requests.length;
@@ -57,6 +78,7 @@ export default function ApprovalsPage() {
     return { total, standard, waived };
   }, [requests]);
 
+  const activeFilterCount = noticeFilter ? 1 : 0;
   const total = filteredRequests.length;
   const pageCount = Math.ceil(total / pageSize);
   const pageStart = total === 0 ? 0 : (currentPage - 1) * pageSize + 1;
@@ -72,28 +94,41 @@ export default function ApprovalsPage() {
         const code = record.employee?.employee_code || '';
         return (
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <div style={{ width: 28, height: 28, borderRadius: 6, background: 'var(--bg-blue-50)', color: '#3b82f6', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: 11, border: '1px solid var(--border-blue-200)' }}>
+            <div style={{
+              width: 32, height: 32, borderRadius: 8,
+              background: 'rgba(59, 130, 246, 0.1)', color: '#2563eb',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontWeight: 700, fontSize: 12, border: '1px solid rgba(59, 130, 246, 0.2)'
+            }}>
               {name.charAt(0).toUpperCase()}
             </div>
             <div style={{ display: 'flex', flexDirection: 'column' }}>
-              <span style={{ fontWeight: 600, color: 'var(--text-primary)', fontSize: 12 }}>{name}</span>
-              <span style={{ fontSize: 11, color: 'var(--text-slate-400)' }}>{code}</span>
+              <span style={{ fontWeight: 600, color: 'var(--text-slate-900, #0f172a)', fontSize: 13 }}>{name}</span>
+              <span style={{ fontSize: 11, color: 'var(--text-slate-400, #94a3b8)' }}>{code}</span>
             </div>
           </div>
         );
       }
     },
     {
+      title: 'EXIT TYPE',
+      dataIndex: 'exitType',
+      key: 'exitType',
+      render: (t: any) => (
+        <span style={{ color: 'var(--text-slate-700, #334155)', fontSize: 12.5, fontWeight: 500 }}>
+          {t?.name || 'Resignation'}
+        </span>
+      )
+    },
+    {
       title: 'RESIGN DATE',
       dataIndex: 'resignationDate',
       key: 'resignationDate',
-      render: (date: string) => <span style={{ color: 'var(--text-slate-400)', fontSize: 12 }}>{date ? dayjs(date).format('MMM DD, YYYY') : '—'}</span>,
-    },
-    {
-      title: 'LWD',
-      dataIndex: 'proposedLastWorkingDay',
-      key: 'lwd',
-      render: (date: string) => <span style={{ color: 'var(--text-slate-400)', fontSize: 12 }}>{date ? dayjs(date).format('MMM DD, YYYY') : '—'}</span>,
+      render: (date: string) => (
+        <span style={{ color: 'var(--text-slate-500, #64748b)', fontSize: 12.5 }}>
+          {date ? dayjs(date).format('MMM DD, YYYY') : '—'}
+        </span>
+      )
     },
     {
       title: 'NOTICE PERIOD',
@@ -109,7 +144,7 @@ export default function ApprovalsPage() {
           ? { bg: 'rgba(239,68,68,0.08)', color: '#ef4444', border: '1px solid rgba(239,68,68,0.25)' }
           : { bg: 'rgba(16,185,129,0.08)', color: '#10b981', border: '1px solid rgba(16,185,129,0.25)' };
         return (
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, background: cfg.bg, color: cfg.color, border: cfg.border, padding: '2px 8px', borderRadius: 4, fontSize: 10, fontWeight: 700, letterSpacing: '0.05em' }}>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, background: cfg.bg, color: cfg.color, border: cfg.border, padding: '2px 8px', borderRadius: 4, fontSize: 10.5, fontWeight: 700, letterSpacing: '0.04em' }}>
             {waived ? 'WAIVED' : noticeDaysStr}
           </span>
         );
@@ -127,68 +162,173 @@ export default function ApprovalsPage() {
             displayName = obj.label || obj.value || name;
           }
         } catch (e) {}
-        return <span style={{ color: 'var(--text-slate-400)', fontSize: 12 }}>{displayName}</span>;
+        return <span style={{ color: 'var(--text-slate-500, #64748b)', fontSize: 12.5 }}>{displayName}</span>;
       }
     },
     {
-      title: '',
+      title: 'ACTIONS',
       key: 'actions',
-      width: 50,
-      align: 'center' as const,
+      width: 140,
+      align: 'right' as const,
       render: (_: any, record: EmployeeExitRequest) => (
-        <Dropdown
-          menu={{ items: [
-            { key: '1', label: 'Approve Request', onClick: () => handleUpdateStatus(record.id, 'APPROVED') },
-            { key: '2', label: 'Reject Request', danger: true, onClick: () => handleUpdateStatus(record.id, 'REJECTED') },
-          ]}}
-          trigger={['click']}
-          placement="bottomRight"
-        >
-          <Button type="text" icon={<MoreVertical size={15} color="var(--text-slate-400)" />} style={{ minWidth: 28 }} />
-        </Dropdown>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 6 }}>
+          <Button
+            type="primary"
+            size="small"
+            icon={<Check size={12} />}
+            onClick={() => handleUpdateStatus(record.id, 'APPROVED')}
+            style={{ background: '#10b981', borderColor: '#10b981', fontSize: 11.5, fontWeight: 600, height: 26, borderRadius: 5 }}
+          >
+            Approve
+          </Button>
+          <Button
+            danger
+            size="small"
+            icon={<CloseIcon size={12} />}
+            onClick={() => handleUpdateStatus(record.id, 'REJECTED')}
+            style={{ fontSize: 11.5, fontWeight: 600, height: 26, borderRadius: 5 }}
+          >
+            Reject
+          </Button>
+        </div>
       )
     }
   ];
 
   return (
     <>
-      
-
       <div className="exit-page-header">
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <div className="exit-search-bar" style={{ display: 'flex', alignItems: 'center', padding: '0 10px', width: 300, height: 32 }}>
-            <Search size={13} color="var(--text-slate-400)" style={{ marginRight: 8, flexShrink: 0 }} />
-            <input placeholder="Search approvals..." value={searchText} onChange={e => setSearchText(e.target.value)}
-              style={{ border: 'none', outline: 'none', width: '100%', fontSize: 13, background: 'transparent', color: 'var(--text-primary)' }} />
+          <div className="exit-search-bar" style={{ display: 'flex', alignItems: 'center', padding: '0 12px', width: 280, height: 32 }}>
+            <Search size={14} color="var(--text-slate-400)" style={{ marginRight: 8, flexShrink: 0 }} />
+            <input
+              placeholder="Search approvals..."
+              value={searchText}
+              onChange={e => { setSearchText(e.target.value); setCurrentPage(1); }}
+              style={{ border: 'none', outline: 'none', width: '100%', fontSize: 13, background: 'transparent', color: 'var(--text-primary)' }}
+            />
+            {searchText && (
+              <button
+                type="button"
+                onClick={() => setSearchText("")}
+                style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', color: 'var(--text-slate-400)', display: 'flex', alignItems: 'center' }}
+              >
+                <X size={13} />
+              </button>
+            )}
           </div>
-          <span className="exit-topbar-meta"><span className="exit-pulse" /><strong>{total}</strong> approvals</span>
+          <FilterToggleButton
+            isOpen={isFilterOpen}
+            onToggle={() => setIsFilterOpen(prev => !prev)}
+            activeCount={activeFilterCount}
+          />
+          <span className="exit-topbar-meta">
+            <span className="exit-pulse" />
+            <strong>{total}</strong> approvals pending
+          </span>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <Tooltip title="Refresh">
+            <button
+              type="button"
+              className="exit-ghost-btn"
+              onClick={fetchApprovals}
+              aria-label="Refresh"
+            >
+              <RotateCw size={14} className={loading ? 'animate-spin' : ''} />
+            </button>
+          </Tooltip>
         </div>
       </div>
 
       <div className="exit-body">
-        <div className="exit-stats exit-stats-4">
-          <div className="exit-stat-card">
-            <div className="exit-stat-top"><div className="exit-stat-left"><span className="exit-stat-icon" style={{ background: 'rgba(59,130,246,0.1)', color: '#3b82f6' }}><ArrowUpRight size={13} /></span><span className="exit-stat-label">Total Pending</span></div></div>
-            <div className="exit-stat-bottom"><div className="exit-stat-value-wrap"><span className="exit-stat-value">{stats.total}</span></div><span className="exit-stat-period">Awaiting action</span></div>
-          </div>
-          <div className="exit-stat-card">
-            <div className="exit-stat-top"><div className="exit-stat-left"><span className="exit-stat-icon" style={{ background: 'rgba(16,185,129,0.1)', color: '#10b981' }}><CheckCircle size={13} /></span><span className="exit-stat-label">Standard Notice</span></div></div>
-            <div className="exit-stat-bottom"><div className="exit-stat-value-wrap"><span className="exit-stat-value">{stats.standard}</span></div><span className="exit-stat-period">Regular exit</span></div>
-          </div>
-          <div className="exit-stat-card">
-            <div className="exit-stat-top"><div className="exit-stat-left"><span className="exit-stat-icon" style={{ background: 'rgba(245,158,11,0.1)', color: '#f59e0b' }}><Clock size={13} /></span><span className="exit-stat-label">Waived Notice</span></div></div>
-            <div className="exit-stat-bottom"><div className="exit-stat-value-wrap"><span className="exit-stat-value">{stats.waived}</span></div><span className="exit-stat-period">Exceptions</span></div>
-          </div>
-          <div className="exit-stat-card">
-            <div className="exit-stat-top"><div className="exit-stat-left"><span className="exit-stat-icon" style={{ background: 'rgba(239,68,68,0.1)', color: '#ef4444' }}><XCircle size={13} /></span><span className="exit-stat-label">Overdue</span></div></div>
-            <div className="exit-stat-bottom"><div className="exit-stat-value-wrap"><span className="exit-stat-value">0</span></div><span className="exit-stat-period">SLA Breached</span></div>
-          </div>
-        </div>
+        <StatCards
+          title="Approvals Overview"
+          statusText="PENDING"
+          statusColor="#f59e0b"
+          progressPct={stats.total > 0 ? Math.round(((stats.standard) / stats.total) * 100) : 0}
+          cells={[
+            {
+              title: 'Total Pending',
+              value: stats.total,
+              icon: <ArrowUpRight size={14} />,
+              color: '#3b82f6',
+              tint: 'rgba(59,130,246,0.1)',
+              hint: 'Awaiting action'
+            },
+            {
+              title: 'Standard Notice',
+              value: stats.standard,
+              icon: <CheckCircle size={14} />,
+              color: '#10b981',
+              tint: 'rgba(16,185,129,0.1)',
+              hint: 'Regular exit'
+            },
+            {
+              title: 'Waived Notice',
+              value: stats.waived,
+              icon: <Clock size={14} />,
+              color: '#f59e0b',
+              tint: 'rgba(245,158,11,0.1)',
+              hint: 'Exceptions requested'
+            },
+            {
+              title: 'Overdue / Escalated',
+              value: 0,
+              icon: <XCircle size={14} />,
+              color: '#64748b',
+              tint: 'rgba(100,116,139,0.1)',
+              hint: 'Within SLA'
+            },
+          ]}
+        />
+
+        {isFilterOpen && (
+          <FilterBar
+            activeCount={activeFilterCount}
+            onReset={() => {
+              setNoticeFilter(undefined);
+              setSearchText("");
+              setCurrentPage(1);
+            }}
+            onClose={() => setIsFilterOpen(false)}
+          >
+            <TicketFilterPill
+              label="Notice Period"
+              icon={<Clock size={12} />}
+              value={noticeFilter}
+              options={[
+                { value: 'standard', label: 'Standard Notice', dotColor: '#10b981' },
+                { value: 'waived', label: 'Waived Notice', dotColor: '#f59e0b' },
+              ]}
+              onChange={(v) => {
+                setNoticeFilter(v ? String(v) : undefined);
+                setCurrentPage(1);
+              }}
+            />
+          </FilterBar>
+        )}
 
         <div className="exit-table-wrap">
           <ZukvoLoadingOverlay loading={loading} message="">
-                  <Table size="small" className="exit-table" columns={columns} dataSource={pagedData} rowKey="id" pagination={false} scroll={{ x: 900 }} />
-                  </ZukvoLoadingOverlay>
+            <Table
+              size="small"
+              className="exit-table"
+              columns={columns}
+              dataSource={pagedData}
+              rowKey="id"
+              pagination={false}
+              scroll={{ x: 800 }}
+              locale={{
+                emptyText: (
+                  <NoData
+                    title="No Pending Approvals"
+                    description="There are no exit requests awaiting your approval."
+                  />
+                )
+              }}
+            />
+          </ZukvoLoadingOverlay>
         </div>
       </div>
 

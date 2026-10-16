@@ -24,6 +24,7 @@ import {
   DashboardOutlined,
   FieldTimeOutlined,
 } from '@ant-design/icons';
+import { LayoutGrid, List } from 'lucide-react';
 import dayjs from 'dayjs';
 import { useAuth } from '@/context/AuthContext';
 import { usePermission } from '@/hooks/usePermission';
@@ -95,6 +96,7 @@ export default function ClockInOutPanel() {
 
   const [tablePage, setTablePage] = useState(1);
   const [tablePageSize, setTablePageSize] = useState(15);
+  const [viewMode, setViewMode] = useState<'list' | 'grid'>('grid');
 
   const monthStart = useMemo(() => dayjs().startOf('month'), []);
   const monthEnd = useMemo(() => dayjs().endOf('month'), []);
@@ -316,9 +318,19 @@ export default function ClockInOutPanel() {
             <div className="cio-header-sub">Track your daily working hours and attendance status</div>
           </div>
         </div>
-        <Tooltip title="Refresh">
-          <button type="button" className="cio-ghost-btn" onClick={refresh}><ReloadOutlined spin={loading || tableLoading} /></button>
-        </Tooltip>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <div className="att-view-toggles">
+            <button type="button" className={viewMode === "grid" ? "is-active" : ""} onClick={() => setViewMode("grid")}>
+              <LayoutGrid size={14} />
+            </button>
+            <button type="button" className={viewMode === "list" ? "is-active" : ""} onClick={() => setViewMode("list")}>
+              <List size={14} />
+            </button>
+          </div>
+          <Tooltip title="Refresh">
+            <button type="button" className="cio-ghost-btn" onClick={refresh}><ReloadOutlined spin={loading || tableLoading} /></button>
+          </Tooltip>
+        </div>
       </div>
 
       {/* ── 2) WORK HOURS INSIGHTS (horizontal, full width) ──────────────────── */}
@@ -484,22 +496,79 @@ export default function ClockInOutPanel() {
         <span className="cio-table-count">{total} record{total === 1 ? '' : 's'}</span>
       </div>
       </div>
-      <div className="att-table-wrap" style={{ overflowX: 'auto' }}>
+      <div className="att-table-wrap" style={{ overflowX: 'auto', background: viewMode === 'grid' ? 'transparent' : undefined, border: viewMode === 'grid' ? 'none' : undefined }}>
         <ZukvoLoadingOverlay loading={tableLoading} message="">
-          <Table
-            rowKey="id"
-            size="small"
-            className="cio-table"
-            columns={columns}
-            dataSource={rows}
-            pagination={false}
-            scroll={{ x: 'max-content' }}
-            onRow={() => ({ className: 'cio-row' })}
-            expandable={{
-              expandedRowRender: renderSessions,
-              rowExpandable: (record) => (record.sessions?.length || 0) > 0,
-            }} locale={{ emptyText: <NoData /> }}
-          />
+          {viewMode === 'list' ? (
+            <Table
+              rowKey="id"
+              size="small"
+              className="cio-table"
+              columns={columns}
+              dataSource={rows}
+              pagination={false}
+              scroll={{ x: 'max-content' }}
+              onRow={() => ({ className: 'cio-row' })}
+              expandable={{
+                expandedRowRender: renderSessions,
+                rowExpandable: (record) => (record.sessions?.length || 0) > 0,
+              }} locale={{ emptyText: <NoData /> }}
+            />
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
+              <div style={{ flex: 1, overflowY: 'auto' }}>
+                {rows.length === 0 ? (
+                  <NoData />
+                ) : (
+                  <div className="att-grid">
+                    {rows.map((r: any) => {
+                      const isToday = r.date ? dayjs(r.date).isSame(dayjs(), 'day') : false;
+                      const meta = STATUS_META[r.status] || STATUS_META.absent;
+                      
+                      return (
+                        <div key={r.id} className="att-list-card">
+                          <div className="att-list-card-head">
+                            <div className="att-list-card-avatar" style={{ background: meta.tint, color: meta.color }}>
+                              {meta.icon}
+                            </div>
+                            <div className="att-list-card-body">
+                              <div className="att-list-card-title">
+                                <span>{r.date ? dayjs(r.date).format('ddd, MMM DD, YYYY') : '—'}</span>
+                                <span style={{ background: meta.tint, color: meta.color, padding: '2px 6px', borderRadius: 6, fontSize: 10 }}>{meta.label}</span>
+                              </div>
+                              <div className="att-list-card-sub">
+                                <span className="att-list-card-val" style={{ fontWeight: 500, color: 'var(--text-slate-400)' }}>
+                                  {isToday ? "Today's Attendance" : "Past Record"}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                          
+                          <div className="att-list-card-footer" onClick={e => e.stopPropagation()}>
+                            <div className="att-list-card-row">
+                              <span className="att-list-card-item">
+                                <span className="att-list-card-key">In:</span>
+                                <span className="att-list-card-val">{r.clockIn ? dayjs(r.clockIn).format('h:mm a') : '-'}</span>
+                              </span>
+                              <span className="att-list-card-div" />
+                              <span className="att-list-card-item">
+                                <span className="att-list-card-key">Out:</span>
+                                <span className="att-list-card-val">{r.clockOut ? dayjs(r.clockOut).format('h:mm a') : '-'}</span>
+                              </span>
+                              <span className="att-list-card-div" />
+                              <span className="att-list-card-item">
+                                <span className="att-list-card-key">Work:</span>
+                                <span className="att-list-card-val">{formatDuration(r.effectiveWorkMinutes ?? r.totalWorkMinutes)}</span>
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
         </ZukvoLoadingOverlay>
       </div>
 

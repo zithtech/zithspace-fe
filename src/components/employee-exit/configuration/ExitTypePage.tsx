@@ -34,6 +34,7 @@ import { commonDrawerProps, drawerFormStyles, SectionCard } from '@/components/c
 import { useMembers } from '@/hooks/useGlobalData';
 import ConfirmDialog from '@/components/common/ConfirmDialog';
 import { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
+import NoData from '@/components/common/NoData';
 
 const { Title, Text } = Typography;
 
@@ -254,7 +255,12 @@ export default function ExitTypePage({ searchText = '', createTrigger = 0, layou
   return (
     <div style={{ display: 'flex', flexDirection: 'column', flex: 1, padding: '0' }}>
 
-      {layoutMode === 'card' ? (
+      {currentData.length === 0 ? (
+        <NoData
+          title="No Exit Types Configured"
+          description="No exit types have been configured yet."
+        />
+      ) : layoutMode === 'card' ? (
         <div className="pp-grid" style={{ flex: 1, overflow: 'auto' }}>
           {currentData.map(record => (
             <div key={record.id} className="pc-card">
@@ -350,6 +356,14 @@ export default function ExitTypePage({ searchText = '', createTrigger = 0, layou
                 rowKey="id"
                 pagination={false}
                 scroll={{ x: 1000 }}
+                locale={{
+                  emptyText: (
+                    <NoData
+                      title="No Exit Types Configured"
+                      description="No exit types have been configured yet."
+                    />
+                  )
+                }}
               />
             </ZukvoLoadingOverlay>
           </div>

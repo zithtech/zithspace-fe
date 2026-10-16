@@ -274,6 +274,22 @@ function ViewDailyUpdatesContent({ user }: { user: any }) {
     fetchCounts();
   }, [canViewTeam, selectedProject, selectedUser, selectedUpdateType]);
 
+  useEffect(() => {
+    const verifyUserProjectMembership = async () => {
+      if (selectedProject && selectedUser) {
+        try {
+          const members = await ProjectService.getProjectMembers(selectedProject);
+          const isMember = members.some((m: any) => m.value === selectedUser);
+          if (!isMember) {
+            setSelectedUser(undefined);
+          }
+        } catch (error) {
+          console.error("Failed to verify project membership:", error);
+        }
+      }
+    };
+    verifyUserProjectMembership();
+  }, [selectedProject, selectedUser]);
 
 
   const fetchProjects = async () => {

@@ -2433,6 +2433,27 @@ export default function LeadSettingsPage() {
                                                             searchPlaceholder="Search platforms…"
                                                             itemNoun="platforms"
                                                             options={[
+                                                                {
+                                                                    value: "__other__",
+                                                                    label: "Other (custom)",
+                                                                    description: "Type your own name in the next step",
+                                                                    badge: (
+                                                                        <span
+                                                                            aria-hidden
+                                                                            style={{
+                                                                                width: "100%", height: "100%",
+                                                                                color: "#6366f1",
+                                                                                display: "inline-flex",
+                                                                                alignItems: "center",
+                                                                                justifyContent: "center",
+                                                                                fontSize: 14,
+                                                                                fontWeight: 700,
+                                                                            }}
+                                                                        >
+                                                                            +
+                                                                        </span>
+                                                                    ),
+                                                                },
                                                                 ...KNOWN_ONLINE_PLATFORMS.map(p => ({
                                                                     value: p.name,
                                                                     label: p.name,
@@ -2442,7 +2463,6 @@ export default function LeadSettingsPage() {
                                                                             aria-hidden
                                                                             style={{
                                                                                 width: "100%", height: "100%",
-                                                                                background: `${p.brand}14`,
                                                                                 color: p.brand,
                                                                                 display: "inline-flex",
                                                                                 alignItems: "center",
@@ -2455,11 +2475,6 @@ export default function LeadSettingsPage() {
                                                                         </span>
                                                                     ),
                                                                 })),
-                                                                {
-                                                                    value: "__other__",
-                                                                    label: "Other (custom)",
-                                                                    description: "Type your own name in the next step",
-                                                                },
                                                             ]}
                                                             onChange={(val) => {
                                                                 if (!val) return;

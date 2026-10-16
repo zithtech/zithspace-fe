@@ -8,7 +8,7 @@ import type { ColumnsType } from 'antd/es/table';
 import { CheckCheck, RotateCw } from 'lucide-react';
 
 import OpeningV2Service, { type ClosureCandidate } from '@/services/openingV2Service';
-import { OpeningStyles, PALETTE, PanelHeader, StatusChip, TINT } from './ui';
+import { OpeningStyles, PALETTE, PanelHeader, StatusChip, TINT, ViewModeToggle } from './ui';
 
 // Phase 7 — openings that have met their hiring target but are still open.
 //
@@ -20,6 +20,7 @@ export default function ClosingQueuePanel() {
   const router = useRouter();
   const [rows, setRows] = useState<ClosureCandidate[]>([]);
   const [loading, setLoading] = useState(true);
+  const [viewMode, setViewMode] = useState<'list' | 'card'>('list');
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -102,6 +103,7 @@ export default function ClosingQueuePanel() {
         title="Ready to Close"
         subtitle="Openings that have met their hiring target"
       >
+        <ViewModeToggle mode={viewMode} setMode={setViewMode} />
         <Button icon={<RotateCw size={14} />} loading={loading} onClick={load} />
       </PanelHeader>
 
@@ -119,29 +121,102 @@ export default function ClosingQueuePanel() {
         <Skeleton active paragraph={{ rows: 4 }} />
       ) : (
         <div className="opn-table-wrap">
-          <Table<ClosureCandidate>
-            rowKey="openingId"
-            size="small"
-            columns={columns}
-            dataSource={rows}
-            scroll={{ x: 1000 }}
-            pagination={false}
-            onRow={(record) => ({ onClick: () => router.push(`/openings/${record.openingId}`) })}
-            locale={{
-              emptyText: (
-                <div className="omp-empty">
-                  <NoData description={
-                                              <>
-                                                <div className="omp-empty-title">Nothing ready to close</div>
-                                                <div className="omp-empty-sub">
-                                                  Openings appear here once hires reach the number of positions.
-                                                </div>
-                                              </>
-                                            } />
-                </div>
-              ),
-            }}
-          />
+          {viewMode === 'list' ? (
+            <Table<ClosureCandidate>
+              rowKey="openingId"
+              size="small"
+              columns={columns}
+              dataSource={rows}
+              scroll={{ x: 1000 }}
+              pagination={false}
+              onRow={(record) => ({ onClick: () => router.push(`/openings/${record.openingId}`) })}
+              locale={{
+                emptyText: (
+                  <div className="omp-empty">
+                    <NoData description={
+                                                <>
+                                                  <div className="omp-empty-title">Nothing ready to close</div>
+                                                  <div className="omp-empty-sub">
+                                                    Openings appear here once hires reach the number of positions.
+                                                  </div>
+                                                </>
+                                              } />
+                  </div>
+                ),
+              }}
+            />
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
+              <div style={{ flex: 1, overflowY: 'auto' }}>
+                {rows.length === 0 ? (
+                  <div className="omp-empty">
+                    <NoData description={
+                                                <>
+                                                  <div className="omp-empty-title">Nothing ready to close</div>
+                                                  <div className="omp-empty-sub">
+                                                    Openings appear here once hires reach the number of positions.
+                                                  </div>
+                                                </>
+                                              } />
+                  </div>
+                ) : (
+                  <div className="omp-grid">
+                    {rows.map((r) => (
+                      <div key={r.openingId} className="omp-list-card" onClick={() => router.push(`/openings/${r.openingId}`)}>
+                        <div className="omp-list-card-head">
+                          <div className="omp-list-card-avatar" style={{ background: '#10b981' }}>
+                            {r.jobTitle?.[0]?.toUpperCase() || 'O'}
+                          </div>
+                          <div className="omp-list-card-body">
+                            <div className="omp-list-card-title">
+                              <span>{r.jobTitle}</span>
+                              <StatusChip status={r.status} />
+                            </div>
+                            <div className="omp-list-card-sub">
+                              <span className="omp-list-card-key">Code:</span>
+                              <span className="omp-list-card-val">{r.openingCode}</span>
+                              {r.departmentName && <span>· {r.departmentName}</span>}
+                            </div>
+                          </div>
+                        </div>
+                        
+                        <div className="omp-list-card-footer" onClick={e => e.stopPropagation()}>
+                          <div className="omp-list-card-row">
+                            <span className="omp-list-card-item">
+                              <span className="omp-list-card-key">Hired:</span>
+                              <span className="omp-list-card-val"><strong style={{ color: PALETTE.green }}>{r.hired}/{r.openPositions}</strong></span>
+                            </span>
+                            <span className="omp-list-card-div" />
+                            <span className="omp-list-card-item">
+                              <span className="omp-list-card-key">In Pipeline:</span>
+                              <span className="omp-list-card-val">
+                                {r.openApplications ? (
+                                  <span style={{ color: PALETTE.blue, fontWeight: 700 }}>{r.openApplications}</span>
+                                ) : (
+                                  <span className="omp-muted">0</span>
+                                )}
+                              </span>
+                            </span>
+                            <span className="omp-list-card-div" />
+                            <span className="omp-list-card-item">
+                              <span className="omp-list-card-key">HM:</span>
+                              <span className="omp-list-card-val">{r.hiringManagerName ?? '—'}</span>
+                            </span>
+                          </div>
+                          
+                          <div className="omp-list-card-row" style={{ justifyContent: 'flex-end', background: 'var(--bg-pure-white)' }}>
+                            <Button size="small" type="primary" onClick={() => router.push(`/openings/${r.openingId}`)}>
+                              Review & close
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>

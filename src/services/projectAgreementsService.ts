@@ -168,6 +168,7 @@ export interface Agreement {
   passwordMode?: AgreementPasswordMode;
   passwordVersion?: number;
   values?: Record<string, string>;
+  leadId?: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -296,6 +297,7 @@ export interface AgreementPayload {
   customPassword?: string;
   summaryFields?: SummaryFieldKey[] | null;
   notes?: string | null;
+  leadId?: string | null;
   values: Record<string, string>;
 }
 

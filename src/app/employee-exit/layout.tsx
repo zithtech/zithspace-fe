@@ -9,7 +9,6 @@ import ProtectedRoute from '@/components/common/ProtectedRoute';
 import { useAuth } from '@/context/AuthContext';
 import { usePermission } from '@/hooks/usePermission';
 import { EXIT_NAV_ITEMS, canAccessExitItem } from '@/components/employee-exit/navItems';
-import { ConfigProvider, theme } from 'antd';
 import './exit-theme.css';
 
 // Shared master-detail shell for every /employee-exit/* route.
@@ -45,7 +44,7 @@ export default function EmployeeExitLayout({ children }: { children: React.React
 
   return (
     <ProtectedRoute>
-      <MainLayout>
+      <MainLayout noPadding>
         <div className="pv-shell exit-theme">
           {/* ============================ MOBILE BACKDROP ============================ */}
           {isMobileOpen && (
@@ -125,8 +124,10 @@ export default function EmployeeExitLayout({ children }: { children: React.React
              ===================================================================== */
           .pv-shell {
             display: flex;
+            width: 100%;
+            margin: 0;
             height: calc(100vh - var(--header-height, 60px));
-            background: var(--bg-primary);
+            background: var(--bg-pure-white, #ffffff);
             overflow: hidden;
             position: relative;
           }
@@ -134,7 +135,7 @@ export default function EmployeeExitLayout({ children }: { children: React.React
           /* --- SIDEBAR --- */
           .pv-sidebar {
             width: 260px;
-            background: var(--bg-primary);
+            background: var(--bg-pure-white, #ffffff);
             border-right: 1px solid var(--border-color);
             display: flex;
             flex-direction: column;
@@ -272,19 +273,26 @@ export default function EmployeeExitLayout({ children }: { children: React.React
             display: flex;
             flex-direction: column;
             min-width: 0;
-            background: var(--bg-primary);
+            background: var(--bg-pure-white, #ffffff);
             overflow: hidden;
           }
 
           .pv-mobile-header {
             display: none;
             height: 56px;
-            background: var(--bg-primary);
+            background: var(--bg-pure-white, #ffffff);
             border-bottom: 1px solid var(--border-color);
             align-items: center;
             padding: 0 16px;
             gap: 12px;
             flex-shrink: 0;
+          }
+
+          [data-theme="dark"] .pv-shell,
+          [data-theme="dark"] .pv-sidebar,
+          [data-theme="dark"] .pv-main,
+          [data-theme="dark"] .pv-mobile-header {
+            background: var(--bg-primary, #0B0F1A) !important;
           }
 
           .pv-mobile-menu-btn {

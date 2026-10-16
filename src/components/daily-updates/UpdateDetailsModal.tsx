@@ -123,7 +123,7 @@ export default function UpdateDetailsModal({ update, open, onClose }: UpdateDeta
 
       {/* Content */}
       <div style={{ padding: 24 }}>
-        {/* General Notes - TOP LEVEL */}
+        {/* Updates - TOP LEVEL */}
         {update.generalNotes && (
           <>
             <div style={{
@@ -137,7 +137,7 @@ export default function UpdateDetailsModal({ update, open, onClose }: UpdateDeta
                 <FileTextOutlined style={{ fontSize: 16, color: '#1890ff', marginTop: 2 }} />
                 <div style={{ flex: 1 }}>
                   <Text strong style={{ display: 'block', marginBottom: 6, color: '#1890ff', fontSize: 14 }}>
-                    General Notes
+                    Updates
                   </Text>
                   <Text style={{ whiteSpace: 'pre-wrap', fontSize: 13, lineHeight: 1.6 }}>
                     {update.generalNotes}

@@ -63,6 +63,7 @@ import { ReasonForExitService, ReasonForExit } from '@/services/reasonForExitSer
 import { PositionService, Position } from '@/services/positionService';
 import { DepartmentService } from '@/services/departmentService';
 import { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
+import NoData from '@/components/common/NoData';
 
 const { Title, Text, Paragraph } = Typography;
 
@@ -403,6 +404,14 @@ export default function ExitRequestViewPage() {
           rowKey="id"
           pagination={false}
           className="modern-table"
+          locale={{
+            emptyText: (
+              <NoData
+                title="No Assets Assigned"
+                description="No company assets recorded for this employee."
+              />
+            )
+          }}
         />
       </ZukvoLoadingOverlay>
     </div>

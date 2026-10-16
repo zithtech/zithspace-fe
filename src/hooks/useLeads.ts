@@ -57,8 +57,9 @@ export const useLeads = () => {
     try {
       const updatedLead = await LeadService.update(id, payload);
       setLeads((prev) =>
-        prev.map((item) => (item.id === id ? updatedLead : item))
+        prev.map((item) => (item.id === id ? { ...item, ...updatedLead } : item))
       );
+      setLead((prev) => (prev?.id === id ? { ...prev, ...updatedLead } : prev));
       return updatedLead;
     } catch (err: any) {
       const msg = err.response?.data?.error || "Failed to update lead";
@@ -75,6 +76,7 @@ export const useLeads = () => {
     try {
       await LeadService.delete(id);
       setLeads((prev) => prev.filter((item) => item.id !== id));
+      setLead((prev) => (prev?.id === id ? null : prev));
     } catch (err: any) {
       const msg = err.response?.data?.error || "Failed to delete lead";
       setError(msg);
@@ -191,7 +193,36 @@ export const useLeads = () => {
       } finally {
         setLoading(false);
       }
-    }, [])
+    }, []),
+    restoreLead: useCallback(async (id: string) => {
+      setLoading(true);
+      setError(null);
+      try {
+        await LeadService.restore(id);
+        setLeads((prev) => prev.filter((item) => item.id !== id));
+      } catch (err: any) {
+        const msg = err.response?.data?.error || "Failed to restore lead";
+        setError(msg);
+        throw new Error(msg);
+      } finally {
+        setLoading(false);
+      }
+    }, []),
+    permanentDeleteLead: useCallback(async (id: string) => {
+      setLoading(true);
+      setError(null);
+      try {
+        await LeadService.permanentDelete(id);
+        setLeads((prev) => prev.filter((item) => item.id !== id));
+      } catch (err: any) {
+        const msg = err.response?.data?.error || "Failed to delete lead permanently";
+        setError(msg);
+        throw new Error(msg);
+      } finally {
+        setLoading(false);
+      }
+    }, []),
+    setLeads,
   };
 };
 

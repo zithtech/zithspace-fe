@@ -325,7 +325,7 @@ export default function UpdateDetailsDrawer({
 
         {/* Body */}
         <div style={{ padding: "22px 28px 40px" }}>
-          {/* General Notes */}
+          {/* Updates */}
           {update.generalNotes && (
             <div className="udd-anim" style={{
               background: "var(--bg-pure-white)",
@@ -337,7 +337,7 @@ export default function UpdateDetailsDrawer({
               <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
                 <StickyNote size={15} strokeWidth={2.3} color="var(--text-slate-600)" />
                 <Text strong style={{ fontSize: 13, color: "var(--text-slate-900)", letterSpacing: 0.1 }}>
-                  General Notes
+                  Updates
                 </Text>
               </div>
               <Text style={{

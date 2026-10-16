@@ -24,6 +24,7 @@ export interface Lead {
   created_at: string;
   updated_at: string;
   proposal_id?: string;
+  agreement_id?: string;
   deleted_at?: string;
 
   // Job Metadata
@@ -62,6 +63,8 @@ export interface Lead {
   inquiry_message?: string;
   website_source?: string;
   form_data?: Record<string, any>;
+  contact_name?: string;
+  contactName?: string;
 }
 
 export interface LeadPayload {
@@ -114,6 +117,8 @@ export interface LeadPayload {
   inquiryMessage?: string;
   websiteSource?: string;
   formData?: Record<string, any>;
+  contactName?: string;
+  contact_name?: string;
 }
 
 export class LeadService {

@@ -6,6 +6,8 @@ import React, {
   ReactNode,
   useState,
   useEffect,
+  useCallback,
+  useRef,
 } from "react";
 import { useRouter } from "next/navigation";
 import {
@@ -13,7 +15,7 @@ import {
   LoginCredentials,
   LoginResponse,
 } from "@/services/authService";
-import { ApiError } from "@/lib/axios";
+import { ApiError, TokenManager, performTokenRefresh, getTokenExpiry } from "@/lib/axios";
 
 // Extension sync function
 const syncTokenWithExtension = (token: string) => {
@@ -127,20 +129,163 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
     checkAuth();
   }, []);
 
-  // Set up token refresh interval
+  // Ref to track the scheduled proactive-refresh timer so we can cancel it
+  const refreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  /**
+   * Schedule a proactive token refresh 2 minutes before the JWT actually expires.
+   * If `expiry` is null (e.g. opaque token), fall back to a 50-minute fixed interval.
+   */
+  const scheduleRefresh = useCallback(() => {
+    // Clear any previously scheduled refresh
+    if (refreshTimerRef.current) {
+      clearTimeout(refreshTimerRef.current);
+      refreshTimerRef.current = null;
+    }
+
+    const token = TokenManager.getAccessToken();
+    const expiry = getTokenExpiry(token);
+    const FALLBACK_MS = 50 * 60 * 1000; // 50 minutes
+    const LEAD_TIME_MS = 2 * 60 * 1000; // refresh 2 min before expiry
+
+    const delayMs =
+      expiry !== null
+        ? Math.max(expiry - Date.now() - LEAD_TIME_MS, 0)
+        : FALLBACK_MS;
+
+    console.log(
+      `⏰ Next proactive token refresh in ${Math.round(delayMs / 1000)}s`,
+    );
+
+    refreshTimerRef.current = setTimeout(async () => {
+      refreshTimerRef.current = null;
+      const newToken = await performTokenRefresh();
+      if (newToken) {
+        // Ensure auth cookie stays alive
+        if (typeof document !== 'undefined') {
+          document.cookie = 'zithmi_auth=1; path=/; SameSite=Lax';
+        }
+        console.log('✅ Proactive token refresh succeeded, rescheduling...');
+        scheduleRefresh(); // schedule the next one
+      } else {
+        // If token still has remaining time before actual expiry, retry instead of prematurely logging out
+        const currentToken = TokenManager.getAccessToken();
+        const currentExpiry = getTokenExpiry(currentToken);
+        if (currentExpiry && currentExpiry > Date.now()) {
+          console.warn('⚠️ Proactive refresh attempt failed, but access token is still valid. Retrying in 15s...');
+          refreshTimerRef.current = setTimeout(() => {
+            scheduleRefresh();
+          }, 15000);
+          return;
+        }
+
+        console.warn('❌ Token has expired and refresh failed — clearing session');
+        if (typeof document !== 'undefined') {
+          document.cookie = 'zithmi_auth=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Lax';
+        }
+        setUser(null);
+        AuthService.clearAuth();
+        router.push('/login?error=session_expired');
+      }
+    }, delayMs);
+  }, [router]);
+
+  // Start / stop the refresh timer whenever auth state changes
   useEffect(() => {
     if (user && AuthService.isAuthenticated()) {
-      // Refresh token every 50 minutes (tokens expire in 1 hour)
-      const interval = setInterval(
-        () => {
-          refreshToken();
-        },
-        50 * 60 * 1000,
-      );
-
-      return () => clearInterval(interval);
+      scheduleRefresh();
+    } else {
+      if (refreshTimerRef.current) {
+        clearTimeout(refreshTimerRef.current);
+        refreshTimerRef.current = null;
+      }
     }
-  }, [user]);
+
+    return () => {
+      if (refreshTimerRef.current) {
+        clearTimeout(refreshTimerRef.current);
+        refreshTimerRef.current = null;
+      }
+    };
+  }, [user, scheduleRefresh]);
+
+  // When the tab becomes visible again, check if the token is still valid or
+  // nearly expired and refresh immediately if needed
+  useEffect(() => {
+    const handleVisibilityChange = async () => {
+      if (document.visibilityState !== 'visible') return;
+      if (!user || !AuthService.isAuthenticated()) return;
+
+      const token = TokenManager.getAccessToken();
+      const expiry = getTokenExpiry(token);
+      const LEAD_TIME_MS = 2 * 60 * 1000;
+
+      // Token is expired or within the lead time window — refresh now
+      if (expiry === null || expiry - Date.now() < LEAD_TIME_MS) {
+        console.log('👁️ Tab visible: token expired or nearly expired, refreshing now...');
+        const newToken = await performTokenRefresh();
+        if (newToken) {
+          if (typeof document !== 'undefined') {
+            document.cookie = 'zithmi_auth=1; path=/; SameSite=Lax';
+          }
+          scheduleRefresh();
+        } else {
+          // If token still valid, reschedule rather than kicking user out immediately
+          if (expiry && expiry > Date.now()) {
+            console.warn('⚠️ Visibility refresh attempt failed, but token is still valid. Rescheduling...');
+            scheduleRefresh();
+            return;
+          }
+
+          if (typeof document !== 'undefined') {
+            document.cookie = 'zithmi_auth=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Lax';
+          }
+          setUser(null);
+          AuthService.clearAuth();
+          router.push('/login?error=session_expired');
+        }
+      } else {
+        // Token still valid — reschedule timer in case it drifted while backgrounded
+        scheduleRefresh();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [user, scheduleRefresh, router]);
+
+  // Synchronize token refresh across multiple browser tabs
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const handleStorage = (e: StorageEvent) => {
+      if (e.key === 'accessToken' && e.newValue) {
+        console.log('🔄 Access token updated in another tab, rescheduling refresh timer...');
+        scheduleRefresh();
+      }
+    };
+
+    let channel: BroadcastChannel | null = null;
+    if ('BroadcastChannel' in window) {
+      try {
+        channel = new BroadcastChannel('zukvo_auth_sync');
+        channel.onmessage = (event) => {
+          if (event.data?.type === 'REFRESHED') {
+            console.log('🔄 Cross-tab auth sync received, rescheduling refresh timer...');
+            scheduleRefresh();
+          }
+        };
+      } catch {
+        /* ignore channel error */
+      }
+    }
+
+    window.addEventListener('storage', handleStorage);
+    return () => {
+      window.removeEventListener('storage', handleStorage);
+      channel?.close();
+    };
+  }, [scheduleRefresh]);
 
   const login = async (email: string, password: string): Promise<boolean> => {
     try {

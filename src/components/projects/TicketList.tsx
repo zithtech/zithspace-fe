@@ -424,8 +424,9 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
     const isDrawerStep = currentStep.target?.toString().includes("tickets-drawer");
 
     // Auto-open drawer if we are on a drawer step and it's not open
-    if (isDrawerStep && !selectedTicketId && recentTicket) {
-      setSelectedTicketId(recentTicket.id);
+    const targetTicketId = recentTicket?.id || allTicketIds[0];
+    if (isDrawerStep && !selectedTicketId && targetTicketId) {
+      setSelectedTicketId(targetTicketId);
       return;
     }
 
@@ -433,7 +434,7 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
     if (!isDrawerStep && selectedTicketId) {
       setSelectedTicketId(null);
     }
-  }, [run, currentTourKey, stepIndex, selectedTicketId, recentTicket]);
+  }, [run, currentTourKey, stepIndex, selectedTicketId, recentTicket, allTicketIds]);
 
   useEffect(() => {
     if (run && currentTourKey === "testiez-sprints") {
@@ -444,8 +445,8 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
         setManualModalOpen(false);
       }
 
-      // Auto-create default ticket if skipped to 23 without creating
-      if (stepIndex === 23 && !recentTicket) {
+      // Auto-create default ticket if on step 23+ without any ticket
+      if (stepIndex >= 23 && stepIndex <= 29 && !recentTicket && allTicketIds.length === 0) {
         const createDefaultTicket = async () => {
           try {
             const defaultTicketData = {
@@ -456,6 +457,10 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
             };
             const newTicket = await TicketService.createTicket(defaultTicketData as any);
             setRecentTicket(newTicket);
+            const currentStep = ticketsTourSteps[stepIndex];
+            if (currentStep?.target?.toString().includes("tickets-drawer")) {
+              setSelectedTicketId(newTicket.id);
+            }
             message.success("Default ticket generated for tour");
           } catch (e) {
             console.error("Failed to create default tour ticket", e);
@@ -464,7 +469,7 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
         createDefaultTicket();
       }
     }
-  }, [run, currentTourKey, stepIndex, recentTicket, projectId, message]);
+  }, [run, currentTourKey, stepIndex, recentTicket, projectId, message, allTicketIds]);
 
   // Measure the sticky top header so the sidebar and section anchors line up
   // with its real rendered height (it can wrap on narrow screens). Cascades
@@ -3937,6 +3942,7 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
               <QaProjectSwitcher
                 projects={projects || []}
                 value={projectId}
+                tourId="tickets-project-switcher"
                 onChange={(id) => id && router.push(`/projects/${id}/tickets`)}
               />
 

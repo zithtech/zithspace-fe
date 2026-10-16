@@ -16,6 +16,7 @@ import { commonDrawerProps, drawerFormStyles, SectionCard } from '@/components/c
 import { useMembers } from '@/hooks/useGlobalData';
 import ConfirmDialog from '@/components/common/ConfirmDialog';
 import { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
+import NoData from '@/components/common/NoData';
 
 const { Title, Text } = Typography;
 
@@ -291,6 +292,14 @@ const ApprovalWorkflowPage: React.FC<{ searchText?: string, createTrigger?: numb
               dataSource={filteredWorkflows}
               rowKey={(r) => `${r.levelType}-${r.levelId}`}
               pagination={false}
+              locale={{
+                emptyText: (
+                  <NoData
+                    title="No Approval Workflows Configured"
+                    description="No exit approval workflows have been configured yet."
+                  />
+                )
+              }}
             />
           </ZukvoLoadingOverlay>
         </div>

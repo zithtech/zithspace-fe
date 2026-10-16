@@ -1852,12 +1852,12 @@ function SubmitDailyUpdateContent() {
               ))}
             </div>
 
-            {/* General Comments Section */}
+            {/* Updates Section */}
             <div className="dud-card" style={{ marginTop: 22, padding: 18 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
                 <MessageSquare size={15} color="var(--text-slate-600)" />
                 <Text strong style={{ fontSize: 14, color: "var(--text-slate-900)" }}>
-                  General Comments
+                  Updates
                 </Text>
                 <Text style={{ fontSize: 12, color: "var(--text-slate-400)", fontWeight: 500 }}>
                   · Optional

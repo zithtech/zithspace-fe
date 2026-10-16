@@ -178,6 +178,10 @@ export function LvStyles() {
         margin-bottom: 0 !important;
         flex-shrink: 0;
       }
+      [data-theme='dark'] .lvp-sprint-header-v2 {
+        background: #0d121a !important;
+        border-bottom-color: #1f2937 !important;
+      }
       .lvp-sprint-row1 { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
       .lvp-sprint-title-block { display: flex; align-items: center; gap: 8px; min-width: 0; flex: 1 1 auto; }
       .lvp-sprint-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; background: #3b82f6; box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2); }

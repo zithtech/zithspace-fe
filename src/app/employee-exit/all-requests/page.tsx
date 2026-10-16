@@ -1,19 +1,38 @@
 'use client';
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { Table, Button, Dropdown, Select, App } from 'antd';
-import { Search, Plus, MoreVertical, CheckCircle, Clock, XCircle, ArrowUpRight, Trash2, Edit2, Eye } from 'lucide-react';
+import { Table, Button, Select, Tooltip, App } from 'antd';
+import {
+  Search,
+  Plus,
+  CheckCircle,
+  Clock,
+  XCircle,
+  ArrowUpRight,
+  Trash2,
+  Edit2,
+  Eye,
+  FileText,
+  RotateCw,
+  X
+} from 'lucide-react';
 import { EmployeeExitService } from '@/services/employeeExitService';
 import dayjs from 'dayjs';
 import { CreateExitRequestDrawer } from '@/components/employee-exit/CreateExitRequestDrawer';
 import { ExitRequestDetailsDrawer } from '@/components/employee-exit/ExitRequestDetailsDrawer';
 import ConfirmDialog from '@/components/common/ConfirmDialog';
 import { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
+import { StatCards } from '@/components/common/StatCards';
+import { FilterBar, FilterToggleButton, TicketFilterPill } from '@/components/common/FilterBar';
+import NoData from '@/components/common/NoData';
 
 export default function AllRequestsPage() {
   const [requests, setRequests] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchText, setSearchText] = useState("");
+  const [statusFilter, setStatusFilter] = useState<string | undefined>(undefined);
+  const [typeFilter, setTypeFilter] = useState<string | undefined>(undefined);
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [drawerVisible, setDrawerVisible] = useState(false);
   const [detailsDrawerVisible, setDetailsDrawerVisible] = useState(false);
   const [selectedRequestId, setSelectedRequestId] = useState<string | null>(null);
@@ -38,15 +57,39 @@ export default function AllRequestsPage() {
     fetchData();
   }, [fetchData]);
 
+  const exitTypeOptions = useMemo(() => {
+    const typesSet = new Set<string>();
+    requests.forEach(r => {
+      const t = r.exitType?.name || r.exit_type_id;
+      if (t) typesSet.add(t);
+    });
+    if (typesSet.size === 0) {
+      return [
+        { value: 'Resignation', label: 'Resignation' },
+        { value: 'Termination', label: 'Termination' },
+        { value: 'Retirement', label: 'Retirement' },
+      ];
+    }
+    return Array.from(typesSet).map(t => ({ value: t, label: t }));
+  }, [requests]);
+
   const filteredRequests = useMemo(() => {
     return requests.filter(r => {
+      if (statusFilter && (r.status || 'PENDING').toUpperCase() !== statusFilter) {
+        return false;
+      }
+      if (typeFilter) {
+        const typeName = r.exitType?.name || r.exit_type_id || 'Resignation';
+        if (typeName !== typeFilter) return false;
+      }
+      if (!searchText) return true;
       const q = searchText.toLowerCase();
       const n1 = (r.employee?.first_name || '').toLowerCase();
       const n2 = (r.employee?.last_name || '').toLowerCase();
       const code = (r.employee?.employee_code || '').toLowerCase();
       return n1.includes(q) || n2.includes(q) || code.includes(q);
     });
-  }, [requests, searchText]);
+  }, [requests, searchText, statusFilter, typeFilter]);
 
   const stats = useMemo(() => {
     const total = requests.length;
@@ -55,6 +98,8 @@ export default function AllRequestsPage() {
     const rejected = requests.filter(r => r.status === 'REJECTED' || r.status === 'WITHDRAWN').length;
     return { total, approved, pending, rejected };
   }, [requests]);
+
+  const activeFilterCount = (statusFilter ? 1 : 0) + (typeFilter ? 1 : 0);
 
   const total = filteredRequests.length;
   const pageCount = Math.ceil(total / pageSize);
@@ -72,16 +117,16 @@ export default function AllRequestsPage() {
         return (
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <div style={{
-              width: 28, height: 28, borderRadius: 6,
-              background: 'var(--bg-blue-50)', color: '#3b82f6',
+              width: 32, height: 32, borderRadius: 8,
+              background: 'rgba(59, 130, 246, 0.1)', color: '#2563eb',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontWeight: 700, fontSize: 11, border: '1px solid var(--border-blue-200)'
+              fontWeight: 700, fontSize: 12, border: '1px solid rgba(59, 130, 246, 0.2)'
             }}>
               {name.charAt(0).toUpperCase()}
             </div>
             <div style={{ display: 'flex', flexDirection: 'column' }}>
-              <span style={{ fontWeight: 600, color: 'var(--text-primary)', fontSize: 12 }}>{name}</span>
-              <span style={{ fontSize: 11, color: 'var(--text-slate-400)' }}>{code}</span>
+              <span style={{ fontWeight: 600, color: 'var(--text-slate-900, #0f172a)', fontSize: 13 }}>{name}</span>
+              <span style={{ fontSize: 11, color: 'var(--text-slate-400, #94a3b8)' }}>{code}</span>
             </div>
           </div>
         );
@@ -91,16 +136,16 @@ export default function AllRequestsPage() {
       title: 'TYPE',
       key: 'type',
       render: (_: any, record: any) => (
-        <span style={{ color: 'var(--text-primary)', fontSize: 12 }}>
+        <span style={{ color: 'var(--text-slate-700, #334155)', fontSize: 12.5, fontWeight: 500 }}>
           {record.exitType?.name || record.exit_type_id || 'Resignation'}
         </span>
       )
     },
     {
-      title: 'LWD',
+      title: 'LAST WORKING DAY',
       key: 'lwd',
       render: (_: any, record: any) => (
-        <span style={{ color: 'var(--text-slate-400)', fontSize: 12 }}>
+        <span style={{ color: 'var(--text-slate-600, #475569)', fontSize: 12.5 }}>
           {record.proposedLastWorkingDay ? dayjs(record.proposedLastWorkingDay).format("MMM DD, YYYY") : "—"}
         </span>
       )
@@ -109,7 +154,7 @@ export default function AllRequestsPage() {
       title: 'RESIGN DATE',
       key: 'date',
       render: (_: any, record: any) => (
-        <span style={{ color: 'var(--text-slate-400)', fontSize: 12 }}>
+        <span style={{ color: 'var(--text-slate-500, #64748b)', fontSize: 12.5 }}>
           {record.resignationDate ? dayjs(record.resignationDate).format("MMM DD, YYYY") : "—"}
         </span>
       )
@@ -127,8 +172,8 @@ export default function AllRequestsPage() {
         };
         const { bg, color, border } = cfg[s] || cfg.PENDING;
         return (
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, background: bg, color, border, padding: '2px 8px', borderRadius: 4, fontSize: 10, fontWeight: 700, letterSpacing: '0.05em' }}>
-            <span style={{ width: 5, height: 5, borderRadius: '50%', background: color, flexShrink: 0 }} />
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, background: bg, color, border, padding: '2px 8px', borderRadius: 4, fontSize: 10.5, fontWeight: 700, letterSpacing: '0.04em' }}>
+            <span style={{ width: 6, height: 6, borderRadius: '50%', background: color, flexShrink: 0 }} />
             {s}
           </span>
         );
@@ -137,25 +182,25 @@ export default function AllRequestsPage() {
     {
       title: '',
       key: 'actions',
-      width: 90,
+      width: 100,
       align: 'center' as const,
       render: (_: any, record: any) => (
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
           <Button
             type="text"
             size="small"
-            icon={<Eye size={13} color="var(--text-slate-400)" />}
+            icon={<Eye size={14} color="var(--text-slate-500)" />}
             title="View Details"
             onClick={() => { setSelectedRequestId(record.id); setDetailsDrawerVisible(true); }}
-            style={{ minWidth: 26, height: 26, borderRadius: 6 }}
+            style={{ minWidth: 28, height: 28, borderRadius: 6 }}
           />
           <Button
             type="text"
             size="small"
-            icon={<Edit2 size={13} color="var(--text-slate-400)" />}
+            icon={<Edit2 size={14} color="var(--text-slate-500)" />}
             title="Edit"
             onClick={() => { setEditingRecord(record); setDrawerVisible(true); }}
-            style={{ minWidth: 26, height: 26, borderRadius: 6 }}
+            style={{ minWidth: 28, height: 28, borderRadius: 6 }}
           />
           <ConfirmDialog
             tone="danger"
@@ -172,9 +217,9 @@ export default function AllRequestsPage() {
             <Button
               type="text"
               size="small"
-              icon={<Trash2 size={13} color="#ef4444" />}
+              icon={<Trash2 size={14} color="#ef4444" />}
               title="Delete"
-              style={{ minWidth: 26, height: 26, borderRadius: 6 }}
+              style={{ minWidth: 28, height: 28, borderRadius: 6 }}
             />
           </ConfirmDialog>
         </div>
@@ -184,31 +229,63 @@ export default function AllRequestsPage() {
 
   return (
     <>
-
-
       {/* Header */}
       <div className="exit-page-header">
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <div className="exit-search-bar" style={{ display: 'flex', alignItems: 'center', padding: '0 10px', width: 300, height: 32 }}>
-            <Search size={13} color="var(--text-slate-400)" style={{ marginRight: 8, flexShrink: 0 }} />
+          <div className="exit-search-bar" style={{ display: 'flex', alignItems: 'center', padding: '0 12px', width: 280, height: 32 }}>
+            <Search size={14} color="var(--text-slate-400)" style={{ marginRight: 8, flexShrink: 0 }} />
             <input
               placeholder="Search requests, employees..."
               value={searchText}
-              onChange={e => setSearchText(e.target.value)}
+              onChange={e => { setSearchText(e.target.value); setCurrentPage(1); }}
               style={{ border: 'none', outline: 'none', width: '100%', fontSize: 13, background: 'transparent', color: 'var(--text-primary)' }}
             />
+            {searchText && (
+              <button
+                type="button"
+                onClick={() => setSearchText("")}
+                style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', color: 'var(--text-slate-400)', display: 'flex', alignItems: 'center' }}
+              >
+                <X size={13} />
+              </button>
+            )}
           </div>
+          <FilterToggleButton
+            isOpen={isFilterOpen}
+            onToggle={() => setIsFilterOpen(prev => !prev)}
+            activeCount={activeFilterCount}
+          />
           <span className="exit-topbar-meta">
             <span className="exit-pulse" />
             <strong>{total}</strong> requests
           </span>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <Tooltip title="Refresh">
+            <button
+              type="button"
+              className="exit-ghost-btn"
+              onClick={fetchData}
+              aria-label="Refresh"
+            >
+              <RotateCw size={14} className={loading ? 'animate-spin' : ''} />
+            </button>
+          </Tooltip>
           <Button
             type="primary"
-            icon={<Plus size={13} />}
+            icon={<Plus size={14} />}
             onClick={() => setDrawerVisible(true)}
-            style={{ background: '#3b82f6', border: 'none', fontWeight: 600, borderRadius: 0, height: 30, fontSize: 12 }}
+            style={{
+              background: '#3b82f6',
+              borderColor: '#3b82f6',
+              fontWeight: 600,
+              borderRadius: 6,
+              height: 32,
+              fontSize: 12.5,
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 6
+            }}
           >
             New Request
           </Button>
@@ -217,25 +294,86 @@ export default function AllRequestsPage() {
 
       {/* Body */}
       <div className="exit-body">
-        {/* Stats */}
-        <div className="exit-stats exit-stats-4">
-          <div className="exit-stat-card">
-            <div className="exit-stat-top"><div className="exit-stat-left"><span className="exit-stat-icon" style={{ background: 'rgba(59,130,246,0.1)', color: '#3b82f6' }}><ArrowUpRight size={13} /></span><span className="exit-stat-label">Total Requests</span></div></div>
-            <div className="exit-stat-bottom"><div className="exit-stat-value-wrap"><span className="exit-stat-value">{stats.total}</span></div><span className="exit-stat-period">All-time filed</span></div>
-          </div>
-          <div className="exit-stat-card">
-            <div className="exit-stat-top"><div className="exit-stat-left"><span className="exit-stat-icon" style={{ background: 'rgba(16,185,129,0.1)', color: '#10b981' }}><CheckCircle size={13} /></span><span className="exit-stat-label">Approved</span></div></div>
-            <div className="exit-stat-bottom"><div className="exit-stat-value-wrap"><span className="exit-stat-value">{stats.approved}</span></div><span className="exit-stat-period">Cleared for exit</span></div>
-          </div>
-          <div className="exit-stat-card">
-            <div className="exit-stat-top"><div className="exit-stat-left"><span className="exit-stat-icon" style={{ background: 'rgba(245,158,11,0.1)', color: '#f59e0b' }}><Clock size={13} /></span><span className="exit-stat-label">Pending</span></div></div>
-            <div className="exit-stat-bottom"><div className="exit-stat-value-wrap"><span className="exit-stat-value">{stats.pending}</span></div><span className="exit-stat-period">Awaiting action</span></div>
-          </div>
-          <div className="exit-stat-card">
-            <div className="exit-stat-top"><div className="exit-stat-left"><span className="exit-stat-icon" style={{ background: 'rgba(239,68,68,0.1)', color: '#ef4444' }}><XCircle size={13} /></span><span className="exit-stat-label">Rejected</span></div></div>
-            <div className="exit-stat-bottom"><div className="exit-stat-value-wrap"><span className="exit-stat-value">{stats.rejected}</span></div><span className="exit-stat-period">Cancelled exits</span></div>
-          </div>
-        </div>
+        {/* StatCards */}
+        <StatCards
+          title="Exit Overview"
+          statusText="ACTIVE"
+          progressPct={stats.total > 0 ? Math.round((stats.approved / stats.total) * 100) : 0}
+          cells={[
+            {
+              title: 'Total Requests',
+              value: stats.total,
+              icon: <ArrowUpRight size={14} />,
+              color: '#3b82f6',
+              tint: 'rgba(59,130,246,0.1)',
+              hint: 'All-time filed'
+            },
+            {
+              title: 'Approved',
+              value: stats.approved,
+              icon: <CheckCircle size={14} />,
+              color: '#10b981',
+              tint: 'rgba(16,185,129,0.1)',
+              hint: 'Cleared for exit'
+            },
+            {
+              title: 'Pending',
+              value: stats.pending,
+              icon: <Clock size={14} />,
+              color: '#f59e0b',
+              tint: 'rgba(245,158,11,0.1)',
+              hint: 'Awaiting action'
+            },
+            {
+              title: 'Rejected / Withdrawn',
+              value: stats.rejected,
+              icon: <XCircle size={14} />,
+              color: '#ef4444',
+              tint: 'rgba(239,68,68,0.1)',
+              hint: 'Cancelled exits'
+            },
+          ]}
+        />
+
+        {/* FilterBar */}
+        {isFilterOpen && (
+          <FilterBar
+            activeCount={activeFilterCount}
+            onReset={() => {
+              setStatusFilter(undefined);
+              setTypeFilter(undefined);
+              setSearchText("");
+              setCurrentPage(1);
+            }}
+            onClose={() => setIsFilterOpen(false)}
+          >
+            <TicketFilterPill
+              label="Status"
+              icon={<CheckCircle size={12} />}
+              value={statusFilter}
+              options={[
+                { value: 'PENDING', label: 'Pending', dotColor: '#f59e0b' },
+                { value: 'APPROVED', label: 'Approved', dotColor: '#10b981' },
+                { value: 'REJECTED', label: 'Rejected', dotColor: '#ef4444' },
+                { value: 'WITHDRAWN', label: 'Withdrawn', dotColor: '#64748b' },
+              ]}
+              onChange={(v) => {
+                setStatusFilter(v ? String(v) : undefined);
+                setCurrentPage(1);
+              }}
+            />
+            <TicketFilterPill
+              label="Exit Type"
+              icon={<FileText size={12} />}
+              value={typeFilter}
+              options={exitTypeOptions}
+              onChange={(v) => {
+                setTypeFilter(v ? String(v) : undefined);
+                setCurrentPage(1);
+              }}
+            />
+          </FilterBar>
+        )}
 
         {/* Table */}
         <div className="exit-table-wrap">
@@ -248,6 +386,14 @@ export default function AllRequestsPage() {
               pagination={false}
               className="exit-table"
               scroll={{ x: 800 }}
+              locale={{
+                emptyText: (
+                  <NoData
+                    title="No Exit Requests Found"
+                    description="There are no exit requests matching your current filters."
+                  />
+                )
+              }}
             />
           </ZukvoLoadingOverlay>
         </div>
@@ -260,11 +406,34 @@ export default function AllRequestsPage() {
             Showing <strong>{pageStart}–{pageEnd}</strong> of <strong>{total}</strong>
           </div>
           <div className="exit-pager">
-            <button type="button" className="exit-pager-btn" disabled={currentPage <= 1} onClick={() => setCurrentPage(p => Math.max(1, p - 1))}>‹</button>
-            {Array.from({ length: pageCount }, (_, i) => i + 1).slice(Math.max(0, currentPage - 3), Math.max(0, currentPage - 3) + 5).map((p) => (
-              <button key={p} type="button" className={`exit-pager-num ${p === currentPage ? 'is-active' : ''}`} onClick={() => setCurrentPage(p)}>{p}</button>
-            ))}
-            <button type="button" className="exit-pager-btn" disabled={currentPage >= pageCount} onClick={() => setCurrentPage(p => Math.min(pageCount, p + 1))}>›</button>
+            <button
+              type="button"
+              className="exit-pager-btn"
+              disabled={currentPage <= 1}
+              onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+            >
+              ‹
+            </button>
+            {Array.from({ length: pageCount }, (_, i) => i + 1)
+              .slice(Math.max(0, currentPage - 3), Math.max(0, currentPage - 3) + 5)
+              .map((p) => (
+                <button
+                  key={p}
+                  type="button"
+                  className={`exit-pager-num ${p === currentPage ? 'is-active' : ''}`}
+                  onClick={() => setCurrentPage(p)}
+                >
+                  {p}
+                </button>
+              ))}
+            <button
+              type="button"
+              className="exit-pager-btn"
+              disabled={currentPage >= pageCount}
+              onClick={() => setCurrentPage(p => Math.min(pageCount, p + 1))}
+            >
+              ›
+            </button>
             <Select
               className="exit-pagesize"
               value={pageSize}

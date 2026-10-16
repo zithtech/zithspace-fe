@@ -301,6 +301,8 @@ export interface UserSpend {
   userId: string;
   name: string | null;
   email: string | null;
+  avatarUrl?: string | null;
+  avatar?: string | null;
   claims: number;
   total: number;
 }

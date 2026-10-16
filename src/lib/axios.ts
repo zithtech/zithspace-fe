@@ -133,7 +133,100 @@ function redirectToLogin(): void {
   window.location.href = `/login?redirect=${encodeURIComponent(back)}`;
 }
 
-// Token management utilities - Only for access tokens (refresh tokens handled by cookies)
+/**
+ * Singleton refresh lock — all concurrent 401s share one refresh call.
+ * When the first request triggers a refresh, subsequent ones await the same
+ * promise instead of racing and potentially rotating the refresh token twice.
+ */
+let _refreshPromise: Promise<string | null> | null = null;
+
+/**
+ * Attempt to refresh the access token exactly once at a time.
+ * Returns the new access token on success, or null on failure.
+ * Sends both cookie credentials AND body token for 100% reliability across
+ * subdomains, ports, and restrictive browser cookie settings.
+ */
+export function performTokenRefresh(): Promise<string | null> {
+  // If another tab or concurrent call already refreshed the token in localStorage, use it immediately
+  const existingToken = TokenManager.getAccessToken();
+  const existingExpiry = getTokenExpiry(existingToken);
+  const LEAD_TIME_MS = 2 * 60 * 1000;
+  if (existingExpiry && existingExpiry - Date.now() > LEAD_TIME_MS) {
+    return Promise.resolve(existingToken);
+  }
+
+  if (_refreshPromise) return _refreshPromise;
+
+  const currentRefreshToken = TokenManager.getRefreshToken();
+
+  _refreshPromise = axios
+    .post(
+      `${process.env.NEXT_PUBLIC_API_URL}/api/auth/refresh`,
+      currentRefreshToken ? { refreshToken: currentRefreshToken } : {},
+      {
+        withCredentials: true,
+        headers: currentRefreshToken
+          ? { 'x-refresh-token': currentRefreshToken }
+          : undefined,
+      },
+    )
+    .then((res) => {
+      if (res.data.success && res.data.accessToken) {
+        TokenManager.setAccessToken(res.data.accessToken);
+        if (res.data.refreshToken) {
+          TokenManager.setRefreshToken(res.data.refreshToken);
+        }
+
+        // Notify other tabs via BroadcastChannel
+        if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
+          try {
+            const ch = new BroadcastChannel('zukvo_auth_sync');
+            ch.postMessage({
+              type: 'REFRESHED',
+              accessToken: res.data.accessToken,
+              refreshToken: res.data.refreshToken,
+            });
+            ch.close();
+          } catch {
+            /* ignore channel errors */
+          }
+        }
+
+        return res.data.accessToken as string;
+      }
+      return null;
+    })
+    .catch((err) => {
+      console.warn('❌ performTokenRefresh failed:', err.response?.data?.error || err.message);
+      return null;
+    })
+    .finally(() => {
+      _refreshPromise = null;
+    });
+
+  return _refreshPromise;
+}
+
+/**
+ * Decode a JWT payload and return the `exp` field as a Unix timestamp (ms).
+ * Falls back to null if the token is missing or malformed.
+ */
+export function getTokenExpiry(token: string | null): number | null {
+  if (!token) return null;
+  try {
+    const parts = token.split('.');
+    if (parts.length !== 3) return null;
+    // Standard base64url → base64 padding
+    const payload = parts[1].replace(/-/g, '+').replace(/_/g, '/');
+    const padded = payload + '=='.slice((payload.length % 4 === 0) ? 4 : payload.length % 4);
+    const decoded = JSON.parse(atob(padded));
+    return typeof decoded.exp === 'number' ? decoded.exp * 1000 : null;
+  } catch {
+    return null;
+  }
+}
+
+// Token management utilities - Handles access token and refresh token backup
 const TokenManager = {
   getAccessToken(): string | null {
     if (typeof window === 'undefined') return null;
@@ -148,6 +241,27 @@ const TokenManager = {
   clearAccessToken(): void {
     if (typeof window === 'undefined') return;
     localStorage.removeItem('accessToken');
+  },
+
+  getRefreshToken(): string | null {
+    if (typeof window === 'undefined') return null;
+    return localStorage.getItem('refreshToken');
+  },
+
+  setRefreshToken(refreshToken: string): void {
+    if (typeof window === 'undefined') return;
+    localStorage.setItem('refreshToken', refreshToken);
+  },
+
+  clearRefreshToken(): void {
+    if (typeof window === 'undefined') return;
+    localStorage.removeItem('refreshToken');
+  },
+
+  clearAll(): void {
+    if (typeof window === 'undefined') return;
+    localStorage.removeItem('accessToken');
+    localStorage.removeItem('refreshToken');
   },
 };
 
@@ -171,21 +285,11 @@ const createApiClient = (): AxiosInstance => {
       // If no token exists, try to refresh from cookie before making request
       if (!token && !config.url?.includes('/auth/refresh') && !config.url?.includes('/auth/login')) {
         console.log('🔄 No access token found, attempting proactive refresh...');
-        try {
-          const refreshResponse = await axios.post(
-            `${process.env.NEXT_PUBLIC_API_URL}/api/auth/refresh`,
-            {},
-            { withCredentials: true }
-          );
-
-          if (refreshResponse.data.success && refreshResponse.data.accessToken) {
-            token = refreshResponse.data.accessToken;
-            if (token) {
-              TokenManager.setAccessToken(token);
-            }
-            console.log('✅ Proactive token refresh successful');
-          }
-        } catch (error) {
+        const refreshed = await performTokenRefresh();
+        if (refreshed) {
+          token = refreshed;
+          console.log('✅ Proactive token refresh successful');
+        } else {
           console.log('❌ Proactive token refresh failed');
         }
       }
@@ -337,31 +441,24 @@ const createApiClient = (): AxiosInstance => {
         originalRequest._retry = true;
 
         try {
-          // Attempt to refresh token - no body needed, refresh token sent via cookies
-          const refreshResponse = await axios.post(
-            `${process.env.NEXT_PUBLIC_API_URL}/api/auth/refresh`,
-            {}, // Empty body - refresh token is in cookies
-            { withCredentials: true }
-          );
+          // Use the singleton refresh lock so all concurrent 401s share one refresh call
+          const newAccessToken = await performTokenRefresh();
 
-          if (refreshResponse.data.success) {
-            const { accessToken } = refreshResponse.data;
-            if (accessToken) {
-              TokenManager.setAccessToken(accessToken);
-            }
-
+          if (newAccessToken) {
             // Retry original request with new token
-            if (originalRequest.headers && accessToken) {
+            if (originalRequest.headers) {
               console.log('🔄 Retrying request with new token...');
-              originalRequest.headers.Authorization = `Bearer ${accessToken}`;
+              originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
             }
-
             return client(originalRequest);
           }
+
+          // Refresh call returned null — session truly expired
+          throw new Error('Refresh returned no token');
         } catch (refreshError) {
           console.error('Token refresh failed:', refreshError);
 
-          TokenManager.clearAccessToken();
+          TokenManager.clearAll();
 
           // Only bounce when a real session died: the request carried a token,
           // the server rejected it, and the refresh could not replace it.

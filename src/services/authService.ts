@@ -1,4 +1,4 @@
-import { api, apiClient, ApiError, TokenManager } from '@/lib/axios';
+import { api, apiClient, ApiError, TokenManager, performTokenRefresh } from '@/lib/axios';
 
 export interface LoginCredentials {
   email: string;
@@ -84,8 +84,10 @@ export class AuthService {
       const response = await apiClient.post('/api/auth/login', credentials);
 
       if (response.data.success) {
-        // Store only access token - refresh token is set as cookie by backend
         TokenManager.setAccessToken(response.data.accessToken);
+        if (response.data.refreshToken) {
+          TokenManager.setRefreshToken(response.data.refreshToken);
+        }
 
         return response.data;
       } else {
@@ -114,6 +116,9 @@ export class AuthService {
 
       if (response.data.success) {
         TokenManager.setAccessToken(response.data.accessToken);
+        if (response.data.refreshToken) {
+          TokenManager.setRefreshToken(response.data.refreshToken);
+        }
         return response.data;
       } else {
         throw new Error(response.data.error || 'Google login failed');
@@ -141,6 +146,9 @@ export class AuthService {
 
       if (response.data.success) {
         TokenManager.setAccessToken(response.data.accessToken);
+        if (response.data.refreshToken) {
+          TokenManager.setRefreshToken(response.data.refreshToken);
+        }
         return response.data;
       } else {
         throw new Error(response.data.error || 'Microsoft login failed');
@@ -163,7 +171,7 @@ export class AuthService {
       // Even if logout API fails, we should clear local tokens
       console.error('Logout API failed:', error);
     } finally {
-      TokenManager.clearAccessToken();
+      TokenManager.clearAll();
     }
   }
 
@@ -211,23 +219,18 @@ export class AuthService {
   }
 
   /**
-   * Refresh access token (handled automatically by Axios interceptor)
+   * Refresh access token.
+   * Delegates to the shared singleton lock in axios.ts so that concurrent
+   * callers (AuthContext timer, Axios 401 interceptor, etc.) all share the
+   * same in-flight request instead of racing against each other.
    */
   static async refreshToken(): Promise<boolean> {
-    try {
-      // No body needed - refresh token is sent via cookies
-      const response = await apiClient.post('/api/auth/refresh');
-
-      if (response.data.success) {
-        TokenManager.setAccessToken(response.data.accessToken);
-        return true;
-      }
-      return false;
-    } catch (error) {
-      console.error('Token refresh failed:', error);
-      TokenManager.clearAccessToken();
-      return false;
+    const newToken = await performTokenRefresh();
+    if (newToken) {
+      return true;
     }
+    TokenManager.clearAll();
+    return false;
   }
 
   /**
@@ -255,7 +258,7 @@ export class AuthService {
    * Clear all authentication data
    */
   static clearAuth(): void {
-    TokenManager.clearAccessToken();
+    TokenManager.clearAll();
   }
 
   /**

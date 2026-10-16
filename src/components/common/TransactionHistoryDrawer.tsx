@@ -283,13 +283,12 @@ export default function TransactionHistoryDrawer({
     >
       <style>{styles}</style>
 
-      {/* Header — typographic, no tile or gradient */}
+      {/* Enhanced Header */}
       <header className="thd-head">
+        <div className="thd-head-icon">
+          <History size={18} strokeWidth={2.2} />
+        </div>
         <div className="thd-head-text">
-          <div className="thd-eyebrow">
-            <History size={12} strokeWidth={2.2} />
-            <span>Activity</span>
-          </div>
           <div className="thd-head-title-row">
             <span className="thd-head-title">{title}</span>
             {rows.length > 0 && (
@@ -299,19 +298,21 @@ export default function TransactionHistoryDrawer({
           <div className="thd-head-sub">{subtitle || "Chronological record of every change"}</div>
         </div>
         <div className="thd-head-actions">
-          <Tooltip title="Refresh">
+          <Tooltip title="Refresh timeline">
             <button
               type="button"
               className={`thd-head-btn${loading ? " is-spin" : ""}`}
               onClick={() => refresh()}
               aria-label="Refresh"
             >
-              <RefreshCw size={15} />
+              <RefreshCw size={14} />
             </button>
           </Tooltip>
-          <button type="button" className="thd-head-btn" onClick={onClose} aria-label="Close">
-            <X size={16} />
-          </button>
+          <Tooltip title="Close">
+            <button type="button" className="thd-head-btn" onClick={onClose} aria-label="Close">
+              <X size={15} />
+            </button>
+          </Tooltip>
         </div>
       </header>
 
@@ -395,35 +396,56 @@ const styles = `
   .thd-drawer .ant-drawer-body { overflow: hidden !important; }
 
   /* ── Header: typographic, hairline separated ─────────────────────────── */
+  /* ── Header: enhanced, clean, balanced hierarchy ─────────────────────────── */
   .thd-head {
-    display: flex; align-items: flex-start; gap: 12px;
-    padding: 20px 22px 16px;
+    display: flex; align-items: center; gap: 14px;
+    padding: 18px 24px;
     background: var(--bg-pure-white, #fff);
     border-bottom: 1px solid var(--border-slate-200, #e2e8f0);
     flex-shrink: 0;
   }
+  .thd-head-icon {
+    width: 40px; height: 40px; border-radius: 10px;
+    background: rgba(59, 130, 246, 0.1);
+    color: #2563eb;
+    border: 1px solid rgba(59, 130, 246, 0.18);
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+    box-shadow: 0 2px 8px -2px rgba(59, 130, 246, 0.2);
+  }
   .thd-head-text { flex: 1; min-width: 0; }
-  .thd-eyebrow {
-    display: inline-flex; align-items: center; gap: 6px; margin-bottom: 5px;
-    font-size: 10px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase;
-    color: var(--text-slate-400, #94a3b8);
-  }
-  .thd-head-title-row { display: flex; align-items: baseline; gap: 8px; }
+  .thd-head-title-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
   .thd-head-title {
-    font-size: 16px; font-weight: 650; letter-spacing: -0.02em;
+    font-size: 16px; font-weight: 750; letter-spacing: -0.02em;
     color: var(--text-slate-900, #0f172a);
+    line-height: 1.25;
   }
-  .thd-head-count { font-size: 12px; font-weight: 600; color: var(--text-slate-400, #94a3b8); }
-  .thd-head-sub { font-size: 11.5px; color: var(--text-slate-500, #64748b); margin-top: 3px; line-height: 1.5; }
-  .thd-head-actions { display: flex; align-items: center; gap: 2px; flex-shrink: 0; }
+  .thd-head-count {
+    display: inline-flex; align-items: center;
+    font-size: 11px; font-weight: 700;
+    color: #2563eb;
+    background: rgba(59, 130, 246, 0.08);
+    border: 1px solid rgba(59, 130, 246, 0.2);
+    padding: 1.5px 7.5px;
+    border-radius: 999px;
+    font-variant-numeric: tabular-nums;
+    line-height: 1.4;
+  }
+  .thd-head-sub { font-size: 12px; color: var(--text-slate-500, #64748b); margin-top: 3px; line-height: 1.4; }
+  .thd-head-actions { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
   .thd-head-btn {
-    width: 30px; height: 30px; border-radius: 8px;
-    border: none; background: transparent;
-    color: var(--text-slate-400, #94a3b8);
+    width: 32px; height: 32px; border-radius: 8px;
+    border: 1px solid var(--border-slate-200, #e2e8f0);
+    background: var(--bg-pure-white, #fff);
+    color: var(--text-slate-500, #64748b);
     cursor: pointer; display: inline-flex; align-items: center; justify-content: center;
-    transition: color .15s ease, background .15s ease;
+    transition: all .15s ease;
   }
-  .thd-head-btn:hover { color: var(--text-slate-700, #334155); background: var(--bg-slate-50, #f8fafc); }
+  .thd-head-btn:hover {
+    color: var(--text-slate-900, #0f172a);
+    background: var(--bg-slate-50, #f8fafc);
+    border-color: var(--border-slate-300, #cbd5e1);
+  }
   .thd-head-btn.is-spin svg { animation: thd-spin 0.9s linear infinite; }
   @keyframes thd-spin { to { transform: rotate(360deg); } }
 
@@ -622,12 +644,34 @@ const styles = `
 
   /* ── Dark mode ───────────────────────────────────────────────────────── */
   [data-theme='dark'] .thd-head { background: var(--bg-secondary, #141414); border-color: #303030; }
+  [data-theme='dark'] .thd-head-icon {
+    background: rgba(59, 130, 246, 0.16);
+    border-color: rgba(59, 130, 246, 0.3);
+    color: #60a5fa;
+    box-shadow: 0 2px 8px -2px rgba(59, 130, 246, 0.3);
+  }
+  [data-theme='dark'] .thd-head-title { color: #f1f5f9; }
+  [data-theme='dark'] .thd-head-count {
+    background: rgba(59, 130, 246, 0.18);
+    border-color: rgba(59, 130, 246, 0.35);
+    color: #93c5fd;
+  }
+  [data-theme='dark'] .thd-head-sub { color: #94a3b8; }
+  [data-theme='dark'] .thd-head-btn {
+    background: #1e293b;
+    border-color: #334155;
+    color: #94a3b8;
+  }
+  [data-theme='dark'] .thd-head-btn:hover {
+    background: #334155;
+    border-color: #475569;
+    color: #f8fafc;
+  }
   [data-theme='dark'] .thd-item:hover { background: rgba(255, 255, 255, 0.04); }
   [data-theme='dark'] .thd-rail::after,
   [data-theme='dark'] .thd-day-line { background: #303030; }
   [data-theme='dark'] .thd-status-dot { box-shadow: 0 0 0 2px var(--bg-secondary, #141414); }
   [data-theme='dark'] .thd-item:hover .thd-status-dot { box-shadow: 0 0 0 2px #1d1d1d; }
   [data-theme='dark'] .thd-state-icon { border-color: #303030; }
-  [data-theme='dark'] .thd-head-btn:hover,
   [data-theme='dark'] .thd-loadmore-btn.ant-btn:hover { background: rgba(255, 255, 255, 0.06) !important; }
 `;

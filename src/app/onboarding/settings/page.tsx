@@ -2,7 +2,7 @@
 
 import NoData from "@/components/common/NoData";
 import React, { useState, useEffect, useCallback } from "react";
-import { Tabs, Button, message, Table, Switch, Input, Tooltip, Drawer, AutoComplete } from "antd";
+import { Tabs, Button, message, Table, Switch, Input, Tooltip, Drawer, AutoComplete, Dropdown } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import {
   Hash,
@@ -18,6 +18,9 @@ import {
   RefreshCw,
   Menu,
   Settings as SettingsIcon,
+  LayoutGrid,
+  List,
+  MoreHorizontal,
 } from "lucide-react";
 import OnboardingGuard from "@/components/onboarding/OnboardingGuard";
 import ConfirmDialog from "@/components/common/ConfirmDialog";
@@ -277,6 +280,8 @@ function DocumentsNeededTab() {
 
   // Per-row toggle busy flag (so we only disable the row being toggled).
   const [togglingId, setTogglingId] = useState<string | null>(null);
+  
+  const [viewMode, setViewMode] = useState<"list" | "grid">("grid");
 
   // ── Defensive readers: the api helper may unwrap to the value, or hand back
   // the full body. Accept the array/object at any of res / res.data / res.data.data.
@@ -520,6 +525,14 @@ function DocumentsNeededTab() {
           </p>
         </div>
         <div className="docn-intro-actions">
+          <div className="onb-view-toggles">
+            <button type="button" className={viewMode === "grid" ? "is-active" : ""} onClick={() => setViewMode("grid")}>
+              <LayoutGrid size={14} />
+            </button>
+            <button type="button" className={viewMode === "list" ? "is-active" : ""} onClick={() => setViewMode("list")}>
+              <List size={14} />
+            </button>
+          </div>
           <Tooltip title="Refresh">
             <button type="button" className="docn-ghost-btn" onClick={load} aria-label="Refresh">
               <RefreshCw size={15} className={loading ? "docn-spin" : ""} />
@@ -680,18 +693,105 @@ function DocumentsNeededTab() {
       </Drawer>
 
       {/* List */}
-      <div className="docn-table-wrap">
+      <div className="docn-table-wrap" style={{ background: viewMode === 'grid' ? 'transparent' : undefined, border: viewMode === 'grid' ? 'none' : undefined }}>
         <ZukvoLoadingOverlay loading={loading} message="">
-          <Table
-            rowKey="id"
-            size="small"
-            className="docn-table"
-            columns={columns}
-            dataSource={rows}
-            pagination={{ pageSizeOptions: [10, 15, 20, 25, 50, 100], pageSize: 15, showSizeChanger: true, hideOnSinglePage: true, size: "small" }}
-            scroll={{ x: 'max-content' }}
-            locale={{ emptyText: <NoData description={"No documents yet — add the ones you need from new hires."} /> }}
-          />
+          {viewMode === 'list' ? (
+            <Table
+              rowKey="id"
+              size="small"
+              className="docn-table"
+              columns={columns}
+              dataSource={rows}
+              pagination={{ pageSizeOptions: [10, 15, 20, 25, 50, 100], pageSize: 15, showSizeChanger: true, hideOnSinglePage: true, size: "small" }}
+              scroll={{ x: 'max-content' }}
+              locale={{ emptyText: <NoData description={"No documents yet — add the ones you need from new hires."} /> }}
+            />
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
+              <div style={{ flex: 1, overflowY: 'auto' }}>
+                {rows.length === 0 ? (
+                  <NoData description={"No documents yet — add the ones you need from new hires."} />
+                ) : (
+                  <div className="onb-grid">
+                    {rows.map((r) => {
+                      return (
+                        <div key={r.id} className="onb-list-card">
+                          <div className="onb-list-card-head">
+                            <div className="onb-list-card-avatar" style={{ background: 'rgba(59, 130, 246, 0.1)', color: '#3b82f6' }}>
+                              <FileText size={16} />
+                            </div>
+                            <div className="onb-list-card-body">
+                              <div className="onb-list-card-title">
+                                <span>{r.name}</span>
+                              </div>
+                              <div className="onb-list-card-sub" style={{ display: 'block', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>
+                                {r.description || 'No description'}
+                              </div>
+                            </div>
+                            {canUpdateOnboardingSetting && (
+                              <Dropdown
+                                menu={{
+                                  className: 'onb-action-pop',
+                                  items: [
+                                    {
+                                      key: 'edit',
+                                      label: (
+                                        <div className="onb-menu-item">
+                                          <span className="onb-menu-ic" style={{ color: PALETTE.blue, background: TINT.blue }}><Pencil size={13} /></span>
+                                          <span className="onb-menu-text">
+                                            <span className="onb-menu-title">Edit Name</span>
+                                          </span>
+                                        </div>
+                                      ),
+                                      onClick: (info: any) => { info.domEvent.stopPropagation(); startEdit(r); }
+                                    },
+                                    { type: 'divider' },
+                                    {
+                                      key: 'remove',
+                                      danger: true,
+                                      label: (
+                                        <div className="onb-menu-item">
+                                          <span className="onb-menu-ic" style={{ color: PALETTE.red, background: TINT.red }}><Trash2 size={13} /></span>
+                                          <span className="onb-menu-text">
+                                            <span className="onb-menu-title">Remove</span>
+                                          </span>
+                                        </div>
+                                      ),
+                                      onClick: (info: any) => {
+                                        info.domEvent.stopPropagation();
+                                        remove(r);
+                                      }
+                                    }
+                                  ]
+                                }}
+                                trigger={['click']}
+                              >
+                                <button type="button" className="onb-list-card-actions" onClick={e => e.stopPropagation()}>
+                                  <MoreHorizontal size={14} />
+                                </button>
+                              </Dropdown>
+                            )}
+                          </div>
+                          
+                          <div className="onb-list-card-footer" onClick={e => e.stopPropagation()}>
+                            <div className="onb-list-card-row" style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 12px' }}>
+                              <span className="onb-list-card-item">
+                                <span className="onb-list-card-key">Status:</span>
+                                <span className="onb-list-card-val" style={{ color: r.isActive ? '#10b981' : '#ef4444' }}>{r.isActive ? 'Required' : 'Disabled'}</span>
+                              </span>
+                              <span className="onb-list-card-item" style={{ gap: 6 }}>
+                                <Switch size="small" checked={r.isActive} onChange={(checked) => toggleActive(r, checked)} loading={togglingId === r.id} disabled={!canUpdateOnboardingSetting || (togglingId !== null && togglingId !== r.id)} />
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
         </ZukvoLoadingOverlay>
       </div>
 

@@ -21,8 +21,10 @@ import {
   Space,
   Spin,
   Form,
+  Dropdown,
+  Modal,
 } from 'antd';
-import { Menu } from 'lucide-react';
+import { Menu, LayoutGrid, List, MoreHorizontal } from 'lucide-react';
 import type { ColumnsType } from 'antd/es/table';
 import {
   PlusOutlined,
@@ -159,6 +161,7 @@ export default function LeavePolicyPanel() {
   // pagination
   const [tablePage, setTablePage] = useState(1);
   const [tablePageSize, setTablePageSize] = useState(15);
+  const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
 
   // drawer
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -563,6 +566,14 @@ export default function LeavePolicyPanel() {
             onToggle={() => setIsFilterRowOpen((prev) => !prev)}
             activeCount={statusFilter !== 'all' ? 1 : 0}
           />
+          <div className="lv-view-toggles">
+            <button type="button" className={viewMode === "grid" ? "is-active" : ""} onClick={() => setViewMode("grid")}>
+              <LayoutGrid size={14} />
+            </button>
+            <button type="button" className={viewMode === "list" ? "is-active" : ""} onClick={() => setViewMode("list")}>
+              <List size={14} />
+            </button>
+          </div>
           <Tooltip title="Refresh"><button type="button" className="lvp-ghost-btn" onClick={() => load()}><ReloadOutlined spin={loading} /></button></Tooltip>
           {canCreateLeavePolicy && (
             <Button type="primary" icon={<PlusOutlined />} onClick={openCreate} className="lvp-add-btn">New Policy</Button>
@@ -605,23 +616,126 @@ export default function LeavePolicyPanel() {
       )}
 
       {/* 4) TABLE */}
-      <div className="lv-table-wrap">
+      <div className="lv-table-wrap" style={{ overflowX: 'auto', background: viewMode === 'grid' ? 'transparent' : undefined, border: viewMode === 'grid' ? 'none' : undefined }}>
         <ZukvoLoadingOverlay loading={loading} message="">
-          <Table
-            rowKey="id"
-            size="small"
-            className="lvp-table"
-            columns={columns}
-            dataSource={pagedRows}
-            pagination={false}
-            scroll={{ x: 'max-content' }}
-            onRow={() => ({ className: 'lvp-row' })}
-            expandable={{
-              expandedRowRender,
-              onExpand: onExpandRow,
-              rowExpandable: (r) => r.lineCount > 0,
-            }} locale={{ emptyText: <NoData /> }}
-          />
+          {viewMode === 'list' ? (
+            <Table
+              rowKey="id"
+              size="small"
+              className="lvp-table"
+              columns={columns}
+              dataSource={pagedRows}
+              pagination={false}
+              scroll={{ x: 'max-content' }}
+              onRow={() => ({ className: 'lvp-row' })}
+              expandable={{
+                expandedRowRender,
+                onExpand: onExpandRow,
+                rowExpandable: (r) => r.lineCount > 0,
+              }} locale={{ emptyText: <NoData /> }}
+            />
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
+              <div style={{ flex: 1, overflowY: 'auto' }}>
+                {pagedRows.length === 0 ? (
+                  <NoData />
+                ) : (
+                  <div className="lv-grid">
+                    {pagedRows.map((r) => {
+                      const hasActions = canUpdateLeavePolicy || canDeleteLeavePolicy;
+                      
+                      return (
+                        <div key={r.id} className="lv-list-card">
+                          <div className="lv-list-card-head">
+                            <div className="lv-list-card-avatar" style={{ background: TINT.blue, color: PALETTE.blue }}>
+                              <BookOutlined />
+                            </div>
+                            <div className="lv-list-card-body">
+                              <div className="lv-list-card-title">
+                                <span>{r.name}</span>
+                                {r.isActive ? <span style={{ background: TINT.blue, color: PALETTE.blue, padding: '2px 6px', borderRadius: 6, fontSize: 10 }}>Active</span> : <span style={{ background: 'var(--bg-slate-50)', color: 'var(--text-slate-600)', padding: '2px 6px', borderRadius: 6, fontSize: 10, border: '1px solid var(--border-slate-200)' }}>Inactive</span>}
+                              </div>
+                              <div className="lv-list-card-sub">
+                                <span className="lv-list-card-val" style={{ fontWeight: 500, color: 'var(--text-slate-400)', fontFamily: 'monospace' }}>
+                                  {r.code}
+                                </span>
+                              </div>
+                            </div>
+                            {hasActions && (
+                              <Dropdown
+                                menu={{
+                                  className: 'lv-action-pop',
+                                  items: [
+                                    canUpdateLeavePolicy ? {
+                                      key: 'edit',
+                                      label: (
+                                        <div className="lv-menu-item">
+                                          <span className="lv-menu-ic" style={{ color: PALETTE.blue, background: TINT.blue }}><EditOutlined style={{ fontSize: 13 }} /></span>
+                                          <span className="lv-menu-text"><span className="lv-menu-title">Edit Policy</span></span>
+                                        </div>
+                                      ),
+                                      onClick: (info: any) => {
+                                        info.domEvent.stopPropagation();
+                                        openEdit(r);
+                                      }
+                                    } : null,
+                                    canDeleteLeavePolicy ? {
+                                      key: 'remove',
+                                      danger: true,
+                                      label: (
+                                        <div className="lv-menu-item">
+                                          <span className="lv-menu-ic" style={{ color: PALETTE.red, background: TINT.red }}><DeleteOutlined style={{ fontSize: 13 }} /></span>
+                                          <span className="lv-menu-text"><span className="lv-menu-title">Delete Policy</span></span>
+                                        </div>
+                                      ),
+                                      onClick: (info: any) => {
+                                        info.domEvent.stopPropagation();
+                                        Modal.confirm({
+                                          title: 'Delete this policy?',
+                                          content: `"${r.name}" and its assignments & allocations will be removed.`,
+                                          okText: 'Delete',
+                                          okType: 'danger',
+                                          onOk: () => remove(r)
+                                        });
+                                      }
+                                    } : null
+                                  ].filter(Boolean) as any[]
+                                }}
+                                trigger={['click']}
+                              >
+                                <button type="button" className="lv-list-card-actions" onClick={e => e.stopPropagation()}>
+                                  <MoreHorizontal size={14} />
+                                </button>
+                              </Dropdown>
+                            )}
+                          </div>
+                          
+                          <div className="lv-list-card-footer" onClick={e => e.stopPropagation()}>
+                            <div className="lv-list-card-row">
+                              <span className="lv-list-card-item">
+                                <span className="lv-list-card-key">Term:</span>
+                                <span className="lv-list-card-val">{termLabel(r.termCycle).split(' ')[0]}</span>
+                              </span>
+                              <span className="lv-list-card-div" />
+                              <span className="lv-list-card-item">
+                                <span className="lv-list-card-key">Targets:</span>
+                                <span className="lv-list-card-val">{r.assignmentCount}</span>
+                              </span>
+                              <span className="lv-list-card-div" />
+                              <span className="lv-list-card-item">
+                                <span className="lv-list-card-key">Leave Types:</span>
+                                <span className="lv-list-card-val">{r.lineCount} mapped</span>
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
         </ZukvoLoadingOverlay>
       </div>
 

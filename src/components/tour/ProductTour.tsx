@@ -380,6 +380,33 @@ const isTourRouteMatch = (stepRoute?: string, currentPath?: string) => {
   return false;
 };
 
+const resolveTourElement = (target: string | HTMLElement | any): { element: Element | null; effectiveTarget: string | HTMLElement; isFound: boolean } => {
+  if (!target || target === 'body') return { element: typeof document !== 'undefined' ? document.body : null, effectiveTarget: 'body', isFound: true };
+  if (typeof target !== 'string') return { element: target, effectiveTarget: target, isFound: true };
+
+  const selectors = target.split(',').map((s: string) => s.trim()).filter(Boolean);
+  for (const sel of selectors) {
+    if (sel === 'body') {
+      return { element: typeof document !== 'undefined' ? document.body : null, effectiveTarget: 'body', isFound: true };
+    }
+    try {
+      const elements = document.querySelectorAll(sel);
+      for (let i = 0; i < elements.length; i++) {
+        const el = elements[i];
+        const rect = el.getBoundingClientRect();
+        const style = window.getComputedStyle(el);
+        const inViewport = rect.right > 0 && rect.left < (window.innerWidth || document.documentElement.clientWidth);
+        if (rect.width > 0 && rect.height > 0 && style.display !== 'none' && style.visibility !== 'hidden' && inViewport) {
+          return { element: el, effectiveTarget: sel, isFound: true };
+        }
+      }
+    } catch {
+      // ignore selector syntax errors
+    }
+  }
+  return { element: null, effectiveTarget: 'body', isFound: false };
+};
+
 export const ProductTour: React.FC = () => {
   const { run, steps, stepIndex, setStepIndex, completeTour, skipTour, currentTourKey } = useTour();
   const router = useRouter();
@@ -591,6 +618,22 @@ export const ProductTour: React.FC = () => {
           drawerCloseBtn.click();
         }
       } else if (
+        currentTourKey === 'testiez-sprints' &&
+        stepIndex >= 16 &&
+        stepIndex <= 24 &&
+        !pathname.includes('/projects/')
+      ) {
+        const firstProjectCard = document.querySelector('[data-tour="tickets-project-view"], .zs-card') as HTMLElement | null;
+        if (firstProjectCard) {
+          firstProjectCard.click();
+          return;
+        }
+        const lastProjectId = typeof window !== 'undefined' ? localStorage.getItem('lastProjectId') : null;
+        if (lastProjectId) {
+          router.push(`/projects/${lastProjectId}/tickets`);
+          return;
+        }
+      } else if (
         currentTourKey === 'testiez-admin-settings' &&
         typeof currentStepDef.target === 'string'
       ) {
@@ -666,19 +709,8 @@ export const ProductTour: React.FC = () => {
       };
 
       // Check for DOM element immediately
-      const initialElements = document.querySelectorAll(currentStepDef.target as string);
-      let el: Element | null = null;
-      for (let i = 0; i < initialElements.length; i++) {
-        const e = initialElements[i];
-        const rect = e.getBoundingClientRect();
-        const style = window.getComputedStyle(e);
-        const inViewport = rect.right > 0 && rect.left < (window.innerWidth || document.documentElement.clientWidth);
-        if (rect.width > 0 && rect.height > 0 && style.display !== 'none' && style.visibility !== 'hidden' && inViewport) {
-          el = e;
-          break;
-        }
-      }
-      if (el) {
+      const { element: el } = resolveTourElement(currentStepDef.target);
+      if (el && el !== document.body) {
         if (
           (currentTourKey === 'testiez-members' && stepIndex >= 2 && stepIndex <= 5) ||
           (currentTourKey === 'testiez-project-manual' && stepIndex >= 2 && stepIndex <= 4)
@@ -704,21 +736,8 @@ export const ProductTour: React.FC = () => {
       intervalId = setInterval(() => {
         attempts++;
 
-
-
-        const elements = document.querySelectorAll(currentStepDef.target as string);
-        let found: Element | null = null;
-        for (let i = 0; i < elements.length; i++) {
-          const el = elements[i];
-          const rect = el.getBoundingClientRect();
-          const style = window.getComputedStyle(el);
-          const inViewport = rect.right > 0 && rect.left < (window.innerWidth || document.documentElement.clientWidth);
-          if (rect.width > 0 && rect.height > 0 && style.display !== 'none' && style.visibility !== 'hidden' && inViewport) {
-            found = el;
-            break;
-          }
-        }
-        if (found) {
+        const { element: found } = resolveTourElement(currentStepDef.target);
+        if (found && found !== document.body) {
           clearInterval(intervalId);
           if (
             (currentTourKey === 'testiez-members' && stepIndex >= 2 && stepIndex <= 5) ||
@@ -736,16 +755,16 @@ export const ProductTour: React.FC = () => {
             setReadyStepIndex(stepIndex);
             cleanupClickListener = attachButtonClickListener(found);
           }
-        } else if (attempts > 20) {
-          // If genuinely missing after 2s grace period, check if it should be skipped dynamically
+        } else if (attempts > 15) {
+          // If missing after 1.5s grace period, check if it should be skipped dynamically
           if (currentStepDef.skipIfNotFound) {
             clearInterval(intervalId);
             setReadyStepIndex(-1);
             setStepIndex(stepIndex + (lastActionRef.current === 'prev' ? -1 : 1));
-          } else if (attempts > 60) {
-            // If genuinely missing after 6s
+          } else if (attempts > 25) {
+            // After 2.5s, fall back gracefully rather than leaving tour hidden
             clearInterval(intervalId);
-            if (currentStepDef.route && pathname !== currentStepDef.route) {
+            if (currentStepDef.route && !isTourRouteMatch(currentStepDef.route, pathname)) {
               setReadyStepIndex(-1);
             } else {
               setReadyStepIndex(stepIndex);
@@ -821,18 +840,15 @@ export const ProductTour: React.FC = () => {
         return;
       }
 
-      // If we are on the target route or a matching subroute, ignore the not-found error
-      if (targetStep?.route && isTourRouteMatch(targetStep.route, pathname)) {
-        return;
-      }
-      if (currentTourKey === 'testiez-document-hub' && index >= 2 && index <= 4 && pathname === '/documenthub') {
-        return;
-      }
-      // Otherwise, the element is genuinely missing on an unrelated page, so skip it
+      // If missing, advance or fallback instead of permanently stopping Joyride
       const newAction = action === 'prev' ? 'prev' : 'next';
       lastActionRef.current = newAction;
       const newIndex = index + (newAction === 'prev' ? -1 : 1);
-      setStepIndex(newIndex);
+      if (newIndex >= 0 && newIndex < steps.length) {
+        setStepIndex(newIndex);
+      } else {
+        completeTour();
+      }
     }
   };
 
@@ -845,27 +861,11 @@ export const ProductTour: React.FC = () => {
       scrollToFirstStep
       stepIndex={stepIndex}
       steps={steps.map(s => {
-        let isTargetInDom = true;
-        if (typeof s.target === 'string' && s.target !== 'body') {
-          const elements = document.querySelectorAll(s.target);
-          let found = false;
-          for (let i = 0; i < elements.length; i++) {
-            const el = elements[i];
-            const rect = el.getBoundingClientRect();
-            const style = window.getComputedStyle(el);
-            const inViewport = rect.right > 0 && rect.left < (window.innerWidth || document.documentElement.clientWidth);
-            if (rect.width > 0 && rect.height > 0 && style.display !== 'none' && style.visibility !== 'hidden' && inViewport) {
-              found = true;
-              break;
-            }
-          }
-          isTargetInDom = found;
-        }
-        const effectiveTarget = isTargetInDom ? s.target : 'body';
+        const { effectiveTarget, isFound } = resolveTourElement(s.target);
         return {
           ...s,
           target: effectiveTarget,
-          placement: isTargetInDom ? s.placement : 'center',
+          placement: isFound && effectiveTarget !== 'body' ? s.placement : 'center',
           skipBeacon: true,
           disableOverlayClose: true,
           disableCloseOnEsc: true,

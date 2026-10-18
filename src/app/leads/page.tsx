@@ -81,7 +81,8 @@ import {
   X as XIcon,
   Maximize2,
   Building2,
-  MapPin
+  MapPin,
+  Check
 } from "lucide-react";
 import {
   Card,
@@ -328,9 +329,8 @@ const TOGGLEABLE_COLUMNS: { key: string; label: string }[] = [
   { key: "platform", label: "Source" },
   { key: "budget", label: "Value" },
   { key: "bidiq", label: "BidIq" },
-  { key: "proposal", label: "Proposal" },
+  { key: "proposal", label: "Agreement" },
   { key: "mail", label: "Mail" },
-  { key: "company", label: "Company" },
   { key: "created_by", label: "Owner" },
   { key: "priority", label: "Priority" },
   { key: "last_activity", label: "Last Activity" },
@@ -510,6 +510,9 @@ const LeadIntakeFields = ({ configStatuses }: { configStatuses: any[] }) => {
       <SectionCard step="STEP 1" icon={<Building2 size={13} color="#6366f1" />} title="Company Information" subtitle="The organisation you're building a relationship with">
         <Form.Item name="intakeCompanyName" label={label('Company Name')} rules={[{ required: true }]}>
           <Input placeholder="e.g. Acme Corporation" style={{ borderRadius: 6 }} autoComplete="off" />
+        </Form.Item>
+        <Form.Item name="intakeContactName" label={label('Contact Name')}>
+          <Input prefix={<User size={13} style={{ color: '#94a3b8' }} />} placeholder="e.g. John Doe" style={{ borderRadius: 6 }} autoComplete="off" />
         </Form.Item>
         <Form.Item name="intakeCompanyType" label={label('Industry / Company Type')}>
           <Input placeholder="e.g. SaaS · Fintech · Agency" style={{ borderRadius: 6 }} autoComplete="off" />
@@ -828,13 +831,22 @@ export default function LeadsPage() {
   const [generatingProposal, setGeneratingProposal] = useState(false);
   const [selectedProposalLead, setSelectedProposalLead] = useState<Lead | null>(null);
 
+  const handleNavigateToProjectAgreement = (record: Lead) => {
+    const params = new URLSearchParams();
+    if (record.id) params.set("leadId", record.id);
+    if (record.title) params.set("title", record.title);
+    if (record.client_name) params.set("partyName", record.client_name);
+    if (record.client_mail) params.set("partyEmail", record.client_mail);
+    if (record.client_phone) params.set("partyPhone", record.client_phone);
+    if (record.budget) {
+      const numericBudget = record.budget.replace(/[^0-9.]/g, "");
+      if (numericBudget) params.set("totalValue", numericBudget);
+    }
+    router.push(`/project-agreements/agreements/new?${params.toString()}`);
+  };
+
   const openProposalFlow = (lead: Lead) => {
-    setSelectedProposalLead(lead);
-    setProposalStep(0);
-    setSelectedOption(null);
-    setCustomDates(null);
-    setCustomCost(null);
-    setProposalModalOpen(true);
+    handleNavigateToProjectAgreement(lead);
   };
 
   const closeProposalFlow = () => {
@@ -1018,20 +1030,36 @@ export default function LeadsPage() {
   }, [error, messageApi]);
 
   const handleStatusChange = async (leadId: string, newStatus: string) => {
+    // Optimistically update paginatedLeads immediately
+    setPaginatedLeads((prev) =>
+      prev.map((item) => (item.id === leadId ? { ...item, status: newStatus } : item))
+    );
     try {
       await updateLead(leadId, { status: newStatus });
       messageApi.success('Status Updated');
+      fetchPaginatedLeads();
+      fetchLeads();
     } catch (error) {
       messageApi.error('Failed to update status');
+      fetchPaginatedLeads();
+      fetchLeads();
     }
   };
 
   const handleActionChange = async (leadId: string, newAction: string) => {
+    // Optimistically update paginatedLeads immediately
+    setPaginatedLeads((prev) =>
+      prev.map((item) => (item.id === leadId ? { ...item, actions_item: newAction, actions: newAction } : item))
+    );
     try {
       await updateLead(leadId, { actions: newAction });
       messageApi.success('Action Updated');
+      fetchPaginatedLeads();
+      fetchLeads();
     } catch (error) {
       messageApi.error('Failed to update action');
+      fetchPaginatedLeads();
+      fetchLeads();
     }
   };
 
@@ -1154,7 +1182,6 @@ export default function LeadsPage() {
     items: [
       { key: 'view', label: menuLabel('View Details', 'Open the full view', <Eye size={14} />, '#3b82f6', 'rgba(59,130,246,0.12)') },
       canUpdateLead ? { key: 'edit', label: menuLabel('Edit Lead', 'Open lead editor', <Settings size={14} />, '#64748b', 'rgba(100,116,139,0.12)') } : null,
-      { key: 'timeline', label: menuLabel('View Timeline', 'Activity history', <History size={14} />, '#8b5cf6', 'rgba(139,92,246,0.12)') },
       (canUpdateLead || canDeleteLead) ? { type: 'divider' as const } : null,
       canDeleteLead ? {
         key: 'delete',
@@ -1203,7 +1230,15 @@ export default function LeadsPage() {
       onHeaderCell: () => ({ style: { paddingLeft: 24 } }),
       onCell: () => ({ style: { paddingLeft: 24 } }),
       render: (text: string, record: Lead) => {
-        const avatar = getAvatarStyle(record.client_name || record.id);
+        const isIntake = record.lead_source_kind === 'intake';
+        const companyName = record.company || record.title || text || "";
+        const contactName =
+          record.contact_name ||
+          (record as any).contactName ||
+          (record as any).form_data?.contactName ||
+          (record.client_name && record.client_name !== companyName ? record.client_name : "");
+
+        const avatar = getAvatarStyle((isIntake ? companyName : record.client_name) || record.id);
         const scoreLevel = getAIScoreLevel(record.ai_score);
         return (
           <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
@@ -1224,7 +1259,7 @@ export default function LeadsPage() {
                 position: "relative",
               }}
             >
-              {getInitials(record.client_name)}
+              {getInitials(isIntake ? companyName : record.client_name)}
               {scoreLevel?.label === "Hot" && (
                 <div style={{
                   position: "absolute",
@@ -1247,7 +1282,7 @@ export default function LeadsPage() {
             <div style={{ minWidth: 0, flex: 1 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 2 }}>
                 {(() => {
-                  const fullTitle = text || "";
+                  const fullTitle = isIntake ? companyName : (text || "");
                   const isLong = fullTitle.length > 28;
                   const display = isLong ? `${fullTitle.slice(0, 28)}…` : fullTitle;
                   const titleNode = (
@@ -1273,12 +1308,16 @@ export default function LeadsPage() {
                       classNames={{ root: "lm-title-tooltip-overlay" }}
                       title={
                         <div className="lm-title-tooltip">
-                          <div className="lm-title-tooltip-eyebrow">Lead title</div>
+                          <div className="lm-title-tooltip-eyebrow">{isIntake ? "Company Name" : "Lead title"}</div>
                           <div className="lm-title-tooltip-text">{fullTitle}</div>
-                          {(record.client_name || record.posted_on) && (
+                          {(isIntake ? contactName : (record.client_name || record.posted_on)) && (
                             <div className="lm-title-tooltip-sub">
-                              {record.client_name && <span>{record.client_name}</span>}
-                              {record.client_name && record.posted_on && <span className="lm-title-tooltip-dot" />}
+                              {isIntake ? (
+                                contactName && <span>Contact: {contactName}</span>
+                              ) : (
+                                record.client_name && <span>{record.client_name}</span>
+                              )}
+                              {record.posted_on && <span className="lm-title-tooltip-dot" />}
                               {record.posted_on && <span>Posted {formatRelativeTime(record.posted_on)}</span>}
                             </div>
                           )}
@@ -1296,11 +1335,27 @@ export default function LeadsPage() {
                 )}
               </div>
               <div style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 10.5, color: "var(--text-slate-400)", lineHeight: 1.2, marginTop: 1 }}>
-                <span style={{ fontWeight: 500 }}>{record.client_name}</span>
-                {record.posted_on && (
+                {isIntake ? (
                   <>
-                    <span style={{ color: "#cbd5e1" }}>·</span>
-                    <span style={{ color: "#94a3b8" }}>{formatRelativeTime(record.posted_on)}</span>
+                    <span style={{ fontWeight: 500, color: "var(--text-slate-600)" }}>
+                      {contactName || "—"}
+                    </span>
+                    {record.posted_on && (
+                      <>
+                        <span style={{ color: "#cbd5e1" }}>·</span>
+                        <span style={{ color: "#94a3b8" }}>{formatRelativeTime(record.posted_on)}</span>
+                      </>
+                    )}
+                  </>
+                ) : (
+                  <>
+                    <span style={{ fontWeight: 500 }}>{record.client_name}</span>
+                    {record.posted_on && (
+                      <>
+                        <span style={{ color: "#cbd5e1" }}>·</span>
+                        <span style={{ color: "#94a3b8" }}>{formatRelativeTime(record.posted_on)}</span>
+                      </>
+                    )}
                   </>
                 )}
               </div>
@@ -1648,12 +1703,30 @@ export default function LeadsPage() {
       },
     },
     {
-      title: "Proposal",
+      title: "Agreement",
       key: "proposal",
       width: 140,
       render: (_: unknown, record: Lead) => (
         canCreateProposal && (
-          record.proposal_id ? (
+          record.agreement_id ? (
+            <Button
+              type="link"
+              icon={<FileText size={13} />}
+              onClick={(e) => { e.stopPropagation(); router.push(`/project-agreements/agreements?open=${record.agreement_id}`); }}
+              onMouseDown={(e) => e.stopPropagation()}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "4px",
+                color: "#10b981",
+                fontWeight: 700,
+                fontSize: 11.5,
+                padding: 0
+              }}
+            >
+              View Agreement
+            </Button>
+          ) : record.proposal_id ? (
             <Button
               type="link"
               icon={<FileText size={13} />}
@@ -1671,11 +1744,11 @@ export default function LeadsPage() {
             >
               View Proposal
             </Button>
-          ) : hasPrime ? (
+          ) : (
             <Button
               type="link"
               icon={<Sparkles size={13} />}
-              onClick={(e) => { e.stopPropagation(); openProposalFlow(record); }}
+              onClick={(e) => { e.stopPropagation(); handleNavigateToProjectAgreement(record); }}
               onMouseDown={(e) => e.stopPropagation()}
               style={{
                 display: "flex",
@@ -1689,8 +1762,6 @@ export default function LeadsPage() {
             >
               Generate
             </Button>
-          ) : (
-            <Text style={{ color: "#cbd5e1", fontSize: 12 }}>—</Text>
           )
         )
       ),
@@ -1734,17 +1805,6 @@ export default function LeadsPage() {
           </div>
         );
       },
-    },
-    {
-      title: "Company",
-      dataIndex: "client_name",
-      key: "company",
-      width: 180,
-      render: (clientName: string) => (
-        <Text style={{ color: "var(--text-slate-700)", fontSize: 11.5, fontWeight: 600 }} ellipsis>
-          {clientName || "—"}
-        </Text>
-      ),
     },
     {
       title: "Owner",
@@ -1900,6 +1960,7 @@ export default function LeadsPage() {
       // Lead Intake — rehydrate the company profile + decision makers from
       // the mapped columns and the form_data JSONB blob.
       intakeCompanyName: record.company || record.client_name,
+      intakeContactName: record.contact_name || record.contactName || fd.contactName || (record.client_name && record.client_name !== record.company ? record.client_name : ''),
       intakeCompanyType: fd.companyType,
       intakeCoreBusiness: fd.coreBusiness,
       intakeCompanyDescription: fd.companyDescription ?? record.summary,
@@ -1918,29 +1979,42 @@ export default function LeadsPage() {
   };
 
   const handleDelete = async (id: string) => {
+    // Optimistically remove from paginatedLeads immediately
+    setPaginatedLeads((prev) => prev.filter((item) => item.id !== id));
+    setTotalCount((prev) => Math.max(0, prev - 1));
     try {
       await deleteLead(id);
       messageApi.success("Lead moved to Trash");
+      fetchPaginatedLeads();
+      fetchLeads();
     } catch (err) {
       // Error handled by useEffect
+      fetchPaginatedLeads();
+      fetchLeads();
     }
   };
 
   const handleBulkDelete = () => {
     if (selectedRowKeys.length === 0) return;
+    const idsToDelete = [...selectedRowKeys];
     modal.confirm({
-      title: `Delete ${selectedRowKeys.length} lead${selectedRowKeys.length > 1 ? "s" : ""}?`,
+      title: `Delete ${idsToDelete.length} lead${idsToDelete.length > 1 ? "s" : ""}?`,
       content: "Selected leads will be moved to Trash. This action can be reverted from there.",
       okText: "Move to Trash",
       cancelText: "Cancel",
       okButtonProps: { danger: true },
       onOk: async () => {
+        setPaginatedLeads((prev) => prev.filter((item) => !idsToDelete.includes(item.id)));
+        setTotalCount((prev) => Math.max(0, prev - idsToDelete.length));
+        setSelectedRowKeys([]);
         try {
-          await Promise.all(selectedRowKeys.map((id) => deleteLead(String(id))));
-          messageApi.success(`${selectedRowKeys.length} lead${selectedRowKeys.length > 1 ? "s" : ""} moved to Trash`);
-          setSelectedRowKeys([]);
+          await Promise.all(idsToDelete.map((id) => deleteLead(String(id))));
+          messageApi.success(`${idsToDelete.length} lead${idsToDelete.length > 1 ? "s" : ""} moved to Trash`);
+          fetchPaginatedLeads();
+          fetchLeads();
         } catch (err) {
-          // Error surfaced via hook
+          fetchPaginatedLeads();
+          fetchLeads();
         }
       },
     });
@@ -1962,7 +2036,9 @@ export default function LeadsPage() {
           .filter((c: any) => c && (c.name || c.email || c.phone || c.designation || c.linkedin));
         const intakePayload = {
           leadSourceKind: 'intake',
-          clientName: values.intakeCompanyName,
+          contactName: values.intakeContactName,
+          contact_name: values.intakeContactName,
+          clientName: values.intakeContactName || values.intakeCompanyName,
           clientMail: values.intakeCompanyEmail,
           clientPhone: values.intakeCompanyPhone,
           clientLocation: values.intakeLocation,
@@ -1975,6 +2051,7 @@ export default function LeadsPage() {
           platform: 'Direct',
           internalNotes: values.intakeInternalNotes,
           formData: {
+            contactName: values.intakeContactName,
             companyType: values.intakeCompanyType,
             teamSize: values.intakeTeamSize,
             coreBusiness: values.intakeCoreBusiness,
@@ -1988,15 +2065,26 @@ export default function LeadsPage() {
           },
         };
         if (editingKey) {
-          await updateLead(editingKey, intakePayload);
+          const updated = await updateLead(editingKey, intakePayload);
+          if (updated) {
+            setPaginatedLeads((prev) =>
+              prev.map((item) => (item.id === editingKey ? { ...item, ...updated } : item))
+            );
+          }
           messageApi.success("Lead Updated");
         } else {
-          await createLead(intakePayload);
+          const created = await createLead(intakePayload);
+          if (created) {
+            setPaginatedLeads((prev) => [created, ...prev]);
+            setTotalCount((prev) => prev + 1);
+          }
           messageApi.success("Lead Created");
         }
         setIsDrawerVisible(false);
         form.resetFields();
         setEditingKey(null);
+        fetchPaginatedLeads();
+        fetchLeads();
         return;
       }
 
@@ -2015,15 +2103,26 @@ export default function LeadsPage() {
       }
 
       if (editingKey) {
-        await updateLead(editingKey, finalValues);
+        const updated = await updateLead(editingKey, finalValues);
+        if (updated) {
+          setPaginatedLeads((prev) =>
+            prev.map((item) => (item.id === editingKey ? { ...item, ...updated } : item))
+          );
+        }
         messageApi.success("Lead Updated");
       } else {
-        await createLead(finalValues);
+        const created = await createLead(finalValues);
+        if (created) {
+          setPaginatedLeads((prev) => [created, ...prev]);
+          setTotalCount((prev) => prev + 1);
+        }
         messageApi.success("Lead Created");
       }
       setIsDrawerVisible(false);
       form.resetFields();
       setEditingKey(null);
+      fetchPaginatedLeads();
+      fetchLeads();
     } catch (err) {
       // Error handled by useEffect
     }
@@ -3034,12 +3133,18 @@ export default function LeadsPage() {
                       cancelText="Cancel"
                       placement="bottomRight"
                       onConfirm={async () => {
+                        const idsToDelete = [...selectedRowKeys];
+                        setPaginatedLeads((prev) => prev.filter((item) => !idsToDelete.includes(item.id)));
+                        setTotalCount((prev) => Math.max(0, prev - idsToDelete.length));
+                        setSelectedRowKeys([]);
                         try {
-                          await Promise.all(selectedRowKeys.map((id) => deleteLead(String(id))));
-                          messageApi.success(`${selectedRowKeys.length} lead${selectedRowKeys.length > 1 ? "s" : ""} moved to Trash`);
-                          setSelectedRowKeys([]);
+                          await Promise.all(idsToDelete.map((id) => deleteLead(String(id))));
+                          messageApi.success(`${idsToDelete.length} lead${idsToDelete.length > 1 ? "s" : ""} moved to Trash`);
+                          fetchPaginatedLeads();
+                          fetchLeads();
                         } catch (err) {
-                          // Error surfaced via hook
+                          fetchPaginatedLeads();
+                          fetchLeads();
                         }
                       }}
                     >
@@ -3219,9 +3324,12 @@ export default function LeadsPage() {
                         <div className="lm-grid">
                           {paginatedLeads.map(record => {
                             const r = record as any;
-                            const name = record.title || record.client_name || r.first_name || 'Unnamed Lead';
-                            const initials = getInitials(name);
-                            const palette = getAvatarStyle(name);
+                            const isIntake = record.lead_source_kind === 'intake';
+                            const contact = record.contact_name || (record as any).contactName || (record as any).form_data?.contactName;
+                            const company = record.company || record.title;
+                            const name = (isIntake ? company : record.title) || record.client_name || r.first_name || 'Unnamed Lead';
+                            const initials = getInitials(isIntake ? (company || name) : name);
+                            const palette = getAvatarStyle(isIntake ? (company || name) : name);
                             const statusCfg = configStatuses.find(s => s.name === record.status);
                             const statusColor = statusCfg?.color || '#6366f1';
                             const scoreLevel = getAIScoreLevel(record.ai_score);
@@ -3245,8 +3353,8 @@ export default function LeadsPage() {
                                   <div className="lm-card-title-group">
                                     <div className="lm-card-title">{name}</div>
                                     <div className="lm-card-subtitle">
-                                      <span className="lm-card-subtitle-key">Client:</span>
-                                      <span className="lm-card-subtitle-val">{record.client_name || '—'}</span>
+                                      <span className="lm-card-subtitle-key">{isIntake ? 'Contact:' : 'Client:'}</span>
+                                      <span className="lm-card-subtitle-val">{(isIntake ? contact : record.client_name) || '—'}</span>
                                       <span style={{ color: '#94a3b8' }}>|</span>
                                       <span style={{
                                         width: 14, height: 14, borderRadius: '50%', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: '7px', fontWeight: 700, background: ownerPalette.bg, color: ownerPalette.color
@@ -3301,7 +3409,19 @@ export default function LeadsPage() {
                                     })()}
 
                                     {canCreateProposal && (
-                                      record.proposal_id ? (
+                                      record.agreement_id ? (
+                                        <>
+                                          <button
+                                            type="button"
+                                            onClick={(e) => { e.stopPropagation(); router.push(`/project-agreements/agreements?open=${record.agreement_id}`); }}
+                                            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: '11.5px', fontWeight: 700, color: '#10b981' }}
+                                          >
+                                            <FileText size={12} />
+                                            View Agreement
+                                          </button>
+                                          <span className="lm-card-footer-div" />
+                                        </>
+                                      ) : record.proposal_id ? (
                                         <>
                                           <button
                                             type="button"
@@ -3313,7 +3433,7 @@ export default function LeadsPage() {
                                           </button>
                                           <span className="lm-card-footer-div" />
                                         </>
-                                      ) : hasPrime ? (
+                                      ) : (
                                         <>
                                           <button
                                             type="button"
@@ -3325,7 +3445,7 @@ export default function LeadsPage() {
                                           </button>
                                           <span className="lm-card-footer-div" />
                                         </>
-                                      ) : null
+                                      )
                                     )}
 
                                     <button
@@ -3542,7 +3662,7 @@ export default function LeadsPage() {
           )}
         </Modal>
 
-        {/* ============== Proposal flow Modal (2 steps in one shell) ============== */}
+        {/* Proposal flow Modal (Commented out in favor of Project Agreement navigation)
         <Modal
           open={proposalModalOpen}
           onCancel={closeProposalFlow}
@@ -3555,7 +3675,7 @@ export default function LeadsPage() {
         >
           {selectedProposalLead && (
             <div className="biq-pinfo-content">
-              {/* Header — stays identical across both steps */}
+              // Header — stays identical across both steps //
               <div className="biq-pinfo-head">
                 <div className="biq-pinfo-icon">
                   <Sparkles size={20} />
@@ -3591,10 +3711,10 @@ export default function LeadsPage() {
                 </button>
               </div>
 
-              {/* Body — swaps based on step */}
+              // Body — swaps based on step //
               {proposalStep === 0 ? (
                 <>
-                  {/* Lead snapshot */}
+                  // Lead snapshot //
                   <div className="biq-pinfo-snapshot">
                     <div className="biq-pinfo-snapshot-head">
                       <Layers size={11} /> Lead snapshot
@@ -3608,7 +3728,7 @@ export default function LeadsPage() {
                           <DollarSign size={10} /> Client budget
                         </span>
                         <span className="biq-pinfo-snapshot-value">
-                          {selectedProposalLead.budget ? `$${clientBudgetNum.toLocaleString()}` : "—"}
+                          {selectedProposalLead.budget ? `${clientBudgetNum.toLocaleString()}` : "—"}
                         </span>
                       </div>
                       <div className="biq-pinfo-snapshot-item">
@@ -3636,7 +3756,7 @@ export default function LeadsPage() {
                     </div>
                   </div>
 
-                  {/* What the proposal will include */}
+                  // What the proposal will include //
                   <div className="biq-pinfo-caps">
                     <div className="biq-pinfo-caps-head">What the proposal will include</div>
                     <div className="biq-pinfo-caps-grid">
@@ -3689,7 +3809,7 @@ export default function LeadsPage() {
                 </>
               ) : (
                 <>
-                  {/* Step 2 — Choose terms */}
+                  // Step 2 — Choose terms //
                   <div className="biq-pinfo-options">
                     <div className="biq-pinfo-caps-head">Choose how to anchor the proposal</div>
                     <div className="biq-opt-grid">
@@ -3722,7 +3842,7 @@ export default function LeadsPage() {
                               <DollarSign size={11} /> Cost
                             </span>
                             <span className="biq-opt-row-v">
-                              {selectedProposalLead.budget ? `$${clientBudgetNum.toLocaleString()}` : "Not specified"}
+                              {selectedProposalLead.budget ? `${clientBudgetNum.toLocaleString()}` : "Not specified"}
                             </span>
                           </div>
                         </div>
@@ -3791,7 +3911,7 @@ export default function LeadsPage() {
                 </>
               )}
 
-              {/* Footer — swaps actions per step */}
+              // Footer — swaps actions per step //
               <div className="biq-pinfo-footer">
                 <span className="biq-pinfo-footnote">
                   <ShieldCheck size={12} />
@@ -3842,14 +3962,17 @@ export default function LeadsPage() {
             </div>
           )}
         </Modal>
+        */}
 
         {/* Lead Form Drawer */}
         <Drawer
           {...commonDrawerProps}
+          rootClassName="leave-drawer-root lead-drawer"
+          width="min(940px, 94vw)"
           open={isDrawerVisible}
           onClose={() => setIsDrawerVisible(false)}
         >
-          <div className="customer-drawer-header" style={{ padding: "22px 24px", position: "relative", overflow: "hidden", display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+          <div className="customer-drawer-header" style={{ padding: "22px 28px", position: "relative", overflow: "hidden", display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
             <div
               aria-hidden
               style={{
@@ -3889,7 +4012,7 @@ export default function LeadsPage() {
                       alignItems: "center",
                       gap: 4,
                       padding: "2px 8px",
-                      borderRadius: 0,
+                      borderRadius: 6,
                       background: "rgba(59, 130, 246, 0.1)",
                       color: "#2563eb",
                       fontSize: 10,
@@ -3905,7 +4028,7 @@ export default function LeadsPage() {
                 <div className="premium-text-sec" style={{ fontSize: 12, color: "var(--text-secondary)", fontWeight: 500 }}>
                   {editingKey
                     ? "Refine details and re-sync this opportunity to your pipeline"
-                    : "4 quick sections — client, job, platform & docs. Takes under a minute."}
+                    : "Choose your source workflow, then complete details in under a minute."}
                 </div>
               </div>
             </div>
@@ -3916,54 +4039,246 @@ export default function LeadsPage() {
               style={{ color: 'var(--text-secondary)' }}
             />
           </div>
-          <div style={{ padding: 24, paddingBottom: 100 }}>
+          <div style={{ padding: "24px 28px 100px 28px" }}>
             <style>{drawerFormStyles}</style>
+            <style>{`
+              .lead-source-tabs-grid {
+                display: grid;
+                grid-template-columns: repeat(3, minmax(0, 1fr));
+                gap: 12px;
+              }
+              @media (max-width: 768px) {
+                .lead-source-tabs-grid {
+                  grid-template-columns: 1fr;
+                }
+              }
+              .lead-tab-card {
+                position: relative;
+                cursor: pointer;
+                padding: 13px 15px;
+                border-radius: 12px;
+                transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+                display: flex;
+                flex-direction: column;
+                justify-content: space-between;
+                gap: 10px;
+                overflow: hidden;
+                user-select: none;
+              }
+              .lead-tab-card:not(.active):hover {
+                border-color: #93c5fd !important;
+                background: rgba(59, 130, 246, 0.03) !important;
+                transform: translateY(-2px);
+                box-shadow: 0 6px 18px -4px rgba(15, 23, 42, 0.08) !important;
+              }
+              [data-theme='dark'] .lead-tab-card {
+                background: rgba(255, 255, 255, 0.02) !important;
+                border-color: #1f2937 !important;
+              }
+              [data-theme='dark'] .lead-tab-card:not(.active):hover {
+                background: rgba(255, 255, 255, 0.05) !important;
+                border-color: #374151 !important;
+              }
+              [data-theme='dark'] .lead-tab-card.active {
+                background: rgba(59, 130, 246, 0.12) !important;
+              }
+            `}</style>
             <Form form={form} layout="horizontal" labelCol={{ span: 8 }} wrapperCol={{ span: 16 }} labelAlign="left" colon={false} onFinish={handleSaveLead} requiredMark={false} className="lead-drawer-form customer-drawer-form" autoComplete="off">
               {/* Lead-kind picker — switches the form between online platforms and own-website inquiries */}
               <Form.Item name="leadSourceKind" hidden initialValue="platform">
                 <Input />
               </Form.Item>
-              <Form.Item style={{ marginBottom: 20 }} wrapperCol={{ span: 24 }}>
-                <Tabs
-                  activeKey={leadSourceKindWatch}
-                  onChange={(key) => form.setFieldValue('leadSourceKind', key)}
-                  size="large"
-                  type="line"
-                  tabBarStyle={{
-                    background: 'transparent',
-                    marginBottom: 0,
-                  }}
-                  items={[
+              <div style={{ marginBottom: 22 }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <span style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-secondary, #64748b)' }}>
+                      Lead Source & Intake Workflow
+                    </span>
+                    <span
+                      style={{
+                        fontSize: 11,
+                        padding: '1px 8px',
+                        borderRadius: 999,
+                        background: 'rgba(59, 130, 246, 0.1)',
+                        color: '#2563eb',
+                        fontWeight: 700,
+                      }}
+                    >
+                      {leadSourceKindWatch === 'website'
+                        ? 'Website Lead'
+                        : leadSourceKindWatch === 'intake'
+                        ? 'Direct Intake'
+                        : 'Platform Lead'}
+                    </span>
+                  </div>
+                  <span style={{ fontSize: 11, color: 'var(--text-secondary, #94a3b8)', fontWeight: 500 }}>
+                    Switch tabs to tailor fields
+                  </span>
+                </div>
+
+                <div
+                  role="tablist"
+                  aria-label="Lead Source Workflow"
+                  className="lead-source-tabs-grid"
+                >
+                  {[
                     {
                       key: 'platform',
-                      label: (
-                        <Space size={8} style={{ padding: "4px 8px" }}>
-                          <Briefcase size={16} />
-                          <span style={{ fontWeight: 600 }}>Online Platform</span>
-                        </Space>
-                      ),
+                      title: 'Online Platform',
+                      badge: 'Portals & Bids',
+                      subtitle: 'Upwork, Freelancer, LinkedIn job posts',
+                      icon: <Briefcase size={17} />,
+                      color: '#3b82f6',
+                      gradient: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
                     },
                     {
                       key: 'website',
-                      label: (
-                        <Space size={8} style={{ padding: "4px 8px" }}>
-                          <Globe size={16} />
-                          <span style={{ fontWeight: 600 }}>Website Inquiry</span>
-                        </Space>
-                      ),
+                      title: 'Website Inquiry',
+                      badge: 'Inbound Forms',
+                      subtitle: 'Direct contact forms & landing pages',
+                      icon: <Globe size={17} />,
+                      color: '#0891b2',
+                      gradient: 'linear-gradient(135deg, #06b6d4 0%, #0891b2 100%)',
                     },
                     {
                       key: 'intake',
-                      label: (
-                        <Space size={8} style={{ padding: "4px 8px" }}>
-                          <Building2 size={16} />
-                          <span style={{ fontWeight: 600 }}>Lead Intake</span>
-                        </Space>
-                      ),
+                      title: 'Lead Intake',
+                      badge: 'Direct / B2B',
+                      subtitle: 'Enterprise onboarding & client intake',
+                      icon: <Building2 size={17} />,
+                      color: '#7c3aed',
+                      gradient: 'linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)',
                     },
-                  ]}
-                />
-              </Form.Item>
+                  ].map((opt) => {
+                    const isSelected = leadSourceKindWatch === opt.key;
+                    return (
+                      <div
+                        key={opt.key}
+                        role="tab"
+                        aria-selected={isSelected}
+                        tabIndex={0}
+                        onClick={() => form.setFieldValue('leadSourceKind', opt.key)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault();
+                            form.setFieldValue('leadSourceKind', opt.key);
+                          }
+                        }}
+                        className={`lead-tab-card ${isSelected ? 'active' : ''}`}
+                        style={{
+                          border: isSelected
+                            ? `1.5px solid ${opt.color}`
+                            : '1px solid var(--border-color, #e2e8f0)',
+                          background: isSelected
+                            ? `color-mix(in oklab, ${opt.color} 7%, var(--bg-card, #ffffff))`
+                            : 'var(--bg-card, #ffffff)',
+                          boxShadow: isSelected
+                            ? `0 6px 18px -4px ${opt.color}35, 0 2px 6px -1px rgba(0, 0, 0, 0.04)`
+                            : '0 1px 3px rgba(0, 0, 0, 0.03)',
+                        }}
+                      >
+                        {isSelected && (
+                          <div
+                            style={{
+                              position: 'absolute',
+                              top: 0,
+                              left: 0,
+                              right: 0,
+                              height: 3,
+                              background: opt.gradient,
+                            }}
+                          />
+                        )}
+
+                        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8 }}>
+                          <div
+                            style={{
+                              width: 34,
+                              height: 34,
+                              borderRadius: 9,
+                              background: isSelected ? opt.gradient : 'var(--bg-slate-100, #f1f5f9)',
+                              color: isSelected ? '#ffffff' : 'var(--text-secondary, #64748b)',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              flexShrink: 0,
+                              boxShadow: isSelected ? `0 4px 10px ${opt.color}40` : 'none',
+                              transition: 'all 0.2s ease',
+                            }}
+                          >
+                            {opt.icon}
+                          </div>
+
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                            <span
+                              style={{
+                                fontSize: 9.5,
+                                fontWeight: 700,
+                                padding: '2px 7px',
+                                borderRadius: 5,
+                                textTransform: 'uppercase',
+                                letterSpacing: '0.04em',
+                                background: isSelected
+                                  ? `color-mix(in oklab, ${opt.color} 14%, transparent)`
+                                  : 'var(--bg-slate-100, #f1f5f9)',
+                                color: isSelected ? opt.color : 'var(--text-secondary, #64748b)',
+                                border: isSelected
+                                  ? `1px solid color-mix(in oklab, ${opt.color} 28%, transparent)`
+                                  : '1px solid var(--border-color, #e2e8f0)',
+                              }}
+                            >
+                              {opt.badge}
+                            </span>
+                            {isSelected && (
+                              <div
+                                style={{
+                                  width: 17,
+                                  height: 17,
+                                  borderRadius: '50%',
+                                  background: opt.color,
+                                  color: '#ffffff',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  flexShrink: 0,
+                                  boxShadow: `0 2px 6px ${opt.color}55`,
+                                }}
+                              >
+                                <Check size={10} strokeWidth={3} />
+                              </div>
+                            )}
+                          </div>
+                        </div>
+
+                        <div>
+                          <div
+                            style={{
+                              fontSize: 13.5,
+                              fontWeight: 700,
+                              color: isSelected ? 'var(--text-primary, #0f172a)' : 'var(--text-secondary, #334155)',
+                              lineHeight: 1.3,
+                              marginBottom: 2,
+                              letterSpacing: '-0.01em',
+                            }}
+                          >
+                            {opt.title}
+                          </div>
+                          <div
+                            style={{
+                              fontSize: 11,
+                              lineHeight: 1.35,
+                              color: 'var(--text-secondary, #64748b)',
+                              fontWeight: 500,
+                            }}
+                          >
+                            {opt.subtitle}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
 
               {leadSourceKindWatch === 'intake' ? (
                 <LeadIntakeFields configStatuses={configStatuses} />
@@ -4235,7 +4550,10 @@ export default function LeadsPage() {
           }}
           lead={selectedLeadForMail}
           fromEmail={invoiceMailSettings?.email}
-          onSuccess={fetchLeads}
+          onSuccess={() => {
+            fetchLeads();
+            fetchPaginatedLeads();
+          }}
         />
 
         <WebsiteLeadDrawer
@@ -5886,11 +6204,11 @@ export default function LeadsPage() {
             /* ---------- BidIq preview modal ---------- */
             .lm-bidiq-modal .ant-modal-content {
               padding: 0 !important;
-              border-radius: 0px !important;
+              border-radius: 16px !important;
               border: 1px solid var(--border-slate-100);
               overflow: hidden;
               background: var(--bg-pure-white);
-              box-shadow: none !important;
+              box-shadow: 0 25px 60px -15px rgba(15, 23, 42, 0.25), 0 0 0 1px rgba(148, 163, 184, 0.1) !important;
             }
             .lm-bidiq-modal .ant-modal-body { padding: 0 !important; }
 
@@ -5902,70 +6220,75 @@ export default function LeadsPage() {
               gap: 14px;
               padding: 22px 24px 18px;
               position: relative;
+              background: linear-gradient(180deg, rgba(59, 130, 246, 0.05) 0%, rgba(255, 255, 255, 0) 100%);
               border-bottom: 1px solid var(--border-slate-100);
             }
             .lm-bidiq-icon {
               width: 44px; height: 44px;
-              border-radius: 0px;
-              background: #3b82f6;
+              border-radius: 12px;
+              background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
               color: #fff;
               display: flex; align-items: center; justify-content: center;
               flex-shrink: 0;
+              box-shadow: 0 8px 18px -4px rgba(59, 130, 246, 0.45);
             }
             .lm-bidiq-head-text { flex: 1; min-width: 0; padding-right: 40px; }
             .lm-bidiq-eyebrow {
               display: inline-flex; align-items: center; gap: 5px;
-              padding: 3px 8px;
-              border-radius: 0px;
+              padding: 3px 10px;
+              border-radius: 20px;
               background: rgba(59, 130, 246, 0.08);
               color: #2563eb;
-              font-size: 10px;
+              font-size: 10.5px;
               font-weight: 800;
               letter-spacing: 0.06em;
               text-transform: uppercase;
-              border: 1px solid rgba(59, 130, 246, 0.2);
+              border: 1px solid rgba(59, 130, 246, 0.22);
               margin-bottom: 8px;
             }
             .lm-bidiq-title {
               margin: 0 0 4px;
-              font-size: 18px;
+              font-size: 19px;
               font-weight: 800;
               color: var(--text-slate-900);
               letter-spacing: -0.015em;
             }
             .lm-bidiq-sub {
               margin: 0;
-              font-size: 12.5px;
+              font-size: 13px;
               color: var(--text-slate-500);
               line-height: 1.5;
             }
             .lm-bidiq-close {
               position: absolute;
-              top: 16px; right: 16px;
-              width: 30px; height: 30px;
-              border-radius: 0px;
+              top: 18px; right: 20px;
+              width: 32px; height: 32px;
+              border-radius: 8px;
               border: 1px solid var(--border-slate-100);
               background: var(--bg-pure-white);
               color: var(--text-slate-500);
               cursor: pointer;
               display: flex; align-items: center; justify-content: center;
-              transition: color .15s ease, border-color .15s ease;
+              transition: all .2s ease;
             }
             .lm-bidiq-close:hover {
               color: var(--text-slate-900);
               border-color: var(--border-slate-200);
+              background: var(--bg-slate-50);
+              transform: scale(1.04);
             }
 
             .lm-bidiq-snapshot {
               margin: 18px 24px 0;
-              padding: 14px 16px;
-              border: 1px solid var(--border-slate-100);
-              border-radius: 0px;
+              padding: 16px 18px;
+              border: 1px solid var(--border-slate-200, #e2e8f0);
+              border-radius: 12px;
               background: var(--bg-slate-50);
+              box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
             }
             .lm-bidiq-snapshot-head {
               display: inline-flex; align-items: center; gap: 5px;
-              font-size: 10px;
+              font-size: 10.5px;
               font-weight: 800;
               letter-spacing: 0.08em;
               text-transform: uppercase;
@@ -5973,7 +6296,7 @@ export default function LeadsPage() {
               margin-bottom: 8px;
             }
             .lm-bidiq-snapshot-title {
-              font-size: 14px;
+              font-size: 14.5px;
               font-weight: 700;
               color: var(--text-slate-900);
               letter-spacing: -0.005em;
@@ -5992,8 +6315,12 @@ export default function LeadsPage() {
               .lm-bidiq-snapshot-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
             }
             .lm-bidiq-snapshot-item {
-              display: flex; flex-direction: column; gap: 3px;
+              display: flex; flex-direction: column; gap: 4px;
               min-width: 0;
+              background: var(--bg-pure-white);
+              padding: 8px 10px;
+              border-radius: 8px;
+              border: 1px solid var(--border-slate-100);
             }
             .lm-bidiq-snapshot-label {
               display: inline-flex; align-items: center; gap: 4px;
@@ -6001,7 +6328,7 @@ export default function LeadsPage() {
               font-weight: 700;
               letter-spacing: 0.06em;
               text-transform: uppercase;
-              color: var(--text-slate-500);
+              color: var(--text-slate-400);
             }
             .lm-bidiq-snapshot-value {
               font-size: 13px;
@@ -6036,19 +6363,21 @@ export default function LeadsPage() {
             .lm-bidiq-cap {
               display: flex;
               align-items: flex-start;
-              gap: 10px;
-              padding: 12px 14px;
-              border: 1px solid var(--border-slate-100);
-              border-radius: 0px;
+              gap: 12px;
+              padding: 14px 14px;
+              border: 1px solid var(--border-slate-200, #e2e8f0);
+              border-radius: 12px;
               background: var(--bg-pure-white);
-              transition: border-color .15s ease;
+              transition: all .2s ease;
             }
             .lm-bidiq-cap:hover {
-              border-color: color-mix(in oklab, var(--cap-accent) 30%, var(--border-slate-100));
+              border-color: color-mix(in oklab, var(--cap-accent) 40%, var(--border-slate-200));
+              transform: translateY(-2px);
+              box-shadow: 0 6px 16px -4px rgba(0, 0, 0, 0.06);
             }
             .lm-bidiq-cap-icon {
-              width: 28px; height: 28px;
-              border-radius: 0px;
+              width: 32px; height: 32px;
+              border-radius: 9px;
               background: color-mix(in oklab, var(--cap-accent) 12%, transparent);
               color: var(--cap-accent);
               display: flex; align-items: center; justify-content: center;
@@ -6056,7 +6385,7 @@ export default function LeadsPage() {
             }
             .lm-bidiq-cap-body { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
             .lm-bidiq-cap-title {
-              font-size: 12.5px;
+              font-size: 13px;
               font-weight: 700;
               color: var(--text-slate-900);
               letter-spacing: -0.005em;
@@ -6084,45 +6413,58 @@ export default function LeadsPage() {
               font-weight: 500;
             }
             .lm-bidiq-footnote svg { color: #10b981; }
-            .lm-bidiq-footer-actions { display: flex; gap: 8px; }
+            .lm-bidiq-footer-actions { display: flex; gap: 10px; }
             .lm-bidiq-cancel.ant-btn {
-              height: 36px !important;
-              border-radius: 0px !important;
+              height: 38px !important;
+              border-radius: 9px !important;
               font-weight: 600 !important;
-              padding: 0 14px !important;
-              border: 1px solid var(--border-slate-100) !important;
+              padding: 0 16px !important;
+              border: 1px solid var(--border-slate-200) !important;
               background: var(--bg-pure-white) !important;
               color: var(--text-slate-700) !important;
+              transition: all .15s ease !important;
             }
             .lm-bidiq-cancel.ant-btn:hover {
-              border-color: var(--border-slate-200) !important;
+              border-color: var(--border-slate-300) !important;
               color: var(--text-slate-900) !important;
+              background: var(--bg-slate-50) !important;
             }
             .lm-bidiq-launch.ant-btn {
-              height: 36px !important;
-              border-radius: 0px !important;
+              height: 38px !important;
+              border-radius: 9px !important;
               font-weight: 700 !important;
-              padding: 0 16px !important;
-              background: #3b82f6 !important;
+              padding: 0 18px !important;
+              background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%) !important;
               border: 0 !important;
               color: #fff !important;
               display: inline-flex !important;
               align-items: center !important;
               gap: 6px !important;
+              box-shadow: 0 6px 16px -3px rgba(59, 130, 246, 0.4) !important;
+              transition: all .2s ease !important;
             }
             .lm-bidiq-launch.ant-btn:hover {
-              filter: brightness(1.05);
+              filter: brightness(1.08);
+              transform: translateY(-1px);
+              box-shadow: 0 8px 20px -3px rgba(59, 130, 246, 0.5) !important;
             }
 
             [data-theme='dark'] .lm-bidiq-modal .ant-modal-content {
               background: var(--bg-secondary) !important;
               border-color: var(--border-slate-100) !important;
             }
+            [data-theme='dark'] .lm-bidiq-head {
+              background: linear-gradient(180deg, rgba(59, 130, 246, 0.08) 0%, transparent 100%) !important;
+            }
             [data-theme='dark'] .lm-bidiq-snapshot,
             [data-theme='dark'] .lm-bidiq-cap,
             [data-theme='dark'] .lm-bidiq-close,
             [data-theme='dark'] .lm-bidiq-cancel.ant-btn {
               background: var(--bg-primary) !important;
+              border-color: var(--border-slate-100) !important;
+            }
+            [data-theme='dark'] .lm-bidiq-snapshot-item {
+              background: var(--bg-secondary) !important;
               border-color: var(--border-slate-100) !important;
             }
 

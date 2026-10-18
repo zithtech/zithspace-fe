@@ -338,6 +338,24 @@ export default function PortalTeamPage() {
               onClick={() => setIsFilterRowOpen((v) => !v)}
             />
           </Space.Compact>
+        </div>
+
+        <Space size={10} className="sc-header-right">
+          <Tooltip title="Refresh team">
+            <Button
+              icon={<ReloadOutlined spin={refreshing} />}
+              onClick={() => load(true)}
+              disabled={loading}
+              style={{
+                width: 32,
+                height: 32,
+                borderRadius: 8,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            />
+          </Tooltip>
 
           {/* View Toggle */}
           <div
@@ -362,24 +380,6 @@ export default function PortalTeamPage() {
               <LayoutGrid size={13} />
             </button>
           </div>
-        </div>
-
-        <Space size={10} className="sc-header-right">
-          <Tooltip title="Refresh team">
-            <Button
-              icon={<ReloadOutlined spin={refreshing} />}
-              onClick={() => load(true)}
-              disabled={loading}
-              style={{
-                width: 32,
-                height: 32,
-                borderRadius: 8,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-              }}
-            />
-          </Tooltip>
         </Space>
       </div>
 
@@ -1046,6 +1046,78 @@ export default function PortalTeamPage() {
 }
 
 /* --------------------------------------------------------------- */
+/*  Avatar Component with image & initials fallback               */
+/* --------------------------------------------------------------- */
+
+function TeamMemberAvatar({
+  m,
+  size = 30,
+}: {
+  m: PortalTeamMember;
+  size?: number;
+}) {
+  const [imgError, setImgError] = useState(false);
+
+  useEffect(() => {
+    setImgError(false);
+  }, [m.avatarUrl]);
+
+  const showImg = Boolean(m.avatarUrl && !imgError);
+
+  return (
+    <div
+      style={{
+        width: size,
+        height: size,
+        borderRadius: "50%",
+        flexShrink: 0,
+        display: "inline-flex",
+        alignItems: "center",
+        justifyContent: "center",
+        background: m.isPrimaryContact
+          ? "linear-gradient(135deg, #fef3c7, #fde68a)"
+          : "linear-gradient(135deg, #eff6ff, #dbeafe)",
+        border: `1px solid ${m.isPrimaryContact ? "#f59e0b" : "#bfdbfe"}`,
+        color: m.isPrimaryContact ? "#92400e" : "#1d4ed8",
+        fontSize: Math.max(10, Math.round(size * 0.35)),
+        fontWeight: 800,
+        letterSpacing: "-0.02em",
+        position: "relative",
+      }}
+    >
+      {showImg ? (
+        <img
+          src={m.avatarUrl!}
+          alt={m.displayName}
+          onError={() => setImgError(true)}
+          style={{
+            width: "100%",
+            height: "100%",
+            borderRadius: "50%",
+            objectFit: "cover",
+            display: "block",
+          }}
+        />
+      ) : (
+        initials(m.displayName)
+      )}
+      {m.isPrimaryContact && (
+        <Crown
+          size={size >= 36 ? 12 : 11}
+          color="#d97706"
+          style={{
+            position: "absolute",
+            top: size >= 36 ? -5 : -4,
+            right: size >= 36 ? -5 : -4,
+            filter: "drop-shadow(0 1px 1px rgba(0,0,0,0.15))",
+          }}
+        />
+      )}
+    </div>
+  );
+}
+
+/* --------------------------------------------------------------- */
 /*  Table Row Component (Edge-to-edge, NO Actions Column)          */
 /* --------------------------------------------------------------- */
 
@@ -1078,40 +1150,7 @@ function TeamMemberTableRow({
     >
       {/* 1. Member / Role */}
       <div style={{ display: "flex", alignItems: "center", gap: 12, minWidth: 0 }}>
-        <div
-          style={{
-            width: 30,
-            height: 30,
-            borderRadius: "50%",
-            flexShrink: 0,
-            display: "inline-flex",
-            alignItems: "center",
-            justifyContent: "center",
-            background: m.isPrimaryContact
-              ? "linear-gradient(135deg, #fef3c7, #fde68a)"
-              : "linear-gradient(135deg, #eff6ff, #dbeafe)",
-            border: `1px solid ${m.isPrimaryContact ? "#f59e0b" : "#bfdbfe"}`,
-            color: m.isPrimaryContact ? "#92400e" : "#1d4ed8",
-            fontSize: 11,
-            fontWeight: 800,
-            letterSpacing: "-0.02em",
-            position: "relative",
-          }}
-        >
-          {initials(m.displayName)}
-          {m.isPrimaryContact && (
-            <Crown
-              size={11}
-              color="#d97706"
-              style={{
-                position: "absolute",
-                top: -4,
-                right: -4,
-                filter: "drop-shadow(0 1px 1px rgba(0,0,0,0.15))",
-              }}
-            />
-          )}
-        </div>
+        <TeamMemberAvatar m={m} size={30} />
 
         <div style={{ display: "flex", flexDirection: "column", minWidth: 0 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
@@ -1320,40 +1359,7 @@ function TeamMemberCard({ m }: { m: PortalTeamMember }) {
         }}
       >
         <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
-          <div
-            style={{
-              width: 36,
-              height: 36,
-              borderRadius: "50%",
-              flexShrink: 0,
-              display: "inline-flex",
-              alignItems: "center",
-              justifyContent: "center",
-              background: m.isPrimaryContact
-                ? "linear-gradient(135deg, #fef3c7, #fde68a)"
-                : "linear-gradient(135deg, #eff6ff, #dbeafe)",
-              border: `1px solid ${m.isPrimaryContact ? "#f59e0b" : "#bfdbfe"}`,
-              color: m.isPrimaryContact ? "#92400e" : "#1d4ed8",
-              fontSize: 13,
-              fontWeight: 800,
-              letterSpacing: "-0.02em",
-              position: "relative",
-            }}
-          >
-            {initials(m.displayName)}
-            {m.isPrimaryContact && (
-              <Crown
-                size={12}
-                color="#d97706"
-                style={{
-                  position: "absolute",
-                  top: -5,
-                  right: -5,
-                  filter: "drop-shadow(0 1px 1px rgba(0,0,0,0.15))",
-                }}
-              />
-            )}
-          </div>
+          <TeamMemberAvatar m={m} size={36} />
 
           <div style={{ display: "flex", flexDirection: "column", minWidth: 0 }}>
             <span

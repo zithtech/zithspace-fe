@@ -13,7 +13,9 @@ import {
   Tooltip,
   Select,
   Pagination,
+  Dropdown,
   Typography,
+  Modal,
 } from "antd";
 const { Text } = Typography;
 import type { ColumnsType } from "antd/es/table";
@@ -30,6 +32,9 @@ import {
   MoreVertical,
   RotateCw,
   Menu,
+  LayoutGrid,
+  List,
+  MoreHorizontal,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import OnboardingGuard from "@/components/onboarding/OnboardingGuard";
@@ -142,6 +147,7 @@ const Onboarded = () => {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all');
   const [isFilterRowOpen, setIsFilterRowOpen] = useState(false);
+  const [viewMode, setViewMode] = useState<"list" | "grid">("grid");
   const [total, setTotal] = useState(0);
   const [stats, setStats] = useState({ total: 0, active: 0, inactive: 0 });
   const [tablePage, setTablePage] = useState(1);
@@ -441,6 +447,14 @@ const Onboarded = () => {
             onToggle={() => setIsFilterRowOpen((prev) => !prev)}
             activeCount={statusFilter !== 'all' ? 1 : 0}
           />
+          <div className="onb-view-toggles">
+            <button type="button" className={viewMode === "grid" ? "is-active" : ""} onClick={() => setViewMode("grid")}>
+              <LayoutGrid size={14} />
+            </button>
+            <button type="button" className={viewMode === "list" ? "is-active" : ""} onClick={() => setViewMode("list")}>
+              <List size={14} />
+            </button>
+          </div>
           <Tooltip title="Refresh">
             <button
               type="button"
@@ -497,19 +511,124 @@ const Onboarded = () => {
         </FilterBar>
       )}
 
-      {/* ── 3) TABLE ─────────────────────────────────────────────────────────── */}
-      <div className="onb-table-wrap">
+      {/* ── 3) CONTENT ─────────────────────────────────────────────────────────── */}
+      <div className="onb-table-wrap" style={{ background: viewMode === 'grid' ? 'transparent' : undefined, border: viewMode === 'grid' ? 'none' : undefined }}>
         <ZukvoLoadingOverlay loading={loading} message="">
-          <Table
-            rowKey="id"
-            size="small"
-            className="onb-table"
-            columns={columns}
-            dataSource={pagedRows}
-            pagination={false}
-            onRow={() => ({ className: "onb-row" })}
-            scroll={{ x: 'max-content' }} locale={{ emptyText: <NoData /> }}
-          />
+          {viewMode === 'list' ? (
+            <Table
+              rowKey="id"
+              size="small"
+              className="onb-table"
+              columns={columns}
+              dataSource={pagedRows}
+              pagination={false}
+              onRow={() => ({ className: "onb-row" })}
+              scroll={{ x: 'max-content' }} locale={{ emptyText: <NoData /> }}
+            />
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
+              <div style={{ flex: 1, overflowY: 'auto' }}>
+                {pagedRows.length === 0 ? (
+                  <NoData />
+                ) : (
+                  <div className="onb-grid">
+                    {pagedRows.map((r) => {
+                      const personal = r.personal || r;
+                      const firstName = personal.firstName || "";
+                      const lastName = personal.lastName || "";
+                      const fallbackName = r.name || "";
+                      const name = firstName || lastName ? `${firstName} ${lastName}`.trim() : fallbackName || "—";
+                      const initials = `${firstName?.[0] || ""}${lastName?.[0] || ""}`.toUpperCase() || fallbackName?.[0]?.toUpperCase() || "?";
+                      const code = r.employee_code || r.employeeCode || "No Code";
+                      const employment = r.employment || r;
+                      const desig = r.positionTitle || employment.designation || employment.position?.title || "Staff";
+
+                      return (
+                        <div key={r.id} className="onb-list-card" onClick={() => router.push(`/onboarding/onboarded/${r.id}`)}>
+                          <div className="onb-list-card-head">
+                            <div className="onb-list-card-avatar" style={{ background: TINT.blue, color: PALETTE.blue }}>
+                              {initials}
+                            </div>
+                            <div className="onb-list-card-body">
+                              <div className="onb-list-card-title">
+                                <span>{name}</span>
+                              </div>
+                              <div className="onb-list-card-sub">
+                                <span className="onb-list-card-key">Code:</span>
+                                <span className="onb-list-card-val" style={{ fontFamily: 'monospace' }}>{code}</span>
+                              </div>
+                            </div>
+                            <Dropdown
+                              menu={{
+                                className: 'onb-action-pop',
+                                items: [
+                                  {
+                                    key: 'view',
+                                    label: onbMenuLabel("View Details", "Open full employee profile", <Eye size={14} />, "#64748b", "rgba(100,116,139,0.10)"),
+                                    onClick: (info: any) => { info.domEvent.stopPropagation(); router.push(`/onboarding/onboarded/${r.id}`); }
+                                  },
+                                  canUpdateOnboarding ? {
+                                    key: 'edit',
+                                    label: onbMenuLabel("Edit Info", "Modify employee information", <Edit2 size={14} />, "#3b82f6", "rgba(59,130,246,0.10)"),
+                                    onClick: (info: any) => { info.domEvent.stopPropagation(); router.push(`/onboarding/create?id=${r.id}`); }
+                                  } : null,
+                                  canDeleteOnboarding ? { type: 'divider' } : null,
+                                  canDeleteOnboarding ? {
+                                    key: 'delete',
+                                    danger: true,
+                                    label: onbMenuLabel("Delete", "This action cannot be undone", <Trash2 size={14} />, "#ef4444", "rgba(239,68,68,0.10)"),
+                                    onClick: (info: any) => {
+                                      info.domEvent.stopPropagation();
+                                      Modal.confirm({
+                                        title: 'Delete this record?',
+                                        content: 'This action cannot be undone.',
+                                        okText: 'Delete',
+                                        okType: 'danger',
+                                        onOk: () => handleDelete(r.id)
+                                      });
+                                    }
+                                  } : null,
+                                ].filter(Boolean) as any[]
+                              }}
+                              trigger={['click']}
+                            >
+                              <button type="button" className="onb-list-card-actions" onClick={e => e.stopPropagation()}>
+                                <MoreHorizontal size={14} />
+                              </button>
+                            </Dropdown>
+                          </div>
+                          
+                          <div className="onb-list-card-footer" onClick={e => e.stopPropagation()}>
+                            <div className="onb-list-card-row">
+                              <span className="onb-list-card-item">
+                                <span className="onb-list-card-key">Contact:</span>
+                                <span className="onb-list-card-val">{personal.workEmail || personal.personalEmail || "N/A"}</span>
+                              </span>
+                              <span className="onb-list-card-div" />
+                              <span className="onb-list-card-item">
+                                <span className="onb-list-card-key">Mobile:</span>
+                                <span className="onb-list-card-val">{personal.mobile || personal.phone || "N/A"}</span>
+                              </span>
+                            </div>
+                            <div className="onb-list-card-row" style={{ display: 'flex', justifyContent: 'space-between' }}>
+                              <span className="onb-list-card-item">
+                                <span className="onb-list-card-key">Designation:</span>
+                                <span className="onb-list-card-val">{desig}</span>
+                              </span>
+                              <span className="onb-list-card-item" style={{ gap: 6 }}>
+                                <span className="onb-list-card-key">Active:</span>
+                                <Switch size="small" checked={r.status} onChange={(checked) => handleStatusChange(r.id, checked)} disabled={!canUpdateOnboarding} />
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
         </ZukvoLoadingOverlay>
       </div>
 

@@ -44,6 +44,7 @@ export interface DocumentHub {
   };
   visibility: string;
   shareToken?: string;
+  sharedWith?: string[];
   treeNodes?: DocumentTreeNode[];
   /** True when the requesting user has starred this hub. */
   isStarred?: boolean;
@@ -266,7 +267,7 @@ class DocumentHubService {
     }
   }
 
-  static async downloadDocumentPdf(documentId: string): Promise<Blob> {
+  static async downloadDocumentPdf(documentId: string, brandName?: string): Promise<Blob> {
     try {
       const token = localStorage.getItem('accessToken');
       let headers: Record<string, string> = {
@@ -281,7 +282,11 @@ class DocumentHubService {
       }
       
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
-      const response = await fetch(`${apiUrl}/api/documenthub/document/${documentId}/pdf`, {
+      const url = new URL(`${apiUrl}/api/documenthub/document/${documentId}/pdf`);
+      if (brandName) {
+        url.searchParams.append('brand', brandName);
+      }
+      const response = await fetch(url.toString(), {
         method: 'GET',
         headers
       });

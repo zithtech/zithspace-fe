@@ -775,7 +775,7 @@ export default function ManageTimeDrawer({ open, onClose, onSuccess }: ManageTim
                 </Button>
                 </SectionCard>
 
-                <Form.Item name="generalNotes" label="General/Daily Notes">
+                <Form.Item name="generalNotes" label="Updates">
                   <TextArea rows={4} placeholder="Overall summary of the day..." style={{ borderRadius: 8 }} />
                 </Form.Item>
               </>

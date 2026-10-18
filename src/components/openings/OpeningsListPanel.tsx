@@ -3,7 +3,7 @@
 import NoData from "@/components/common/NoData";
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { App, Button, Table, Tooltip, Empty } from 'antd';
+import { App, Button, Table, Tooltip, Empty, Dropdown } from 'antd';
 import ConfirmDialog from '@/components/common/ConfirmDialog';
 import type { ColumnsType } from 'antd/es/table';
 import {
@@ -24,6 +24,9 @@ import {
   Layers,
   AlertCircle,
   FileText,
+  Eye,
+  MoreHorizontal,
+  Calendar,
 } from 'lucide-react';
 
 import { SearchableDropdown } from '@/components/common/SearchableDropdown';
@@ -47,6 +50,7 @@ import {
   StatCards,
   TINT,
   WORK_MODE_LABELS,
+  ViewModeToggle,
   experienceRange,
   fmtDate,
   salaryRange,
@@ -64,7 +68,7 @@ export default function OpeningsListPanel({
 }: {
   archived?: boolean;
 }) {
-  const { message } = App.useApp();
+  const { message, modal } = App.useApp();
 
   const router = useRouter();
   const perms = usePermission() as unknown as Record<string, any>;
@@ -90,6 +94,7 @@ export default function OpeningsListPanel({
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<string | null>(null);
   const [summary, setSummary] = useState<Record<string, number>>({});
+  const [viewMode, setViewMode] = useState<'list' | 'card'>('list');
 
   // Typing in the search box should not fire a request per keystroke.
   useEffect(() => {
@@ -368,6 +373,7 @@ export default function OpeningsListPanel({
           onToggle={() => setIsFilterRowOpen(!isFilterRowOpen)}
           activeCount={activeFilters}
         />
+        <ViewModeToggle mode={viewMode} setMode={setViewMode} />
         <Tooltip title="Refresh">
           <Button icon={<RotateCw size={14} />} onClick={load} loading={loading} />
         </Tooltip>
@@ -534,44 +540,210 @@ export default function OpeningsListPanel({
 
       <div className="opn-table-wrap">
         <ZukvoLoadingOverlay loading={loading} message="">
-          <Table<OpeningListItem>
-            rowKey="id"
-            size="small"
-            columns={columns}
-            dataSource={rows}
-            scroll={{ x: 1500 }}
-            onRow={(record) => ({
-              onClick: () => router.push(`/openings/${record.id}`),
-            })}
-            locale={{
-              emptyText: (
-                <div className="omp-empty">
-                  <NoData description={
-                                              <>
-                                                <div className="omp-empty-title">
-                                                  {archived ? 'Nothing archived yet' : 'No openings yet'}
-                                                </div>
-                                                <div className="omp-empty-sub">
-                                                  {archived
-                                                    ? 'Closed openings land here once they are archived.'
-                                                    : 'Create a requisition to start hiring.'}
-                                                </div>
-                                              </>
-                                            } />
+          {viewMode === 'list' ? (
+            <Table<OpeningListItem>
+              rowKey="id"
+              size="small"
+              columns={columns}
+              dataSource={rows}
+              scroll={{ x: 1500 }}
+              onRow={(record) => ({
+                onClick: () => router.push(`/openings/${record.id}`),
+              })}
+              locale={{
+                emptyText: (
+                  <div className="omp-empty">
+                    <NoData description={
+                                                <>
+                                                  <div className="omp-empty-title">
+                                                    {archived ? 'Nothing archived yet' : 'No openings yet'}
+                                                  </div>
+                                                  <div className="omp-empty-sub">
+                                                    {archived
+                                                      ? 'Closed openings land here once they are archived.'
+                                                      : 'Create a requisition to start hiring.'}
+                                                  </div>
+                                                </>
+                                              } />
+                  </div>
+                ),
+              }}
+              pagination={{
+                ...tablePaginationConfig,
+                current: page,
+                pageSize,
+                total,
+                onChange: (p, ps) => {
+                  setPage(p);
+                  setPageSize(ps);
+                },
+              }}
+            />
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
+              <div style={{ flex: 1, overflowY: 'auto' }}>
+                {rows.length === 0 ? (
+                  <div className="omp-empty">
+                    <NoData description={
+                                                <>
+                                                  <div className="omp-empty-title">
+                                                    {archived ? 'Nothing archived yet' : 'No openings yet'}
+                                                  </div>
+                                                  <div className="omp-empty-sub">
+                                                    {archived
+                                                      ? 'Closed openings land here once they are archived.'
+                                                      : 'Create a requisition to start hiring.'}
+                                                  </div>
+                                                </>
+                                              } />
+                  </div>
+                ) : (
+                  <div className="omp-grid">
+                    {rows.map((r) => (
+                      <div key={r.id} className="omp-list-card" onClick={() => router.push(`/openings/${r.id}`)}>
+                        <div className="omp-list-card-head">
+                          <div className="omp-list-card-avatar" style={{ background: '#3b82f6' }}>
+                            {r.jobTitle?.[0]?.toUpperCase() || 'O'}
+                          </div>
+                          <div className="omp-list-card-body">
+                            <div className="omp-list-card-title">
+                              <span>{r.jobTitle}</span>
+                              <StatusChip status={r.status} />
+                            </div>
+                            <div className="omp-list-card-sub">
+                              <span className="omp-list-card-key">Code:</span>
+                              <span className="omp-list-card-val">{r.openingCode}</span>
+                              {[r.departmentName, r.clientName].filter(Boolean).map(x => <span key={x}>· {x}</span>)}
+                            </div>
+                          </div>
+                          
+                          <Dropdown
+                            menu={{
+                              className: 'omp-action-pop',
+                              items: [
+                                {
+                                  key: 'view',
+                                  label: (
+                                    <div className="omp-menu-item">
+                                      <span className="omp-menu-ic" style={{ color: "#3b82f6", background: "rgba(59, 130, 246, 0.12)" }}><Eye size={13} /></span>
+                                      <span className="omp-menu-text">
+                                        <span className="omp-menu-title">View Opening</span>
+                                        <span className="omp-menu-desc">See applicants and details</span>
+                                      </span>
+                                    </div>
+                                  ),
+                                  onClick: (info: any) => {
+                                    info.domEvent.stopPropagation();
+                                    router.push(`/openings/${r.id}`);
+                                  }
+                                },
+                                archived
+                                ? (perms.canManageOpenings ? {
+                                  key: 'restore',
+                                  label: (
+                                    <div className="omp-menu-item">
+                                      <span className="omp-menu-ic" style={{ color: "#10b981", background: "rgba(16, 185, 129, 0.12)" }}><ArchiveRestore size={13} /></span>
+                                      <span className="omp-menu-text">
+                                        <span className="omp-menu-title">Restore</span>
+                                        <span className="omp-menu-desc">Unarchive this opening</span>
+                                      </span>
+                                    </div>
+                                  ),
+                                  onClick: (info: any) => {
+                                    info.domEvent.stopPropagation();
+                                    handleUnarchive(r.id);
+                                  }
+                                } : null)
+                                : (perms.canDeleteOpening ? {
+                                  key: 'delete',
+                                  danger: true,
+                                  label: (
+                                    <div className="omp-menu-item">
+                                      <span className="omp-menu-ic" style={{ color: "#ef4444", background: "rgba(239, 68, 68, 0.12)" }}><Trash2 size={13} /></span>
+                                      <span className="omp-menu-text">
+                                        <span className="omp-menu-title">Delete</span>
+                                        <span className="omp-menu-desc">Remove from system</span>
+                                      </span>
+                                    </div>
+                                  ),
+                                  onClick: (info: any) => {
+                                    info.domEvent.stopPropagation();
+                                    modal.confirm({
+                                      title: 'Delete this opening?',
+                                      content: 'It will be removed from the list.',
+                                      okText: 'Delete',
+                                      okType: 'danger',
+                                      cancelText: 'Cancel',
+                                      onOk: () => handleDelete(r.id)
+                                    });
+                                  }
+                                } : null)
+                              ].filter(Boolean) as any[]
+                            }}
+                            trigger={['click']}
+                            placement="bottomRight"
+                          >
+                            <button type="button" className="omp-list-card-actions" onClick={e => e.stopPropagation()}>
+                              <MoreHorizontal size={14} />
+                            </button>
+                          </Dropdown>
+                        </div>
+                        
+                        <div className="omp-list-card-footer" onClick={e => e.stopPropagation()}>
+                          <div className="omp-list-card-row">
+                            <span className="omp-list-card-item">
+                              <span className="omp-list-card-key">Positions:</span>
+                              <span className="omp-list-card-val">{r.numberOfPositions}</span>
+                            </span>
+                            <span className="omp-list-card-div" />
+                            <span className="omp-list-card-item">
+                              <span className="omp-list-card-key">Type:</span>
+                              <span className="omp-list-card-val">{EMPLOYMENT_TYPE_LABELS[r.employmentType] ?? r.employmentType}</span>
+                            </span>
+                            <span className="omp-list-card-div" />
+                            <span className="omp-list-card-item">
+                              <span className="omp-list-card-key">Mode:</span>
+                              <span className="omp-list-card-val">{WORK_MODE_LABELS[r.workMode] ?? r.workMode}</span>
+                            </span>
+                          </div>
+                          
+                          <div className="omp-list-card-row">
+                            <span className="omp-list-card-item">
+                              <Users size={12} style={{ color: "var(--text-slate-400)", flexShrink: 0 }} />
+                              <span>{r.recruiters?.length ? (r.recruiters.find(x => x.isPrimary)?.recruiterName ?? r.recruiters[0].recruiterName) : 'Unassigned'}</span>
+                            </span>
+                            <span className="omp-list-card-div" />
+                            <span className="omp-list-card-item">
+                              <Calendar size={12} style={{ color: "var(--text-slate-400)", flexShrink: 0 }} />
+                              <span>{fmtDate(archived ? r.archivedAt : r.createdAt)}</span>
+                            </span>
+                            <span className="omp-list-card-div" />
+                            <span className="omp-list-card-item">
+                              <PriorityChip priority={r.priority} />
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+              
+              <div className="omp-table-wrap">
+                <div className="ant-pagination" style={{ display: 'flex', padding: '12px 20px', borderTop: '1px solid var(--border-slate-200)', background: 'var(--bg-pure-white)' }}>
+                  <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <div className="ant-pagination-total-text" style={{ fontSize: 12 }}>
+                      Showing <strong>{(page - 1) * pageSize + 1}–{Math.min(page * pageSize, total)}</strong> of <strong>{total}</strong>
+                    </div>
+                    <div style={{ display: 'flex', gap: 8 }}>
+                      <Button size="small" disabled={page === 1} onClick={() => setPage(page - 1)}>Prev</Button>
+                      <Button size="small" disabled={page * pageSize >= total} onClick={() => setPage(page + 1)}>Next</Button>
+                    </div>
+                  </div>
                 </div>
-              ),
-            }}
-            pagination={{
-              ...tablePaginationConfig,
-              current: page,
-              pageSize,
-              total,
-              onChange: (p, ps) => {
-                setPage(p);
-                setPageSize(ps);
-              },
-            }}
-          />
+              </div>
+            </div>
+          )}
         </ZukvoLoadingOverlay>
       </div>
 

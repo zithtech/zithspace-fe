@@ -238,6 +238,7 @@ export function QaProjectSwitcher({
   onChange,
   loading,
   placeholder = "Select Project",
+  tourId,
 }: {
   projects: QaProject[];
   value: string | null;
@@ -245,6 +246,7 @@ export function QaProjectSwitcher({
   loading?: boolean;
   /** What the trigger reads with nothing selected. Filters say "All projects". */
   placeholder?: string;
+  tourId?: string;
 }) {
   const selected = projects.find((p) => p.value === value);
   const [open, setOpen] = React.useState(false);
@@ -330,7 +332,7 @@ export function QaProjectSwitcher({
         )}
         overlayClassName="qps-pop"
       >
-        <div className="qps-trigger" role="button" tabIndex={0} data-tour="qa-project-select">
+        <div className="qps-trigger" role="button" tabIndex={0} data-tour={tourId || "qa-project-select"}>
           <div className="qps-trigger__main">
             <Briefcase size={14} className="qps-trigger__icon" />
             <span className="qps-trigger__name">{selected?.label || placeholder}</span>

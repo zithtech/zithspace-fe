@@ -188,7 +188,7 @@ export default function LeadsTrashPage() {
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState("");
   const { message, modal } = App.useApp();
-  const { leads, loading, fetchTrashLeads, emptyTrash, bulkRestoreLeads, bulkDeleteLeads } = useLeads();
+  const { leads, loading, fetchTrashLeads, emptyTrash, bulkRestoreLeads, bulkDeleteLeads, restoreLead, permanentDeleteLead } = useLeads();
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
   const [activeLeads, setActiveLeads] = useState<Lead[]>([]);
@@ -247,22 +247,26 @@ export default function LeadsTrashPage() {
 
   const handleRestore = async (id: string) => {
     try {
-      await LeadService.restore(id);
+      setTotalLeads((prev) => Math.max(0, prev - 1));
+      await restoreLead(id);
       message.success("Lead restored successfully");
       loadTrashLeads();
       fetchActiveLeads();
     } catch (error: any) {
       message.error(error.message || "Failed to restore lead");
+      loadTrashLeads();
     }
   };
 
   const handlePermanentDelete = async (id: string) => {
     try {
-      await LeadService.permanentDelete(id);
+      setTotalLeads((prev) => Math.max(0, prev - 1));
+      await permanentDeleteLead(id);
       message.success("Lead permanently deleted");
       loadTrashLeads();
     } catch (error: any) {
       message.error(error.message || "Failed to delete lead permanently");
+      loadTrashLeads();
     }
   };
 

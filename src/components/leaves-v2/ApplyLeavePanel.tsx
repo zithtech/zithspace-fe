@@ -15,8 +15,9 @@ import {
   Row,
   Col,
   Space,
+  Dropdown,
 } from 'antd';
-import { Menu } from 'lucide-react';
+import { Menu, LayoutGrid, List, MoreHorizontal } from 'lucide-react';
 import type { ColumnsType } from 'antd/es/table';
 import dayjs, { Dayjs } from 'dayjs';
 import {
@@ -36,7 +37,7 @@ import {
   RollbackOutlined,
 } from '@ant-design/icons';
 import { usePermission } from '@/hooks/usePermission';
-import { SearchableDropdown } from '@/components/common/SearchableDropdown';
+import { SearchableDropdown, initialsFor } from '@/components/common/SearchableDropdown';
 import ConfirmDialog from '@/components/common/ConfirmDialog';
 import LeaveV2Service, {
   ApplyLeaveInput,
@@ -107,6 +108,7 @@ export default function ApplyLeavePanel({ hideSidebarToggle }: { hideSidebarTogg
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
   const [isFilterRowOpen, setIsFilterRowOpen] = useState(false);
+  const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
 
   const [tablePage, setTablePage] = useState(1);
   const [tablePageSize, setTablePageSize] = useState(15);
@@ -417,6 +419,14 @@ export default function ApplyLeavePanel({ hideSidebarToggle }: { hideSidebarTogg
             onToggle={() => setIsFilterRowOpen((prev) => !prev)}
             activeCount={statusFilter !== 'all' ? 1 : 0}
           />
+          <div className="lv-view-toggles">
+            <button type="button" className={viewMode === "grid" ? "is-active" : ""} onClick={() => setViewMode("grid")}>
+              <LayoutGrid size={14} />
+            </button>
+            <button type="button" className={viewMode === "list" ? "is-active" : ""} onClick={() => setViewMode("list")}>
+              <List size={14} />
+            </button>
+          </div>
           <Tooltip title="Refresh"><button type="button" className="lva-ghost-btn" onClick={load}><ReloadOutlined spin={loading} /></button></Tooltip>
           {(canCreateLeave || canReadMyHubApplyLeave) && <Button type="primary" icon={<PlusOutlined />} onClick={openApply} className="lva-add-btn">Apply Leave</Button>}
         </div>
@@ -475,19 +485,125 @@ export default function ApplyLeavePanel({ hideSidebarToggle }: { hideSidebarTogg
       )}
 
       {/* TABLE */}
-      <div className="lv-table-wrap">
+      <div className="lv-table-wrap" style={{ overflowX: 'auto', background: viewMode === 'grid' ? 'transparent' : undefined, border: viewMode === 'grid' ? 'none' : undefined }}>
         <ZukvoLoadingOverlay loading={loading} message="">
-          <Table
-            rowKey="id"
-            size="small"
-            className="lva-table"
-            columns={columns}
-            dataSource={paged}
-            pagination={false}
-            scroll={{ x: 'max-content' }}
-            expandable={{ expandedRowRender: expandedRow, expandRowByClick: true, columnWidth: 32 }}
-            onRow={() => ({ className: 'lva-row' })} locale={{ emptyText: <NoData /> }}
-          />
+          {viewMode === 'list' ? (
+            <Table
+              rowKey="id"
+              size="small"
+              className="lva-table"
+              columns={columns}
+              dataSource={paged}
+              pagination={false}
+              scroll={{ x: 'max-content' }}
+              expandable={{ expandedRowRender: expandedRow, expandRowByClick: true, columnWidth: 32 }}
+              onRow={() => ({ className: 'lva-row' })} locale={{ emptyText: <NoData /> }}
+            />
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
+              <div style={{ flex: 1, overflowY: 'auto' }}>
+                {paged.length === 0 ? (
+                  <NoData />
+                ) : (
+                  <div className="lv-grid">
+                    {paged.map((r) => {
+                      const meta = STATUS_TAG[r.status] || STATUS_TAG.pending;
+                      const hasActions = r.status === 'pending' || (r.status === 'approved' && (!r.withdrawalStatus || r.withdrawalStatus === 'declined'));
+                      
+                      return (
+                        <div key={r.id} className="lv-list-card">
+                          <div className="lv-list-card-head">
+                            <div className="lv-list-card-avatar" style={{ background: TINT.blue, color: PALETTE.blue }}>
+                              {initialsFor(r.leaveTypeName || '')}
+                            </div>
+                            <div className="lv-list-card-body">
+                              <div className="lv-list-card-title">
+                                <span>{r.leaveTypeName}</span>
+                                <span style={{ background: `var(--bg-${meta.color}-50)`, color: `var(--text-${meta.color}-600)`, padding: '2px 6px', borderRadius: 6, fontSize: 10 }}>{meta.label}</span>
+                              </div>
+                              <div className="lv-list-card-sub">
+                                <span className="lv-list-card-val" style={{ fontWeight: 500, color: 'var(--text-slate-400)' }}>
+                                  {r.totalUnits} day{r.totalUnits === 1 ? '' : 's'}
+                                </span>
+                              </div>
+                            </div>
+                            {hasActions && (
+                              <Dropdown
+                                menu={{
+                                  className: 'lv-action-pop',
+                                  items: [
+                                    r.status === 'pending' ? {
+                                      key: 'edit',
+                                      label: (
+                                        <div className="lv-menu-item">
+                                          <span className="lv-menu-ic" style={{ color: PALETTE.blue, background: TINT.blue }}><EditOutlined style={{ fontSize: 13 }} /></span>
+                                          <span className="lv-menu-text"><span className="lv-menu-title">Edit Request</span></span>
+                                        </div>
+                                      ),
+                                      onClick: (info: any) => { info.domEvent.stopPropagation(); setEditingRequest(r); setOpen(true); }
+                                    } : null,
+                                    r.status === 'pending' ? { type: 'divider' } : null,
+                                    r.status === 'pending' ? {
+                                      key: 'cancel',
+                                      danger: true,
+                                      label: (
+                                        <div className="lv-menu-item">
+                                          <span className="lv-menu-ic" style={{ color: PALETTE.red, background: TINT.red }}><StopOutlined style={{ fontSize: 13 }} /></span>
+                                          <span className="lv-menu-text"><span className="lv-menu-title">Cancel Request</span></span>
+                                        </div>
+                                      ),
+                                      onClick: (info: any) => {
+                                        info.domEvent.stopPropagation();
+                                        cancelRequest(r);
+                                      }
+                                    } : null,
+                                    r.status === 'approved' && (!r.withdrawalStatus || r.withdrawalStatus === 'declined') ? {
+                                      key: 'withdraw',
+                                      label: (
+                                        <div className="lv-menu-item">
+                                          <span className="lv-menu-ic" style={{ color: PALETTE.blue, background: TINT.blue }}><RollbackOutlined style={{ fontSize: 13 }} /></span>
+                                          <span className="lv-menu-text"><span className="lv-menu-title">{isSingleDayReq(r) ? 'Withdraw leave' : 'Withdraw unused days'}</span></span>
+                                        </div>
+                                      ),
+                                      onClick: (info: any) => {
+                                        info.domEvent.stopPropagation();
+                                        if (isSingleDayReq(r)) submitWithdraw(r, true);
+                                        else openWithdraw(r);
+                                      }
+                                    } : null,
+                                  ].filter(Boolean) as any[]
+                                }}
+                                trigger={['click']}
+                              >
+                                <button type="button" className="lv-list-card-actions" onClick={e => e.stopPropagation()}>
+                                  <MoreHorizontal size={14} />
+                                </button>
+                              </Dropdown>
+                            )}
+                          </div>
+                          
+                          <div className="lv-list-card-footer" onClick={e => e.stopPropagation()}>
+                            <div className="lv-list-card-row">
+                              <span className="lv-list-card-item">
+                                <span className="lv-list-card-key">Dates:</span>
+                                <span className="lv-list-card-val">{fmt(r.fromDate)} {r.toDate !== r.fromDate && `→ ${fmt(r.toDate)}`}</span>
+                              </span>
+                            </div>
+                            <div className="lv-list-card-row">
+                              <span className="lv-list-card-item">
+                                <span className="lv-list-card-key">Applied On:</span>
+                                <span className="lv-list-card-val">{fmt(r.createdAt)}</span>
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
         </ZukvoLoadingOverlay>
       </div>
 

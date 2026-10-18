@@ -1,7 +1,7 @@
 'use client';
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import {  Button, Table, Space, Drawer, Form, InputNumber, Row, Col, Card, Select, Tag, Collapse , App } from 'antd';
+import {  Button, Table, Space, Drawer, Form, InputNumber, Row, Col, Card, Select, Tag, Collapse, Tooltip, App } from 'antd';
 import { 
   Search, 
   ArrowUpRight, 
@@ -10,17 +10,24 @@ import {
   XCircle,
   DollarSign,
   Calculator,
-  MinusCircle
+  MinusCircle,
+  RotateCw,
+  X
 } from 'lucide-react';
 import dayjs from 'dayjs';
 import { EmployeeExitService, EmployeeExitRequest } from '@/services/employeeExitService';
 import { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
+import { StatCards } from '@/components/common/StatCards';
+import { FilterBar, FilterToggleButton, TicketFilterPill } from '@/components/common/FilterBar';
+import NoData from '@/components/common/NoData';
 
 export default function FnFPage() {
   const router = useRouter();
   const [requests, setRequests] = useState<EmployeeExitRequest[]>([]);
   const [loading, setLoading] = useState(false);
   const [searchText, setSearchText] = useState("");
+  const [settlementFilter, setSettlementFilter] = useState<string | undefined>(undefined);
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [isDrawerVisible, setIsDrawerVisible] = useState(false);
   const [selectedRequest, setSelectedRequest] = useState<EmployeeExitRequest | null>(null);
   const [form] = Form.useForm();
@@ -49,13 +56,16 @@ export default function FnFPage() {
 
   const filteredRequests = useMemo(() => {
     return requests.filter(r => {
+      if (settlementFilter === 'buyout' && !r.buyoutRequired) return false;
+      if (settlementFilter === 'standard' && r.buyoutRequired) return false;
+      if (!searchText) return true;
       const q = searchText.toLowerCase();
       const n1 = (r.employee?.first_name || '').toLowerCase();
       const n2 = (r.employee?.last_name || '').toLowerCase();
       const code = (r.employee?.employee_code || '').toLowerCase();
       return n1.includes(q) || n2.includes(q) || code.includes(q);
     });
-  }, [requests, searchText]);
+  }, [requests, searchText, settlementFilter]);
 
   const stats = useMemo(() => {
     const total = requests.length;
@@ -63,6 +73,8 @@ export default function FnFPage() {
     const standard = total - buyout;
     return { total, buyout, standard };
   }, [requests]);
+
+  const activeFilterCount = settlementFilter ? 1 : 0;
 
   const handleValuesChange = (_: any, allValues: any) => {
     const additions = 
@@ -236,34 +248,126 @@ export default function FnFPage() {
       
       <div className="exit-page-header">
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <div className="exit-search-bar" style={{ display: 'flex', alignItems: 'center', padding: '0 10px', width: 300, height: 32 }}>
-            <Search size={13} color="var(--text-slate-400)" style={{ marginRight: 8, flexShrink: 0 }} />
-            <input placeholder="Search records..." value={searchText} onChange={e => setSearchText(e.target.value)}
-              style={{ border: 'none', outline: 'none', width: '100%', fontSize: 13, background: 'transparent', color: 'var(--text-primary)' }} />
+          <div className="exit-search-bar" style={{ display: 'flex', alignItems: 'center', padding: '0 12px', width: 280, height: 32 }}>
+            <Search size={14} color="var(--text-slate-400)" style={{ marginRight: 8, flexShrink: 0 }} />
+            <input
+              placeholder="Search records..."
+              value={searchText}
+              onChange={e => { setSearchText(e.target.value); setCurrentPage(1); }}
+              style={{ border: 'none', outline: 'none', width: '100%', fontSize: 13, background: 'transparent', color: 'var(--text-primary)' }}
+            />
+            {searchText && (
+              <button
+                type="button"
+                onClick={() => setSearchText("")}
+                style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', color: 'var(--text-slate-400)', display: 'flex', alignItems: 'center' }}
+              >
+                <X size={13} />
+              </button>
+            )}
           </div>
-          <span className="exit-topbar-meta"><span className="exit-pulse" /><strong>{total}</strong> records</span>
+          <FilterToggleButton
+            isOpen={isFilterOpen}
+            onToggle={() => setIsFilterOpen(prev => !prev)}
+            activeCount={activeFilterCount}
+          />
+          <span className="exit-topbar-meta">
+            <span className="exit-pulse" />
+            <strong>{total}</strong> records
+          </span>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <Tooltip title="Refresh">
+            <button
+              type="button"
+              className="exit-ghost-btn"
+              onClick={fetchFnFRequests}
+              aria-label="Refresh"
+            >
+              <RotateCw size={14} className={loading ? 'animate-spin' : ''} />
+            </button>
+          </Tooltip>
         </div>
       </div>
 
       <div className="exit-body">
-        <div className="exit-stats exit-stats-3">
-          <div className="exit-stat-card">
-            <div className="exit-stat-top"><div className="exit-stat-left"><span className="exit-stat-icon" style={{ background: 'rgba(59,130,246,0.1)', color: '#3b82f6' }}><ArrowUpRight size={13} /></span><span className="exit-stat-label">Total Pending</span></div></div>
-            <div className="exit-stat-bottom"><div className="exit-stat-value-wrap"><span className="exit-stat-value">{stats.total}</span></div><span className="exit-stat-period">FnF Settlements</span></div>
-          </div>
-          <div className="exit-stat-card">
-            <div className="exit-stat-top"><div className="exit-stat-left"><span className="exit-stat-icon" style={{ background: 'rgba(245,158,11,0.1)', color: '#f59e0b' }}><DollarSign size={13} /></span><span className="exit-stat-label">Buyout Due</span></div></div>
-            <div className="exit-stat-bottom"><div className="exit-stat-value-wrap"><span className="exit-stat-value">{stats.buyout}</span></div><span className="exit-stat-period">Notice shortfalls</span></div>
-          </div>
-          <div className="exit-stat-card">
-            <div className="exit-stat-top"><div className="exit-stat-left"><span className="exit-stat-icon" style={{ background: 'rgba(16,185,129,0.1)', color: '#10b981' }}><CheckCircle size={13} /></span><span className="exit-stat-label">Standard Exit</span></div></div>
-            <div className="exit-stat-bottom"><div className="exit-stat-value-wrap"><span className="exit-stat-value">{stats.standard}</span></div><span className="exit-stat-period">No buyout required</span></div>
-          </div>
-        </div>
+        <StatCards
+          title="FnF Overview"
+          statusText="ACTIVE"
+          progressPct={stats.total > 0 ? Math.round((stats.standard / stats.total) * 100) : 0}
+          cells={[
+            {
+              title: 'Total Pending',
+              value: stats.total,
+              icon: <ArrowUpRight size={14} />,
+              color: '#3b82f6',
+              tint: 'rgba(59,130,246,0.1)',
+              hint: 'FnF Settlements'
+            },
+            {
+              title: 'Buyout Due',
+              value: stats.buyout,
+              icon: <DollarSign size={14} />,
+              color: '#f59e0b',
+              tint: 'rgba(245,158,11,0.1)',
+              hint: 'Notice shortfalls'
+            },
+            {
+              title: 'Standard Exit',
+              value: stats.standard,
+              icon: <CheckCircle size={14} />,
+              color: '#10b981',
+              tint: 'rgba(16,185,129,0.1)',
+              hint: 'No buyout required'
+            },
+          ]}
+        />
+
+        {isFilterOpen && (
+          <FilterBar
+            activeCount={activeFilterCount}
+            onReset={() => {
+              setSettlementFilter(undefined);
+              setSearchText("");
+              setCurrentPage(1);
+            }}
+            onClose={() => setIsFilterOpen(false)}
+          >
+            <TicketFilterPill
+              label="Settlement Type"
+              icon={<DollarSign size={12} />}
+              value={settlementFilter}
+              options={[
+                { value: 'standard', label: 'Standard Exit', dotColor: '#10b981' },
+                { value: 'buyout', label: 'Buyout Due', dotColor: '#f59e0b' },
+              ]}
+              onChange={(v) => {
+                setSettlementFilter(v ? String(v) : undefined);
+                setCurrentPage(1);
+              }}
+            />
+          </FilterBar>
+        )}
 
         <div className="exit-table-wrap">
           <ZukvoLoadingOverlay loading={loading} message="">
-                  <Table size="small" className="exit-table" columns={columns} dataSource={pagedData} rowKey="id" pagination={false} scroll={{ x: 900 }} />
+            <Table
+              size="small"
+              className="exit-table"
+              columns={columns}
+              dataSource={pagedData}
+              rowKey="id"
+              pagination={false}
+              scroll={{ x: 900 }}
+              locale={{
+                emptyText: (
+                  <NoData
+                    title="No F&F Settlements Found"
+                    description="There are no full & final settlement records matching your filter."
+                  />
+                )
+              }}
+            />
                   </ZukvoLoadingOverlay>
         </div>
       </div>

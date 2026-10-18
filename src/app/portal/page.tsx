@@ -126,7 +126,8 @@ const Card: React.FC<{
     style={{
       background: T.cardBg,
       border: `1px solid ${T.border}`,
-      borderRadius: 12,
+      borderRadius: 14,
+      boxShadow: "0 1px 2px rgba(15, 23, 42, 0.04)",
       overflow: "hidden",
       display: "flex",
       flexDirection: "column",
@@ -146,26 +147,41 @@ const CardHeader: React.FC<{
 }> = ({ title, icon, href, accent = T.textMuted, trailing }) => (
   <div
     style={{
-      padding: "11px 14px",
+      padding: "16px 20px",
       borderBottom: `1px solid ${T.borderSoft}`,
       display: "flex",
       alignItems: "center",
       justifyContent: "space-between",
-      background: "#fcfcfd",
+      background: "#ffffff",
     }}
   >
     <div
       style={{
         display: "flex",
         alignItems: "center",
-        gap: 8,
+        gap: 10,
         fontWeight: 600,
         color: T.text,
-        fontSize: 12.5,
-        letterSpacing: "-0.005em",
+        fontSize: 14,
+        letterSpacing: "-0.1px",
       }}
     >
-      <span style={{ color: accent, display: "inline-flex" }}>{icon}</span>
+      <div
+        style={{
+          width: 28,
+          height: 28,
+          borderRadius: 8,
+          background: accent ? `${accent}14` : "#F1F5F9",
+          border: `1px solid ${accent ? `${accent}33` : "#E2E8F0"}`,
+          display: "inline-flex",
+          alignItems: "center",
+          justifyContent: "center",
+          color: accent || "#64748B",
+          fontSize: 13,
+        }}
+      >
+        {icon}
+      </div>
       {title}
     </div>
     <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
@@ -349,101 +365,90 @@ const StatTile: React.FC<{
 }> = ({ label, value, context, icon, href, accent, accentBg, accentBorder, trailing, loading }) => (
   <Link
     href={href}
+    className="hover-scale"
     style={{
-      background: T.cardBg,
-      border: `1px solid ${T.border}`,
-      borderRadius: 12,
-      padding: "14px 16px",
+      background: "#FFFFFF",
+      borderRadius: 14,
+      border: `1px solid #E2E8F0`,
+      boxShadow: "0 1px 3px 0 rgba(0, 0, 0, 0.03), 0 1px 2px -1px rgba(0, 0, 0, 0.02)",
+      padding: "11px 14px",
       display: "flex",
       flexDirection: "column",
-      gap: 10,
+      gap: 6,
       textDecoration: "none",
-      transition: "border-color 150ms ease, transform 150ms ease",
+      transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
       position: "relative",
-      minHeight: 122,
-    }}
-    onMouseEnter={(e) => {
-      e.currentTarget.style.borderColor = T.borderHover;
-      e.currentTarget.style.transform = "translateY(-1px)";
-    }}
-    onMouseLeave={(e) => {
-      e.currentTarget.style.borderColor = T.border;
-      e.currentTarget.style.transform = "translateY(0)";
+      overflow: "hidden",
+      height: "100%",
     }}
   >
+    {/* Top accent bar */}
+    <div
+      style={{
+        position: "absolute",
+        top: 0,
+        left: 0,
+        right: 0,
+        height: 2.5,
+        background: accent,
+        borderRadius: "14px 14px 0 0",
+        opacity: 0.85,
+      }}
+    />
+
+    {/* Top row: icon + eyebrow + arrow */}
     <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-      <div
-        style={{
-          width: 30,
-          height: 30,
-          borderRadius: 8,
-          background: accentBg,
-          color: accent,
-          border: `1px solid ${accentBorder}`,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-        }}
-      >
-        {icon}
-      </div>
-      <ArrowUpRight size={14} color={T.textFaint} />
-    </div>
-    <div>
-      <div
-        style={{
-          fontSize: 10,
-          color: T.textSubtle,
-          fontWeight: 600,
-          letterSpacing: "0.08em",
-          textTransform: "uppercase",
-        }}
-      >
-        {label}
-      </div>
-      <div
-        style={{
-          fontSize: 24,
-          fontWeight: 700,
-          color: T.text,
-          letterSpacing: "-0.03em",
-          marginTop: 5,
-          lineHeight: 1,
-          fontVariantNumeric: "tabular-nums",
-          minHeight: 24,
-          display: "flex",
-          alignItems: "center",
-        }}
-      >
-        {loading ? (
-          <span style={{ color: T.textFaint, fontSize: 16, fontWeight: 500 }}>—</span>
-        ) : (
-          value
-        )}
-      </div>
-      <div
-        style={{
-          fontSize: 11.5,
-          color: T.textSubtle,
-          marginTop: 5,
-          fontWeight: 500,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          gap: 6,
-        }}
-      >
-        <span
+      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        <div
           style={{
-            overflow: "hidden",
-            textOverflow: "ellipsis",
-            whiteSpace: "nowrap",
+            width: 28,
+            height: 28,
+            borderRadius: 7,
+            background: accentBg,
+            border: `1px solid ${accentBorder}`,
+            display: "inline-flex",
+            alignItems: "center",
+            justifyContent: "center",
+            color: accent,
+            fontSize: 13,
+            flexShrink: 0,
           }}
         >
-          {context}
+          {icon}
+        </div>
+        <span
+          style={{
+            fontSize: 12.5,
+            fontWeight: 600,
+            color: "#64748B",
+            letterSpacing: "-0.1px",
+          }}
+        >
+          {label}
+        </span>
+      </div>
+      <ArrowUpRight size={14} color="#94A3B8" />
+    </div>
+
+    {/* Value and subtle */}
+    <div style={{ display: "flex", flexDirection: "column", gap: 3, marginTop: 4 }}>
+      <div style={{ display: "flex", alignItems: "baseline", gap: 6 }}>
+        <span
+          style={{
+            fontSize: 24,
+            fontWeight: 700,
+            color: "#0F172A",
+            letterSpacing: "-0.03em",
+            fontVariantNumeric: "tabular-nums",
+          }}
+        >
+          {loading ? "—" : value}
         </span>
         {trailing}
       </div>
+      <span style={{ fontSize: 11.5, color: "#94A3B8", fontWeight: 500 }}>
+        {context}
+      </span>
     </div>
   </Link>
 );
@@ -617,101 +622,96 @@ const Hero: React.FC<{
 }> = ({ companyName, displayName, summary }) => {
   const greeting = useMemo(getGreeting, []);
   const today = useMemo(() => new Date(), []);
+  
+  const firstName = displayName?.split(" ")[0] || "there";
+
   return (
     <div
+      className="portal-hero-container"
       style={{
-        background: T.cardBg,
-        border: `1px solid ${T.border}`,
-        borderRadius: 12,
-        padding: "16px 20px",
+        background: "#FFFFFF",
+        backgroundImage: `linear-gradient(125deg, #EFF6FF 0%, #FFFFFF 45%, #F8FAFC 100%)`,
+        borderRadius: 16,
+        padding: "20px 24px",
+        position: "relative",
+        overflow: "hidden",
+        minHeight: 90,
+        height: "100%",
         display: "flex",
         alignItems: "center",
         justifyContent: "space-between",
-        gap: 20,
-        position: "relative",
-        overflow: "hidden",
+        gap: 14,
+        boxShadow: "0 2px 8px -2px rgba(37, 99, 235, 0.08)",
+        border: `1px solid #E2E8F0`,
       }}
     >
-      <div
-        style={{
-          position: "absolute",
-          left: 0,
-          top: 0,
-          bottom: 0,
-          width: 3,
-          background: "linear-gradient(180deg, #4338ca 0%, #0d9488 100%)",
-        }}
-      />
-      <div style={{ minWidth: 0, flex: 1 }}>
-        <div
+      <div style={{ minWidth: 0, flex: 1, zIndex: 1 }}>
+        <h2
           style={{
-            fontSize: 19,
+            margin: 0,
+            color: "#0F172A",
             fontWeight: 700,
-            color: T.text,
-            letterSpacing: "-0.022em",
-            lineHeight: 1.2,
+            letterSpacing: "-0.6px",
+            fontSize: 22,
           }}
         >
-          {greeting},{" "}
-          <span style={{ color: "#4338ca" }}>
-            {displayName?.split(" ")[0] || "there"}
-          </span>
-          <span style={{ color: T.textFaint, fontWeight: 500, marginLeft: 8 }}>
-            · {companyName || "Workspace"}
-          </span>
-        </div>
+          {greeting}, {firstName} 👋
+        </h2>
         <div
           style={{
-            fontSize: 12,
-            color: T.textSubtle,
-            marginTop: 4,
+            fontSize: 14,
+            color: "#475569",
+            marginTop: 6,
             fontWeight: 500,
             display: "flex",
             alignItems: "center",
             gap: 6,
           }}
         >
-          <CalendarDays size={12} />
+          <span>{companyName || "Workspace"}</span>
+          <span style={{ color: "#CBD5E1" }}>•</span>
+          <CalendarDays size={14} />
           {formatLongDate(today)}
         </div>
       </div>
-      <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
+      <div className="portal-hero-stats" style={{ display: "flex", gap: 8, flexShrink: 0, zIndex: 1 }}>
         {[
-          { label: "Invoices", value: summary.invoicesOpen, accent: "#4338ca" },
-          { label: "Sprints", value: summary.sprintsActive, accent: "#0d9488" },
-          { label: "Milestones", value: summary.milestonesActive, accent: "#7c3aed" },
-          { label: "Tickets", value: summary.ticketsOpen, accent: "#be123c" },
+          { label: "Invoices", value: summary.invoicesOpen, accent: "#4338ca", bg: "#eef2ff" },
+          { label: "Sprints", value: summary.sprintsActive, accent: "#0d9488", bg: "#ccfbf1" },
+          { label: "Milestones", value: summary.milestonesActive, accent: "#7c3aed", bg: "#f5f3ff" },
+          { label: "Tickets", value: summary.ticketsOpen, accent: "#be123c", bg: "#ffe4e6" },
         ].map((s) => (
           <div
             key={s.label}
             style={{
-              padding: "8px 14px",
-              border: `1px solid ${T.border}`,
-              borderRadius: 8,
-              background: "#fafbfc",
-              minWidth: 70,
+              padding: "10px 16px",
+              border: `1px solid #E2E8F0`,
+              borderRadius: 12,
+              background: "#FFFFFF",
+              minWidth: 80,
               textAlign: "center",
+              boxShadow: "0 1px 2px rgba(0,0,0,0.02)",
             }}
           >
             <div
               style={{
-                fontSize: 9.5,
+                fontSize: 10,
                 fontWeight: 600,
-                letterSpacing: "0.08em",
+                letterSpacing: "0.5px",
                 textTransform: "uppercase",
-                color: T.textSubtle,
+                color: "#64748B",
               }}
             >
               {s.label}
             </div>
             <div
               style={{
-                fontSize: 18,
+                fontSize: 20,
                 fontWeight: 700,
                 color: s.accent,
-                marginTop: 2,
+                marginTop: 4,
                 letterSpacing: "-0.02em",
-                lineHeight: 1.1,
+                lineHeight: 1,
                 fontVariantNumeric: "tabular-nums",
               }}
             >
@@ -720,6 +720,41 @@ const Hero: React.FC<{
           </div>
         ))}
       </div>
+      
+      {/* Background decoration to match dashboard */}
+      <svg
+        viewBox="0 0 400 150"
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg"
+        style={{
+          position: "absolute",
+          right: 0,
+          bottom: 0,
+          height: "100%",
+          width: "auto",
+          opacity: 0.4,
+          pointerEvents: "none",
+          zIndex: 0,
+        }}
+      >
+        <path
+          d="M400 150V0C400 0 350 40 250 50C150 60 50 120 0 150H400Z"
+          fill="url(#hero-gradient)"
+        />
+        <defs>
+          <linearGradient
+            id="hero-gradient"
+            x1="400"
+            y1="0"
+            x2="0"
+            y2="150"
+            gradientUnits="userSpaceOnUse"
+          >
+            <stop stopColor="#3B82F6" stopOpacity="0.15" />
+            <stop offset="1" stopColor="#3B82F6" stopOpacity="0" />
+          </linearGradient>
+        </defs>
+      </svg>
     </div>
   );
 };
@@ -752,7 +787,7 @@ const ActiveSprintCard: React.FC<{
   const daysLeft = sprint.endDate ? daysBetween(new Date(), new Date(sprint.endDate)) : null;
 
   return (
-    <Card>
+    <Card style={{ height: 280 }}>
       <CardHeader
         title="Active Sprint"
         icon={<CalendarCheck size={13} />}
@@ -760,7 +795,7 @@ const ActiveSprintCard: React.FC<{
         accent="#0d9488"
         trailing={<StatusPill label={sprint.status} tone={toneFor(sprint.status)} />}
       />
-      <div style={{ padding: "14px 16px 16px" }}>
+      <div style={{ padding: "14px 16px 16px", flex: 1, overflowY: "auto" }}>
         <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12 }}>
           <div style={{ minWidth: 0, flex: 1 }}>
             <div
@@ -922,7 +957,7 @@ const MilestonesPanel: React.FC<{
   const completedCount = milestones.filter((m) => m.status === "completed").length;
 
   return (
-    <Card>
+    <Card style={{ height: 280 }}>
       <CardHeader
         title="Milestones"
         icon={<Flag size={13} />}
@@ -956,14 +991,15 @@ const MilestonesPanel: React.FC<{
         }
       />
 
-      {/* Aggregate progress bar */}
-      <div
-        style={{
-          padding: "10px 14px",
-          borderBottom: `1px solid ${T.borderSoft}`,
-          background: "#fcfcfd",
-        }}
-      >
+      <div style={{ flex: 1, overflowY: "auto" }}>
+        {/* Aggregate progress bar */}
+        <div
+          style={{
+            padding: "10px 14px",
+            borderBottom: `1px solid ${T.borderSoft}`,
+            background: "#fcfcfd",
+          }}
+        >
         <div
           style={{
             height: 6,
@@ -1128,6 +1164,7 @@ const MilestonesPanel: React.FC<{
           })}
         </div>
       )}
+      </div>
     </Card>
   );
 };
@@ -1140,13 +1177,14 @@ const InvoicesWidget: React.FC<{
   data: PortalInvoiceListItem[];
   loading: boolean;
 }> = ({ data, loading }) => (
-  <Card>
+  <Card style={{ height: 280 }}>
     <CardHeader title="Recent Invoices" icon={<Receipt size={13} />} href="/portal/invoices" accent="#4338ca" />
-    {loading ? (
-      <LoadingState />
-    ) : data.length === 0 ? (
-      <EmptyState label="No invoices yet" />
-    ) : (
+    <div style={{ flex: 1, overflowY: "auto" }}>
+      {loading ? (
+        <LoadingState />
+      ) : data.length === 0 ? (
+        <EmptyState label="No invoices yet" />
+      ) : (
       <div>
         {data.slice(0, 6).map((inv) => (
           <RowItem key={inv.id} href={`/portal/invoices/${inv.id}`} dense>
@@ -1194,6 +1232,7 @@ const InvoicesWidget: React.FC<{
         ))}
       </div>
     )}
+    </div>
   </Card>
 );
 
@@ -1203,13 +1242,14 @@ const DocumentsWidget: React.FC<{
   data: PortalDocument[];
   loading: boolean;
 }> = ({ data, loading }) => (
-  <Card>
+  <Card style={{ height: 280 }}>
     <CardHeader title="Documents" icon={<FileText size={13} />} href="/portal/documents" accent="#b45309" />
-    {loading ? (
-      <LoadingState />
-    ) : data.length === 0 ? (
-      <EmptyState label="No documents shared" />
-    ) : (
+    <div style={{ flex: 1, overflowY: "auto" }}>
+      {loading ? (
+        <LoadingState />
+      ) : data.length === 0 ? (
+        <EmptyState label="No documents shared" />
+      ) : (
       <div>
         {data.slice(0, 6).map((doc) => (
           <RowItem key={doc.id} href={`/portal/documents`} dense>
@@ -1250,6 +1290,7 @@ const DocumentsWidget: React.FC<{
         ))}
       </div>
     )}
+    </div>
   </Card>
 );
 
@@ -1423,7 +1464,7 @@ const RecentActivities: React.FC<{
   }, [data]);
 
   return (
-    <Card>
+    <Card style={{ height: 572 }}>
       <CardHeader
         title="Recent activity"
         icon={<Activity size={13} />}
@@ -1431,7 +1472,7 @@ const RecentActivities: React.FC<{
       />
       <div
         style={{
-          maxHeight: "calc(100vh - 220px)",
+          flex: 1,
           overflowY: "auto",
           marginTop: 4,
         }}
@@ -1738,7 +1779,7 @@ export default function PortalDashboardPage() {
           className="portal-home-grid"
           style={{
             display: "grid",
-            gridTemplateColumns: "minmax(0, 1.6fr) minmax(0, 1fr)",
+            gridTemplateColumns: "minmax(0, 2.5fr) minmax(0, 1fr)",
             gap: GAP,
             alignItems: "start",
           }}
@@ -1752,8 +1793,18 @@ export default function PortalDashboardPage() {
               minWidth: 0,
             }}
           >
-            <ActiveSprintCard sprint={activeSprint} loading={loading} />
-            <MilestonesPanel milestones={milestones} loading={loading} />
+            <div
+              className="portal-home-primary-row"
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+                gap: GAP,
+                alignItems: "stretch",
+              }}
+            >
+              <ActiveSprintCard sprint={activeSprint} loading={loading} />
+              <MilestonesPanel milestones={milestones} loading={loading} />
+            </div>
             <div
               className="portal-home-secondary-row"
               style={{
@@ -1787,11 +1838,8 @@ export default function PortalDashboardPage() {
 
       <style jsx global>{`
         @media (max-width: 1280px) {
-          .portal-home-secondary-row {
+          .portal-home-secondary-row, .portal-home-primary-row {
             grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-          }
-          .portal-home-secondary-row > :nth-child(3) {
-            grid-column: span 2;
           }
         }
         @media (max-width: 1080px) {
@@ -1800,11 +1848,25 @@ export default function PortalDashboardPage() {
           }
         }
         @media (max-width: 900px) {
-          .portal-home-secondary-row {
+          .portal-home-secondary-row, .portal-home-primary-row {
             grid-template-columns: 1fr !important;
           }
           .portal-home-secondary-row > :nth-child(3) {
             grid-column: auto;
+          }
+        }
+        @media (max-width: 768px) {
+          .portal-hero-container {
+            flex-direction: column !important;
+            align-items: flex-start !important;
+          }
+          .portal-hero-stats {
+            width: 100% !important;
+            flex-wrap: wrap !important;
+            justify-content: flex-start !important;
+          }
+          .portal-hero-stats > div {
+            flex: 1 1 40% !important;
           }
         }
         .ant-empty-img-simple path,

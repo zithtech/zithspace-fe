@@ -325,6 +325,17 @@ export default function PortalInvoicesPage() {
             onToggle={() => setIsFilterRowOpen((v) => !v)}
             activeCount={activeFilterCount}
           />
+        </div>
+
+        <Space size={10} className="sc-header-right">
+          <Tooltip title="Refresh invoices">
+            <Button
+              icon={<ReloadOutlined spin={refreshing} />}
+              onClick={() => load(true)}
+              disabled={loading}
+              style={{ width: 32, height: 32, borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center" }}
+            />
+          </Tooltip>
 
           {/* View Toggle */}
           <div className="premium-view-toggle" role="group" aria-label="View mode">
@@ -345,17 +356,6 @@ export default function PortalInvoicesPage() {
               <LayoutGrid size={13} />
             </button>
           </div>
-        </div>
-
-        <Space size={10} className="sc-header-right">
-          <Tooltip title="Refresh invoices">
-            <Button
-              icon={<ReloadOutlined spin={refreshing} />}
-              onClick={() => load(true)}
-              disabled={loading}
-              style={{ width: 32, height: 32, borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center" }}
-            />
-          </Tooltip>
         </Space>
       </div>
 

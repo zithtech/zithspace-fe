@@ -264,7 +264,8 @@ function splitTablesForPages(root: HTMLElement): void {
       card.style.pageBreakBefore = "always";
       (card.style as any).breakBefore = "page";
       card.style.marginTop = "0";          // cancel space-y-4
-      card.style.paddingTop = "16px";      // breathing room above the header row
+      card.style.paddingTop = "40px";      // more space at next page top
+      card.style.paddingBottom = "40px";   // more space before page end
 
       const newWrap = document.createElement("div");
       newWrap.className = wrap.className;
@@ -281,6 +282,11 @@ function splitTablesForPages(root: HTMLElement): void {
 
       fragment.appendChild(card);
     } // end for ci
+
+    // Add some space at the bottom of the first chunk (before the page break)
+    if (anchor instanceof HTMLElement) {
+      anchor.style.paddingBottom = "40px";
+    }
 
 
     // Insert continuation cards after the original section (not inside it).

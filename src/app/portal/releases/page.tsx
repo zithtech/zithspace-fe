@@ -272,6 +272,24 @@ export default function PortalReleasesPage() {
               onClick={() => setIsFilterRowOpen((v) => !v)}
             />
           </Space.Compact>
+        </div>
+
+        <Space size={10} className="sc-header-right">
+          <Tooltip title="Refresh releases">
+            <Button
+              icon={<ReloadOutlined spin={refreshing} />}
+              onClick={() => load(true)}
+              disabled={loading}
+              style={{
+                width: 32,
+                height: 32,
+                borderRadius: 8,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            />
+          </Tooltip>
 
           {/* View Toggle */}
           <div
@@ -296,24 +314,6 @@ export default function PortalReleasesPage() {
               <LayoutGrid size={13} />
             </button>
           </div>
-        </div>
-
-        <Space size={10} className="sc-header-right">
-          <Tooltip title="Refresh releases">
-            <Button
-              icon={<ReloadOutlined spin={refreshing} />}
-              onClick={() => load(true)}
-              disabled={loading}
-              style={{
-                width: 32,
-                height: 32,
-                borderRadius: 8,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-              }}
-            />
-          </Tooltip>
         </Space>
       </div>
 

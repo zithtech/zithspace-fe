@@ -3179,6 +3179,7 @@ const DocumentHubPage = () => {
           entityType="hub"
           currentVisibility={selectedHubForShare.visibility}
           currentShareToken={selectedHubForShare.shareToken}
+          onSuccess={() => refetch()}
         />
       )}
 

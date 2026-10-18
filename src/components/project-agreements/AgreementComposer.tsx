@@ -14,7 +14,7 @@
  */
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import {
   ArrowLeft,
   Download,
@@ -95,6 +95,7 @@ const hasContent = (html: string): boolean =>
 
 export default function AgreementComposer({ agreement, readOnly = false }: Props) {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const isEdit = Boolean(agreement);
 
   const [projects, setProjects] = useState<ProjectOption[]>([]);
@@ -117,24 +118,25 @@ export default function AgreementComposer({ agreement, readOnly = false }: Props
    * only there to reopen the composer on the right row and to fetch contacts.
    */
   const [clientId, setClientId] = useState(agreement?.clientId ?? '');
-  const [clientCompany, setClientCompany] = useState(agreement?.clientCompany ?? '');
+  const [clientCompany, setClientCompany] = useState(agreement?.clientCompany ?? searchParams?.get('partyName') ?? '');
   const [clientContactId, setClientContactId] = useState(agreement?.clientContactId ?? '');
+  const [leadId, setLeadId] = useState(agreement?.leadId ?? searchParams?.get('leadId') ?? '');
   const [templateId, setTemplateId] = useState(agreement?.templateId ?? '');
-  const [title, setTitle] = useState(agreement?.title ?? '');
+  const [title, setTitle] = useState(agreement?.title ?? searchParams?.get('title') ?? '');
   const [summaryTitle, setSummaryTitle] = useState(agreement?.summaryTitle ?? '');
   const [documentNumber, setDocumentNumber] = useState(agreement?.documentNumber ?? '');
   const [status, setStatus] = useState<AgreementStatus>(agreement?.status ?? 'draft');
   const [effectiveDate, setEffectiveDate] = useState(agreement?.effectiveDate ?? '');
   const [expiryDate, setExpiryDate] = useState(agreement?.expiryDate ?? '');
-  const [partyName, setPartyName] = useState(agreement?.partyName ?? '');
-  const [partyEmail, setPartyEmail] = useState(agreement?.partyEmail ?? '');
+  const [partyName, setPartyName] = useState(agreement?.partyName ?? searchParams?.get('partyName') ?? '');
+  const [partyEmail, setPartyEmail] = useState(agreement?.partyEmail ?? searchParams?.get('partyEmail') ?? '');
   const [notes, setNotes] = useState(agreement?.notes ?? '');
-  const [partyPhone, setPartyPhone] = useState(agreement?.partyPhone ?? '');
+  const [partyPhone, setPartyPhone] = useState(agreement?.partyPhone ?? searchParams?.get('partyPhone') ?? '');
   const [documentDate, setDocumentDate] = useState(
     agreement?.documentDate ?? new Date().toISOString().slice(0, 10)
   );
   const [kickoffDate, setKickoffDate] = useState(agreement?.kickoffDate ?? '');
-  const [totalValue, setTotalValue] = useState(agreement?.totalValue ?? '');
+  const [totalValue, setTotalValue] = useState(agreement?.totalValue ?? searchParams?.get('totalValue') ?? '');
   const [valueCurrency, setValueCurrency] = useState(agreement?.valueCurrency ?? 'INR');
   /**
    * Which summary rows print. A stored null means "all of them", which is the
@@ -150,7 +152,7 @@ export default function AgreementComposer({ agreement, readOnly = false }: Props
     agreement?.clientSignatoryPosition ?? ''
   );
   const [clientSignatoryName, setClientSignatoryName] = useState(
-    agreement?.clientSignatoryName ?? agreement?.partyName ?? ''
+    agreement?.clientSignatoryName ?? agreement?.partyName ?? searchParams?.get('partyName') ?? ''
   );
   /**
    * Whether the person has named their own counter-signatory.
@@ -709,6 +711,7 @@ export default function AgreementComposer({ agreement, readOnly = false }: Props
       passwordMode,
       customPassword: customPassword.trim() || undefined,
       notes: notes.trim() || null,
+      leadId: leadId.trim() || null,
       values,
       // ALWAYS. The editor holds the document; the template was only ever a
       // starting point, and re-rendering from it here would discard every edit
@@ -723,7 +726,11 @@ export default function AgreementComposer({ agreement, readOnly = false }: Props
         ? await ProjectAgreementsService.updateAgreement(agreement.id, payload)
         : await ProjectAgreementsService.createAgreement(payload);
       message.success(agreement ? 'Agreement updated' : 'Agreement created');
-      router.push(`/project-agreements/agreements/${saved.id}`);
+      if (leadId && !agreement) {
+        router.push('/leads');
+      } else {
+        router.push(`/project-agreements/agreements/${saved.id}`);
+      }
     } catch (err: any) {
       message.error(err?.message || 'Could not save this agreement');
     } finally {
@@ -917,8 +924,14 @@ export default function AgreementComposer({ agreement, readOnly = false }: Props
             type="button"
             className="pa-btn"
             style={{ width: 32, padding: 0, justifyContent: 'center' }}
-            onClick={() => router.push('/project-agreements/agreements')}
-            aria-label="Back to agreements"
+            onClick={() => {
+              if (leadId) {
+                router.push('/leads');
+              } else {
+                router.push('/project-agreements/agreements');
+              }
+            }}
+            aria-label="Back"
           >
             <ArrowLeft size={15} />
           </button>

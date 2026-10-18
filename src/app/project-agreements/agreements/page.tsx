@@ -36,6 +36,9 @@ import {
   SignalHigh,
   Trash2,
   TriangleAlert,
+  LayoutGrid,
+  List,
+  MoreHorizontal,
 } from 'lucide-react';
 import { message } from '@/providers/AntdGlobalProvider';
 import NoData from '@/components/common/NoData';
@@ -138,6 +141,7 @@ function AgreementsList() {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
   const [pdfBusyId, setPdfBusyId] = useState<string | null>(null);
+  const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
 
   const [isLocked, setIsLocked] = useState(false);
   const [lockScope, setLockScope] = useState<'TENANT' | 'AGREEMENT' | 'TEMPLATE'>('TENANT');
@@ -516,6 +520,14 @@ function AgreementsList() {
             onToggle={() => setShowFilters(!showFilters)}
             activeCount={activeFilterCount + (typeId ? 1 : 0)}
           />
+          <div className="lv-view-toggles">
+            <button type="button" className={viewMode === "grid" ? "is-active" : ""} onClick={() => setViewMode("grid")}>
+              <LayoutGrid size={14} />
+            </button>
+            <button type="button" className={viewMode === "list" ? "is-active" : ""} onClick={() => setViewMode("list")}>
+              <List size={14} />
+            </button>
+          </div>
           <Tooltip title="Refresh">
             <button
               type="button"
@@ -698,33 +710,174 @@ function AgreementsList() {
         </div>
       ) : (
         <>
-          <div className="pp-table-wrap">
-            <Table
-              className="pp-table"
-              rowKey="id"
-              size="small"
-              columns={columns as any}
-              dataSource={pageItems}
-              pagination={false}
-              scroll={{ x: 'max-content' }}
-              rowClassName="pp-row"
-              onRow={(record) => ({
-                onClick: () => setOpenId(record.id),
-              })}
-              locale={{
-                emptyText: (
-                  <NoData
-                    title={narrowed ? 'Nothing in this view' : 'No agreements yet'}
-                    description={
-                      narrowed
-                        ? 'Clear a filter or pick another view to widen the search.'
-                        : 'Raise one from a published template to get started.'
-                    }
-                    accent="#3b82f6"
-                  />
-                ),
-              }}
-            />
+          <div className="pp-table-wrap" style={{ overflowX: 'auto', background: viewMode === 'grid' ? 'transparent' : undefined, border: viewMode === 'grid' ? 'none' : undefined }}>
+            {viewMode === 'list' ? (
+              <Table
+                className="pp-table"
+                rowKey="id"
+                size="small"
+                columns={columns as any}
+                dataSource={pageItems}
+                pagination={false}
+                scroll={{ x: 'max-content' }}
+                rowClassName="pp-row"
+                onRow={(record) => ({
+                  onClick: () => setOpenId(record.id),
+                })}
+                locale={{
+                  emptyText: (
+                    <NoData
+                      title={narrowed ? 'Nothing in this view' : 'No agreements yet'}
+                      description={
+                        narrowed
+                          ? 'Clear a filter or pick another view to widen the search.'
+                          : 'Raise one from a published template to get started.'
+                      }
+                      accent="#3b82f6"
+                    />
+                  ),
+                }}
+              />
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
+                <div style={{ flex: 1, overflowY: 'auto' }}>
+                  {pageItems.length === 0 ? (
+                    <NoData
+                      title={narrowed ? 'Nothing in this view' : 'No agreements yet'}
+                      description={
+                        narrowed
+                          ? 'Clear a filter or pick another view to widen the search.'
+                          : 'Raise one from a published template to get started.'
+                      }
+                      accent="#3b82f6"
+                    />
+                  ) : (
+                    <div className="lv-grid">
+                      {pageItems.map((r) => {
+                        const meta = AGREEMENT_STATUS_META[r.status];
+                        
+                        return (
+                          <div key={r.id} className="lv-list-card" onClick={() => setOpenId(r.id)}>
+                            <div className="lv-list-card-head">
+                              <div className="lv-list-card-avatar" style={{ background: 'rgba(59,130,246,0.10)', color: '#3b82f6' }}>
+                                <FileText size={18} />
+                              </div>
+                              <div className="lv-list-card-body">
+                                <div className="lv-list-card-title">
+                                  <span>{r.title}</span>
+                                  <span style={{ background: meta.bg, color: meta.color, padding: '2px 6px', borderRadius: 6, fontSize: 10 }}>{meta.label}</span>
+                                </div>
+                                <div className="lv-list-card-sub">
+                                  <span className="lv-list-card-val" style={{ fontWeight: 500, color: 'var(--text-slate-400)' }}>
+                                    {r.documentNumber || 'No reference'} {r.templateName ? `· ${r.templateName}` : ''}
+                                  </span>
+                                </div>
+                              </div>
+                              
+                              <div onClick={e => e.stopPropagation()}>
+                                <Dropdown
+                                  overlayClassName="lv-action-pop"
+                                  trigger={['click']}
+                                  placement="bottomRight"
+                                  menu={{
+                                    items: [
+                                      {
+                                        key: 'view',
+                                        label: menuLabel(<Eye size={14} />, 'Open', 'Read the document', '#3b82f6'),
+                                        onClick: ({ domEvent }: any) => {
+                                          domEvent.stopPropagation();
+                                          setOpenId(r.id);
+                                        },
+                                      },
+                                      ...(perms.canUpdateAgreement
+                                        ? [
+                                            {
+                                              key: 'edit',
+                                              label: menuLabel(
+                                                <Pencil size={14} />,
+                                                'Edit',
+                                                'Change the wording or details'
+                                              ),
+                                              onClick: ({ domEvent }: any) => {
+                                                domEvent.stopPropagation();
+                                                router.push(`/project-agreements/agreements/${r.id}?edit=1`);
+                                              },
+                                            },
+                                          ]
+                                        : []),
+                                      {
+                                        key: 'pdf',
+                                        disabled: pdfBusyId === r.id,
+                                        label: menuLabel(
+                                          <Download size={14} />,
+                                          pdfBusyId === r.id ? 'Generating…' : 'Download PDF',
+                                          'Render to A4 and open it',
+                                          '#16a34a'
+                                        ),
+                                        onClick: ({ domEvent }: any) => {
+                                          domEvent.stopPropagation();
+                                          handlePdf(r);
+                                        },
+                                      },
+                                      ...(perms.canDeleteAgreement
+                                        ? [
+                                            { type: 'divider' as const, key: 'd1' },
+                                            {
+                                              key: 'delete',
+                                              danger: true,
+                                              label: menuLabel(
+                                                <Trash2 size={14} />,
+                                                'Delete',
+                                                'Remove the record; PDFs stay',
+                                                '#ef4444'
+                                              ),
+                                              onClick: ({ domEvent }: any) => {
+                                                domEvent.stopPropagation();
+                                                setDeleteTarget(r);
+                                              },
+                                            },
+                                          ]
+                                        : []),
+                                    ],
+                                  }}
+                                >
+                                  <button type="button" className="lv-list-card-actions">
+                                    <MoreHorizontal size={14} />
+                                  </button>
+                                </Dropdown>
+                              </div>
+                            </div>
+                            
+                            <div className="lv-list-card-footer" onClick={e => e.stopPropagation()}>
+                              <div className="lv-list-card-row">
+                                <span className="lv-list-card-item">
+                                  <span className="lv-list-card-key">Type:</span>
+                                  <span className="lv-list-card-val">{r.documentTypeCode || 'Not set'}</span>
+                                </span>
+                                <span className="lv-list-card-div" />
+                                <span className="lv-list-card-item">
+                                  <span className="lv-list-card-key">Counterparty:</span>
+                                  <span className="lv-list-card-val">{r.partyName || '—'}</span>
+                                </span>
+                                {r.projectName && (
+                                  <>
+                                    <span className="lv-list-card-div" />
+                                    <span className="lv-list-card-item">
+                                      <span className="lv-list-card-key">Project:</span>
+                                      <span className="lv-list-card-val">{r.projectName}</span>
+                                    </span>
+                                  </>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
 
           <ListFooter

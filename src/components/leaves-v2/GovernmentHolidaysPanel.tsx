@@ -2,7 +2,7 @@
 
 import NoData from "@/components/common/NoData";
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Button, Table, Tag, Tooltip, message, Select } from 'antd';
+import { Button, Table, Tag, Tooltip, message, Select, Checkbox, Dropdown } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import dayjs from 'dayjs';
 import {
@@ -17,10 +17,10 @@ import {
   CloseCircleOutlined,
   DeleteOutlined,
 } from '@ant-design/icons';
-import { Menu } from 'lucide-react';
+import { Menu, LayoutGrid, List, MoreHorizontal } from 'lucide-react';
 import { usePermission } from '@/hooks/usePermission';
 import ConfirmDialog from '@/components/common/ConfirmDialog';
-import { SearchableDropdown } from '@/components/common/SearchableDropdown';
+import { SearchableDropdown, initialsFor } from '@/components/common/SearchableDropdown';
 import LeaveV2Service, { CatalogHoliday, HolidayType } from '@/services/leaveV2Service';
 import { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
 
@@ -55,6 +55,7 @@ export default function GovernmentHolidaysPanel() {
   const [isFilterRowOpen, setIsFilterRowOpen] = useState(false);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(15);
+  const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
 
   useEffect(() => {
     if (!canReadLeaveHoliday) return;
@@ -206,6 +207,14 @@ export default function GovernmentHolidaysPanel() {
             onToggle={() => setIsFilterRowOpen((prev) => !prev)}
             activeCount={typeFilter !== 'all' ? 1 : 0}
           />
+          <div className="lv-view-toggles">
+            <button type="button" className={viewMode === "grid" ? "is-active" : ""} onClick={() => setViewMode("grid")}>
+              <LayoutGrid size={14} />
+            </button>
+            <button type="button" className={viewMode === "list" ? "is-active" : ""} onClick={() => setViewMode("list")}>
+              <List size={14} />
+            </button>
+          </div>
           <SearchableDropdown placeholder="Country" itemNoun="countries" allowClear={false} value={country} onChange={(v) => setCountry(v as string)} options={countries.map((c) => ({ value: c, label: countryLabel(c) }))} style={{ width: 170, height: 32 }} width={200} />
           <Tooltip title="Refresh"><button type="button" className="lvgh-ghost-btn" onClick={() => load(country)}><ReloadOutlined spin={loading} /></button></Tooltip>
           {canCreateLeaveHoliday && (
@@ -245,24 +254,110 @@ export default function GovernmentHolidaysPanel() {
         </FilterBar>
       )}
 
-      <div className="lv-table-wrap">
+      <div className="lv-table-wrap" style={{ overflowX: 'auto', background: viewMode === 'grid' ? 'transparent' : undefined, border: viewMode === 'grid' ? 'none' : undefined }}>
         <ZukvoLoadingOverlay loading={loading} message="">
-          <Table
-            rowKey="id"
-            size="small"
-            className="lvgh-table"
-            columns={columns}
-            dataSource={paginatedData}
-            pagination={false}
-            scroll={{ x: 'max-content' }}
-            rowSelection={canCreateLeaveHoliday ? {
-              selectedRowKeys: selected,
-              onChange: setSelected,
-              preserveSelectedRowKeys: true,
-              getCheckboxProps: (r) => ({ disabled: r.added }),
-            } : undefined}
-            onRow={() => ({ className: 'lvgh-row' })} locale={{ emptyText: <NoData /> }}
-          />
+          {viewMode === 'list' ? (
+            <Table
+              rowKey="id"
+              size="small"
+              className="lvgh-table"
+              columns={columns}
+              dataSource={paginatedData}
+              pagination={false}
+              scroll={{ x: 'max-content' }}
+              rowSelection={canCreateLeaveHoliday ? {
+                selectedRowKeys: selected,
+                onChange: setSelected,
+                preserveSelectedRowKeys: true,
+                getCheckboxProps: (r) => ({ disabled: r.added }),
+              } : undefined}
+              onRow={() => ({ className: 'lvgh-row' })} locale={{ emptyText: <NoData /> }}
+            />
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
+              <div style={{ flex: 1, overflowY: 'auto' }}>
+                {paginatedData.length === 0 ? (
+                  <NoData />
+                ) : (
+                  <div className="lv-grid">
+                    {paginatedData.map((r) => {
+                      const isSelected = selected.includes(r.id);
+                      const hasActions = canDeleteLeaveHoliday && r.added;
+                      return (
+                        <div key={r.id} className="lv-list-card" onClick={() => {
+                          if (!r.added && canCreateLeaveHoliday) {
+                            setSelected(prev => isSelected ? prev.filter(id => id !== r.id) : [...prev, r.id]);
+                          }
+                        }}>
+                          <div className="lv-list-card-head">
+                            {canCreateLeaveHoliday && !r.added && (
+                              <Checkbox checked={isSelected} disabled={r.added} style={{ marginTop: 6 }} />
+                            )}
+                            <div className="lv-list-card-avatar" style={{ background: TINT.blue, color: PALETTE.blue, marginLeft: canCreateLeaveHoliday && !r.added ? 0 : undefined }}>
+                              {initialsFor(r.name || '')}
+                            </div>
+                            <div className="lv-list-card-body">
+                              <div className="lv-list-card-title">
+                                <span>{r.name}</span>
+                                {r.added ? <span style={{ background: TINT.green, color: PALETTE.green, padding: '2px 6px', borderRadius: 6, fontSize: 10 }}>In your list</span> : <span style={{ background: 'var(--bg-slate-50)', color: 'var(--text-slate-600)', padding: '2px 6px', borderRadius: 6, fontSize: 10, border: '1px solid var(--border-slate-200)' }}>Not added</span>}
+                              </div>
+                              <div className="lv-list-card-sub">
+                                <span className="lv-list-card-val" style={{ fontWeight: 500, color: 'var(--text-slate-400)' }}>
+                                  {r.type} Holiday
+                                </span>
+                              </div>
+                            </div>
+                            {hasActions && (
+                              <Dropdown
+                                menu={{
+                                  className: 'lv-action-pop',
+                                  items: [
+                                    {
+                                      key: 'remove',
+                                      danger: true,
+                                      label: (
+                                        <div className="lv-menu-item">
+                                          <span className="lv-menu-ic" style={{ color: PALETTE.red, background: TINT.red }}><DeleteOutlined style={{ fontSize: 13 }} /></span>
+                                          <span className="lv-menu-text"><span className="lv-menu-title">Remove from list</span></span>
+                                        </div>
+                                      ),
+                                      onClick: (info: any) => {
+                                        info.domEvent.stopPropagation();
+                                        removeAdded(r);
+                                      }
+                                    }
+                                  ]
+                                }}
+                                trigger={['click']}
+                              >
+                                <button type="button" className="lv-list-card-actions" onClick={e => e.stopPropagation()}>
+                                  <MoreHorizontal size={14} />
+                                </button>
+                              </Dropdown>
+                            )}
+                          </div>
+                          
+                          <div className="lv-list-card-footer" onClick={e => e.stopPropagation()}>
+                            <div className="lv-list-card-row">
+                              <span className="lv-list-card-item">
+                                <span className="lv-list-card-key">Date:</span>
+                                <span className="lv-list-card-val">{dayjs(r.fromDate).format('ddd, MMM DD, YYYY')}</span>
+                              </span>
+                              <span className="lv-list-card-div" />
+                              <span className="lv-list-card-item">
+                                <span className="lv-list-card-key">State:</span>
+                                <span className="lv-list-card-val">{r.states ? r.states : 'All'}</span>
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
         </ZukvoLoadingOverlay>
       </div>
 

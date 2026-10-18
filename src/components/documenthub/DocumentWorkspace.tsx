@@ -53,6 +53,7 @@ import { usePermission } from '@/hooks/usePermission'
 import { useActivitySource } from '@/hooks/useActivitySource'
 import { useAuth } from '@/context/AuthContext'
 import ConfirmDialog from '../common/ConfirmDialog'
+import { productFromHostname, manifestFor } from '@/lib/product'
 
 interface TreeItem extends DocumentTreeNode {
     children?: TreeItem[]
@@ -841,7 +842,13 @@ export default function DocumentWorkspace({ documentId }: DocumentWorkspaceProps
             // Query is still loading or returned no content — leave the editor
             // alone rather than blanking it (prevents a "flash of empty editor"
             // and a follow-up autosave that would persist the empty state).
-            editor.isEditable = !previewVersion;
+            try {
+                if ((editor as any)._tiptapEditor?.view) {
+                    editor.isEditable = !previewVersion;
+                }
+            } catch (e) {
+                // Ignore if view is not mounted yet
+            }
             return;
         }
 
@@ -959,7 +966,14 @@ export default function DocumentWorkspace({ documentId }: DocumentWorkspaceProps
         beginProgrammaticUpdate();
 
         // Save current selection to restore after replaceBlocks
-        const selection = editor.getTextCursorPosition();
+        let selection: any = undefined;
+        try {
+            if ((editor as any)._tiptapEditor?.view) {
+                selection = editor.getTextCursorPosition();
+            }
+        } catch (e) {
+            // Ignore if view is not mounted yet
+        }
 
         if (contentToLoad.length > 0) {
             editor.replaceBlocks(editor.document as any, contentToLoad as any);
@@ -982,11 +996,13 @@ export default function DocumentWorkspace({ documentId }: DocumentWorkspaceProps
                     setTimeout(() => {
                         if (!editor) return;
                         try {
-                            if (blockExists) {
-                                editor.setTextCursorPosition(blockId, sel.index);
-                            } else {
-                                // Fallback to the original block object if ID search failed
-                                editor.setTextCursorPosition(sel.block, sel.index);
+                            if ((editor as any)._tiptapEditor?.view) {
+                                if (blockExists) {
+                                    editor.setTextCursorPosition(blockId, sel.index);
+                                } else {
+                                    // Fallback to the original block object if ID search failed
+                                    editor.setTextCursorPosition(sel.block, sel.index);
+                                }
                             }
                         } catch { }
                     }, 10);
@@ -1428,7 +1444,9 @@ export default function DocumentWorkspace({ documentId }: DocumentWorkspaceProps
         if (type === 'file' && docId) {
             messageApi.loading({ content: `Downloading ${title}...`, key: 'download' });
             try {
-                const rawBlob = await DocumentHubService.downloadDocumentPdf(docId);
+                const productKey = productFromHostname(typeof window !== 'undefined' ? window.location.hostname : undefined);
+                const brandName = manifestFor(productKey).name;
+                const rawBlob = await DocumentHubService.downloadDocumentPdf(docId, brandName);
                 const pdfBlob = new Blob([rawBlob], { type: 'application/pdf' });
                 const url = window.URL.createObjectURL(pdfBlob);
                 const a = document.createElement('a');
@@ -2407,9 +2425,10 @@ export default function DocumentWorkspace({ documentId }: DocumentWorkspaceProps
                 entityId={selectedDoc || ''}
                 entityTitle={docData?.title || 'Untitled'}
                 entityType="document"
-                currentVisibility={docData?.visibility || 'private'}
+                currentVisibility={documentHub?.visibility === 'private' ? 'private' : (docData?.visibility || 'private')}
                 currentShareToken={docData?.shareToken || null}
-                currentSharedWith={docData?.sharedWith || []}
+                currentSharedWith={documentHub?.visibility === 'private' ? (documentHub?.sharedWith || []) : (docData?.sharedWith || [])}
+                onSuccess={() => refetchDocument()}
             />
 
             {editor && (

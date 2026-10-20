@@ -225,10 +225,14 @@ class ReleasePlanService {
    * Used for sprint assignment dropdowns in buckets, trash, etc.
    * @param projectId - Project ID to get available sprints for
    */
-  static async getAvailableSprints(projectId: string): Promise<ReleasePlan[]> {
+  static async getAvailableSprints(projectId?: string): Promise<ReleasePlan[]> {
     try {
+      const params: any = {};
+      if (projectId && projectId !== 'all') {
+        params.projectId = projectId;
+      }
       const response = await apiClient.get('/api/release-plans/available', {
-        params: { projectId }
+        params
       });
       return response?.data?.data || [];
     } catch (error) {

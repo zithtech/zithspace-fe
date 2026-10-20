@@ -1,5 +1,5 @@
 import NoData from "@/components/common/NoData";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Popover, Button, Select, Space, Typography, Tooltip, Empty, Divider, Badge } from "antd";
 import {
   RocketOutlined,
@@ -40,6 +40,13 @@ export const MoveToSprintAction: React.FC<MoveToSprintActionProps> = ({
   );
   const [selectedSprintId, setSelectedSprintId] = useState<string | undefined>();
 
+  useEffect(() => {
+    if (open) {
+      setSelectedProjectId(bucket.projectId || undefined);
+      setSelectedSprintId(undefined);
+    }
+  }, [open, bucket.projectId]);
+
   const { data: projects } = useUserProjects();
   const { data: sprints, isLoading: isLoadingSprints } = useAvailableSprints(selectedProjectId);
 
@@ -68,29 +75,32 @@ export const MoveToSprintAction: React.FC<MoveToSprintActionProps> = ({
       <Divider style={{ margin: "10px 0" }} />
 
       <Space direction="vertical" style={{ width: "100%" }} size={12}>
-        {/* Project Selection (Conditional) */}
-        {!bucket.projectId && (
-          <div className="move-sprint-field">
-            <Text className="move-sprint-label">
-              <ProjectOutlined /> TARGET PROJECT
-            </Text>
-            <Select
-              placeholder="Select destination project"
-              className="saas-select-premium"
-              style={{ width: "90%", margin: "0 auto", display: "block" }}
-              value={selectedProjectId}
-              onChange={(val) => {
-                setSelectedProjectId(val);
-                setSelectedSprintId(undefined);
-              }}
-              dropdownMatchSelectWidth={false}
-            >
-              {projects?.map((p: any) => (
-                <Option key={p.value} value={p.value}>{p.label}</Option>
-              ))}
-            </Select>
-          </div>
-        )}
+        {/* Target Project Selection */}
+        <div className="move-sprint-field">
+          <Text className="move-sprint-label">
+            <ProjectOutlined /> TARGET PROJECT
+          </Text>
+          <Select
+            placeholder="Select destination project"
+            className="saas-select-premium"
+            style={{ width: "90%", margin: "0 auto", display: "block" }}
+            value={selectedProjectId}
+            showSearch
+            optionFilterProp="children"
+            filterOption={(input, option) =>
+              String(option?.children || "").toLowerCase().includes(input.toLowerCase())
+            }
+            onChange={(val) => {
+              setSelectedProjectId(val);
+              setSelectedSprintId(undefined);
+            }}
+            dropdownMatchSelectWidth={false}
+          >
+            {projects?.map((p: any) => (
+              <Option key={p.value} value={p.value}>{p.label}</Option>
+            ))}
+          </Select>
+        </div>
 
         {/* Sprint Selection */}
         <div className="move-sprint-field">

@@ -236,6 +236,13 @@ export default function DashboardPanel() {
       ),
     },
     {
+      title: 'Total',
+      dataIndex: 'total',
+      align: 'right',
+      width: 95,
+      render: (v) => <span style={{ fontWeight: 700, color: 'var(--text-slate-900, #0f172a)' }}>{money(v)}</span>,
+    },
+    {
       title: 'Claims',
       dataIndex: 'claims',
       align: 'center',
@@ -251,13 +258,6 @@ export default function DashboardPanel() {
         const pct = totalCatSpend > 0 ? Math.round(((Number(r.total) || 0) / totalCatSpend) * 100) : 0;
         return <span style={{ fontWeight: 650, color: PALETTE_3.blue, fontVariantNumeric: 'tabular-nums' }}>{pct}%</span>;
       },
-    },
-    {
-      title: 'Total',
-      dataIndex: 'total',
-      align: 'right',
-      width: 95,
-      render: (v) => <span style={{ fontWeight: 700, color: 'var(--text-slate-900, #0f172a)' }}>{money(v)}</span>,
     },
   ], [totalCatSpend]);
 
@@ -302,6 +302,13 @@ export default function DashboardPanel() {
       ),
     },
     {
+      title: 'Total',
+      dataIndex: 'total',
+      align: 'right',
+      width: 95,
+      render: (v) => <span style={{ fontWeight: 700, color: 'var(--text-slate-900, #0f172a)' }}>{money(v)}</span>,
+    },
+    {
       title: 'Claims',
       dataIndex: 'claims',
       align: 'center',
@@ -317,13 +324,6 @@ export default function DashboardPanel() {
         const pct = totalUserSpend > 0 ? Math.round(((Number(r.total) || 0) / totalUserSpend) * 100) : 0;
         return <span style={{ fontWeight: 650, color: PALETTE_3.blue, fontVariantNumeric: 'tabular-nums' }}>{pct}%</span>;
       },
-    },
-    {
-      title: 'Total',
-      dataIndex: 'total',
-      align: 'right',
-      width: 95,
-      render: (v) => <span style={{ fontWeight: 700, color: 'var(--text-slate-900, #0f172a)' }}>{money(v)}</span>,
     },
   ], [totalUserSpend]);
 

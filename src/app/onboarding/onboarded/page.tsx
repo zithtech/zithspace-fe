@@ -225,6 +225,7 @@ const Onboarded = () => {
       if (success) {
         message.success("Employee removed successfully");
         setData((prev) => prev.filter((e) => e.id !== id));
+        fetchEmployees(true);
       } else {
         message.error("Failed to delete employee");
       }

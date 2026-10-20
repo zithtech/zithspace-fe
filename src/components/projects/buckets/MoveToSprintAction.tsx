@@ -81,10 +81,11 @@ export const MoveToSprintAction: React.FC<MoveToSprintActionProps> = ({
             <ProjectOutlined /> TARGET PROJECT
           </Text>
           <Select
-            placeholder="Select destination project"
+            placeholder="All projects (optional filter)"
             className="saas-select-premium"
             style={{ width: "90%", margin: "0 auto", display: "block" }}
             value={selectedProjectId}
+            allowClear
             showSearch
             optionFilterProp="children"
             filterOption={(input, option) =>
@@ -113,15 +114,20 @@ export const MoveToSprintAction: React.FC<MoveToSprintActionProps> = ({
             style={{ width: "90%", margin: "0 auto", display: "block" }}
             value={selectedSprintId}
             onChange={setSelectedSprintId}
-            disabled={!selectedProjectId || isLoadingSprints}
+            disabled={isLoadingSprints}
             dropdownMatchSelectWidth={false}
-            notFoundContent={selectedProjectId && !isLoadingSprints ? <NoData description="No active sprints found" /> : null}
+            notFoundContent={!isLoadingSprints ? <NoData description="No active sprints found" /> : null}
           >
             {sprints?.map((s) => (
               <Option key={s.id} value={s.id}>
                 <div className="sprint-option-render">
                   <Badge status={s.status === 'active' ? 'processing' : 'default'} />
                   <span className="sprint-version">{s.version}</span>
+                  {(s.project as any)?.name && (
+                    <span style={{ fontSize: 11, color: '#64748b', marginLeft: 4 }}>
+                      ({(s.project as any).name})
+                    </span>
+                  )}
                   {s.status === 'active' && <span className="active-badge">ACTIVE</span>}
                 </div>
               </Option>

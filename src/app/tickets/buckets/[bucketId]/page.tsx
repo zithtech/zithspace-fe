@@ -138,7 +138,7 @@ export default function BucketDetailPage({ params }: { params: Promise<{ bucketI
     isLoading: ticketsLoading,
     refetch: refetchTickets,
   } = useBucketTickets(bucketId, page, pageSize);
-  const { data: sprints, isLoading: sprintsLoading } = useAvailableSprints(bucket?.project?.id);
+  const { data: sprints, isLoading: sprintsLoading } = useAvailableSprints();
 
   const { mutateAsync: updateTicket, isPending: isMovingToSprint } = useUpdateTicket();
   const { mutateAsync: moveToTrash, isPending: isDeleting } = useMoveToTrash();
@@ -395,12 +395,15 @@ export default function BucketDetailPage({ params }: { params: Promise<{ bucketI
       <SearchableDropdown
         placeholder={sprintsLoading ? 'Loading sprints…' : 'Select a sprint'}
         options={
-          sprints?.map((sp) => ({
-            value: sp.id,
-            label: sp.version,
-            description: sp.status === 'active' ? 'Active' : 'Planning',
-            badge: <Badge status={sp.status === 'active' ? 'processing' : 'default'} />,
-          })) || []
+          sprints?.map((sp) => {
+            const projName = typeof sp.project === 'object' && sp.project ? sp.project.name : undefined;
+            return {
+              value: sp.id,
+              label: projName ? `${sp.version} (${projName})` : sp.version,
+              description: `${sp.status === 'active' ? 'Active' : 'Planning'}${projName ? ` · ${projName}` : ''}`,
+              badge: <Badge status={sp.status === 'active' ? 'processing' : 'default'} />,
+            };
+          }) || []
         }
         value={selectedSprintId}
         onChange={(v) => setSelectedSprintId(v)}

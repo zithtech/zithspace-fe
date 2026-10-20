@@ -308,29 +308,33 @@ export function BucketManageInlinePanel({
         </div>
       </div>
       <Divider style={{ margin: "10px 0" }} />
-      {!bucket?.projectId && (
-        <div className="bmp-sprint-pop-field">
-          <span className="bmp-sprint-pop-label">
-            <ProjectOutlined style={{ fontSize: 9 }} /> Target project
-          </span>
-          <Select
-            placeholder="Select project"
-            size="small"
-            style={{ width: "100%" }}
-            value={sprintTargetProjectId}
-            onChange={(v) => {
-              setSprintTargetProjectId(v);
-              setSelectedSprintId(undefined);
-            }}
-          >
-            {projects?.map((p: any) => (
-              <Select.Option key={p.value} value={p.value}>
-                {p.label}
-              </Select.Option>
-            ))}
-          </Select>
-        </div>
-      )}
+      <div className="bmp-sprint-pop-field">
+        <span className="bmp-sprint-pop-label">
+          <ProjectOutlined style={{ fontSize: 9 }} /> Target project
+        </span>
+        <Select
+          placeholder="All projects (optional filter)"
+          size="small"
+          style={{ width: "100%" }}
+          value={sprintTargetProjectId}
+          allowClear
+          showSearch
+          optionFilterProp="children"
+          filterOption={(input, option) =>
+            String(option?.children || "").toLowerCase().includes(input.toLowerCase())
+          }
+          onChange={(v) => {
+            setSprintTargetProjectId(v);
+            setSelectedSprintId(undefined);
+          }}
+        >
+          {projects?.map((p: any) => (
+            <Select.Option key={p.value} value={p.value}>
+              {p.label}
+            </Select.Option>
+          ))}
+        </Select>
+      </div>
       <div className="bmp-sprint-pop-field">
         <span className="bmp-sprint-pop-label">
           <ThunderboltOutlined style={{ fontSize: 9 }} /> Target sprint
@@ -341,9 +345,9 @@ export function BucketManageInlinePanel({
           style={{ width: "100%" }}
           value={selectedSprintId}
           onChange={setSelectedSprintId}
-          disabled={!sprintTargetProjectId || sprintsLoading}
+          disabled={sprintsLoading}
           notFoundContent={
-            sprintTargetProjectId && !sprintsLoading ? (
+            !sprintsLoading ? (
               <NoData description="No available sprints" />
             ) : null
           }
@@ -353,6 +357,11 @@ export function BucketManageInlinePanel({
               <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
                 <Badge status={s.status === "active" ? "processing" : "default"} />
                 <span style={{ fontSize: 12, fontWeight: 600 }}>{s.version}</span>
+                {(s.project as any)?.name && (
+                  <span style={{ fontSize: 11, color: "var(--text-slate-400)", marginLeft: 2 }}>
+                    ({(s.project as any).name})
+                  </span>
+                )}
                 {s.status === "active" && (
                   <span className="bmp-sprint-pop-badge">ACTIVE</span>
                 )}

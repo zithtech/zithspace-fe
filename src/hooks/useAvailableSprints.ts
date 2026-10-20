@@ -9,12 +9,12 @@ import { usePermission } from '@/hooks/usePermission';
  * @param projectId - The project ID to fetch available sprints for
  * @returns Query result with available sprints data
  */
-export function useAvailableSprints(projectId: string | undefined) {
+export function useAvailableSprints(projectId?: string) {
   const { canReadTicketPlan } = usePermission();
   return useQuery<ReleasePlan[], Error>({
-    queryKey: ['availableSprints', projectId],
-    queryFn: () => ReleasePlanService.getAvailableSprints(projectId!),
-    enabled: !!projectId && canReadTicketPlan,
+    queryKey: ['availableSprints', projectId || 'all'],
+    queryFn: () => ReleasePlanService.getAvailableSprints(projectId),
+    enabled: canReadTicketPlan,
     staleTime: 30 * 1000, // Cache for 30 seconds
     gcTime: 5 * 60 * 1000, // Keep in cache for 5 minutes
   });

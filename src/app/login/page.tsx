@@ -784,10 +784,13 @@ function LoginFormSkeleton() {
 }
 
 export default function LoginPage() {
+  const { user } = useAuth();
+
   return (
     <AuthShell
       heading="Welcome back."
       subtitle="Sign in to pick up where you left off."
+      centered={Boolean(user)}
     >
       <Suspense fallback={<LoginFormSkeleton />}>
         <LoginFormWithParams />

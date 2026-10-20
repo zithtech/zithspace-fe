@@ -133,6 +133,10 @@ const shellStyles = `
   background: #090b10;
 }
 .zk-auth__inner { width: 100%; max-width: 380px; margin: 0 auto; }
+.zk-auth__inner--centered .zk-auth__lockup { justify-content: center; }
+.zk-auth__inner--centered .zk-auth__heading { text-align: center; }
+.zk-auth__inner--centered .zk-auth__sub { text-align: center; }
+.zk-auth__inner--centered .zk-auth__panelfoot { text-align: center; }
 .zk-auth__lockup { display: flex; align-items: center; gap: 12px; margin-bottom: 40px; }
 .zk-auth__heading {
   margin: 0;
@@ -455,13 +459,15 @@ interface AuthShellProps {
   /** Quiet line under the heading, e.g. "Reset your password". */
   subtitle?: React.ReactNode;
   children: React.ReactNode;
+  /** Centers header content (lockup, heading, subtitle) — used during redirect/loader states. */
+  centered?: boolean;
 }
 
 /**
  * The chrome shared by every auth screen: art panel on the left, bare form
  * column on the right, brand lockup and footer.
  */
-export default function AuthShell({ heading = 'Welcome back', subtitle, children }: AuthShellProps) {
+export default function AuthShell({ heading = 'Welcome back', subtitle, children, centered = false }: AuthShellProps) {
   const { brand, manifest, product } = useProduct();
   // Zukvo's mark is drawn dark-on-light, so it has to be inverted for the
   // charcoal canvas. Testiez ships artwork cut for dark surfaces already.
@@ -484,7 +490,7 @@ export default function AuthShell({ heading = 'Welcome back', subtitle, children
         <ArtPanel mark={brand.mark} invertMark={invertMark} legalName={brand.legalName} />
 
         <div className="zk-auth__panel">
-          <div className="zk-auth__inner">
+          <div className={`zk-auth__inner${centered ? ' zk-auth__inner--centered' : ''}`}>
             {/* Where a product has real wordmark artwork it is used instead of
                 type, because a wordmark is a drawing, not a font. */}
             <div className="zk-auth__lockup">

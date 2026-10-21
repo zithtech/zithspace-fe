@@ -6,17 +6,7 @@ import { message } from 'antd';
 import Image from 'next/image';
 import {
   RocketOutlined,
-  ArrowRightOutlined,
   ThunderboltOutlined,
-  LinkOutlined,
-  AppstoreOutlined,
-  FolderOpenOutlined,
-  CheckCircleOutlined,
-  BarChartOutlined,
-  SettingOutlined,
-  SearchOutlined,
-  BellOutlined,
-  PlayCircleOutlined,
   CloseOutlined,
   LeftOutlined,
   RightOutlined,
@@ -29,7 +19,20 @@ import {
   TrophyOutlined,
   TagsOutlined,
   RadarChartOutlined,
+  SettingOutlined,
+  PlayCircleOutlined,
 } from '@ant-design/icons';
+import {
+  Sparkles,
+  ShieldCheck,
+  Layers,
+  ArrowRight,
+  Play,
+  CheckCircle2,
+  TrendingUp,
+  Search,
+  Lock,
+} from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { useProduct } from '@/context/ProductContext';
 import ZukvoLoader from '@/components/common/ZukvoLoader';
@@ -37,16 +40,6 @@ import ZukvoLoader from '@/components/common/ZukvoLoader';
 import ZukvoLogoImg from '@/assets/logo/Zukvologo.png';
 import TestiezMarkImg from '@/assets/logo/testiez/mark.png';
 import TestiezWordmarkImg from '@/assets/logo/testiez/wordmark.png';
-
-interface OnboardCard {
-  id: string;
-  icon: React.ReactNode;
-  label: string;
-  description: string;
-  gradient: string;
-  route: string;
-  isPrimary?: boolean;
-}
 
 interface TourStep {
   id: number;
@@ -61,37 +54,36 @@ interface TourStep {
   faqs?: { q: string; a: string }[];
 }
 
-function FloatingShape({ shape, x, y, size, color, delay, rotate = 0 }: {
-  shape: 'circle' | 'square' | 'triangle' | 'hexagon';
-  x: string; y: string; size: number; color: string; delay: number; rotate?: number;
-}) {
-  const base: React.CSSProperties = {
-    position: 'absolute', left: x, top: y,
-    animation: `shapeFloat 6s ease-in-out ${delay}s infinite alternate`,
-    pointerEvents: 'none',
-  };
-
-  if (shape === 'circle') {
-    return <div style={{ ...base, width: size, height: size, borderRadius: '50%', border: `1.5px solid ${color}`, opacity: 0.12 }} />;
-  }
-  if (shape === 'square') {
-    return <div style={{ ...base, width: size, height: size, border: `1.5px solid ${color}`, borderRadius: 6, opacity: 0.12, transform: `rotate(${rotate}deg)`, animation: `shapeSpin 20s linear ${delay}s infinite` }} />;
-  }
-  if (shape === 'triangle') {
-    return (
-      <div style={{ ...base, width: 0, height: 0, borderLeft: `${size / 2}px solid transparent`, borderRight: `${size / 2}px solid transparent`, borderBottom: `${size}px solid ${color}`, opacity: 0.08 }} />
-    );
-  }
+// ── Jira & Linear Vector Glyphs ──────────────────────────────────────────────
+function JiraLogoSvg({ size = 15 }: { size?: number }) {
   return (
-    <div style={{ ...base, width: size, height: size, background: color, opacity: 0.08, clipPath: 'polygon(25% 0%,75% 0%,100% 50%,75% 100%,25% 100%,0% 50%)' }} />
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <path d="M11.53 2c0 5.25 4.25 9.5 9.5 9.5h.97v-8.53C22 2.43 21.57 2 21.03 2H11.53z" fill="#0052CC" />
+      <path d="M2 11.53c5.25 0 9.5 4.25 9.5 9.5v.97H2.97C2.43 22 2 21.57 2 21.03V11.53z" fill="#2684FF" />
+      <path d="M11.53 11.53c0 5.25 4.25 9.5 9.5 9.5h.97v-8.53c0-.54-.43-.97-.97-.97H11.53z" fill="#0052CC" opacity="0.85" />
+    </svg>
   );
 }
 
+function LinearLogoSvg({ size = 15 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 100 100" fill="none">
+      <path
+        d="M50 0C22.3858 0 0 22.3858 0 50C0 77.6142 22.3858 100 50 100C77.6142 100 100 77.6142 100 50C100 22.3858 77.6142 0 50 0ZM14.1421 50C14.1421 30.1966 30.1966 14.1421 50 14.1421C61.4286 14.1421 71.5541 19.4678 78.1408 27.7656L27.7656 78.1408C19.4678 71.5541 14.1421 61.4286 14.1421 50ZM50 85.8579C38.5714 85.8579 28.4459 80.5322 21.8592 72.2344L72.2344 21.8592C80.5322 28.4459 85.8579 38.5714 85.8579 50C85.8579 69.8034 69.8034 85.8579 50 85.8579Z"
+        fill="#5E6AD2"
+      />
+    </svg>
+  );
+}
 
-
+// ── Ultra-Detailed Interactive Mockup ─────────────────────────────────────────
 function ProductPreviewMockup({ accent }: { accent: string }) {
+  const [activeModule, setActiveModule] = useState('All Test Cases');
+  const [activeFilter, setActiveFilter] = useState<'All' | 'Pass' | 'Fail' | 'Pending'>('All');
+  const [aiGenerating, setAiGenerating] = useState(false);
+
   const modules = [
-    { name: 'All Test Cases', count: 47, active: true },
+    { name: 'All Test Cases', count: 47 },
     { name: 'Auth & Login', count: 12 },
     { name: 'Payment Gateway', count: 9 },
     { name: 'User Dashboard', count: 11 },
@@ -99,17 +91,23 @@ function ProductPreviewMockup({ accent }: { accent: string }) {
     { name: 'Notifications', count: 7 },
   ];
 
-  const testCases = [
-    { id: 'TC-041', title: 'Verify OTP login with valid mobile number', status: 'Pass', assignee: 'Ravi K.', priority: 'High' },
-    { id: 'TC-042', title: 'Validate payment webhook on gateway timeout', status: 'Fail', assignee: 'Priya M.', priority: 'Critical' },
-    { id: 'TC-043', title: 'Check session expiry after 30min idle', status: 'Pending', assignee: 'Ananya S.', priority: 'Medium' },
-    { id: 'TC-044', title: 'Assert cart total with applied coupon code', status: 'Pass', assignee: 'Karan D.', priority: 'High' },
+  const allTestCases = [
+    { id: 'TC-041', title: 'Verify OTP login fallback on SMS gateway timeout', status: 'Pass', assignee: 'RK', module: 'Auth & Login', priority: 'High', runtime: '340ms' },
+    { id: 'TC-042', title: 'Validate payment webhook retry on 504 gateway timeout', status: 'Fail', assignee: 'PM', module: 'Payment Gateway', priority: 'Critical', runtime: '1.8s' },
+    { id: 'TC-043', title: 'Check session token expiry after 30min idle state', status: 'Pending', assignee: 'AS', module: 'Auth & Login', priority: 'Medium', runtime: '120ms' },
+    { id: 'TC-044', title: 'Assert cart subtotal with stacked coupon calculation', status: 'Pass', assignee: 'KD', module: 'Checkout Flow', priority: 'High', runtime: '490ms' },
   ];
 
-  const statusStyle: Record<string, { color: string; bg: string }> = {
-    Pass: { color: '#10b981', bg: 'rgba(16,185,129,0.12)' },
-    Fail: { color: '#ef4444', bg: 'rgba(239,68,68,0.12)' },
-    Pending: { color: '#f59e0b', bg: 'rgba(245,158,11,0.12)' },
+  const filteredCases = allTestCases.filter(tc => {
+    const matchModule = activeModule === 'All Test Cases' || tc.module === activeModule;
+    const matchFilter = activeFilter === 'All' || tc.status === activeFilter;
+    return matchModule && matchFilter;
+  });
+
+  const statusStyle: Record<string, { color: string; bg: string; border: string }> = {
+    Pass: { color: '#059669', bg: 'rgba(16,185,129,0.1)', border: 'rgba(16,185,129,0.25)' },
+    Fail: { color: '#dc2626', bg: 'rgba(239,68,68,0.1)', border: 'rgba(239,68,68,0.25)' },
+    Pending: { color: '#d97706', bg: 'rgba(245,158,11,0.1)', border: 'rgba(245,158,11,0.25)' },
   };
 
   const priorityColor: Record<string, string> = {
@@ -118,112 +116,429 @@ function ProductPreviewMockup({ accent }: { accent: string }) {
     Medium: '#f59e0b',
   };
 
+  const handleGenerateAI = () => {
+    setAiGenerating(true);
+    setTimeout(() => {
+      setAiGenerating(false);
+      message.success('Synthesized 3 boundary test cases with AI Copilot!');
+    }, 700);
+  };
+
   return (
-    <div style={{ width: '100%', maxWidth: 680, position: 'relative', height: 450 }}>
+    <div style={{ width: '100%', maxWidth: 640, position: 'relative', height: 410, margin: '0 auto' }}>
+      {/* Ambient background glows */}
+      <div
+        style={{
+          position: 'absolute',
+          top: -15,
+          left: '10%',
+          width: 260,
+          height: 260,
+          background: `radial-gradient(circle, ${accent}22 0%, transparent 70%)`,
+          filter: 'blur(80px)',
+          pointerEvents: 'none',
+          borderRadius: '50%',
+        }}
+      />
+      <div
+        style={{
+          position: 'absolute',
+          bottom: -15,
+          right: '5%',
+          width: 240,
+          height: 240,
+          background: 'radial-gradient(circle, rgba(139,92,246,0.18) 0%, transparent 70%)',
+          filter: 'blur(75px)',
+          pointerEvents: 'none',
+          borderRadius: '50%',
+        }}
+      />
 
-      {/* Ambient glows */}
-      <div style={{ position: 'absolute', top: -40, left: '8%', width: 260, height: 260, background: accent, filter: 'blur(120px)', opacity: 0.14, borderRadius: '50%', pointerEvents: 'none' }} />
-      <div style={{ position: 'absolute', bottom: 10, right: '6%', width: 180, height: 180, background: '#8b5cf6', filter: 'blur(100px)', opacity: 0.12, borderRadius: '50%', pointerEvents: 'none' }} />
-
-      {/* ── Pass Rate badge — top-right ── */}
-      <div style={{
-        position: 'absolute', top: 0, right: 0, zIndex: 10,
-        display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-        width: 64, height: 64, borderRadius: 18,
-        background: 'linear-gradient(145deg, rgba(255,255,255,0.9), rgba(240,253,244,0.95))',
-        border: '1px solid rgba(16,185,129,0.2)',
-        boxShadow: '0 8px 24px rgba(16,185,129,0.15), inset 0 1px 0 rgba(255,255,255,1)',
-        backdropFilter: 'blur(12px)',
-        gap: 2,
-      }}>
-
-        <span style={{ fontSize: 16, fontWeight: 900, color: '#10b981', letterSpacing: '-0.03em', lineHeight: 1, position: 'relative' }}>94%</span>
-        <span style={{ fontSize: 7.5, color: 'rgba(16,185,129,0.8)', fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase', position: 'relative' }}>Pass Rate</span>
+      {/* ── Top-Right Floating Metric Badge ── */}
+      <div
+        style={{
+          position: 'absolute',
+          top: -10,
+          right: 2,
+          zIndex: 20,
+          background: 'rgba(255, 255, 255, 0.95)',
+          backdropFilter: 'blur(16px)',
+          border: '1px solid rgba(16, 185, 129, 0.28)',
+          borderRadius: 14,
+          padding: '8px 12px',
+          boxShadow: '0 10px 28px -4px rgba(16, 185, 129, 0.18), 0 3px 8px rgba(15, 23, 42, 0.04)',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 10,
+          animation: 'shapeFloat 5s ease-in-out infinite alternate',
+        }}
+      >
+        <div
+          style={{
+            width: 32,
+            height: 32,
+            borderRadius: 10,
+            background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            color: '#fff',
+            boxShadow: '0 3px 10px rgba(16, 185, 129, 0.35)',
+          }}
+        >
+          <TrendingUp size={16} strokeWidth={2.5} />
+        </div>
+        <div style={{ textAlign: 'left' }}>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: 5 }}>
+            <span style={{ fontSize: 15, fontWeight: 900, color: '#0f172a', letterSpacing: '-0.03em' }}>94.2%</span>
+            <span style={{ fontSize: 9.5, fontWeight: 700, color: '#059669' }}>+3.8% ↑</span>
+          </div>
+          <span style={{ fontSize: 9, fontWeight: 600, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+            Pass Rate · Sprint 3
+          </span>
+        </div>
       </div>
 
-      {/* ── Main light card ── */}
-      <div style={{
-        position: 'absolute', top: 28, left: 0, right: 66,
-        background: 'rgba(255,255,255,0.98)',
-        border: '1px solid rgba(0,0,0,0.06)',
-        borderRadius: 20,
-        boxShadow: '0 28px 80px rgba(0,0,0,0.08), 0 4px 16px rgba(0,0,0,0.04), inset 0 1px 0 rgba(255,255,255,1)',
-        overflow: 'hidden',
-        backdropFilter: 'blur(20px)',
-      }}>
-
-        {/* Top accent line */}
-        <div style={{ height: 2, background: `linear-gradient(90deg, ${accent}, #8b5cf6, transparent)` }} />
-
-        {/* ── Header ── */}
-        <div style={{ padding: '13px 18px 11px', borderBottom: '1px solid rgba(0,0,0,0.06)', display: 'flex', alignItems: 'center', gap: 10 }}>
-          <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#10b981', boxShadow: '0 0 8px rgba(16,185,129,0.4)', flexShrink: 0 }} />
-          <span style={{ fontSize: 13, fontWeight: 700, color: '#0f172a', letterSpacing: '-0.01em', flex: 1 }}>E-Commerce QA · Sprint 3</span>
-          <span style={{ padding: '3px 9px', borderRadius: 20, background: `rgba(42,120,214,0.1)`, border: `1px solid rgba(42,120,214,0.2)`, color: accent, fontSize: 10, fontWeight: 700 }}>Agile</span>
-          <span style={{ padding: '3px 9px', borderRadius: 20, background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.2)', color: '#10b981', fontSize: 10, fontWeight: 700 }}>Active</span>
-        </div>
-
-        {/* ── Body ── */}
-        <div style={{ display: 'flex', height: 312 }}>
-
-          {/* Sidebar — Modules */}
-          <div style={{ width: 162, borderRight: '1px solid rgba(0,0,0,0.06)', background: '#f8fafc', padding: '14px 10px', flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
-            <div style={{ fontSize: 9, fontWeight: 700, color: 'rgba(0,0,0,0.4)', letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 10, paddingLeft: 8 }}>Modules</div>
-
-            {modules.map((mod, i) => (
-              <div key={i} style={{
-                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                padding: '6px 10px', borderRadius: 8, cursor: 'pointer',
-                background: mod.active ? `rgba(42,120,214,0.08)` : 'transparent',
-                borderLeft: mod.active ? `3px solid ${accent}` : '3px solid transparent',
-                transition: 'all 0.2s',
-              }}>
-                <span style={{ fontSize: 11, color: mod.active ? '#0f172a' : 'rgba(0,0,0,0.6)', fontWeight: mod.active ? 700 : 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 100 }}>{mod.name}</span>
-                <span style={{ fontSize: 9.5, fontWeight: 700, color: mod.active ? accent : 'rgba(0,0,0,0.4)', background: mod.active ? `rgba(42,120,214,0.15)` : 'rgba(0,0,0,0.04)', borderRadius: 8, padding: '1px 6px', flexShrink: 0 }}>{mod.count}</span>
-              </div>
-            ))}
+      {/* ── Main macOS Studio Window ── */}
+      <div
+        style={{
+          position: 'absolute',
+          top: 18,
+          left: 8,
+          right: 8,
+          background: '#ffffff',
+          borderRadius: 18,
+          border: '1px solid rgba(226, 232, 240, 0.9)',
+          boxShadow: '0 24px 60px -12px rgba(15, 23, 42, 0.12), 0 8px 20px -4px rgba(15, 23, 42, 0.06), 0 0 0 1px rgba(255, 255, 255, 0.8) inset',
+          overflow: 'hidden',
+          display: 'flex',
+          flexDirection: 'column',
+          backdropFilter: 'blur(20px)',
+          textAlign: 'left',
+        }}
+      >
+        {/* macOS Title Bar */}
+        <div
+          style={{
+            height: 36,
+            background: '#f8fafc',
+            borderBottom: '1px solid rgba(226, 232, 240, 0.9)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            padding: '0 14px',
+            userSelect: 'none',
+          }}
+        >
+          {/* Traffic Lights */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <div style={{ width: 10, height: 10, borderRadius: '50%', background: '#ff5f56', border: '1px solid rgba(224,68,62,0.5)' }} />
+            <div style={{ width: 10, height: 10, borderRadius: '50%', background: '#ffbd2e', border: '1px solid rgba(222,161,35,0.5)' }} />
+            <div style={{ width: 10, height: 10, borderRadius: '50%', background: '#27c93f', border: '1px solid rgba(40,179,60,0.5)' }} />
           </div>
 
-          {/* Main panel */}
+          {/* Breadcrumb Path */}
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 5,
+              background: '#ffffff',
+              border: '1px solid rgba(226, 232, 240, 0.8)',
+              borderRadius: 5,
+              padding: '2px 8px',
+              fontSize: 10.5,
+              color: '#475569',
+              fontWeight: 500,
+            }}
+          >
+            <Lock size={9} color="#94a3b8" />
+            <span>zukvo-cloud</span>
+            <span style={{ color: '#cbd5e1' }}>/</span>
+            <span style={{ color: '#0f172a', fontWeight: 600 }}>sprint-3-qa</span>
+          </div>
+
+          {/* Live Sync Status */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+            <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#10b981', boxShadow: '0 0 6px #10b981' }} />
+            <span style={{ fontSize: 10, fontWeight: 600, color: '#059669' }}>Live Sync</span>
+          </div>
+        </div>
+
+        {/* Project Header Bar */}
+        <div
+          style={{
+            padding: '9px 14px',
+            borderBottom: '1px solid rgba(226, 232, 240, 0.8)',
+            background: 'linear-gradient(180deg, #ffffff 0%, #fafafa 100%)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: 10,
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <div
+              style={{
+                width: 24,
+                height: 24,
+                borderRadius: 7,
+                background: `${accent}15`,
+                border: `1px solid ${accent}30`,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: accent,
+                fontSize: 11,
+                fontWeight: 800,
+              }}
+            >
+              QA
+            </div>
+            <div>
+              <div style={{ fontSize: 12, fontWeight: 700, color: '#0f172a', lineHeight: 1.2 }}>
+                E-Commerce QA · Sprint 3
+              </div>
+              <div style={{ fontSize: 10, color: '#64748b' }}>
+                47 Scoped Test Cases
+              </div>
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <span
+              style={{
+                padding: '2px 7px',
+                borderRadius: 5,
+                background: '#f1f5f9',
+                color: '#475569',
+                fontSize: 10,
+                fontWeight: 600,
+              }}
+            >
+              Scrum
+            </span>
+            <span
+              style={{
+                padding: '2px 7px',
+                borderRadius: 5,
+                background: 'rgba(16,185,129,0.1)',
+                border: '1px solid rgba(16,185,129,0.25)',
+                color: '#059669',
+                fontSize: 10,
+                fontWeight: 700,
+              }}
+            >
+              Active
+            </span>
+          </div>
+        </div>
+
+        {/* Window Body: Sidebar + Main Content */}
+        <div style={{ display: 'flex', height: 260 }}>
+          {/* Module Navigation Sidebar */}
+          <div
+            style={{
+              width: 145,
+              borderRight: '1px solid rgba(226, 232, 240, 0.8)',
+              background: '#f8fafc',
+              padding: '10px 6px',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 2,
+              flexShrink: 0,
+            }}
+          >
+            <div
+              style={{
+                fontSize: 9,
+                fontWeight: 700,
+                color: '#94a3b8',
+                letterSpacing: '0.08em',
+                textTransform: 'uppercase',
+                padding: '2px 6px 4px',
+              }}
+            >
+              Modules
+            </div>
+
+            {modules.map((mod, i) => {
+              const isSelected = activeModule === mod.name;
+              return (
+                <div
+                  key={i}
+                  onClick={() => setActiveModule(mod.name)}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    padding: '5px 8px',
+                    borderRadius: 6,
+                    cursor: 'pointer',
+                    background: isSelected ? '#ffffff' : 'transparent',
+                    boxShadow: isSelected ? '0 1px 3px rgba(15, 23, 42, 0.08), 0 0 0 1px rgba(226, 232, 240, 0.8)' : 'none',
+                    transition: 'all 0.15s ease',
+                  }}
+                >
+                  <span
+                    style={{
+                      fontSize: 11,
+                      color: isSelected ? '#0f172a' : '#475569',
+                      fontWeight: isSelected ? 700 : 500,
+                      whiteSpace: 'nowrap',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                    }}
+                  >
+                    {mod.name}
+                  </span>
+                  <span
+                    style={{
+                      fontSize: 9.5,
+                      fontWeight: 700,
+                      color: isSelected ? accent : '#94a3b8',
+                      background: isSelected ? `${accent}15` : 'transparent',
+                      padding: '1px 4px',
+                      borderRadius: 999,
+                    }}
+                  >
+                    {mod.count}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Main Test Case Table Panel */}
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, background: '#ffffff' }}>
+            {/* Toolbar: Search & Filter Tabs */}
+            <div
+              style={{
+                padding: '7px 12px',
+                borderBottom: '1px solid rgba(226, 232, 240, 0.8)',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 8,
+              }}
+            >
+              <div
+                style={{
+                  flex: 1,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  background: '#f1f5f9',
+                  border: '1px solid rgba(226, 232, 240, 0.8)',
+                  borderRadius: 6,
+                  padding: '4px 8px',
+                }}
+              >
+                <Search size={11} color="#64748b" />
+                <span style={{ fontSize: 10.5, color: '#94a3b8', flex: 1 }}>Search test cases...</span>
+                <span
+                  style={{
+                    fontSize: 8.5,
+                    color: '#64748b',
+                    background: '#ffffff',
+                    border: '1px solid #e2e8f0',
+                    borderRadius: 3,
+                    padding: '1px 3px',
+                    fontWeight: 600,
+                  }}
+                >
+                  ⌘K
+                </span>
+              </div>
 
-            {/* Search bar */}
-            <div style={{ padding: '10px 14px', borderBottom: '1px solid rgba(0,0,0,0.04)' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '7px 12px', background: '#f1f5f9', border: '1px solid rgba(0,0,0,0.05)', borderRadius: 9 }}>
-                <SearchOutlined style={{ fontSize: 11, color: 'rgba(0,0,0,0.4)' }} />
-                <span style={{ fontSize: 11.5, color: 'rgba(0,0,0,0.4)' }}>Search test cases...</span>
+              {/* Filter Pills */}
+              <div style={{ display: 'flex', gap: 3 }}>
+                {(['All', 'Pass', 'Fail', 'Pending'] as const).map(f => {
+                  const isSel = activeFilter === f;
+                  return (
+                    <button
+                      key={f}
+                      onClick={() => setActiveFilter(f)}
+                      style={{
+                        background: isSel ? '#0f172a' : '#f8fafc',
+                        color: isSel ? '#ffffff' : '#64748b',
+                        border: isSel ? 'none' : '1px solid rgba(226, 232, 240, 0.8)',
+                        borderRadius: 5,
+                        padding: '3px 6px',
+                        fontSize: 9.5,
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                        transition: 'all 0.15s ease',
+                      }}
+                    >
+                      {f}
+                    </button>
+                  );
+                })}
               </div>
             </div>
 
-            {/* Sub-header */}
-            <div style={{ padding: '8px 14px 7px', borderBottom: '1px solid rgba(0,0,0,0.04)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <span style={{ fontSize: 11, fontWeight: 600, color: 'rgba(0,0,0,0.5)' }}>47 test cases</span>
-              <div style={{ display: 'flex', gap: 10 }}>
-                {[{ l: 'Pass', c: '#10b981' }, { l: 'Fail', c: '#ef4444' }, { l: 'Pending', c: '#f59e0b' }].map((s, i) => (
-                  <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                    <div style={{ width: 5, height: 5, borderRadius: '50%', background: s.c }} />
-                    <span style={{ fontSize: 9.5, color: 'rgba(0,0,0,0.5)', fontWeight: 500 }}>{s.l}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Test case rows */}
-            <div style={{ flex: 1, overflowY: 'hidden' }}>
-              {testCases.map((tc, i) => {
+            {/* Test Case Rows */}
+            <div style={{ flex: 1, overflowY: 'hidden', display: 'flex', flexDirection: 'column' }}>
+              {filteredCases.map((tc, i) => {
                 const st = statusStyle[tc.status];
                 return (
-                  <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 14px', borderBottom: '1px solid rgba(0,0,0,0.03)' }}>
-                    {/* Status indicator */}
-                    <div style={{ width: 7, height: 7, borderRadius: '50%', background: st.color, boxShadow: `0 0 6px ${st.color}66`, flexShrink: 0 }} />
-                    {/* ID */}
-                    <span style={{ fontSize: 10, color: 'rgba(0,0,0,0.4)', fontWeight: 600, minWidth: 42 }}>{tc.id}</span>
-                    {/* Title */}
-                    <span style={{ flex: 1, fontSize: 11.5, color: '#1e293b', fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{tc.title}</span>
+                  <div
+                    key={i}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 8,
+                      padding: '7px 12px',
+                      borderBottom: '1px solid rgba(241, 245, 249, 0.9)',
+                      transition: 'background 0.15s',
+                      cursor: 'default',
+                    }}
+                    onMouseEnter={e => (e.currentTarget.style.background = '#f8fafc')}
+                    onMouseLeave={e => (e.currentTarget.style.background = '#ffffff')}
+                  >
                     {/* Priority dot */}
-                    <span style={{ fontSize: 9, fontWeight: 700, color: priorityColor[tc.priority] || '#000', opacity: 0.8, flexShrink: 0 }}>●</span>
-                    {/* Status badge */}
-                    <div style={{ padding: '2px 8px', borderRadius: 20, background: st.bg, fontSize: 9.5, color: st.color, fontWeight: 700, flexShrink: 0 }}>{tc.status}</div>
+                    <span style={{ fontSize: 7, color: priorityColor[tc.priority] || '#94a3b8' }}>●</span>
+
+                    {/* Test ID */}
+                    <span style={{ fontSize: 10, fontFamily: 'monospace', fontWeight: 700, color: '#64748b', minWidth: 42 }}>
+                      {tc.id}
+                    </span>
+
+                    {/* Test Title */}
+                    <span
+                      style={{
+                        flex: 1,
+                        fontSize: 11,
+                        color: '#0f172a',
+                        fontWeight: 500,
+                        whiteSpace: 'nowrap',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                      }}
+                    >
+                      {tc.title}
+                    </span>
+
+                    {/* Runtime */}
+                    <span style={{ fontSize: 9, color: '#94a3b8', fontFamily: 'monospace', flexShrink: 0 }}>
+                      {tc.runtime}
+                    </span>
+
+                    {/* Status Pill */}
+                    <div
+                      style={{
+                        padding: '2px 7px',
+                        borderRadius: 999,
+                        background: st.bg,
+                        border: `1px solid ${st.border}`,
+                        fontSize: 9.5,
+                        color: st.color,
+                        fontWeight: 700,
+                        flexShrink: 0,
+                      }}
+                    >
+                      {tc.status}
+                    </div>
                   </div>
                 );
               })}
@@ -232,296 +547,266 @@ function ProductPreviewMockup({ accent }: { accent: string }) {
         </div>
       </div>
 
-      {/* ── Floating "Generate Test Cases" AI pill ── */}
-      <div style={{
-        position: 'absolute', bottom: 0, left: 4, zIndex: 10,
-        display: 'inline-flex', alignItems: 'center', gap: 8,
-        background: 'rgba(255,255,255,0.95)',
-        border: '1px solid rgba(139,92,246,0.2)',
-        borderRadius: 14, padding: '10px 18px',
-        boxShadow: '0 8px 32px rgba(139,92,246,0.15), 0 2px 8px rgba(0,0,0,0.05)',
-        backdropFilter: 'blur(16px)',
-        animation: 'shapeFloat 4s ease-in-out infinite alternate',
-      }}>
-        <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-          <path d="M7 0.5L8.3 5.2L13 7L8.3 8.8L7 13.5L5.7 8.8L1 7L5.7 5.2Z" fill="url(#tcAiGrad)" />
-          <defs>
-            <linearGradient id="tcAiGrad" x1="0" y1="0" x2="14" y2="14" gradientUnits="userSpaceOnUse">
-              <stop stopColor="#8b5cf6" />
-              <stop offset="1" stopColor="#6d28d9" />
-            </linearGradient>
-          </defs>
-        </svg>
-        <span style={{ fontSize: 12.5, fontWeight: 700, background: 'linear-gradient(135deg,#8b5cf6,#6d28d9)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>Generate Test Cases</span>
+      {/* ── Floating AI Test Generator Card (Bottom-Left) ── */}
+      <div
+        onClick={handleGenerateAI}
+        style={{
+          position: 'absolute',
+          bottom: -4,
+          left: 4,
+          zIndex: 20,
+          background: 'rgba(255, 255, 255, 0.95)',
+          backdropFilter: 'blur(16px)',
+          border: '1px solid rgba(139, 92, 246, 0.28)',
+          borderRadius: 12,
+          padding: '7px 12px',
+          boxShadow: '0 10px 24px -4px rgba(139, 92, 246, 0.2), 0 3px 8px rgba(15, 23, 42, 0.05)',
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: 8,
+          cursor: 'pointer',
+          transition: 'all 0.25s cubic-bezier(0.34,1.56,0.64,1)',
+          animation: 'shapeFloat 6s ease-in-out infinite alternate',
+          textAlign: 'left',
+        }}
+        onMouseEnter={e => {
+          e.currentTarget.style.transform = 'translateY(-2px) scale(1.02)';
+          e.currentTarget.style.borderColor = 'rgba(139, 92, 246, 0.5)';
+        }}
+        onMouseLeave={e => {
+          e.currentTarget.style.transform = 'translateY(0) scale(1)';
+          e.currentTarget.style.borderColor = 'rgba(139, 92, 246, 0.28)';
+        }}
+      >
+        <div
+          style={{
+            width: 24,
+            height: 24,
+            borderRadius: 7,
+            background: 'linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            color: '#ffffff',
+            boxShadow: '0 2px 6px rgba(139, 92, 246, 0.4)',
+          }}
+        >
+          <Sparkles size={12} />
+        </div>
+        <div>
+          <div style={{ fontSize: 11, fontWeight: 700, color: '#0f172a', lineHeight: 1.2 }}>
+            {aiGenerating ? 'Synthesizing...' : 'Generate with AI Copilot'}
+          </div>
+          <div style={{ fontSize: 9, color: '#64748b' }}>
+            Auto-generate edge scenarios
+          </div>
+        </div>
       </div>
-
     </div>
   );
 }
 
-
-
-// ── Demo Tour Modal ────────────────────────────────────────────────────────────
-
-
-
+// ── Demo Tour Modal Visuals ──────────────────────────────────────────────────
 function TourStepVisual({ stepIndex, accent }: { stepIndex: number; accent: string }) {
   const visuals: React.ReactNode[] = [
     // 0 – Create Project
     <div key={0} style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', gap: 12, padding: 4 }}>
-      <div style={{ fontSize: 12, fontWeight: 700, color: 'rgba(0,0,0,0.4)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>New Project</div>
-      {[{ label: 'Project Name', val: 'E-Commerce QA Sprint 3' }, { label: 'Framework', val: 'Agile / Scrum' }, { label: 'Team Size', val: '4 QA Engineers' }].map((f, i) => (
-        <div key={i} style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-          <div style={{ fontSize: 11, color: 'rgba(0,0,0,0.45)', fontWeight: 600 }}>{f.label}</div>
-          <div style={{ background: 'rgba(0,0,0,0.04)', border: '1px solid rgba(0,0,0,0.06)', borderRadius: 8, padding: '8px 12px', fontSize: 13, color: '#0f172a', fontWeight: 500 }}>{f.val}</div>
+      <div style={{ fontSize: 11, fontWeight: 700, color: '#94a3b8', letterSpacing: '0.08em', textTransform: 'uppercase' }}>New Project Setup</div>
+      {[{ label: 'Project Name', val: 'E-Commerce QA Sprint 3' }, { label: 'Methodology', val: 'Agile / Scrum' }, { label: 'Assigned Leads', val: '4 QA Specialists' }].map((f, i) => (
+        <div key={i} style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+          <div style={{ fontSize: 11, color: '#64748b', fontWeight: 600 }}>{f.label}</div>
+          <div style={{ background: '#ffffff', border: '1px solid rgba(226, 232, 240, 0.8)', borderRadius: 8, padding: '7px 12px', fontSize: 12.5, color: '#0f172a', fontWeight: 500 }}>{f.val}</div>
         </div>
       ))}
-      <div style={{ marginTop: 4, padding: '10px 16px', borderRadius: 10, background: accent, color: '#fff', fontSize: 13, fontWeight: 700, textAlign: 'center', cursor: 'pointer' }}>Create Project →</div>
+      <div style={{ marginTop: 6, padding: '9px 16px', borderRadius: 10, background: accent, color: '#fff', fontSize: 12.5, fontWeight: 700, textAlign: 'center', cursor: 'pointer', boxShadow: `0 4px 12px ${accent}40` }}>
+        Create QA Project →
+      </div>
     </div>,
     // 1 – Settings
     <div key={1} style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', gap: 10, padding: 4 }}>
-      <div style={{ fontSize: 12, fontWeight: 700, color: 'rgba(0,0,0,0.4)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>Project Settings</div>
-      {['Notifications', 'Member Permissions', 'Integrations', 'Workflow Rules'].map((item, i) => (
-        <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'rgba(0,0,0,0.02)', border: '1px solid rgba(0,0,0,0.05)', borderRadius: 8, padding: '10px 14px' }}>
-          <span style={{ fontSize: 13, color: '#0f172a', fontWeight: 500 }}>{item}</span>
-          <div style={{ width: 32, height: 16, borderRadius: 8, background: i % 2 === 0 ? accent : 'rgba(0,0,0,0.1)', position: 'relative' }}>
-            <div style={{ width: 12, height: 12, borderRadius: '50%', background: '#fff', position: 'absolute', top: 2, right: i % 2 === 0 ? 2 : 18 }} />
+      <div style={{ fontSize: 11, fontWeight: 700, color: '#94a3b8', letterSpacing: '0.08em', textTransform: 'uppercase' }}>Workspace Governance</div>
+      {['Notification Webhooks', 'Role-Based Permissions', 'Two-Way Jira Sync', 'Custom Quality Gates'].map((item, i) => (
+        <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#ffffff', border: '1px solid rgba(226, 232, 240, 0.8)', borderRadius: 8, padding: '9px 12px' }}>
+          <span style={{ fontSize: 12.5, color: '#0f172a', fontWeight: 500 }}>{item}</span>
+          <div style={{ width: 30, height: 16, borderRadius: 8, background: i % 2 === 0 ? accent : '#e2e8f0', position: 'relative' }}>
+            <div style={{ width: 12, height: 12, borderRadius: '50%', background: '#fff', position: 'absolute', top: 2, right: i % 2 === 0 ? 2 : 16 }} />
           </div>
         </div>
       ))}
     </div>,
     // 2 – Scope
     <div key={2} style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', gap: 10, padding: 4 }}>
-      <div style={{ fontSize: 12, fontWeight: 700, color: 'rgba(0,0,0,0.4)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>Test Scope</div>
-      <div style={{ display: 'flex', gap: 8 }}>
-        {['Functional', 'Regression', 'API', 'UI'].map((tag, i) => (
-          <div key={i} style={{ padding: '4px 10px', borderRadius: 20, background: i === 0 ? accent : 'rgba(0,0,0,0.05)', border: `1px solid ${i === 0 ? accent : 'rgba(0,0,0,0.08)'}`, fontSize: 11, color: i === 0 ? '#fff' : '#0f172a', fontWeight: 600 }}>{tag}</div>
+      <div style={{ fontSize: 11, fontWeight: 700, color: '#94a3b8', letterSpacing: '0.08em', textTransform: 'uppercase' }}>Sprint Scope Definition</div>
+      <div style={{ display: 'flex', gap: 6 }}>
+        {['Functional', 'Regression', 'API Suite', 'UI Flow'].map((tag, i) => (
+          <div key={i} style={{ padding: '3px 8px', borderRadius: 6, background: i === 0 ? accent : '#f1f5f9', color: i === 0 ? '#fff' : '#475569', fontSize: 10.5, fontWeight: 600 }}>{tag}</div>
         ))}
       </div>
-      {['Login & Auth Module', 'Payment Gateway', 'User Profile', 'Checkout Flow'].map((item, i) => (
-        <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, background: 'rgba(0,0,0,0.02)', borderRadius: 8, padding: '8px 12px' }}>
-          <div style={{ width: 16, height: 16, borderRadius: 4, border: `2px solid ${i < 2 ? accent : 'rgba(0,0,0,0.2)'}`, background: i < 2 ? accent : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, color: '#fff' }}>{i < 2 ? '✓' : ''}</div>
-          <span style={{ fontSize: 13, color: '#0f172a' }}>{item}</span>
+      {['Login & Multi-Factor Auth', 'Checkout & Payment Webhooks', 'User Profile & Settings', 'Real-time Notifications'].map((item, i) => (
+        <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, background: '#ffffff', border: '1px solid rgba(226, 232, 240, 0.8)', borderRadius: 8, padding: '7px 10px' }}>
+          <div style={{ width: 16, height: 16, borderRadius: 4, border: `2px solid ${i < 2 ? accent : '#cbd5e1'}`, background: i < 2 ? accent : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, color: '#fff' }}>{i < 2 ? '✓' : ''}</div>
+          <span style={{ fontSize: 12, color: '#0f172a' }}>{item}</span>
         </div>
       ))}
     </div>,
     // 3 – Test Cases
     <div key={3} style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', gap: 8, padding: 4 }}>
-      <div style={{ fontSize: 12, fontWeight: 700, color: 'rgba(0,0,0,0.4)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>Test Cases</div>
+      <div style={{ fontSize: 11, fontWeight: 700, color: '#94a3b8', letterSpacing: '0.08em', textTransform: 'uppercase' }}>Test Repository</div>
       {[
-        { id: 'TC-001', title: 'Verify user login with valid credentials', status: 'Pass', statusColor: '#10b981' },
-        { id: 'TC-002', title: 'Validate 2FA authentication flow', status: 'Fail', statusColor: '#ef4444' },
-        { id: 'TC-003', title: 'Test password reset via email', status: 'Pass', statusColor: '#10b981' },
-        { id: 'TC-004', title: 'Check session timeout behavior', status: 'Pending', statusColor: '#f59e0b' },
+        { id: 'TC-001', title: 'Verify user login with valid credentials', status: 'Pass', color: '#10b981' },
+        { id: 'TC-002', title: 'Validate 2FA authentication flow error states', status: 'Fail', color: '#ef4444' },
+        { id: 'TC-003', title: 'Test password reset token expiry behavior', status: 'Pass', color: '#10b981' },
+        { id: 'TC-004', title: 'Check checkout session idle expiration', status: 'Pending', color: '#f59e0b' },
       ].map((tc, i) => (
-        <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, background: 'rgba(0,0,0,0.02)', border: '1px solid rgba(0,0,0,0.04)', borderRadius: 8, padding: '8px 12px' }}>
-          <span style={{ fontSize: 10, color: 'rgba(0,0,0,0.4)', fontWeight: 700, minWidth: 48 }}>{tc.id}</span>
-          <span style={{ flex: 1, fontSize: 11.5, color: '#0f172a' }}>{tc.title}</span>
-          <div style={{ padding: '2px 8px', borderRadius: 20, background: `${tc.statusColor}20`, border: `1px solid ${tc.statusColor}50`, fontSize: 10, color: tc.statusColor, fontWeight: 700 }}>{tc.status}</div>
+        <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, background: '#ffffff', border: '1px solid rgba(226, 232, 240, 0.8)', borderRadius: 8, padding: '7px 12px' }}>
+          <span style={{ fontSize: 10, fontFamily: 'monospace', color: '#64748b', fontWeight: 700, minWidth: 46 }}>{tc.id}</span>
+          <span style={{ flex: 1, fontSize: 11.5, color: '#0f172a', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{tc.title}</span>
+          <div style={{ padding: '2px 8px', borderRadius: 999, background: `${tc.color}15`, border: `1px solid ${tc.color}40`, fontSize: 9.5, color: tc.color, fontWeight: 700 }}>{tc.status}</div>
         </div>
       ))}
     </div>,
     // 4 – Test Suites
     <div key={4} style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', gap: 8, padding: 4 }}>
-      <div style={{ fontSize: 11, fontWeight: 700, color: 'rgba(0,0,0,0.35)', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 4 }}>Test Suites</div>
+      <div style={{ fontSize: 11, fontWeight: 700, color: '#94a3b8', letterSpacing: '0.08em', textTransform: 'uppercase' }}>Organized Test Suites</div>
       {[
         { name: 'Authentication Suite', count: 12, passed: 10, color: '#2a78d6' },
-        { name: 'Payment Suite', count: 8, passed: 6, color: '#8b5cf6' },
-        { name: 'UI Regression Suite', count: 24, passed: 22, color: '#10b981' },
+        { name: 'Payment Flow Suite', count: 8, passed: 6, color: '#8b5cf6' },
+        { name: 'Core Regression Pack', count: 24, passed: 22, color: '#10b981' },
       ].map((suite, i) => {
         const pct = Math.round((suite.passed / suite.count) * 100);
         return (
-          <div key={i} style={{ background: '#fff', border: '1px solid rgba(0,0,0,0.06)', borderRadius: 14, padding: '14px 16px', boxShadow: '0 2px 8px rgba(0,0,0,0.05)', position: 'relative', overflow: 'hidden' }}>
-            {/* Left accent bar */}
-            <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: 3, background: suite.color, borderRadius: '14px 0 0 14px' }} />
-            <div style={{ paddingLeft: 8 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-                <span style={{ fontSize: 13, color: '#0f172a', fontWeight: 700 }}>{suite.name}</span>
-                <span style={{ fontSize: 13, fontWeight: 800, color: suite.color }}>{pct}%</span>
-              </div>
-              {/* Progress track */}
-              <div style={{ height: 6, borderRadius: 999, background: `${suite.color}18` }}>
-                <div style={{ height: '100%', width: `${pct}%`, borderRadius: 999, background: `linear-gradient(90deg, ${suite.color}cc, ${suite.color})`, boxShadow: `0 0 8px ${suite.color}55`, transition: 'width 0.5s ease' }} />
-              </div>
-              <div style={{ marginTop: 7, fontSize: 11, color: 'rgba(0,0,0,0.4)', fontWeight: 500 }}>{suite.passed} of {suite.count} cases passed</div>
+          <div key={i} style={{ background: '#ffffff', border: '1px solid rgba(226, 232, 240, 0.8)', borderRadius: 10, padding: '10px 14px', position: 'relative' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+              <span style={{ fontSize: 12, color: '#0f172a', fontWeight: 700 }}>{suite.name}</span>
+              <span style={{ fontSize: 12, fontWeight: 800, color: suite.color }}>{pct}%</span>
             </div>
+            <div style={{ height: 5, borderRadius: 999, background: '#f1f5f9', overflow: 'hidden' }}>
+              <div style={{ height: '100%', width: `${pct}%`, background: suite.color }} />
+            </div>
+            <div style={{ marginTop: 4, fontSize: 10, color: '#64748b' }}>{suite.passed} of {suite.count} passed</div>
           </div>
         );
       })}
     </div>,
     // 5 – Test Runs
-    <div key={5} style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', padding: 4 }}>
-      <div style={{ fontSize: 11, fontWeight: 700, color: 'rgba(0,0,0,0.35)', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 10 }}>Test Runs</div>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-        {[
-          { name: 'Sprint 3 - Full Regression', date: 'Today 09:00', status: 'Running', color: '#3b82f6', passed: 34, total: 47 },
-          { name: 'Auth Module - Smoke Test', date: 'Yesterday', status: 'Passed', color: '#10b981', passed: 12, total: 12 },
-          { name: 'Checkout API - Integration', date: '2 days ago', status: 'Failed', color: '#ef4444', passed: 5, total: 9 },
-        ].map((run, i) => {
-          const pct = Math.round((run.passed / run.total) * 100);
-          return (
-            <div key={i} style={{ background: '#fff', border: '1px solid rgba(0,0,0,0.06)', borderRadius: 14, padding: '12px 14px', boxShadow: '0 2px 8px rgba(0,0,0,0.04)', position: 'relative', overflow: 'hidden' }}>
-              {/* Left status bar */}
-              <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: 3, background: run.color, borderRadius: '14px 0 0 14px' }} />
-              <div style={{ paddingLeft: 8 }}>
-                <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 8 }}>
-                  <div style={{ flex: 1, minWidth: 0, paddingRight: 10 }}>
-                    <div style={{ fontSize: 13, color: '#0f172a', fontWeight: 700, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginBottom: 2 }}>{run.name}</div>
-                    <div style={{ fontSize: 11, color: 'rgba(0,0,0,0.4)' }}>{run.date}</div>
-                  </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 3, flexShrink: 0 }}>
-                    <div style={{ padding: '3px 10px', borderRadius: 20, background: `${run.color}15`, border: `1px solid ${run.color}40`, fontSize: 11, color: run.color, fontWeight: 700 }}>{run.status}</div>
-                    <span style={{ fontSize: 12, color: 'rgba(0,0,0,0.4)', fontWeight: 700 }}>{run.passed}/{run.total}</span>
-                  </div>
-                </div>
-                {/* Mini progress bar */}
-                <div style={{ height: 4, borderRadius: 999, background: `${run.color}15` }}>
-                  <div style={{ height: '100%', width: `${pct}%`, borderRadius: 999, background: `linear-gradient(90deg, ${run.color}bb, ${run.color})`, boxShadow: `0 0 6px ${run.color}44` }} />
-                </div>
-              </div>
-            </div>
-          );
-        })}
-      </div>
+    <div key={5} style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', gap: 8, padding: 4 }}>
+      <div style={{ fontSize: 11, fontWeight: 700, color: '#94a3b8', letterSpacing: '0.08em', textTransform: 'uppercase' }}>Live Execution Runs</div>
+      {[
+        { name: 'Sprint 3 - Full Regression', date: 'Today 09:00', status: 'Running', color: '#3b82f6', passed: 34, total: 47 },
+        { name: 'Auth Module - Smoke Run', date: 'Yesterday', status: 'Passed', color: '#10b981', passed: 12, total: 12 },
+        { name: 'Checkout API - Integration', date: '2 days ago', status: 'Failed', color: '#ef4444', passed: 5, total: 9 },
+      ].map((run, i) => (
+        <div key={i} style={{ background: '#ffffff', border: '1px solid rgba(226, 232, 240, 0.8)', borderRadius: 10, padding: '9px 12px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
+            <span style={{ fontSize: 12, fontWeight: 700, color: '#0f172a' }}>{run.name}</span>
+            <span style={{ fontSize: 9.5, padding: '2px 8px', borderRadius: 999, background: `${run.color}15`, color: run.color, fontWeight: 700 }}>{run.status}</span>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10.5, color: '#64748b' }}>
+            <span>{run.date}</span>
+            <span style={{ fontWeight: 600 }}>{run.passed}/{run.total} executed</span>
+          </div>
+        </div>
+      ))}
     </div>,
     // 6 – Bug List
     <div key={6} style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', gap: 8, padding: 4 }}>
-      <div style={{ fontSize: 12, fontWeight: 700, color: 'rgba(0,0,0,0.4)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>Bug List</div>
+      <div style={{ fontSize: 11, fontWeight: 700, color: '#94a3b8', letterSpacing: '0.08em', textTransform: 'uppercase' }}>Defect Tracker</div>
       {[
-        { id: 'BUG-42', title: 'Payment fails on mobile Safari', severity: 'Critical', color: '#ef4444' },
-        { id: 'BUG-38', title: 'Cart total rounds incorrectly', severity: 'High', color: '#f97316' },
-        { id: 'BUG-31', title: 'Profile image not loading on slow networks', severity: 'Medium', color: '#f59e0b' },
-        { id: 'BUG-27', title: 'Tooltip overflow on small screens', severity: 'Low', color: '#6b7280' },
+        { id: 'BUG-42', title: 'Payment timeout on mobile checkout', severity: 'Critical', color: '#ef4444' },
+        { id: 'BUG-38', title: 'Cart subtotal rounding error with coupon', severity: 'High', color: '#f97316' },
+        { id: 'BUG-31', title: 'Avatar image fails on high latency networks', severity: 'Medium', color: '#f59e0b' },
       ].map((bug, i) => (
-        <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, background: 'rgba(0,0,0,0.02)', border: '1px solid rgba(0,0,0,0.04)', borderRadius: 8, padding: '8px 12px' }}>
-          <span style={{ fontSize: 10, fontWeight: 700, color: 'rgba(0,0,0,0.4)', minWidth: 50 }}>{bug.id}</span>
-          <span style={{ flex: 1, fontSize: 12, color: '#0f172a' }}>{bug.title}</span>
-          <div style={{ padding: '2px 8px', borderRadius: 20, background: `${bug.color}20`, border: `1px solid ${bug.color}50`, fontSize: 10, color: bug.color, fontWeight: 700 }}>{bug.severity}</div>
+        <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, background: '#ffffff', border: '1px solid rgba(226, 232, 240, 0.8)', borderRadius: 8, padding: '8px 12px' }}>
+          <span style={{ fontSize: 10, fontFamily: 'monospace', fontWeight: 700, color: '#64748b', minWidth: 48 }}>{bug.id}</span>
+          <span style={{ flex: 1, fontSize: 11.5, color: '#0f172a' }}>{bug.title}</span>
+          <div style={{ padding: '2px 8px', borderRadius: 999, background: `${bug.color}15`, fontSize: 9.5, color: bug.color, fontWeight: 700 }}>{bug.severity}</div>
         </div>
       ))}
     </div>,
     // 7 – Tickets
     <div key={7} style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', gap: 8, padding: 4 }}>
-      <div style={{ fontSize: 12, fontWeight: 700, color: 'rgba(0,0,0,0.4)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>Tickets</div>
+      <div style={{ fontSize: 11, fontWeight: 700, color: '#94a3b8', letterSpacing: '0.08em', textTransform: 'uppercase' }}>Jira & Linear Tickets</div>
       {[
-        { id: 'TKT-14', title: 'Payment fails on mobile Safari', assignee: 'Dev: Karan D.', due: 'Due Today', status: 'In Progress', color: '#f97316' },
-        { id: 'TKT-11', title: 'Cart total rounding issue on coupon apply', assignee: 'Dev: Ravi K.', due: 'Due Tomorrow', status: 'Open', color: '#3b82f6' },
-        { id: 'TKT-09', title: 'Profile image fails on slow network', assignee: 'Dev: Ananya S.', due: 'Due in 3d', status: 'Resolved', color: '#10b981' },
-      ].map((ticket, i) => (
-        <div key={i} style={{ background: 'rgba(0,0,0,0.02)', border: '1px solid rgba(0,0,0,0.05)', borderRadius: 10, padding: '10px 14px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
-            <span style={{ fontSize: 10, fontWeight: 700, color: 'rgba(0,0,0,0.35)' }}>{ticket.id}</span>
-            <div style={{ padding: '2px 8px', borderRadius: 20, background: `${ticket.color}18`, border: `1px solid ${ticket.color}40`, fontSize: 10, color: ticket.color, fontWeight: 700 }}>{ticket.status}</div>
+        { id: 'TKT-14', title: 'Payment failure on mobile Safari', assignee: 'Dev: Karan D.', due: 'Due Today', status: 'In Progress', color: '#f97316' },
+        { id: 'TKT-11', title: 'Cart total rounding logic update', assignee: 'Dev: Ravi K.', due: 'Due Tomorrow', status: 'Open', color: '#3b82f6' },
+      ].map((t, i) => (
+        <div key={i} style={{ background: '#ffffff', border: '1px solid rgba(226, 232, 240, 0.8)', borderRadius: 8, padding: '9px 12px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 2 }}>
+            <span style={{ fontSize: 10, fontFamily: 'monospace', fontWeight: 700, color: '#64748b' }}>{t.id}</span>
+            <span style={{ fontSize: 9.5, padding: '2px 6px', borderRadius: 4, background: `${t.color}15`, color: t.color, fontWeight: 700 }}>{t.status}</span>
           </div>
-          <div style={{ fontSize: 12, color: '#0f172a', fontWeight: 600, marginBottom: 4 }}>{ticket.title}</div>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <span style={{ fontSize: 10, color: 'rgba(0,0,0,0.45)' }}>{ticket.assignee}</span>
-            <span style={{ fontSize: 10, color: 'rgba(0,0,0,0.4)', fontWeight: 600 }}>{ticket.due}</span>
-          </div>
+          <div style={{ fontSize: 12, color: '#0f172a', fontWeight: 600 }}>{t.title}</div>
+          <div style={{ fontSize: 10, color: '#64748b', marginTop: 4 }}>{t.assignee} · {t.due}</div>
         </div>
       ))}
     </div>,
     // 8 – QA Submissions
-    <div key={8} style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', gap: 10, padding: 4 }}>
-      <div style={{ fontSize: 12, fontWeight: 700, color: 'rgba(0,0,0,0.4)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>QA Submissions</div>
+    <div key={8} style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', gap: 8, padding: 4 }}>
+      <div style={{ fontSize: 11, fontWeight: 700, color: '#94a3b8', letterSpacing: '0.08em', textTransform: 'uppercase' }}>Formal QA Sign-Offs</div>
       {[
         { name: 'Ananya M.', module: 'Auth Module', time: '10m ago', status: 'Submitted', color: '#3b82f6' },
         { name: 'Ravi K.', module: 'Payment Flow', time: '1h ago', status: 'Under Review', color: '#f59e0b' },
         { name: 'Priya S.', module: 'UI Regression', time: '2h ago', status: 'Approved', color: '#10b981' },
       ].map((sub, i) => (
-        <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, background: 'rgba(0,0,0,0.02)', border: '1px solid rgba(0,0,0,0.05)', borderRadius: 10, padding: '10px 14px' }}>
-          <div style={{ width: 30, height: 30, borderRadius: '50%', background: `${accent}22`, border: `1px solid ${accent}50`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, color: accent, flexShrink: 0 }}>
+        <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, background: '#ffffff', border: '1px solid rgba(226, 232, 240, 0.8)', borderRadius: 8, padding: '8px 12px' }}>
+          <div style={{ width: 26, height: 26, borderRadius: '50%', background: `${accent}15`, color: accent, fontSize: 11, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             {sub.name.charAt(0)}
           </div>
           <div style={{ flex: 1 }}>
-            <div style={{ fontSize: 13, color: '#0f172a', fontWeight: 600 }}>{sub.name}</div>
-            <div style={{ fontSize: 11, color: 'rgba(0,0,0,0.4)' }}>{sub.module} · {sub.time}</div>
+            <div style={{ fontSize: 12, color: '#0f172a', fontWeight: 600 }}>{sub.name}</div>
+            <div style={{ fontSize: 10, color: '#64748b' }}>{sub.module} · {sub.time}</div>
           </div>
-          <div style={{ padding: '3px 10px', borderRadius: 20, background: `${sub.color}20`, fontSize: 11, color: sub.color, fontWeight: 700 }}>{sub.status}</div>
+          <div style={{ padding: '2px 8px', borderRadius: 999, background: `${sub.color}15`, fontSize: 10, color: sub.color, fontWeight: 700 }}>{sub.status}</div>
         </div>
       ))}
     </div>,
     // 9 – Approvals
-    <div key={9} style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', gap: 10, padding: 4 }}>
-      <div style={{ fontSize: 12, fontWeight: 700, color: 'rgba(0,0,0,0.4)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>Approvals</div>
-      {[
-        { title: 'Sprint 3 QA Sign-off', requestedBy: 'Ananya M.', status: 'Pending Your Approval' },
-        { title: 'Auth Module Release', requestedBy: 'Ravi K.', status: 'Approved by Lead' },
-      ].map((apr, i) => (
-        <div key={i} style={{ background: 'rgba(0,0,0,0.02)', border: '1px solid rgba(0,0,0,0.05)', borderRadius: 12, padding: '14px 16px' }}>
-          <div style={{ fontSize: 14, color: '#0f172a', fontWeight: 700, marginBottom: 4 }}>{apr.title}</div>
-          <div style={{ fontSize: 12, color: 'rgba(0,0,0,0.45)', marginBottom: 12 }}>Requested by {apr.requestedBy}</div>
-          {i === 0 ? (
-            <div style={{ display: 'flex', gap: 8 }}>
-              <div style={{ flex: 1, padding: '7px', borderRadius: 8, background: '#10b98120', border: '1px solid #10b98150', color: '#10b981', fontSize: 12, fontWeight: 700, textAlign: 'center' }}>✓ Approve</div>
-              <div style={{ flex: 1, padding: '7px', borderRadius: 8, background: '#ef444420', border: '1px solid #ef444450', color: '#ef4444', fontSize: 12, fontWeight: 700, textAlign: 'center' }}>✗ Reject</div>
-            </div>
-          ) : (
-            <div style={{ padding: '4px 12px', borderRadius: 20, background: '#10b98120', border: '1px solid #10b98150', color: '#10b981', fontSize: 11, fontWeight: 700, display: 'inline-block' }}>✓ {apr.status}</div>
-          )}
+    <div key={9} style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', gap: 8, padding: 4 }}>
+      <div style={{ fontSize: 11, fontWeight: 700, color: '#94a3b8', letterSpacing: '0.08em', textTransform: 'uppercase' }}>Quality Gate Approvals</div>
+      <div style={{ background: '#ffffff', border: '1px solid rgba(226, 232, 240, 0.8)', borderRadius: 10, padding: '12px' }}>
+        <div style={{ fontSize: 13, color: '#0f172a', fontWeight: 700 }}>Sprint 3 Final QA Sign-off</div>
+        <div style={{ fontSize: 11, color: '#64748b', marginBottom: 10 }}>Requested by Lead QA · 94.2% Pass Rate</div>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <div style={{ flex: 1, padding: '7px', borderRadius: 6, background: '#10b981', color: '#fff', fontSize: 11, fontWeight: 700, textAlign: 'center', cursor: 'pointer' }}>✓ Approve Release</div>
+          <div style={{ flex: 1, padding: '7px', borderRadius: 6, background: '#f1f5f9', color: '#475569', fontSize: 11, fontWeight: 600, textAlign: 'center', cursor: 'pointer' }}>Request Changes</div>
         </div>
-      ))}
+      </div>
     </div>,
     // 10 – Analytics
-    <div key={10} style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', gap: 10, padding: 4 }}>
-      <div style={{ fontSize: 12, fontWeight: 700, color: 'rgba(0,0,0,0.4)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>Analytics</div>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+    <div key={10} style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', gap: 8, padding: 4 }}>
+      <div style={{ fontSize: 11, fontWeight: 700, color: '#94a3b8', letterSpacing: '0.08em', textTransform: 'uppercase' }}>Performance Metrics</div>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
         {[
           { label: 'Tests Run', value: '1,248', color: accent },
           { label: 'Pass Rate', value: '94.2%', color: '#10b981' },
           { label: 'Bugs Found', value: '87', color: '#ef4444' },
-          { label: 'Avg. Cycle', value: '2.3d', color: '#f59e0b' },
+          { label: 'Avg Cycle', value: '2.3d', color: '#f59e0b' },
         ].map((kpi, i) => (
-          <div key={i} style={{ background: 'rgba(0,0,0,0.02)', border: '1px solid rgba(0,0,0,0.05)', borderRadius: 10, padding: '12px 14px' }}>
-            <div style={{ fontSize: 11, color: 'rgba(0,0,0,0.5)', fontWeight: 600, marginBottom: 6 }}>{kpi.label}</div>
-            <div style={{ fontSize: 22, fontWeight: 800, color: kpi.color, letterSpacing: '-0.02em' }}>{kpi.value}</div>
+          <div key={i} style={{ background: '#ffffff', border: '1px solid rgba(226, 232, 240, 0.8)', borderRadius: 8, padding: '9px 10px' }}>
+            <div style={{ fontSize: 10, color: '#64748b', fontWeight: 600 }}>{kpi.label}</div>
+            <div style={{ fontSize: 18, fontWeight: 800, color: kpi.color }}>{kpi.value}</div>
           </div>
         ))}
-      </div>
-      <div style={{ flex: 1, background: 'rgba(0,0,0,0.02)', border: '1px solid rgba(0,0,0,0.04)', borderRadius: 10, padding: '10px 14px' }}>
-        <div style={{ fontSize: 12, color: 'rgba(0,0,0,0.5)', marginBottom: 10, fontWeight: 600 }}>Weekly Pass Rate</div>
-        <div style={{ display: 'flex', alignItems: 'flex-end', gap: 8, height: 56 }}>
-          {[78, 82, 75, 90, 88, 94, 92].map((h, i) => (
-            <div key={i} style={{ flex: 1, height: `${h}%`, background: i === 5 ? accent : 'rgba(0,0,0,0.1)', borderRadius: '3px 3px 0 0' }} />
-          ))}
-        </div>
       </div>
     </div>,
     // 11 – Coverage Map
-    <div key={11} style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', gap: 10, padding: 4 }}>
-      <div style={{ fontSize: 12, fontWeight: 700, color: 'rgba(0,0,0,0.4)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>Coverage Map</div>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-        {[
-          { module: 'Auth & Login', coverage: 92, cases: 12 },
-          { module: 'Payment Gateway', coverage: 78, cases: 9 },
-          { module: 'User Dashboard', coverage: 55, cases: 11 },
-          { module: 'Checkout Flow', coverage: 88, cases: 8 },
-          { module: 'Notifications', coverage: 30, cases: 7 },
-          { module: 'API Endpoints', coverage: 0, cases: 0 },
-        ].map((m, i) => {
-          const coverageColor = m.coverage >= 80 ? '#10b981' : m.coverage >= 50 ? '#f59e0b' : '#ef4444';
-          return (
-            <div key={i} style={{ background: 'rgba(0,0,0,0.02)', border: `1px solid ${coverageColor}30`, borderRadius: 10, padding: '10px 12px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-                <span style={{ fontSize: 11, color: '#0f172a', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '70%' }}>{m.module}</span>
-                <span style={{ fontSize: 11, fontWeight: 800, color: coverageColor }}>{m.coverage > 0 ? `${m.coverage}%` : '—'}</span>
-              </div>
-              <div style={{ height: 5, borderRadius: 3, background: 'rgba(0,0,0,0.07)' }}>
-                <div style={{ height: '100%', width: `${m.coverage}%`, borderRadius: 3, background: coverageColor, transition: 'width 0.4s ease' }} />
-              </div>
-              <div style={{ marginTop: 5, fontSize: 10, color: 'rgba(0,0,0,0.35)' }}>{m.cases > 0 ? `${m.cases} test cases` : 'No cases yet'}</div>
-            </div>
-          );
-        })}
-      </div>
-      <div style={{ display: 'flex', gap: 12, justifyContent: 'center', marginTop: 2 }}>
-        {[{ label: 'High ≥80%', color: '#10b981' }, { label: 'Medium ≥50%', color: '#f59e0b' }, { label: 'Low <50%', color: '#ef4444' }].map((l, i) => (
-          <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-            <div style={{ width: 8, height: 8, borderRadius: 2, background: l.color }} />
-            <span style={{ fontSize: 10, color: 'rgba(0,0,0,0.5)', fontWeight: 600 }}>{l.label}</span>
+    <div key={11} style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', gap: 8, padding: 4 }}>
+      <div style={{ fontSize: 11, fontWeight: 700, color: '#94a3b8', letterSpacing: '0.08em', textTransform: 'uppercase' }}>Module Coverage Heatmap</div>
+      {[
+        { module: 'Auth & Security', coverage: 92 },
+        { module: 'Payment Gateway', coverage: 78 },
+        { module: 'Cart & Checkout', coverage: 88 },
+      ].map((m, i) => (
+        <div key={i} style={{ background: '#ffffff', border: '1px solid rgba(226, 232, 240, 0.8)', borderRadius: 8, padding: '8px 12px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, fontWeight: 600, color: '#0f172a', marginBottom: 4 }}>
+            <span>{m.module}</span>
+            <span style={{ color: '#10b981', fontWeight: 800 }}>{m.coverage}%</span>
           </div>
-        ))}
-      </div>
+          <div style={{ height: 4, borderRadius: 999, background: '#f1f5f9', overflow: 'hidden' }}>
+            <div style={{ height: '100%', width: `${m.coverage}%`, background: '#10b981' }} />
+          </div>
+        </div>
+      ))}
     </div>,
   ];
   return <>{visuals[stepIndex]}</>;
@@ -533,23 +818,56 @@ function FAQAccordion({ faqs }: { faqs: { q: string; a: string }[] }) {
   if (!faqs || faqs.length === 0) return null;
 
   return (
-    <div style={{ padding: '32px 40px 40px', borderTop: '1px solid rgba(0,0,0,0.06)', background: 'rgba(0,0,0,0.02)' }}>
-      <h3 style={{ fontSize: 20, fontWeight: 700, color: '#0f172a', marginBottom: 24, textAlign: 'center' }}>Frequently Asked Questions</h3>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 12, maxWidth: 680, margin: '0 auto' }}>
+    <div style={{ padding: '24px 32px 32px', borderTop: '1px solid rgba(226, 232, 240, 0.8)', background: '#fafafa' }}>
+      <h3 style={{ fontSize: 16, fontWeight: 700, color: '#0f172a', marginBottom: 16, textAlign: 'center' }}>
+        Frequently Asked Questions
+      </h3>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxWidth: 680, margin: '0 auto' }}>
         {faqs.map((faq, i) => {
           const isOpen = openIndex === i;
           return (
-            <div key={i} style={{ border: '1px solid rgba(0,0,0,0.08)', borderRadius: 12, background: 'rgba(0,0,0,0.02)', overflow: 'hidden', transition: 'all 0.3s' }}>
+            <div
+              key={i}
+              style={{
+                border: '1px solid rgba(226, 232, 240, 0.9)',
+                borderRadius: 10,
+                background: '#ffffff',
+                overflow: 'hidden',
+                transition: 'all 0.2s',
+              }}
+            >
               <button
                 onClick={() => setOpenIndex(isOpen ? null : i)}
-                style={{ width: '100%', padding: '16px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'transparent', border: 'none', color: '#0f172a', fontSize: 15, fontWeight: 600, cursor: 'pointer', textAlign: 'left' }}
+                style={{
+                  width: '100%',
+                  padding: '12px 16px',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  background: 'transparent',
+                  border: 'none',
+                  color: '#0f172a',
+                  fontSize: 13.5,
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  textAlign: 'left',
+                }}
               >
                 {faq.q}
-                <RightOutlined style={{ fontSize: 12, transform: isOpen ? 'rotate(90deg)' : 'rotate(0deg)', transition: 'transform 0.3s', color: 'rgba(0,0,0,0.4)' }} />
+                <RightOutlined
+                  style={{
+                    fontSize: 10,
+                    transform: isOpen ? 'rotate(90deg)' : 'rotate(0deg)',
+                    transition: 'transform 0.25s',
+                    color: '#94a3b8',
+                  }}
+                />
               </button>
-              <div style={{ maxHeight: isOpen ? 200 : 0, opacity: isOpen ? 1 : 0, transition: 'all 0.3s ease-in-out', padding: isOpen ? '0 20px 16px' : '0 20px', color: 'rgba(0,0,0,0.6)', fontSize: 14, lineHeight: 1.6 }}>
-                {faq.a}
-              </div>
+              {isOpen && (
+                <div style={{ padding: '0 16px 14px', color: '#64748b', fontSize: 13, lineHeight: 1.6, textAlign: 'left' }}>
+                  {faq.a}
+                </div>
+              )}
             </div>
           );
         })}
@@ -560,402 +878,754 @@ function FAQAccordion({ faqs }: { faqs: { q: string; a: string }[] }) {
 
 function DemoTourModal({ onClose, accent }: { onClose: () => void; accent: string }) {
   const [step, setStep] = useState(0);
-  const [animDir, setAnimDir] = useState<'left' | 'right'>('right');
-  const [animKey, setAnimKey] = useState(0);
 
   const steps: Omit<TourStep, 'visual'>[] = [
     { id: 1, title: 'Create Project', subtitle: 'Start your QA journey', description: 'Set up a dedicated QA project in seconds. Give it a name, choose your methodology, and invite your team. All your modules, test cases, and runs will live inside this project.', icon: <RocketOutlined />, gradient: 'linear-gradient(135deg, #2a78d6, #1a5cbf)', accentColor: '#2a78d6', highlights: ['Custom project templates', 'Agile & Waterfall support', 'Team role assignment'], faqs: [{ q: 'Can I create multiple projects for different products?', a: 'Yes. Testiez supports unlimited projects, so you can have separate projects for each product, client, or sprint cycle. Each project is fully isolated with its own modules, test cases, runs, and team members — nothing bleeds across projects.' }, { q: 'What happens to my data if I archive a project?', a: 'Archiving a project hides it from your active workspace but preserves all data permanently. Test cases, runs, submissions, and bug reports are all retained and can be accessed or restored at any time from the Archived Projects section in your account settings.' }] },
-    { id: 2, title: 'Settings', subtitle: 'Configure your workspace', description: "Control every aspect of your project — from member roles and notification preferences to workflow rules and third-party integrations. Settings ensure your team works within a consistent, well-governed process.", icon: <SettingOutlined />, gradient: 'linear-gradient(135deg, #8b5cf6, #6d28d9)', accentColor: '#8b5cf6', highlights: ['Granular role & permission control', 'Slack & Jira integrations', 'Custom workflow status rules'], faqs: [{ q: 'What roles are available and what can each role do?', a: 'Testiez has four roles: Owner (full access), Manager (manage members and approve submissions), QA Engineer (create and execute test cases), and Viewer (read-only access for developers or stakeholders). You can change a member role at any time from the Team Settings tab without losing any of their historical data.' }, { q: 'Can I control which events trigger Slack or email notifications?', a: 'Yes. In the Notifications section of Settings, you can precisely choose which events send alerts — such as bug logged, submission created, approval granted, or run completed — and configure whether they go to email, Slack, or both. Each team member can also personalise their own notification preferences independently.' }] },
-    { id: 3, title: 'Scope', subtitle: 'Define what gets tested', description: 'Before writing a single test case, define the boundaries of your testing. The Scope module lets you list the modules and features active in this sprint, ensuring nothing is accidentally missed or over-tested.', icon: <DeploymentUnitOutlined />, gradient: 'linear-gradient(135deg, #0ea5e9, #0284c7)', accentColor: '#0ea5e9', highlights: ['Sprint-specific scope definition', 'Clone scope from previous sprints', 'Coverage gap highlighting'], faqs: [{ q: 'How is Scope different from just organising modules?', a: 'Modules are permanent structural containers for your test cases. Scope is sprint-specific — it defines which of those modules are actively being tested in the current cycle. This means you reuse the same module structure across sprints while scoping only what is relevant each time, keeping your reporting clean and accurate.' }, { q: 'Can I reuse the scope definition from a previous sprint?', a: 'Yes. When creating a new scope, you can clone it directly from any past sprint within the same project. This saves significant setup time and ensures consistency, especially for regression cycles where the scope changes minimally between sprints. Cloned scopes can then be adjusted before finalising.' }] },
-    { id: 4, title: 'Test Cases', subtitle: 'Write, group, and reuse test cases', description: 'Create step-by-step test cases with preconditions, numbered steps, expected results, and priority levels. Group related cases together within a module for better organisation, and tag them for fast filtering during execution.', icon: <FileTextOutlined />, gradient: 'linear-gradient(135deg, #10b981, #059669)', accentColor: '#10b981', highlights: ['Group related cases within modules', 'Step-by-step editor with expected results', 'Priority, severity & tag filtering'], faqs: [{ q: 'How do priority and severity levels work in test cases?', a: 'Each test case can be tagged with a priority (Critical, High, Medium, Low) and a severity level to indicate its impact on the product. Priority controls which cases are executed first during a run, while severity reflects the potential damage if that scenario fails. Together, they help your team focus execution effort on the most important areas and filter results quickly during triage.' }, { q: 'How does grouping test cases work, and when should I use it?', a: 'Within any module, you can create named groups to cluster related test cases together — for example, grouping all login-related cases under an "Authentication" group inside your Auth Module. This is especially useful when a module is large and covers multiple distinct flows. Groups help QA engineers navigate quickly during execution and make reports easier to read by breaking results down at the group level.' }] },
-    { id: 5, title: 'Test Suites', subtitle: 'Group test cases for efficient execution', description: 'Organise related test cases into suites — smoke tests, regression packs, or feature-specific groups. Suites let you launch targeted runs without selecting cases one by one every time.', icon: <ExperimentOutlined />, gradient: 'linear-gradient(135deg, #f59e0b, #d97706)', accentColor: '#f59e0b', highlights: ['Drag-and-drop case organisation', 'Suite-level pass rate tracking', 'Reusable across multiple sprints'], faqs: [{ q: 'Can the same test case appear in more than one suite?', a: 'Yes. Test cases are linked, not duplicated. A single test case can belong to multiple suites — for example, a login test case might be in both a Smoke Test suite and a Full Regression suite. Any update to the test case reflects across all suites it belongs to automatically.' }, { q: 'Can I build a re-test suite from the failures of the last run?', a: 'Yes. After a test run is complete, filter the results by Failed status and add those cases directly to a new or existing suite. This makes it easy to run a targeted re-test after a bug fix without re-executing your full test pack, saving significant time in fast-paced sprint cycles.' }] },
-    { id: 6, title: 'Test Runs', subtitle: 'Execute and track tests in real time', description: 'Launch a test run from any suite. Assign cases to specific engineers, track execution progress live on the dashboard, and record pass/fail results with notes and screenshots directly inside the run.', icon: <PlayCircleOutlined />, gradient: 'linear-gradient(135deg, #3b82f6, #2563eb)', accentColor: '#3b82f6', highlights: ['Live execution progress dashboard', 'Per-case tester assignment', 'Step-level result logging with evidence'], faqs: [{ q: 'Can multiple engineers work on the same test run at the same time?', a: 'Yes. Test runs support concurrent execution. Different cases within the same run can be assigned to different engineers, and each person works their assigned cases independently. The run dashboard updates in real time as results come in, giving the QA lead a live view of overall progress without any page refresh.' }, { q: 'When a step is marked failed, does it automatically create a bug?', a: 'When you mark a step as failed, Testiez immediately prompts you to log a bug from that step. The bug report is pre-populated with the test case ID, the failing step description, and any screenshots you attach — so you never have to manually recreate the context. Every bug is fully traceable back to the exact run and step that triggered it.' }] },
-    { id: 7, title: 'Bug List', subtitle: 'Capture and manage every defect', description: 'Every bug logged during a test run lands in the Bug List automatically. Review severity, assign it to the responsible developer, link it back to the failing test case, and track its resolution status through to closure.', icon: <BugOutlined />, gradient: 'linear-gradient(135deg, #ef4444, #dc2626)', accentColor: '#ef4444', highlights: ['Auto-populated from failed test steps', 'Severity, priority & assignee fields', 'Two-way Jira & Linear sync'], faqs: [{ q: 'Does the Bug List sync automatically with Jira or Linear?', a: 'Yes. If you connect your Jira or Linear workspace in Settings, every bug created in Testiez is automatically pushed as an issue to your connected board. Status updates made in Jira (e.g. marking it as Done) also sync back to Testiez, keeping both tools in perfect alignment without any manual effort from your team.' }, { q: 'Can I filter the Bug List by severity, module, or sprint?', a: 'Yes. The Bug List supports multi-dimensional filtering. You can filter by severity (Critical, High, Medium, Low), the module the bug belongs to, the tester who logged it, the sprint it was found in, and the current resolution status. You can also save frequently used filter combinations as named views for one-click access in future sprints.' }] },
-    { id: 8, title: 'Tickets', subtitle: 'Turn bugs into trackable action items', description: 'A ticket is the actionable follow-up to a bug. Convert a logged bug into a ticket, assign it to a developer, set a due date, and track its progress from Open to In Progress to Resolved — all within Testiez.', icon: <TagsOutlined />, gradient: 'linear-gradient(135deg, #f97316, #ea580c)', accentColor: '#f97316', highlights: ['One-click bug-to-ticket conversion', 'Assignee, due date & priority fields', 'Full resolution lifecycle tracking'], faqs: [{ q: 'What is the difference between a Bug and a Ticket in Testiez?', a: 'A Bug is the defect record — it captures what went wrong, which test case it came from, its severity, and the evidence. A Ticket is the fix task derived from that bug, carrying ownership (assigned developer), a due date, and resolution status. Separating them lets QA track what was found while developers track what needs to be fixed, without conflating the two workflows.' }, { q: 'Can a ticket be traced all the way back to the original test case that failed?', a: 'Yes. Every ticket maintains a full traceability chain: Test Case → Test Run → Bug → Ticket. You can click through from any ticket to see exactly which test step triggered the bug, which run it occurred in, and when it was first detected. This chain is especially useful for release sign-off audits and root cause analysis after production incidents.' }] },
-    { id: 9, title: 'QA Submissions', subtitle: 'Formally submit your QA sign-off', description: 'When testing is complete, engineers submit a structured QA report summarising what was tested, the pass/fail breakdown, outstanding bugs, and any risk notes. This formal submission triggers the approval workflow for the team lead.', icon: <AuditOutlined />, gradient: 'linear-gradient(135deg, #ec4899, #be185d)', accentColor: '#ec4899', highlights: ['Structured test summary with pass rate', 'Open bug count & risk notes', 'Evidence uploads & screenshot attachments'], faqs: [{ q: 'Can a QA engineer submit even if some test cases are still pending?', a: 'Yes, but the submission will clearly flag the number of untested cases as a risk item. The team lead will see an explicit warning in the approval view highlighting what was not tested and why. This is intentional — it allows teams to make an informed release decision with known gaps rather than blocking the entire process when minor cases remain pending.' }, { q: 'Can I include screenshots or recorded evidence in the submission?', a: 'Yes. Submissions have a dedicated Evidence section where engineers can attach screenshots, screen recordings, exported test reports, or any supporting documentation. This is particularly important for compliance-driven teams that require documented proof of testing before each production release or client delivery.' }] },
-    { id: 10, title: 'Approvals', subtitle: 'Enforce quality gates before every release', description: 'Team leads review each QA submission and either approve it, request changes, or reject it with written feedback. An approval is the final quality gate — every decision is permanently logged with a timestamp and reason.', icon: <SafetyCertificateOutlined />, gradient: 'linear-gradient(135deg, #10b981, #047857)', accentColor: '#10b981', highlights: ['Approve, reject or request changes', 'Written feedback on rejections', 'Timestamped approval audit trail'], faqs: [{ q: 'Can a team lead request changes without outright rejecting a submission?', a: 'Yes. Instead of rejecting, the team lead can click Request Changes and leave specific written feedback — such as asking for additional test cases to be executed or for a critical bug to be resolved first. The QA engineer is notified, can act on the feedback, and re-submit. This loop continues until the lead is satisfied and grants final approval.' }, { q: 'Is there a permanent audit log of all approval decisions?', a: 'Yes. Every approval action — approved, changes requested, or rejected — is permanently recorded with the reviewer name, their written reason, and an exact timestamp. This audit trail is visible to all project members and can be exported as part of a compliance package, release documentation, or client handover report.' }] },
-    { id: 11, title: 'Analytics', subtitle: 'Measure and improve QA performance', description: 'Track pass rates, defect trends, test cycle times, and individual tester performance across sprints. Analytics gives QA leads the data they need to identify bottlenecks, improve processes, and report to stakeholders confidently.', icon: <TrophyOutlined />, gradient: 'linear-gradient(135deg, #f59e0b, #b45309)', accentColor: '#f59e0b', highlights: ['Sprint-over-sprint pass rate trends', 'Bug severity & module breakdown', 'Tester performance & velocity metrics'], faqs: [{ q: 'Can I compare analytics across multiple sprints or filter by module?', a: 'Yes. The Analytics dashboard lets you select a custom date range or compare specific sprint cycles side by side. You can filter by project, module, or individual tester to drill into exactly where defect rates are climbing or where test velocity is slower than expected. This makes it straightforward to spot recurring problem areas before they escalate.' }, { q: 'Can I export reports to share with stakeholders who do not use Testiez?', a: 'Yes. Any analytics view — pass rate charts, bug trend graphs, tester performance tables — can be exported as a PDF report or CSV dataset. You can also schedule automated weekly or monthly email digests to go directly to stakeholders outside your QA team, ensuring leadership always has full visibility without needing to log in to the platform.' }] },
-    { id: 12, title: 'Coverage Map', subtitle: 'See every gap in your test coverage', description: 'The Coverage Map gives you a visual overview of which modules and features are well-tested, partially covered, or have no test cases at all. Use it to prioritise where to write tests next and eliminate blind spots before release.', icon: <RadarChartOutlined />, gradient: 'linear-gradient(135deg, #6366f1, #4f46e5)', accentColor: '#6366f1', highlights: ['Module-level coverage heatmap', 'Zero-coverage area detection', 'Coverage trend across sprint cycles'], faqs: [{ q: 'How does Testiez calculate coverage for each module?', a: 'Coverage is calculated based on the ratio of test cases assigned to a module against the total features defined in the project scope. If a module has 10 features scoped but only 4 test cases written against it, its coverage shows as 40%. As you write more test cases and link them to scope items, the coverage percentage updates in real time automatically.' }, { q: 'How should I use the Coverage Map before a major release?', a: 'The Coverage Map is most powerful pre-release. Filter it to your current sprint scope and immediately see which modules are under-tested or entirely uncovered. Most teams review this during sprint planning to decide where new test cases are needed, and again during release sign-off to confirm no critical module was left uncovered before shipping to production.' }] },
+    { id: 2, title: 'Settings', subtitle: 'Configure your workspace', description: "Control every aspect of your project — from member roles and notification preferences to workflow rules and third-party integrations. Settings ensure your team works within a consistent, well-governed process.", icon: <SettingOutlined />, gradient: 'linear-gradient(135deg, #8b5cf6, #6d28d9)', accentColor: '#8b5cf6', highlights: ['Granular role & permission control', 'Slack & Jira integrations', 'Custom workflow status rules'], faqs: [{ q: 'What roles are available and what can each role do?', a: 'Testiez has four roles: Owner (full access), Manager (manage members and approve submissions), QA Engineer (create and execute test cases), and Viewer (read-only access for developers or stakeholders). You can change a member role at any time from the Team Settings tab without losing any of their historical data.' }, { q: 'Can I control which events trigger Slack or email notifications?', a: 'Yes. In the Notifications section of Settings, you can precisely choose which events send alerts — such as bug logged, submission created, approval granted, or run completed — and configure whether they go to email, Slack, or both.' }] },
+    { id: 3, title: 'Scope', subtitle: 'Define what gets tested', description: 'Before writing a single test case, define the boundaries of your testing. The Scope module lets you list the modules and features active in this sprint, ensuring nothing is accidentally missed or over-tested.', icon: <DeploymentUnitOutlined />, gradient: 'linear-gradient(135deg, #0ea5e9, #0284c7)', accentColor: '#0ea5e9', highlights: ['Sprint-specific scope definition', 'Clone scope from previous sprints', 'Coverage gap highlighting'], faqs: [{ q: 'How is Scope different from just organising modules?', a: 'Modules are permanent structural containers for your test cases. Scope is sprint-specific — it defines which of those modules are actively being tested in the current cycle.' }] },
+    { id: 4, title: 'Test Cases', subtitle: 'Write, group, and reuse test cases', description: 'Create step-by-step test cases with preconditions, numbered steps, expected results, and priority levels. Group related cases together within a module for better organisation, and tag them for fast filtering during execution.', icon: <FileTextOutlined />, gradient: 'linear-gradient(135deg, #10b981, #059669)', accentColor: '#10b981', highlights: ['Group related cases within modules', 'Step-by-step editor with expected results', 'Priority, severity & tag filtering'] },
+    { id: 5, title: 'Test Suites', subtitle: 'Group test cases for efficient execution', description: 'Organise related test cases into suites — smoke tests, regression packs, or feature-specific groups. Suites let you launch targeted runs without selecting cases one by one every time.', icon: <ExperimentOutlined />, gradient: 'linear-gradient(135deg, #f59e0b, #d97706)', accentColor: '#f59e0b', highlights: ['Drag-and-drop case organisation', 'Suite-level pass rate tracking', 'Reusable across multiple sprints'] },
+    { id: 6, title: 'Test Runs', subtitle: 'Execute and track tests in real time', description: 'Launch a test run from any suite. Assign cases to specific engineers, track execution progress live on the dashboard, and record pass/fail results with notes and screenshots directly inside the run.', icon: <PlayCircleOutlined />, gradient: 'linear-gradient(135deg, #3b82f6, #2563eb)', accentColor: '#3b82f6', highlights: ['Live execution progress dashboard', 'Per-case tester assignment', 'Step-level result logging with evidence'] },
+    { id: 7, title: 'Bug List', subtitle: 'Capture and manage every defect', description: 'Every bug logged during a test run lands in the Bug List automatically. Review severity, assign it to the responsible developer, link it back to the failing test case, and track its resolution status through to closure.', icon: <BugOutlined />, gradient: 'linear-gradient(135deg, #ef4444, #dc2626)', accentColor: '#ef4444', highlights: ['Auto-populated from failed test steps', 'Severity, priority & assignee fields', 'Two-way Jira & Linear sync'] },
+    { id: 8, title: 'Tickets', subtitle: 'Turn bugs into trackable action items', description: 'A ticket is the actionable follow-up to a bug. Convert a logged bug into a ticket, assign it to a developer, set a due date, and track its progress from Open to In Progress to Resolved — all within Testiez.', icon: <TagsOutlined />, gradient: 'linear-gradient(135deg, #f97316, #ea580c)', accentColor: '#f97316', highlights: ['One-click bug-to-ticket conversion', 'Assignee, due date & priority fields', 'Full resolution lifecycle tracking'] },
+    { id: 9, title: 'QA Submissions', subtitle: 'Formally submit your QA sign-off', description: 'When testing is complete, engineers submit a structured QA report summarising what was tested, the pass/fail breakdown, outstanding bugs, and any risk notes. This formal submission triggers the approval workflow for the team lead.', icon: <AuditOutlined />, gradient: 'linear-gradient(135deg, #ec4899, #be185d)', accentColor: '#ec4899', highlights: ['Structured test summary with pass rate', 'Open bug count & risk notes', 'Evidence uploads & screenshot attachments'] },
+    { id: 10, title: 'Approvals', subtitle: 'Enforce quality gates before every release', description: 'Team leads review each QA submission and either approve it, request changes, or reject it with written feedback. An approval is the final quality gate — every decision is permanently logged with a timestamp and reason.', icon: <SafetyCertificateOutlined />, gradient: 'linear-gradient(135deg, #10b981, #047857)', accentColor: '#10b981', highlights: ['Approve, reject or request changes', 'Written feedback on rejections', 'Timestamped approval audit trail'] },
+    { id: 11, title: 'Analytics', subtitle: 'Measure and improve QA performance', description: 'Track pass rates, defect trends, test cycle times, and individual tester performance across sprints. Analytics gives QA leads the data they need to identify bottlenecks, improve processes, and report to stakeholders confidently.', icon: <TrophyOutlined />, gradient: 'linear-gradient(135deg, #f59e0b, #b45309)', accentColor: '#f59e0b', highlights: ['Sprint-over-sprint pass rate trends', 'Bug severity & module breakdown', 'Tester performance & velocity metrics'] },
+    { id: 12, title: 'Coverage Map', subtitle: 'See every gap in your test coverage', description: 'The Coverage Map gives you a visual overview of which modules and features are well-tested, partially covered, or have no test cases at all. Use it to prioritise where to write tests next and eliminate blind spots before release.', icon: <RadarChartOutlined />, gradient: 'linear-gradient(135deg, #6366f1, #4f46e5)', accentColor: '#6366f1', highlights: ['Module-level coverage heatmap', 'Zero-coverage area detection', 'Coverage trend across sprint cycles'] },
   ];
 
   const currentStep = steps[step];
   const total = steps.length;
 
-  const goNext = () => {
-    if (step < total - 1) {
-      setAnimDir('right');
-      setAnimKey(k => k + 1);
-      setStep(s => s + 1);
-    }
-  };
-
-  const goBack = () => {
-    if (step > 0) {
-      setAnimDir('left');
-      setAnimKey(k => k + 1);
-      setStep(s => s - 1);
-    }
-  };
-
   return (
     <>
-      <style>{`
-        @keyframes tourSlideInRight { from { opacity:0; transform:translateX(40px); } to { opacity:1; transform:translateX(0); } }
-        @keyframes tourSlideInLeft  { from { opacity:0; transform:translateX(-40px); } to { opacity:1; transform:translateX(0); } }
-        @keyframes tourFadeIn { from { opacity:0; } to { opacity:1; } }
-        @keyframes tourBackdropIn { from { opacity:0; } to { opacity:1; } }
-        .tour-step-anim-right { animation: tourSlideInRight 0.42s cubic-bezier(0.34,1.2,0.64,1) both; }
-        .tour-step-anim-left  { animation: tourSlideInLeft  0.42s cubic-bezier(0.34,1.2,0.64,1) both; }
-        .tour-modal-in        { animation: tourFadeIn 0.3s ease both; }
-        .tour-nav-btn:hover   { opacity:0.85; transform:scale(1.04); }
-        .hide-scrollbar::-webkit-scrollbar { display: none; }
-        .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-      `}</style>
-
-      {/* Backdrop */}
       <div
         onClick={onClose}
         style={{
-          position: 'fixed', inset: 0, zIndex: 1000,
-          background: 'rgba(15,23,42,0.6)',
-          backdropFilter: 'blur(10px)',
-          animation: 'tourBackdropIn 0.3s ease both',
+          position: 'fixed',
+          inset: 0,
+          zIndex: 1000,
+          background: 'rgba(15, 23, 42, 0.45)',
+          backdropFilter: 'blur(12px)',
         }}
       />
-
-      {/* Modal */}
       <div
-        className="tour-modal-in"
         style={{
-          position: 'fixed', inset: 0, zIndex: 1001,
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          position: 'fixed',
+          inset: 0,
+          zIndex: 1001,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
           padding: '20px',
           pointerEvents: 'none',
         }}
       >
         <div
-          className="hide-scrollbar"
           style={{
-            width: '100%', maxWidth: 980, minHeight: 560, maxHeight: '90vh',
+            width: '100%',
+            maxWidth: 960,
+            maxHeight: '90vh',
             background: '#ffffff',
-            border: '1px solid rgba(0,0,0,0.06)',
-            borderRadius: 28,
-            boxShadow: `0 32px 80px rgba(0,0,0,0.15), 0 0 0 1px rgba(0,0,0,0.04)`,
-            overflowY: 'auto', overflowX: 'hidden',
-            display: 'flex', flexDirection: 'column',
+            border: '1px solid rgba(226, 232, 240, 0.9)',
+            borderRadius: 24,
+            boxShadow: '0 32px 80px rgba(15, 23, 42, 0.2)',
+            overflowY: 'auto',
+            display: 'flex',
+            flexDirection: 'column',
             pointerEvents: 'all',
             position: 'relative',
-          }}>
-          {/* Top gradient accent bar */}
-          <div style={{ height: 3, background: currentStep.gradient, transition: 'background 0.4s ease' }} />
-
-          {/* Glow behind icon */}
-          <div style={{ position: 'absolute', top: -60, left: '50%', transform: 'translateX(-50%)', width: 400, height: 400, background: currentStep.accentColor, filter: 'blur(140px)', opacity: 0.08, borderRadius: '50%', pointerEvents: 'none', transition: 'background 0.5s ease' }} />
-
+          }}
+        >
           {/* Header */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '20px 28px 0', position: 'relative', zIndex: 2 }}>
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              padding: '18px 24px',
+              borderBottom: '1px solid rgba(226, 232, 240, 0.8)',
+            }}
+          >
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <ThunderboltOutlined style={{ color: currentStep.accentColor, fontSize: 16, transition: 'color 0.4s' }} />
-              <span style={{ fontSize: 13, fontWeight: 700, color: 'rgba(0,0,0,0.5)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>Testiez Feature Tour</span>
+              <ThunderboltOutlined style={{ color: currentStep.accentColor, fontSize: 16 }} />
+              <span style={{ fontSize: 13, fontWeight: 700, color: '#475569', letterSpacing: '0.04em', textTransform: 'uppercase' }}>
+                Feature Walkthrough · Step {currentStep.id} of {total}
+              </span>
             </div>
             <button
               onClick={onClose}
-              style={{ background: 'rgba(0,0,0,0.04)', border: '1px solid rgba(0,0,0,0.06)', borderRadius: '50%', width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'rgba(0,0,0,0.5)', cursor: 'pointer', fontSize: 14, transition: 'all 0.2s ease' }}
+              style={{
+                background: '#f1f5f9',
+                border: 'none',
+                borderRadius: '50%',
+                width: 30,
+                height: 30,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: '#64748b',
+                cursor: 'pointer',
+              }}
             >
-              <CloseOutlined />
+              <CloseOutlined style={{ fontSize: 12 }} />
             </button>
           </div>
 
-          {/* Step indicator dots */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '16px 28px 0', position: 'relative', zIndex: 2 }}>
+          {/* Stepper Dots */}
+          <div style={{ display: 'flex', gap: 5, padding: '12px 24px 0', justifyContent: 'center' }}>
             {steps.map((_, i) => (
               <button
                 key={i}
-                onClick={() => { setAnimDir(i > step ? 'right' : 'left'); setAnimKey(k => k + 1); setStep(i); }}
+                onClick={() => setStep(i)}
                 style={{
-                  width: i === step ? 24 : 7, height: 7, borderRadius: 4, border: 'none',
-                  background: i === step ? currentStep.accentColor : 'rgba(0,0,0,0.1)',
-                  cursor: 'pointer', transition: 'all 0.35s cubic-bezier(0.34,1.56,0.64,1)',
+                  width: i === step ? 22 : 6,
+                  height: 6,
+                  borderRadius: 3,
+                  border: 'none',
+                  background: i === step ? currentStep.accentColor : '#e2e8f0',
+                  cursor: 'pointer',
+                  transition: 'all 0.25s',
                   padding: 0,
                 }}
               />
             ))}
           </div>
 
-          {/* Body */}
-          <div className={`tour-step-anim-${animDir}`} key={animKey} style={{ flex: 1, display: 'flex', gap: 0, padding: '28px 28px 24px', position: 'relative', zIndex: 2 }}>
-
-            {/* Left: text */}
-            <div style={{ flex: '0 0 46%', display: 'flex', flexDirection: 'column', paddingRight: 32, borderRight: '1px solid rgba(0,0,0,0.06)' }}>
-              {/* Step number + icon */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
-                <div style={{ width: 48, height: 48, borderRadius: 14, background: currentStep.gradient, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, color: '#fff', boxShadow: `0 8px 24px ${currentStep.accentColor}55`, transition: 'background 0.4s ease' }}>
+          {/* Modal Body */}
+          <div style={{ display: 'flex', padding: '24px 32px', gap: 32 }}>
+            {/* Left Column */}
+            <div style={{ flex: '0 0 46%', display: 'flex', flexDirection: 'column', textAlign: 'left' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 14 }}>
+                <div
+                  style={{
+                    width: 44,
+                    height: 44,
+                    borderRadius: 12,
+                    background: currentStep.gradient,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: 20,
+                    color: '#fff',
+                    boxShadow: `0 8px 20px ${currentStep.accentColor}35`,
+                  }}
+                >
                   {currentStep.icon}
                 </div>
                 <div>
-                  <div style={{ fontSize: 11, color: 'rgba(0,0,0,0.4)', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 1 }}>Step {currentStep.id} of {total}</div>
-                  <div style={{ fontSize: 12, color: currentStep.accentColor, fontWeight: 600, transition: 'color 0.4s' }}>{currentStep.subtitle}</div>
+                  <div style={{ fontSize: 11, color: '#94a3b8', fontWeight: 700, textTransform: 'uppercase' }}>
+                    {currentStep.subtitle}
+                  </div>
+                  <h2 style={{ margin: 0, fontSize: 24, fontWeight: 800, color: '#0f172a' }}>
+                    {currentStep.title}
+                  </h2>
                 </div>
               </div>
 
-              <h2 style={{ margin: '0 0 12px', fontSize: 28, fontWeight: 800, color: '#0f172a', letterSpacing: '-0.02em', lineHeight: 1.2 }}>
-                {currentStep.title}
-              </h2>
-              <p style={{ margin: '0 0 24px', fontSize: 14.5, color: 'rgba(0,0,0,0.6)', lineHeight: 1.7 }}>
+              <p style={{ fontSize: 14, color: '#475569', lineHeight: 1.6, margin: '0 0 20px' }}>
                 {currentStep.description}
               </p>
 
-              {/* Highlights */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 'auto' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 'auto' }}>
                 {currentStep.highlights.map((h, i) => (
-                  <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                    <div style={{ width: 20, height: 20, borderRadius: 6, background: `${currentStep.accentColor}22`, border: `1px solid ${currentStep.accentColor}44`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, color: currentStep.accentColor, flexShrink: 0, transition: 'all 0.4s' }}>✓</div>
-                    <span style={{ fontSize: 13, color: 'rgba(0,0,0,0.7)', fontWeight: 500 }}>{h}</span>
+                  <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <CheckCircle2 size={15} color={currentStep.accentColor} />
+                    <span style={{ fontSize: 13, color: '#334155', fontWeight: 500 }}>{h}</span>
                   </div>
                 ))}
               </div>
 
               {/* Navigation buttons */}
-              <div style={{ display: 'flex', gap: 10, marginTop: 28, paddingTop: 20, borderTop: '1px solid rgba(0,0,0,0.05)' }}>
+              <div style={{ display: 'flex', gap: 8, marginTop: 24, paddingTop: 16, borderTop: '1px solid rgba(226, 232, 240, 0.8)' }}>
                 {step > 0 && (
                   <button
-                    className="tour-nav-btn"
-                    onClick={goBack}
-                    style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '10px 18px', borderRadius: 12, background: 'rgba(0,0,0,0.04)', border: '1px solid rgba(0,0,0,0.06)', color: 'rgba(0,0,0,0.7)', fontSize: 13, fontWeight: 600, cursor: 'pointer', transition: 'all 0.2s ease' }}
+                    onClick={() => setStep(s => s - 1)}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 6,
+                      padding: '9px 16px',
+                      borderRadius: 10,
+                      background: '#f8fafc',
+                      border: '1px solid #e2e8f0',
+                      color: '#475569',
+                      fontSize: 13,
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                    }}
                   >
-                    <LeftOutlined style={{ fontSize: 11 }} /> Back
+                    <LeftOutlined style={{ fontSize: 10 }} /> Back
                   </button>
                 )}
                 <button
-                  className="tour-nav-btn"
-                  onClick={step < total - 1 ? goNext : onClose}
+                  onClick={step < total - 1 ? () => setStep(s => s + 1) : onClose}
                   style={{
-                    flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-                    padding: '11px 24px', borderRadius: 12, border: 'none',
+                    flex: 1,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: 6,
+                    padding: '9px 20px',
+                    borderRadius: 10,
+                    border: 'none',
                     background: currentStep.gradient,
-                    color: '#fff', fontSize: 14, fontWeight: 700, cursor: 'pointer',
-                    boxShadow: `0 8px 20px ${currentStep.accentColor}44`,
-                    transition: 'all 0.3s cubic-bezier(0.34,1.2,0.64,1)',
+                    color: '#fff',
+                    fontSize: 13.5,
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    boxShadow: `0 6px 16px ${currentStep.accentColor}40`,
                   }}
                 >
-                  {step < total - 1 ? (<>Next <RightOutlined style={{ fontSize: 12 }} /></>) : (<><TrophyOutlined style={{ fontSize: 14 }} /> Finish Tour</>)}
+                  {step < total - 1 ? (
+                    <>Next Step <RightOutlined style={{ fontSize: 11 }} /></>
+                  ) : (
+                    'Finish Walkthrough'
+                  )}
                 </button>
               </div>
             </div>
 
-            {/* Right: visual preview */}
-            <div style={{ flex: 1, paddingLeft: 32, display: 'flex', flexDirection: 'column' }}>
-              <div style={{ flex: 1, background: '#f8fafc', border: '1px solid rgba(0,0,0,0.05)', borderRadius: 16, padding: '20px 18px', overflow: 'hidden', position: 'relative' }}>
-                {/* Subtle glow inside preview */}
-                <div style={{ position: 'absolute', bottom: -30, right: -30, width: 200, height: 200, background: currentStep.accentColor, filter: 'blur(80px)', opacity: 0.1, borderRadius: '50%', pointerEvents: 'none', transition: 'background 0.5s' }} />
-                <TourStepVisual stepIndex={step} accent={currentStep.accentColor} />
-              </div>
+            {/* Right Column Preview */}
+            <div style={{ flex: 1, background: '#f8fafc', border: '1px solid rgba(226, 232, 240, 0.8)', borderRadius: 16, padding: '16px', overflow: 'hidden' }}>
+              <TourStepVisual stepIndex={step} accent={currentStep.accentColor} />
             </div>
           </div>
 
           {/* FAQ Section */}
-          <div className={`tour-step-anim-${animDir}`} key={`faq-${animKey}`}>
-            <FAQAccordion faqs={currentStep.faqs || []} />
-          </div>
+          <FAQAccordion faqs={currentStep.faqs || []} />
         </div>
       </div>
     </>
   );
 }
 
-// ── Main Page ──────────────────────────────────────────────────────────────────
-
+// ── Main Page Component ────────────────────────────────────────────────────────
 export default function WelcomePage() {
   const router = useRouter();
   const { user, isLoading } = useAuth();
   const { manifest, brand, isTestiez } = useProduct();
-  const [actionLoading, setActionLoading] = useState(false);
   const [tourOpen, setTourOpen] = useState(false);
 
-  if (isLoading) return <ZukvoLoader message="Loading..." />;
+  if (isLoading) return <ZukvoLoader message="Initializing QA Workspace..." />;
   if (user && user.onboardingCompleted) {
     router.replace(manifest.homeRoute);
     return null;
   }
 
-  const handleAction = async (destination: string) => {
+  const handleAction = (destination: string) => {
     try {
-      setActionLoading(true);
       router.push(destination);
     } catch (err: any) {
-      message.error(err?.message || 'Something went wrong.');
-      setActionLoading(false);
+      message.error(err?.message || 'Navigation error');
     }
   };
 
-  const accent = brand.accent;
+  const accent = brand.accent || '#2a78d6';
   const isTestiezBrand = isTestiez;
-
-  const bgGrad = isTestiezBrand
-    ? 'linear-gradient(135deg,#ffffff 0%,#f1f5f9 50%,#e2e8f0 100%)'
-    : 'linear-gradient(135deg,#ffffff 0%,#f8fafc 50%,#f1f5f9 100%)';
-  const primaryGrad = isTestiezBrand
-    ? 'linear-gradient(135deg,#2a78d6 0%,#1a5cbf 100%)'
-    : 'linear-gradient(135deg,#6366f1 0%,#8b5cf6 100%)';
-  const secondaryGrad = isTestiezBrand
-    ? 'linear-gradient(135deg,#0ea5e9 0%,#2a78d6 100%)'
-    : 'linear-gradient(135deg,#3b82f6 0%,#6366f1 100%)';
-  const accentAlt = isTestiezBrand ? '#0ea5e9' : '#8b5cf6';
-
-
 
   return (
     <>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
-        @keyframes shapeFloat { 0% { transform: translateY(0); } 100% { transform: translateY(-22px); } }
-        @keyframes shapeSpin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-        @keyframes fadeSlideUp { from { opacity:0; transform:translateY(30px); } to { opacity:1; transform:translateY(0); } }
-        @keyframes fadeIn { from { opacity:0; } to { opacity:1; } }
-        @keyframes gridPan { 0% { background-position:0 0; } 100% { background-position:40px 40px; } }
-        @keyframes scanline { 0% { top:-30%; } 100% { top:120%; } }
-        .welcome-wrap { font-family:'Inter',system-ui,sans-serif; -webkit-font-smoothing:antialiased; }
+        @keyframes shapeFloat { 0% { transform: translateY(0); } 100% { transform: translateY(-12px); } }
+        @keyframes pulseDot { 0% { opacity: 0.6; transform: scale(0.95); } 50% { opacity: 1; transform: scale(1.1); } 100% { opacity: 0.6; transform: scale(0.95); } }
+        .welcome-hero-card:hover {
+          transform: translateY(-2px);
+          border-color: rgba(59, 130, 246, 0.4) !important;
+          box-shadow: 0 10px 24px -4px rgba(15, 23, 42, 0.08) !important;
+        }
       `}</style>
 
-      <div className="welcome-wrap" style={{ minHeight: '100vh', width: '100vw', background: bgGrad, position: 'relative', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      {/* Main Studio Canvas */}
+      <div
+        style={{
+          minHeight: '100vh',
+          width: '100vw',
+          background: '#f8fafc',
+          position: 'relative',
+          overflowY: 'auto',
+          overflowX: 'hidden',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '24px 32px 32px',
+          fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
+        }}
+      >
+        {/* Subtle Engineering Dot Grid */}
+        <div
+          style={{
+            position: 'absolute',
+            inset: 0,
+            backgroundImage: 'radial-gradient(circle, rgba(148, 163, 184, 0.18) 1.2px, transparent 1.2px)',
+            backgroundSize: '24px 24px',
+            pointerEvents: 'none',
+            maskImage: 'radial-gradient(ellipse 80% 80% at 50% 50%, #000 70%, transparent 100%)',
+            WebkitMaskImage: 'radial-gradient(ellipse 80% 80% at 50% 50%, #000 70%, transparent 100%)',
+          }}
+        />
 
+        {/* Ambient Atmospheric Lighting */}
+        <div
+          style={{
+            position: 'absolute',
+            top: '-5%',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            width: '65vw',
+            height: '35vw',
+            background: `radial-gradient(circle, ${accent}12 0%, transparent 70%)`,
+            filter: 'blur(130px)',
+            pointerEvents: 'none',
+            borderRadius: '50%',
+          }}
+        />
+        <div
+          style={{
+            position: 'absolute',
+            bottom: '0%',
+            right: '10%',
+            width: '45vw',
+            height: '30vw',
+            background: 'radial-gradient(circle, rgba(139, 92, 246, 0.12) 0%, transparent 70%)',
+            filter: 'blur(110px)',
+            pointerEvents: 'none',
+            borderRadius: '50%',
+          }}
+        />
 
-
-
-        {/* Main layout */}
-        <div style={{ position: 'relative', zIndex: 2, width: '100%', maxWidth: 1280, padding: '40px 0 40px 20px', display: 'flex', alignItems: 'center', gap: 60, animation: 'fadeIn 0.7s ease both', flexWrap: 'wrap' }}>
-
-          {/* ══ LEFT ══════════════════════════════════════ */}
-          <div style={{ flex: '1 1 400px', display: 'flex', flexDirection: 'column', alignItems: 'flex-start', animation: 'fadeSlideUp 0.65s ease both', position: 'relative', zIndex: 3 }}>
-
-            {/* Logo */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 28 }}>
+        {/* ══ TOP CENTERED SECTION: WELCOME TO ZUKVO ═══════════════════ */}
+        <div
+          style={{
+            position: 'relative',
+            zIndex: 2,
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            textAlign: 'center',
+            maxWidth: 720,
+            margin: '0 auto 20px',
+            width: '100%',
+          }}
+        >
+          {/* Brand Row: Logo Tile + Wordmark + Enterprise Badge */}
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 12,
+              marginBottom: 12,
+            }}
+          >
+            {/* Ceramic Glass Logo Tile */}
+            <div
+              style={{
+                width: 46,
+                height: 46,
+                borderRadius: 14,
+                background: '#ffffff',
+                border: '1px solid rgba(226, 232, 240, 0.9)',
+                boxShadow: '0 6px 16px -2px rgba(15, 23, 42, 0.08), 0 2px 4px -1px rgba(15, 23, 42, 0.04)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                padding: 6,
+              }}
+            >
               <Image
                 src={isTestiezBrand ? TestiezMarkImg : ZukvoLogoImg}
                 alt={isTestiezBrand ? 'Testiez' : 'Zukvo'}
-                width={72} height={72}
-                style={{ objectFit: 'contain', filter: 'drop-shadow(0 2px 12px rgba(0,0,0,0.7)) contrast(1.05) saturate(1.1)' }}
+                width={32}
+                height={32}
+                style={{ objectFit: 'contain' }}
+                priority
               />
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               {isTestiezBrand ? (
                 <Image
                   src={TestiezWordmarkImg}
                   alt="Testiez"
-                  height={42} width={160}
-                  style={{ objectFit: 'contain', filter: 'drop-shadow(0 1px 6px rgba(0,0,0,0.6)) contrast(1.08) saturate(1.1)' }}
+                  height={24}
+                  width={100}
+                  style={{ objectFit: 'contain' }}
+                  priority
                 />
               ) : (
-                <div style={{ fontSize: 28, fontWeight: 900, letterSpacing: '-0.04em', background: primaryGrad, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>Zukvo</div>
+                <span style={{ fontSize: 22, fontWeight: 900, color: '#0f172a', letterSpacing: '-0.035em' }}>
+                  Zukvo
+                </span>
               )}
+              <span
+                style={{
+                  fontSize: 9.5,
+                  fontWeight: 700,
+                  letterSpacing: '0.06em',
+                  textTransform: 'uppercase',
+                  padding: '2px 7px',
+                  borderRadius: 999,
+                  background: 'rgba(59, 130, 246, 0.1)',
+                  color: '#2563eb',
+                  border: '1px solid rgba(59, 130, 246, 0.2)',
+                }}
+              >
+                Enterprise
+              </span>
             </div>
+          </div>
 
-            <h1 style={{ fontSize: 'clamp(32px,4vw,52px)', fontWeight: 800, color: '#0f172a', textAlign: 'left', letterSpacing: '-0.03em', lineHeight: 1.15, margin: '0 0 16px' }}>
-              Welcome to {isTestiezBrand ? 'Testiez' : 'Zukvo'}
-            </h1>
+          {/* Overline Status Badge */}
+          <div
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 7,
+              padding: '4px 12px',
+              borderRadius: 999,
+              background: 'rgba(255, 255, 255, 0.85)',
+              border: '1px solid rgba(226, 232, 240, 0.9)',
+              boxShadow: '0 2px 6px rgba(15, 23, 42, 0.03)',
+              backdropFilter: 'blur(8px)',
+              marginBottom: 10,
+            }}
+          >
+            <div
+              style={{
+                width: 6,
+                height: 6,
+                borderRadius: '50%',
+                background: '#10b981',
+                boxShadow: '0 0 6px #10b981',
+                animation: 'pulseDot 2s infinite ease-in-out',
+              }}
+            />
+            <span style={{ fontSize: 11, fontWeight: 600, color: '#0f172a' }}>
+              Next-Gen QA Workspace
+            </span>
+            <span style={{ fontSize: 10, color: '#cbd5e1' }}>·</span>
+            <span style={{ fontSize: 10.5, fontWeight: 700, color: accent }}>
+              v2.4 Ready
+            </span>
+          </div>
 
-            <p style={{ fontSize: 16, color: 'rgba(0,0,0,0.6)', textAlign: 'left', lineHeight: 1.6, margin: '0 0 24px', maxWidth: 460 }}>
-              {isTestiezBrand
-                ? 'Your QA workspace is ready. Set up a project from scratch, or bring your existing work over from Jira or Linear to get started instantly.'
-                : 'Your workspace is ready. Create a project from scratch or import your existing work.'}
-            </p>
+          {/* Headline: Welcome to Zukvo */}
+          <h1
+            style={{
+              fontSize: 'clamp(28px, 3.4vw, 40px)',
+              fontWeight: 800,
+              color: '#0f172a',
+              letterSpacing: '-0.035em',
+              lineHeight: 1.15,
+              margin: '0 0 8px',
+            }}
+          >
+            Welcome to{' '}
+            <span
+              style={{
+                background: isTestiezBrand
+                  ? 'linear-gradient(135deg, #2a78d6 0%, #0284c7 100%)'
+                  : 'linear-gradient(135deg, #0f172a 0%, #2563eb 100%)',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+              }}
+            >
+              {isTestiezBrand ? 'Testiez' : 'Zukvo'}
+            </span>
+          </h1>
 
-            {/* 3 Detailed Points */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 14, marginBottom: 36 }}>
+          {/* Subtitle */}
+          <p
+            style={{
+              fontSize: 14.5,
+              color: '#475569',
+              lineHeight: 1.5,
+              margin: '0 auto',
+              maxWidth: 580,
+              fontWeight: 400,
+            }}
+          >
+            {isTestiezBrand
+              ? 'Your collaborative QA workspace is ready. Author test suites, track live execution analytics, and synchronize seamlessly with Jira & Linear.'
+              : 'Your collaborative QA workspace is ready. Author test suites, track live execution analytics, and synchronize seamlessly with your team.'}
+          </p>
+        </div>
+
+        {/* ══ DOWN SECTION: SET LEFT AND RIGHT ═════════════════════════ */}
+        <div
+          style={{
+            position: 'relative',
+            zIndex: 2,
+            width: '100%',
+            maxWidth: 1240,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 36,
+            flexWrap: 'wrap',
+            margin: '0 auto',
+          }}
+        >
+          {/* ── LEFT COLUMN: 3 Cards + CTAs + Connectors ── */}
+          <div
+            style={{
+              flex: '1 1 420px',
+              maxWidth: 480,
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 14,
+            }}
+          >
+            {/* 3 Detailed Micro-Cards */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 9 }}>
               {[
-                'Centralized Test Management with AI-powered test generation',
-                'End-to-end Bug Tracking and real-time execution analytics',
-                'Seamless integration with your Jira & Linear workspaces'
-              ].map((point, i) => (
-                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, animation: 'fadeSlideUp 0.65s ease both', animationDelay: `${0.1 + i * 0.1}s` }}>
-                  <div style={{ width: 22, height: 22, borderRadius: '50%', background: 'rgba(82,184,138,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                    <CheckCircleOutlined style={{ color: '#52b88a', fontSize: 12 }} />
+                {
+                  icon: <Sparkles size={15} color="#6366f1" />,
+                  iconBg: 'rgba(99, 102, 241, 0.1)',
+                  iconBorder: 'rgba(99, 102, 241, 0.2)',
+                  title: 'Centralized Test Management',
+                  desc: 'AI-assisted test generation, parameterized test cases & reusable suite orchestration.',
+                },
+                {
+                  icon: <ShieldCheck size={15} color="#10b981" />,
+                  iconBg: 'rgba(16, 185, 129, 0.1)',
+                  iconBorder: 'rgba(16, 185, 129, 0.2)',
+                  title: 'End-to-End Defect Intelligence',
+                  desc: 'Live execution telemetry, regression tracking & multi-gate QA sign-off workflows.',
+                },
+                {
+                  icon: <Layers size={15} color="#0284c7" />,
+                  iconBg: 'rgba(2, 132, 199, 0.1)',
+                  iconBorder: 'rgba(2, 132, 199, 0.2)',
+                  title: 'Bi-Directional Workspace Sync',
+                  desc: 'Instant two-way synchronization with your Jira boards and Linear project cycles.',
+                },
+              ].map((feat, i) => (
+                <div
+                  key={i}
+                  className="welcome-hero-card"
+                  style={{
+                    display: 'flex',
+                    alignItems: 'flex-start',
+                    gap: 12,
+                    padding: '10px 14px',
+                    borderRadius: 12,
+                    background: 'rgba(255, 255, 255, 0.8)',
+                    border: '1px solid rgba(226, 232, 240, 0.85)',
+                    boxShadow: '0 2px 6px rgba(15, 23, 42, 0.02)',
+                    backdropFilter: 'blur(8px)',
+                    transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
+                    textAlign: 'left',
+                  }}
+                >
+                  <div
+                    style={{
+                      width: 32,
+                      height: 32,
+                      borderRadius: 9,
+                      background: feat.iconBg,
+                      border: `1px solid ${feat.iconBorder}`,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      flexShrink: 0,
+                      marginTop: 1,
+                    }}
+                  >
+                    {feat.icon}
                   </div>
-                  <span style={{ fontSize: 16, color: 'rgba(0,0,0,0.85)', fontWeight: 500 }}>{point}</span>
+                  <div>
+                    <div style={{ fontSize: 12.5, fontWeight: 700, color: '#0f172a', lineHeight: 1.3 }}>
+                      {feat.title}
+                    </div>
+                    <div style={{ fontSize: 11, color: '#64748b', lineHeight: 1.45, marginTop: 2 }}>
+                      {feat.desc}
+                    </div>
+                  </div>
                 </div>
               ))}
             </div>
 
-            {/* 4 Small Buttons in a single row */}
-            <div style={{ display: 'flex', flexWrap: 'nowrap', gap: 10, alignItems: 'center', animation: 'fadeSlideUp 0.65s ease both', animationDelay: '0.6s' }}>
+            {/* Action Buttons Row */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginTop: 2 }}>
               <button
                 onClick={() => handleAction('/projects/manage')}
                 style={{
-                  display: 'flex', alignItems: 'center', gap: 6,
-                  padding: '8px 14px', borderRadius: 8,
-                  background: accent, border: 'none',
-                  color: '#fff', fontSize: 13, fontWeight: 600,
-                  cursor: 'pointer', transition: 'all 0.2s',
-                  boxShadow: `0 4px 14px ${accent}40`,
-                  whiteSpace: 'nowrap'
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 8,
+                  padding: '10px 20px',
+                  borderRadius: 11,
+                  background: '#0f172a',
+                  border: '1px solid rgba(255, 255, 255, 0.1)',
+                  color: '#ffffff',
+                  fontSize: 13,
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  transition: 'all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1)',
+                  boxShadow: '0 8px 24px -4px rgba(15, 23, 42, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.15)',
                 }}
-                onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = `0 6px 18px ${accent}60`; }}
-                onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = `0 4px 14px ${accent}40`; }}
-              >
-                <RocketOutlined /> Create Project
-              </button>
-
-              <button
-                onClick={() => handleAction('/integrations')}
-                style={{
-                  display: 'flex', alignItems: 'center', gap: 6,
-                  padding: '8px 14px', borderRadius: 8,
-                  background: 'rgba(0,0,0,0.04)', border: '1px solid rgba(0,0,0,0.1)',
-                  color: '#0f172a', fontSize: 13, fontWeight: 600,
-                  cursor: 'pointer', transition: 'all 0.2s',
-                  whiteSpace: 'nowrap'
+                onMouseEnter={e => {
+                  e.currentTarget.style.transform = 'translateY(-2px)';
+                  e.currentTarget.style.background = '#1e293b';
                 }}
-                onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(0,0,0,0.08)'; e.currentTarget.style.transform = 'translateY(-2px)'; }}
-                onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(0,0,0,0.04)'; e.currentTarget.style.transform = 'translateY(0)'; }}
-              >
-                <LinkOutlined /> Jira
-              </button>
-
-              <button
-                onClick={() => handleAction('/integrations')}
-                style={{
-                  display: 'flex', alignItems: 'center', gap: 6,
-                  padding: '8px 14px', borderRadius: 8,
-                  background: 'rgba(0,0,0,0.04)', border: '1px solid rgba(0,0,0,0.1)',
-                  color: '#0f172a', fontSize: 13, fontWeight: 600,
-                  cursor: 'pointer', transition: 'all 0.2s',
-                  whiteSpace: 'nowrap'
+                onMouseLeave={e => {
+                  e.currentTarget.style.transform = 'translateY(0)';
+                  e.currentTarget.style.background = '#0f172a';
                 }}
-                onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(0,0,0,0.08)'; e.currentTarget.style.transform = 'translateY(-2px)'; }}
-                onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(0,0,0,0.04)'; e.currentTarget.style.transform = 'translateY(0)'; }}
               >
-                <AppstoreOutlined /> Linear
+                <RocketOutlined style={{ fontSize: 13, color: '#38bdf8' }} />
+                <span>Create Project</span>
+                <ArrowRight size={13} color="#94a3b8" />
               </button>
 
               <button
                 onClick={() => setTourOpen(true)}
                 style={{
-                  display: 'flex', alignItems: 'center', gap: 6,
-                  padding: '8px 14px', borderRadius: 8,
-                  background: 'rgba(0,0,0,0.04)', border: '1px solid rgba(0,0,0,0.1)',
-                  color: '#0f172a', fontSize: 13, fontWeight: 600,
-                  cursor: 'pointer', transition: 'all 0.2s',
-                  whiteSpace: 'nowrap'
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 7,
+                  padding: '10px 18px',
+                  borderRadius: 11,
+                  background: 'rgba(255, 255, 255, 0.85)',
+                  border: '1px solid rgba(203, 213, 225, 0.8)',
+                  color: '#0f172a',
+                  fontSize: 13,
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  transition: 'all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1)',
+                  boxShadow: '0 2px 8px rgba(15, 23, 42, 0.04)',
+                  backdropFilter: 'blur(8px)',
                 }}
-                onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(0,0,0,0.08)'; e.currentTarget.style.borderColor = accent; e.currentTarget.style.color = accent; e.currentTarget.style.transform = 'translateY(-2px)'; }}
-                onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(0,0,0,0.04)'; e.currentTarget.style.borderColor = 'rgba(0,0,0,0.1)'; e.currentTarget.style.color = '#0f172a'; e.currentTarget.style.transform = 'translateY(0)'; }}
+                onMouseEnter={e => {
+                  e.currentTarget.style.transform = 'translateY(-2px)';
+                  e.currentTarget.style.borderColor = accent;
+                  e.currentTarget.style.color = accent;
+                }}
+                onMouseLeave={e => {
+                  e.currentTarget.style.transform = 'translateY(0)';
+                  e.currentTarget.style.borderColor = 'rgba(203, 213, 225, 0.8)';
+                  e.currentTarget.style.color = '#0f172a';
+                }}
               >
-                <PlayCircleOutlined /> Demo Tour
+                <Play size={12} fill="currentColor" color="currentColor" />
+                <span>Interactive Tour</span>
               </button>
             </div>
 
-            {/* Footer */}
-            <div style={{ marginTop: 32, color: 'rgba(0,0,0,0.4)', fontSize: 12, letterSpacing: '0.03em' }}>
-              {isTestiezBrand ? '© Testiez by ZithTech' : '© Zukvo by ZithTech'}
+            {/* Instant Workspace Connectors */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginTop: 2 }}>
+              <span style={{ fontSize: 11.5, color: '#64748b', fontWeight: 500 }}>
+                Or connect:
+              </span>
+
+              <button
+                onClick={() => handleAction('/integrations')}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 5,
+                  padding: '5px 10px',
+                  borderRadius: 7,
+                  background: 'rgba(255, 255, 255, 0.8)',
+                  border: '1px solid rgba(226, 232, 240, 0.9)',
+                  color: '#334155',
+                  fontSize: 11.5,
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  transition: 'all 0.15s ease',
+                }}
+                onMouseEnter={e => {
+                  e.currentTarget.style.background = '#ffffff';
+                  e.currentTarget.style.borderColor = '#0052CC';
+                  e.currentTarget.style.color = '#0052CC';
+                }}
+                onMouseLeave={e => {
+                  e.currentTarget.style.background = 'rgba(255, 255, 255, 0.8)';
+                  e.currentTarget.style.borderColor = 'rgba(226, 232, 240, 0.9)';
+                  e.currentTarget.style.color = '#334155';
+                }}
+              >
+                <JiraLogoSvg size={13} />
+                <span>Jira Cloud</span>
+              </button>
+
+              <button
+                onClick={() => handleAction('/integrations')}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 5,
+                  padding: '5px 10px',
+                  borderRadius: 7,
+                  background: 'rgba(255, 255, 255, 0.8)',
+                  border: '1px solid rgba(226, 232, 240, 0.9)',
+                  color: '#334155',
+                  fontSize: 11.5,
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  transition: 'all 0.15s ease',
+                }}
+                onMouseEnter={e => {
+                  e.currentTarget.style.background = '#ffffff';
+                  e.currentTarget.style.borderColor = '#5E6AD2';
+                  e.currentTarget.style.color = '#5E6AD2';
+                }}
+                onMouseLeave={e => {
+                  e.currentTarget.style.background = 'rgba(255, 255, 255, 0.8)';
+                  e.currentTarget.style.borderColor = 'rgba(226, 232, 240, 0.9)';
+                  e.currentTarget.style.color = '#334155';
+                }}
+              >
+                <LinearLogoSvg size={13} />
+                <span>Linear</span>
+              </button>
             </div>
           </div>
 
-          {/* ══ RIGHT — Product Preview ════════════════════ */}
-          <div style={{ flex: '1 1 600px', display: 'flex', justifyContent: 'flex-end', animation: 'fadeSlideUp 0.8s ease both', animationDelay: '0.3s' }}>
+          {/* ── RIGHT COLUMN: Studio Showcase Mockup ── */}
+          <div
+            style={{
+              flex: '1 1 540px',
+              maxWidth: 660,
+              display: 'flex',
+              justifyContent: 'center',
+              alignItems: 'center',
+            }}
+          >
             <ProductPreviewMockup accent={accent} />
           </div>
         </div>
+
+        {/* ══ CENTERED PLATFORM FOOTER ════════════════════════════════ */}
+        <div
+          style={{
+            position: 'relative',
+            zIndex: 2,
+            marginTop: 20,
+            fontSize: 11,
+            color: '#94a3b8',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 8,
+            flexWrap: 'wrap',
+          }}
+        >
+          <span>{isTestiezBrand ? '© Testiez by ZithTech' : '© Zukvo by ZithTech'}</span>
+          <span>·</span>
+          <span>Enterprise QA Platform</span>
+          <span>·</span>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+            <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#10b981' }} />
+            <span style={{ color: '#059669', fontWeight: 600 }}>All Systems Operational</span>
+          </span>
+        </div>
       </div>
 
-      {/* Demo Tour Modal */}
+      {/* Feature Walkthrough Modal */}
       {tourOpen && <DemoTourModal onClose={() => setTourOpen(false)} accent={accent} />}
     </>
   );

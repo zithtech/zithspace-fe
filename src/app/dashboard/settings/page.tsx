@@ -157,6 +157,13 @@ const ORG_METRICS = [
 
 const ORG_CARDS = [
   {
+    name: "cardSprintDetails", requiredFeatures: ["work_projects"],
+    title: "Sprint Details",
+    description: "Real-time tracking of active sprint velocity, dates, and ticket breakdown.",
+    icon: Zap,
+    color: "#8B5CF6",
+  },
+  {
     name: "cardProjectPulse", requiredFeatures: ["work_projects"],
     title: "Project Pulse",
     description: "Real-time tracking of project health and velocity.",
@@ -250,7 +257,7 @@ export default function DashboardSettingsPage() {
     metricAvgHours: true, metricMyTickets: true, metricTeamToday: true,
     myWorkProgress: true, myTicketsProgress: true,
     metricTotalMembers: true, metricActiveProjects: true, metricOrgTickets: true,
-    metricOrgTeamToday: true, cardProjectPulse: true, cardTodaysPulse: true,
+    metricOrgTeamToday: true, cardSprintDetails: true, cardProjectPulse: true, cardTodaysPulse: true,
     cardOrgUpcomingBirthdays: true, cardTeamInsights: true, cardRecentActivities: true,
   };
 

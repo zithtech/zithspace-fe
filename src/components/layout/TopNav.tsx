@@ -414,7 +414,7 @@ export default function TopNav({
   const { isPopoverOpen, setPopoverOpen, activeEntry } = useTimeTrackerStore();
   const timerState = !activeEntry ? "idle" : activeEntry.status === "RUNNING" ? "running" : "paused";
   const screens = useBreakpoint();
-  const isCustomBreakpoint = useIsBreakpoint("max", 1290); // true when width <= 1289
+  const isCustomBreakpoint = useIsBreakpoint("max", 1260); // true when width <= 1259
 
   // Bookmarks state
   const actionMenuLabel = (title: string, desc: string, icon: React.ReactNode, color: string, tint: string) => (
@@ -614,17 +614,19 @@ export default function TopNav({
     return {
       key: module.key,
       label: (
-        <div
-          className={`module-pill${isActive ? ' module-pill-active' : ''}`}
-          style={{ ['--module-accent' as any]: accent }}
-        >
-          <span className="module-pill-icon">
-            <ModuleIcon size={17} strokeWidth={isActive ? 2 : 1.75} />
-          </span>
-          <span className={`module-text module-text-${index}`}>
-            {module.label}
-          </span>
-        </div>
+        <Tooltip title={module.label} mouseEnterDelay={0.3} placement="bottom">
+          <div
+            className={`module-pill${isActive ? ' module-pill-active' : ''}`}
+            style={{ ['--module-accent' as any]: accent }}
+          >
+            <span className="module-pill-icon">
+              <ModuleIcon size={17} strokeWidth={isActive ? 2 : 1.75} />
+            </span>
+            <span className={`module-text module-text-${index}`}>
+              {module.label}
+            </span>
+          </div>
+        </Tooltip>
       ),
     };
   });
@@ -785,12 +787,13 @@ export default function TopNav({
     <Header
       className="main-top-nav"
       style={{
-        padding: isMobile ? "0 16px" : "0 24px 0 0",
+        padding: isMobile ? "0 16px" : "0 16px 0 0",
         background: "var(--bg-pure-white)",
         borderBottom: "1px solid var(--border-color)",
         display: "flex",
         alignItems: "center",
         justifyContent: "space-between",
+        gap: isMobile ? 8 : 12,
         height: 60,
         position: "fixed",
         top: 0,
@@ -800,14 +803,14 @@ export default function TopNav({
       }}
     >
       {/* Left Side: Logo & Module Selector */}
-      <div style={{ display: 'flex', alignItems: 'center', height: '100%', flex: 1, minWidth: 0 }}>
+      <div style={{ display: 'flex', alignItems: 'center', height: '100%', flex: 1, minWidth: 0, overflow: 'hidden' }}>
         {/* Logo Area */}
         <div
           style={{
-            width: isMobile ? 'auto' : (collapsed ? 52 : 200),
-            minWidth: isMobile ? 'auto' : (collapsed ? 52 : 200),
+            width: isMobile ? 'auto' : (collapsed ? 52 : 180),
+            minWidth: isMobile ? 'auto' : (collapsed ? 52 : 180),
             marginRight: isMobile ? 12 : 0,
-            paddingLeft: (!isMobile && !collapsed) ? 24 : 0,
+            paddingLeft: (!isMobile && !collapsed) ? 16 : 0,
             height: '100%',
             transition: "all 0.2s",
             flexShrink: 0,
@@ -874,9 +877,10 @@ export default function TopNav({
             style={{
               borderBottom: 'none',
               flex: 1,
-              maxWidth: 700,
+              minWidth: 0,
+              maxWidth: 620,
               background: 'transparent',
-              marginLeft: 14,
+              marginLeft: 10,
             }}
           />
         )}
@@ -902,7 +906,7 @@ export default function TopNav({
       </div>
 
       {/* Right Side: User Actions */}
-      <Space size={isSmallMobile ? 4 : 8} align="center" style={{ flexShrink: 0 }}>
+      <Space size={isSmallMobile ? 4 : 5} align="center" style={{ flexShrink: 0 }}>
         {!isCustomBreakpoint ? (
           <>
             {tourMenuItems.length > 0 && (
@@ -1131,6 +1135,20 @@ export default function TopNav({
           </>
         ) : (
           <Space size={isSmallMobile ? 4 : 8}>
+            {tourMenuItems.length > 0 && (
+              <Dropdown
+                menu={{
+                  items: tourMenuItems,
+                }}
+                trigger={['click']}
+              >
+                <Button
+                  type="text"
+                  className="nav-action-btn"
+                  icon={<PlayCircle size={17} strokeWidth={1.75} />}
+                />
+              </Dropdown>
+            )}
             <ThemeToggle />
             {/* {canReadNotification && (
               <div className={`novu-inbox-wrapper ${isDark ? "novu-inbox-dark" : "novu-inbox-light"}`}>
@@ -1156,6 +1174,17 @@ export default function TopNav({
                       'rgba(249, 115, 22, 0.12)'
                     ),
                     onClick: () => router.push('/hotspot')
+                  }] : []),
+                  ...(canReadSkills && hasAnySubscriptionFeature("home_home_general_skills") ? [{
+                    key: 'skills',
+                    label: actionMenuLabel(
+                      'Skills',
+                      'Learning & growth',
+                      <Sparkles size={16} strokeWidth={1.75} />,
+                      '#6366f1',
+                      'rgba(99,102,241,0.12)'
+                    ),
+                    onClick: () => router.push('/skills')
                   }] : []),
                   ...(hasPermission(Permissions.TIME_TRACKING_READ) && hasPermission(Permissions.TIME_TRACKING_CREATE) && hasAnySubscriptionFeature("work_time_tracking") ? [{
                     key: 'timer',
@@ -1384,24 +1413,25 @@ export default function TopNav({
                 .module-pill {
                     display: inline-flex;
                     align-items: center;
-                    gap: 6px;
-                    padding: 0 10px;
+                    gap: 5px;
+                    padding: 0 8px;
                     height: 32px;
                     border-radius: 6px;
                     font-weight: 600;
-                    font-size: 12.5px;
-                    letter-spacing: 0.2px;
+                    font-size: 12px;
+                    letter-spacing: 0.15px;
                     color: #475569;
                     border: 1px solid transparent;
                     transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
                     position: relative;
+                    white-space: nowrap;
                 }
                 .module-pill .module-pill-icon {
                     display: inline-flex;
                     align-items: center;
                     justify-content: center;
-                    width: 20px;
-                    height: 20px;
+                    width: 18px;
+                    height: 18px;
                     color: inherit;
                     transition: color 0.2s ease;
                 }
@@ -1482,34 +1512,12 @@ export default function TopNav({
                 }
                 .module-text {
                     transition: all 0.2s ease;
+                    white-space: nowrap;
                 }
-                @media (max-width: 1440px) {
-                    .module-text-7 { display: none !important; }
-                }
-                @media (max-width: 1360px) {
-                    .module-text-6 { display: none !important; }
-                }
-                @media (max-width: 1280px) {
-                    .module-text-5 { display: none !important; }
-                }
-                @media (max-width: 1200px) {
-                    .module-text-4 { display: none !important; }
-                }
-                @media (max-width: 1120px) {
-                    .module-text-3 { display: none !important; }
-                }
-                @media (max-width: 1040px) {
-                    .module-text-2 { display: none !important; }
-                }
-                @media (max-width: 960px) {
-                    .module-text-1 { display: none !important; }
-                }
-                @media (max-width: 880px) {
-                    .module-text-0 { display: none !important; }
-                }
-                /* Hide the default Ant Design horizontal menu bottom bar */
+                /* Hide the default Ant Design horizontal menu bottom bar and overflow indicators */
                 .ant-menu-horizontal > .ant-menu-item::after, 
-                .ant-menu-horizontal > .ant-menu-submenu::after {
+                .ant-menu-horizontal > .ant-menu-submenu::after,
+                .ant-menu-horizontal > .ant-menu-overflow-item-rest {
                     display: none !important;
                 }
                 @media (max-width: 576px) {
@@ -1521,14 +1529,14 @@ export default function TopNav({
                 /* Premium nav action buttons (top navbar right side) */
                 .nav-action-btn.ant-btn,
                 .nav-action-btn {
-                    width: 32px !important;
-                    height: 32px !important;
-                    min-width: 32px !important;
+                    width: 30px !important;
+                    height: 30px !important;
+                    min-width: 30px !important;
                     padding: 0 !important;
                     display: inline-flex !important;
                     align-items: center !important;
                     justify-content: center !important;
-                    border-radius: 0px !important;
+                    border-radius: 6px !important;
                     color: #475569;
                     transition: background-color 0.2s ease, color 0.2s ease, transform 0.2s ease;
                 }

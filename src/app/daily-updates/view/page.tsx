@@ -585,21 +585,29 @@ function ViewDailyUpdatesContent({ user }: { user: any }) {
 
         .updates-grid {
           display: grid;
-          grid-template-columns: repeat(2, 1fr);
-          gap: 10px;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          gap: 12px;
           margin-bottom: 24px;
+          width: 100%;
+          min-width: 0;
+          box-sizing: border-box;
+        }
+
+        .updates-grid > * {
+          min-width: 0;
+          max-width: 100%;
+        }
+
+        .ant-ribbon-wrapper {
+          min-width: 0;
+          width: 100%;
         }
         
-        @media (max-width: 820px) {
+        @media (max-width: 1080px) {
           .updates-grid {
-            display: flex;
-            flex-direction: column;
+            grid-template-columns: minmax(0, 1fr);
             gap: 12px;
             margin-bottom: 24px;
-          }
-          .updates-grid > * {
-            flex: 1 1 auto;
-            width: 100%;
           }
         }
 
@@ -1085,7 +1093,7 @@ function ViewDailyUpdatesContent({ user }: { user: any }) {
         />
 
         <div className="du-main-scroll">
-          <div style={{ display: "flex", flexDirection: "column", flex: 1, width: "100%" }}>
+          <div style={{ display: "flex", flexDirection: "column", flex: 1, width: "100%", minWidth: 0 }}>
             {/* Content Loading/Empty States */}
             {loading ? (
               <div style={{ padding: "100px 0", textAlign: "center" }}>
@@ -1102,7 +1110,7 @@ function ViewDailyUpdatesContent({ user }: { user: any }) {
                                                     } />
               </Card>
             ) : viewMode === "card" ? (
-              <div style={{ display: "flex", flexDirection: "column", flex: "1 0 auto", width: "100%" }}>
+              <div style={{ display: "flex", flexDirection: "column", flex: "1 0 auto", width: "100%", minWidth: 0 }}>
                 <div className="updates-grid" style={{ padding: "16px 24px", marginBottom: 0 }}>
                   {currentCardUpdates.map((update) => (
                     <UpdateCard

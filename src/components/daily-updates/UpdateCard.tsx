@@ -169,13 +169,15 @@ export default function UpdateCard({
             overflow: "hidden",
             display: "flex",
             flexDirection: "column",
+            width: "100%",
+            minWidth: 0,
             transition: "box-shadow .15s ease, border-color .15s ease",
           }}
           bodyStyle={{ padding: 0, display: "flex", flexDirection: "column" }}
           className="premium-update-card"
         >
           {/* Top Section */}
-          <div style={{ display: "flex", alignItems: "flex-start", gap: 10, padding: "10px 12px" }}>
+          <div style={{ display: "flex", alignItems: "flex-start", gap: 10, padding: "10px 12px", minWidth: 0 }}>
             <Avatar 
               src={update.user?.avatarUrl}
               shape="square"
@@ -189,7 +191,7 @@ export default function UpdateCard({
               {!update.user?.avatarUrl && update.user?.name.charAt(0).toUpperCase()}
             </Avatar>
 
-            <div style={{ display: "flex", flexDirection: "column", minWidth: 0, gap: 3, flex: 1 }}>
+            <div style={{ display: "flex", flexDirection: "column", minWidth: 0, gap: 3, flex: 1, overflow: "hidden" }}>
               <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text-slate-900)", letterSpacing: "-0.01em", lineHeight: 1.3, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                 {update.user?.name}
               </div>
@@ -217,16 +219,16 @@ export default function UpdateCard({
                   className="du-icon-btn"
                   icon={<MoreVertical size={18} />}
                   onClick={(e) => e.stopPropagation()}
-                  style={{ marginRight: 10 }}
+                  style={{ marginRight: 10, flexShrink: 0 }}
                 />
               </Dropdown>
             )}
           </div>
 
           {/* Foot Section (slate-50 background, containing both pills and dates) */}
-          <div style={{ display: "flex", flexDirection: "column", padding: 0, borderTop: "1px solid var(--border-slate-200)", background: "var(--bg-slate-50)" }}>
+          <div style={{ display: "flex", flexDirection: "column", padding: 0, borderTop: "1px solid var(--border-slate-200)", background: "var(--bg-slate-50)", minWidth: 0 }}>
 
-            <div style={{ display: "flex", gap: 8, flexWrap: "nowrap", overflow: "hidden", padding: "10px 12px" }}>
+            <div style={{ display: "flex", gap: 8, flexWrap: "nowrap", overflow: "hidden", padding: "10px 12px", minWidth: 0 }}>
               <span style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 11, fontWeight: 600, color: "var(--text-sky-600)", background: "var(--bg-sky-50)", padding: "2px 6px", borderRadius: 4, whiteSpace: "nowrap", flexShrink: 0 }}>
                 <Clock size={11} /> <span style={{ opacity: 0.7, fontWeight: 500 }}>Time:</span> {formatHours(totalHours)}
               </span>
@@ -246,7 +248,7 @@ export default function UpdateCard({
               )}
             </div>
 
-            <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "nowrap", overflow: "hidden", padding: "8px 12px", borderTop: "1px solid var(--border-slate-200)" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "nowrap", overflow: "hidden", padding: "8px 12px", borderTop: "1px solid var(--border-slate-200)", minWidth: 0 }}>
               <span style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 11, color: "var(--text-slate-700)", whiteSpace: "nowrap", flexShrink: 0 }}>
                 <span style={{ fontSize: 10, fontWeight: 600, color: "var(--text-slate-400)" }}>Due Date:</span>
                 <span style={{ fontWeight: 600 }}>

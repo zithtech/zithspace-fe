@@ -928,11 +928,25 @@ useActivitySource({ section: "WORK", module: "QA", page: "CreateTestScope" });
 
   const fetchPositionsAndUsers = async () => {
     try {
-      const posRes: any = await axios.get('/api/positions');
-      setPositionsList(posRes.data || posRes || []);
+      const [posRes, membersRes] = await Promise.allSettled([
+        axios.get('/api/positions'),
+        MembersService.getMembers({ limit: 500 }),
+      ]);
 
-      const membersRes = await MembersService.getMembers({ limit: 500 });
-      setUsersList(membersRes.data || []);
+      if (posRes.status === 'fulfilled') {
+        const res: any = posRes.value;
+        const list = Array.isArray(res?.data) ? res.data : (Array.isArray(res?.data?.data) ? res.data.data : (Array.isArray(res) ? res : []));
+        setPositionsList(list);
+      } else {
+        console.error("Failed to fetch positions:", posRes.reason);
+      }
+
+      if (membersRes.status === 'fulfilled') {
+        const mRes: any = membersRes.value;
+        setUsersList(mRes?.data || []);
+      } else {
+        console.error("Failed to fetch members:", membersRes.reason);
+      }
     } catch (e) {
       console.error(e);
     }
@@ -1786,16 +1800,24 @@ useActivitySource({ section: "WORK", module: "QA", page: "CreateTestScope" });
 
   const scopeStatusOpts = scopeSettings.filter(s => s.category === 'status').map(s => ({ value: s.value, label: s.label }));
 
+  const allUserOptions = usersList.map(u => ({
+    value: u.id,
+    label: u.name || u.full_name || `${u.first_name ?? ''} ${u.last_name ?? ''}`.trim(),
+    avatarUrl: u.avatarUrl || u.avatar || u.profile_picture || u.profilePicture || null,
+  }));
+
   const selectedApproverPosition = formData.details.approvalWorkflow?.position;
   const filteredUsersList = selectedApproverPosition
     ? usersList.filter(u => u.position?.id === selectedApproverPosition || u.positionId === selectedApproverPosition)
     : usersList;
 
-  const userOptions = filteredUsersList.map(u => ({
+  const approverUserOptions = filteredUsersList.map(u => ({
     value: u.id,
     label: u.name || u.full_name || `${u.first_name ?? ''} ${u.last_name ?? ''}`.trim(),
     avatarUrl: u.avatarUrl || u.avatar || u.profile_picture || u.profilePicture || null,
   }));
+
+  const userOptions = allUserOptions;
 
   const positionOptions = positionsList.map(p => ({ value: p.id, label: p.title }));
 
@@ -2521,7 +2543,7 @@ useActivitySource({ section: "WORK", module: "QA", page: "CreateTestScope" });
                   </Field>
                   <Field label="QA Owner" className="xl:col-span-2">
                     <SearchableDropdown
-                      options={userOptions.map(opt => ({ ...opt, value: opt.label }))}
+                      options={allUserOptions.map(opt => ({ ...opt, value: opt.label }))}
                       value={formData.qa_owner}
                       onChange={(val) => updateRoot('qa_owner', val)}
                       placeholder="Select QA Owner"
@@ -2531,7 +2553,7 @@ useActivitySource({ section: "WORK", module: "QA", page: "CreateTestScope" });
                   </Field>
                   <Field label="Reviewer" className="xl:col-span-2">
                     <SearchableDropdown
-                      options={userOptions.map(opt => ({ ...opt, value: opt.label }))}
+                      options={allUserOptions.map(opt => ({ ...opt, value: opt.label }))}
                       value={formData.details.reviewer}
                       onChange={(val) => updateDetail('reviewer', val)}
                       placeholder="Select Reviewer"
@@ -3733,7 +3755,7 @@ useActivitySource({ section: "WORK", module: "QA", page: "CreateTestScope" });
                   </Field>
                   <Field label="Approver">
                     <SearchableDropdown
-                      options={userOptions}
+                      options={approverUserOptions}
                       value={formData.details.approvalWorkflow?.user}
                       onChange={(val) => {
                         setFormData((prev: any) => ({

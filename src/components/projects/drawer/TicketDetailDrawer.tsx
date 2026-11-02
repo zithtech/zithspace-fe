@@ -923,14 +923,14 @@ export const TicketDetailDrawer: React.FC<TicketDetailDrawerProps> = ({
         width={1100} // Increased slightly for better column balance and header single-row fitting
         styles={{
           header: { padding: '12px 20px', borderBottom: '1px solid var(--border-color)', backgroundColor: 'var(--bg-pure-white)' },
-          body: { padding: 0 }
+          body: { padding: 0, overflow: 'hidden' }
         }}
         closeIcon={null}
       >
         {!ticket ? (
           <div style={{ padding: 40, textAlign: "center", background: "var(--bg-pure-white)" }}><Text>Loading</Text></div>
         ) : (
-          <Row style={{ height: '100%', backgroundColor: 'var(--bg-pure-white)' }}>
+          <Row style={{ height: '100%', width: '100%', margin: 0, overflow: 'hidden', flexWrap: 'nowrap', backgroundColor: 'var(--bg-pure-white)' }}>
             {/* LEFT COLUMN: Main Content (Title, Description, Activity) */}
             <Col
               xs={24}
@@ -940,8 +940,12 @@ export const TicketDetailDrawer: React.FC<TicketDetailDrawerProps> = ({
                 padding: '24px 32px',
                 borderRight: '1px solid var(--border-color)',
                 overflowY: 'auto',
+                overflowX: 'hidden',
                 height: '100%',
-                backgroundColor: 'var(--bg-pure-white)'
+                backgroundColor: 'var(--bg-pure-white)',
+                minWidth: 0,
+                maxWidth: '100%',
+                boxSizing: 'border-box'
               }}
             >
 
@@ -1567,7 +1571,11 @@ export const TicketDetailDrawer: React.FC<TicketDetailDrawerProps> = ({
                 background: "var(--bg-pure-white)",
                 height: "100%",
                 overflowY: "auto",
+                overflowX: "hidden",
                 borderLeft: "1px solid var(--border-color)",
+                minWidth: 0,
+                maxWidth: '100%',
+                boxSizing: 'border-box'
               }}
             >
               <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
@@ -2204,11 +2212,29 @@ export const TicketDetailDrawer: React.FC<TicketDetailDrawerProps> = ({
           content: '' !important;
           position: absolute !important;
           top: 0 !important;
-          left: -40px !important;
-          right: -40px !important;
+          left: -32px !important;
+          right: -32px !important;
           bottom: 0 !important;
           background: var(--bg-pure-white) !important;
           z-index: -1 !important;
+        }
+        .full-tickets-drawer-tour-target .ant-drawer-body {
+          overflow: hidden !important;
+        }
+        .full-tickets-drawer-tour-target .ant-drawer-content-wrapper {
+          overflow: hidden !important;
+        }
+        .premium-tabs-wrapper {
+          max-width: 100% !important;
+          overflow-x: hidden !important;
+        }
+        .premium-tabs-wrapper .ant-tabs-content-holder {
+          max-width: 100% !important;
+          overflow-x: hidden !important;
+        }
+        .premium-tabs-wrapper .ant-tabs-tabpane {
+          max-width: 100% !important;
+          overflow-x: hidden !important;
         }
         /* Sized so all six tabs fit the 1100px drawer's left column without
            antd folding the overflow into its "⋯" dropdown (hidden below).

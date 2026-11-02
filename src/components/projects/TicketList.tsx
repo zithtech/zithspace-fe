@@ -412,6 +412,7 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
   const [recentTicket, setRecentTicket] = useState<Ticket | null>(null);
   const [activeSelectedRowKeys, setActiveSelectedRowKeys] = useState<React.Key[]>([]);
   const [backlogSelectedRowKeys, setBacklogSelectedRowKeys] = useState<React.Key[]>([]);
+  const [isMovingToBacklog, setIsMovingToBacklog] = useState(false);
   const recentTicketCardRef = useRef<HTMLDivElement | null>(null);
 
   // Automatically close ticket detail drawer when moving past drawer tour steps, and auto-open it if needed
@@ -569,11 +570,11 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
   // Pagination state
   const [pagination, setPagination] = useState({
     current: 1,
-    pageSize: 15,
+    pageSize: 20,
   });
   const [activePagination, setActivePagination] = useState({
     current: 1,
-    pageSize: 15,
+    pageSize: 20,
   });
 
 
@@ -1216,6 +1217,47 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
     });
   };
 
+  const handleBulkMoveToBacklog = async (ticketIds?: string[]) => {
+    const idsToMove = (ticketIds && ticketIds.length > 0 ? ticketIds : (activeSelectedRowKeys as string[]));
+    if (!idsToMove.length) return;
+
+    const count = idsToMove.length;
+    setIsMovingToBacklog(true);
+    try {
+      const results = await Promise.allSettled(
+        idsToMove.map(id =>
+          updateTicketMutation.mutateAsync({
+            id,
+            data: { releasePlan: null },
+            optimisticData: { releasePlan: null }
+          })
+        )
+      );
+
+      const succeeded = results.filter(r => r.status === 'fulfilled').length;
+      const failed = results.filter(r => r.status === 'rejected').length;
+
+      setActiveSelectedRowKeys(prev => prev.filter(k => !idsToMove.includes(k as string)));
+      refetchActive();
+      refetchBacklog();
+      queryClient.invalidateQueries({ queryKey: ['tickets'] });
+      queryClient.invalidateQueries({ queryKey: ['activeSprint'] });
+      queryClient.invalidateQueries({ queryKey: ['overallSprintTickets'] });
+
+      if (succeeded > 0) {
+        message.success(`Moved ${succeeded} ticket${succeeded === 1 ? '' : 's'} to Backlog`);
+      }
+      if (failed > 0) {
+        message.error(`Failed to move ${failed} ticket${failed === 1 ? '' : 's'} to Backlog`);
+      }
+    } catch (error: any) {
+      console.error('Error moving tickets to backlog:', error);
+      message.error(error?.message || 'Failed to move tickets to Backlog');
+    } finally {
+      setIsMovingToBacklog(false);
+    }
+  };
+
 
 
   const handleCompleteSprint = () => {
@@ -1323,9 +1365,9 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
   useEffect(() => {
     if (viewMode === 'board') {
       // Board mode uses Kanban endpoint, no pagination needed
-      setPagination(prev => ({ ...prev, current: 1, pageSize: 15 }));
+      setPagination(prev => ({ ...prev, current: 1, pageSize: 20 }));
     } else {
-      setPagination(prev => ({ ...prev, current: 1, pageSize: 15 }));
+      setPagination(prev => ({ ...prev, current: 1, pageSize: 20 }));
     }
   }, [viewMode]);
 
@@ -4715,6 +4757,35 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
                             </Dropdown>
                           )}
 
+                          {/* Move to Backlog */}
+                          {canUpdateTicket && (
+                            <ConfirmDialog
+                              tone="warning"
+                              title="Move to Backlog"
+                              description={`Move ${activeSelectedRowKeys.length} selected ticket(s) from current sprint to backlog?`}
+                              confirmText="Move to Backlog"
+                              onConfirm={() => handleBulkMoveToBacklog()}
+                              placement="bottom"
+                            >
+                              <Button
+                                size="small"
+                                icon={<UnorderedListOutlined style={{ fontSize: 11 }} />}
+                                loading={isMovingToBacklog}
+                                style={{
+                                  height: 28,
+                                  fontSize: 11,
+                                  fontWeight: 700,
+                                  borderRadius: 6,
+                                  borderColor: theme === 'dark' ? '#b45309' : '#fde68a',
+                                  color: theme === 'dark' ? '#fbbf24' : '#d97706',
+                                  background: 'transparent'
+                                }}
+                              >
+                                Move to Backlog
+                              </Button>
+                            </ConfirmDialog>
+                          )}
+
                           {/* Move to Archive */}
                           {canManageTickets && canUseArchive && (
                             <Button
@@ -5671,6 +5742,7 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
                     onBulkDelete={canUseTrash ? (ids) => {
                       bulkDeleteMutation.mutate(ids);
                     } : undefined}
+                    onBulkMoveToBacklog={handleBulkMoveToBacklog}
                   />
                 ) : (
                   <Card className="saas-card"><NoData description="No tickets found" /></Card>

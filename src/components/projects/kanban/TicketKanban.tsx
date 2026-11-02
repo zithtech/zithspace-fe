@@ -25,6 +25,7 @@ import {
   FolderAddOutlined,
   DeleteOutlined,
   SwapOutlined,
+  UnorderedListOutlined,
 } from '@ant-design/icons';
 import { Ticket } from '@/services/ticketService';
 import { STATUS_OPTIONS } from '@/utils/ticketUtils';
@@ -52,6 +53,7 @@ interface TicketKanbanProps {
   /** Bulk action handlers used by the selection bar. */
   onBulkArchive?: (ticketIds: string[]) => void;
   onBulkDelete?: (ticketIds: string[]) => void;
+  onBulkMoveToBacklog?: (ticketIds: string[]) => void;
   /**
    * When true, the toolbar omits the sprint name chip, ticket-count chip,
    * and Complete Sprint button — used when an external Sprint header above
@@ -103,6 +105,7 @@ export const TicketKanban: React.FC<TicketKanbanProps> = ({
   onAddTicketToColumn,
   onBulkArchive,
   onBulkDelete,
+  onBulkMoveToBacklog,
   hideSprintMeta = false,
   permissions,
 }) => {
@@ -328,6 +331,33 @@ export const TicketKanban: React.FC<TicketKanbanProps> = ({
               Move to…
             </Button>
           </Dropdown>
+          {kanbanScope === 'active' && (onBulkMoveToBacklog || onSprintAssignment) && (canUpdateTicket || canManageTickets) && (
+            <ConfirmDialog
+              tone="warning"
+              icon={<UnorderedListOutlined />}
+              title="Move to Backlog?"
+              description={`Move ${selectedTicketIds.size} selected ticket(s) to Backlog?`}
+              confirmText="Move to Backlog"
+              cancelText="Cancel"
+              placement="bottomLeft"
+              onConfirm={() => {
+                if (onBulkMoveToBacklog) {
+                  onBulkMoveToBacklog(Array.from(selectedTicketIds));
+                } else if (onSprintAssignment) {
+                  Array.from(selectedTicketIds).forEach((id) => onSprintAssignment(id, 'remove'));
+                }
+                clearSelection();
+              }}
+            >
+              <Button
+                size="small"
+                icon={<UnorderedListOutlined />}
+                className="kb-bulk-btn"
+              >
+                Move to Backlog
+              </Button>
+            </ConfirmDialog>
+          )}
           {onBulkArchive && (canUpdateTicket || canManageTickets) && (
             <Button
               size="small"

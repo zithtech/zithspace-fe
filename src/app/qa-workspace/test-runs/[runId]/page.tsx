@@ -1206,7 +1206,7 @@ export default function TestRunExecutionPage() {
         .sc-topbar--welded { border-bottom: 1px solid var(--border-slate-100); }
         .dh-main-scroll { flex: 1; overflow-y: auto; padding: 16px 20px 24px; }
 
-        .sc-topbar__title { display: flex; align-items: center; gap: 8px; min-width: 0; flex: 1; }
+        .sc-topbar__title { display: flex; align-items: center; gap: 8px; min-width: 0; flex: 1 1 auto; overflow: hidden; }
         .sc-topbar__h1 { font-size: 15px; font-weight: 700; color: var(--text-slate-900); }
         .sc-topbar__div { width: 1px; height: 14px; background: var(--border-slate-200); flex-shrink: 0; }
         .cd-crumb {
@@ -1214,9 +1214,9 @@ export default function TestRunExecutionPage() {
           color: var(--text-slate-400); white-space: nowrap; flex-shrink: 0;
         }
         /* Suite names are long — give the crumb room before it ellipses */
-        .cd-crumb--strong { color: var(--text-slate-600); max-width: min(38vw, 420px); overflow: hidden; text-overflow: ellipsis; }
+        .cd-crumb--strong { color: var(--text-slate-600); max-width: min(20vw, 180px); flex-shrink: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
         .cd-sep { color: var(--border-slate-200); flex-shrink: 0; }
-        .cd-title { min-width: 0; margin: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .cd-title { min-width: 0; flex: 1 1 auto; margin: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
         @media (max-width: 900px) { .cd-crumb, .cd-sep, .sc-topbar__div { display: none; } }
 
         /* ── Run figures — one band, welded under the crumb row ──────
@@ -1732,7 +1732,7 @@ export default function TestRunExecutionPage() {
         .spin { animation: ex-spin 1s linear infinite; }
         @keyframes ex-spin { to { transform: rotate(360deg); } }
 
-        .ex-topactions { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+        .ex-topactions { display: flex; align-items: center; gap: 8px; flex-shrink: 0; margin-left: auto; }
         .ex-topactions .ant-btn { height: 32px; border-radius: 8px; }
 
         /* ── Add Case drawer ────────────────────────────────────────── */
@@ -1865,8 +1865,10 @@ export default function TestRunExecutionPage() {
           .ex-searchrow { gap: 6px; }
           /* On the topbar the controls share the row with the crumb; let the
              search give up width first, and drop the label off expand-all. */
+          .dh-main-topbar { flex-wrap: wrap; height: auto; gap: 10px; }
+          .sc-topbar__title { width: 100%; min-width: 0; flex: 1 1 100%; }
           .ex-search { width: 100% !important; min-width: 0; flex: 1 1 auto; }
-          .ex-topactions { flex-wrap: wrap; justify-content: flex-end; }
+          .ex-topactions { width: 100%; flex-wrap: wrap; justify-content: flex-start; }
           .ex-filters__field { min-width: 120px; }
 
           /* Table: horizontal scroll for execution list */
@@ -1977,7 +1979,7 @@ export default function TestRunExecutionPage() {
         <main className="dh-main">
           {/* Back · breadcrumb · run name */}
           <div className="dh-main-topbar sc-topbar sc-topbar--welded">
-            <div className="sc-topbar__title" style={{ display: 'flex', alignItems: 'center' }}>
+            <div className="sc-topbar__title" style={{ display: 'flex', alignItems: 'center', minWidth: 0, flex: '1 1 auto', overflow: 'hidden' }}>
               <Button
                 className="dh-mobile-menu-btn"
                 type="text"
@@ -1989,6 +1991,7 @@ export default function TestRunExecutionPage() {
                 size="small"
                 icon={<ArrowLeftOutlined />}
                 onClick={() => router.push("/qa-workspace/test-runs")}
+                style={{ flexShrink: 0 }}
               />
               <span className="sc-topbar__div" />
               <span className="cd-crumb">Runs</span>
@@ -1999,7 +2002,7 @@ export default function TestRunExecutionPage() {
                 </>
               )}
               <span className="cd-sep">›</span>
-              <h1 className="sc-topbar__h1 cd-title">{run?.run_name || "Loading run…"}</h1>
+              <h1 className="sc-topbar__h1 cd-title" title={run?.run_name}>{run?.run_name || "Loading run…"}</h1>
             </div>
 
             {/* Searching and narrowing are how a tester drives the list — they

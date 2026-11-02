@@ -297,6 +297,22 @@ class ReleasePlanService {
   }
 
   /**
+   * Remove multiple tickets from a release plan
+   */
+  static async removeTicketsFromReleasePlan(releasePlanId: string, ticketIds: string[]): Promise<any> {
+    try {
+      const response = await apiClient.post(`/api/release-plans/${releasePlanId}/tickets/remove`, {
+        ticketIds
+      });
+      return response?.data;
+    } catch (error: any) {
+      console.error('Error removing tickets from release plan:', error);
+      const errorMessage = error?.response?.data?.error || 'Failed to remove tickets from release plan';
+      throw new Error(errorMessage);
+    }
+  }
+
+  /**
    * Get Plans statistics
    */
   static async getReleasePlanStats(): Promise<any> {

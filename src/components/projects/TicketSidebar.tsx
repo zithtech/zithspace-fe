@@ -570,6 +570,7 @@ const TL_SIDEBAR_CSS = `
   top: 0 !important;
   height: calc(100vh - 54px) !important;
   overflow-y: auto;
+  overflow-x: hidden !important;
   align-self: start;
   display: flex;
   flex-direction: column;

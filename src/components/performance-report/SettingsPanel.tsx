@@ -3,8 +3,8 @@ import ZukvoLoader from "@/components/common/ZukvoLoader";
 
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Button, Switch, InputNumber, TimePicker, message, Tag, Tooltip, Drawer } from 'antd';
-import dayjs from 'dayjs';
+import { Button, Switch, InputNumber, TimePicker, DatePicker, message, Tag, Tooltip, Drawer } from 'antd';
+import dayjs, { Dayjs } from 'dayjs';
 import {
   CalendarCheck,
   CalendarOff,
@@ -324,13 +324,14 @@ export default function SettingsPanel() {
   };
 
   const [runningAuto, setRunningAuto] = useState(false);
+  const [sweepMonth, setSweepMonth] = useState<Dayjs>(dayjs());
 
   const handleRunAutoSweep = async () => {
     setRunningAuto(true);
     try {
-      const res = await PerformanceReportService.triggerAutoGenerateSweep();
+      const res = await PerformanceReportService.triggerAutoGenerateSweep(sweepMonth.format('YYYY-MM'));
       message.success(
-        `Auto-generation completed: ${res.generatedCount} generated${res.failedCount ? `, ${res.failedCount} failed` : ''}`
+        `Auto-generation completed for ${sweepMonth.format('MMMM YYYY')}: ${res.generatedCount} generated${res.failedCount ? `, ${res.failedCount} failed` : ''}`
       );
     } catch (err: any) {
       message.error(err?.response?.data?.error || 'Failed to run auto-generation sweep');
@@ -416,17 +417,28 @@ export default function SettingsPanel() {
             <span>on the last calendar day</span>
           </div>
 
-          <Button
-            type="primary"
-            size="middle"
-            className="prs-sweep-btn"
-            icon={<Sparkles size={14} />}
-            loading={runningAuto}
-            onClick={handleRunAutoSweep}
-            disabled={readOnly}
-          >
-            Run auto-generation sweep now
-          </Button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+            <DatePicker
+              picker="month"
+              value={sweepMonth}
+              onChange={(v) => v && setSweepMonth(v)}
+              allowClear={false}
+              size="middle"
+              style={{ width: 140 }}
+              disabled={readOnly || runningAuto}
+            />
+            <Button
+              type="primary"
+              size="middle"
+              className="prs-sweep-btn"
+              icon={<Sparkles size={14} />}
+              loading={runningAuto}
+              onClick={handleRunAutoSweep}
+              disabled={readOnly}
+            >
+              Run auto-generation sweep
+            </Button>
+          </div>
         </div>
       </section>
 

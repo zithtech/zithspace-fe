@@ -73,12 +73,12 @@ import { usePermission } from '@/hooks/usePermission';
 const { RangePicker } = DatePicker;
 const PAGE_SIZE = 12;
 
-const MODULES: { key: keyof GeneratedReport; label: string }[] = [
-  { key: 'ticketsScore', label: 'Tickets' },
-  { key: 'timeTrackingScore', label: 'Time' },
-  { key: 'dailyUpdatesScore', label: 'Updates' },
-  { key: 'attendanceScore', label: 'Attend.' },
-  { key: 'leavesScore', label: 'Leaves' },
+const MODULES: { key: keyof GeneratedReport; stageKey: string; label: string }[] = [
+  { key: 'ticketsScore', stageKey: 'tickets', label: 'Tickets' },
+  { key: 'timeTrackingScore', stageKey: 'time_tracking', label: 'Time' },
+  { key: 'dailyUpdatesScore', stageKey: 'daily_updates', label: 'Updates' },
+  { key: 'attendanceScore', stageKey: 'attendance', label: 'Attend.' },
+  { key: 'leavesScore', stageKey: 'leaves', label: 'Leaves' },
 ];
 
 const periodLabel = (p: string) => dayjs(`${p}-01`).format('MMMM YYYY');
@@ -710,7 +710,14 @@ export default function GeneratedReportsPanel() {
                   </div>
 
                   <div className="gr-modules">
-                    {MODULES.map((m) => {
+                    {MODULES.filter((m) => {
+                      const stages = (r.summary as any)?.stages as Array<{ key: string; enabled: boolean }> | undefined;
+                      if (stages && Array.isArray(stages)) {
+                        const st = stages.find((s) => s.key === m.stageKey);
+                        if (st && st.enabled === false) return false;
+                      }
+                      return true;
+                    }).map((m) => {
                       const v = r[m.key] as number | null;
                       return (
                         <div key={m.label} className="gr-mod">

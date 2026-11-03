@@ -2215,8 +2215,13 @@ export default function InvoiceInvoicesPage() {
                 placeholder="Enter any verification details, PO matching notes, or memo..."
                 maxLength={500}
                 showCount
-                className="rounded-xl approval-note-textarea [&_textarea]:!pl-4 [&_textarea]:!pr-4 [&_textarea]:!pt-3 [&_textarea]:!pb-2"
-                style={{ backgroundColor: 'var(--customers-card-bg)', borderColor: 'var(--border-color)', color: 'var(--text-primary)' }}
+                className="rounded-xl [&_textarea]:!pl-2.5 [&_textarea]:!pr-2 text-sm leading-relaxed"
+                style={{
+                  padding: '12px 18px',
+                  backgroundColor: 'var(--customers-card-bg)',
+                  borderColor: 'var(--border-color)',
+                  color: 'var(--text-primary)',
+                }}
               />
             </Form.Item>
 
@@ -3793,13 +3798,6 @@ export default function InvoiceInvoicesPage() {
 
         @media (max-width: 700px) {
           .pp-grid { grid-template-columns: 1fr; }
-        }
-
-        .approval-note-textarea textarea {
-          padding-left: 16px !important;
-          padding-right: 16px !important;
-          padding-top: 12px !important;
-          padding-bottom: 8px !important;
         }
       `}</style>
     </MainLayout>

@@ -767,7 +767,7 @@ useActivitySource({ section: "WORK", module: "QA", page: "CreateTestScope" });
   const defaultsAppliedRef = useRef(false);
   const productDefaultRef = useRef(false);
   /** The project the QA Space lists are scoped to — a new scope starts there. */
-  const { projectName: qaProjectName, ready: qaProjectReady } = useQaProject();
+  const { projectId: qaProjectId, projectName: qaProjectName, projects: qaProjects, ready: qaProjectReady } = useQaProject();
   const saveRef = useRef<() => void>(() => { });
 
   const [moreModalState, setMoreModalState] = useState<{
@@ -878,9 +878,6 @@ useActivitySource({ section: "WORK", module: "QA", page: "CreateTestScope" });
 
   useEffect(() => {
     if (!isLoading && canCreateScope) {
-      fetchSprintsSearch("");
-      fetchDevTicketsSearch("");
-      fetchBugSheetsSearch("");
       fetchPositionsAndUsers();
       fetchScopeSettings();
       fetchUserProjects();
@@ -952,69 +949,137 @@ useActivitySource({ section: "WORK", module: "QA", page: "CreateTestScope" });
     }
   };
 
+  const resolveProjectId = useCallback((productName?: string): string | undefined => {
+    if (!productName) return undefined;
+    const target = String(productName).trim().toLowerCase();
+
+    // 1. Direct match in projectOptions
+    const fromOptions = projectOptions.find(
+      p => String(p.value || '').trim().toLowerCase() === target ||
+           String(p.label || '').trim().toLowerCase() === target ||
+           String(p.id || '').trim().toLowerCase() === target
+    );
+    if (fromOptions?.id) return String(fromOptions.id);
+    if (fromOptions?.value && fromOptions.value !== productName && /^[0-9a-f-]{36}$/i.test(fromOptions.value)) {
+      return String(fromOptions.value);
+    }
+
+    // 2. Match in QA Space projects from useQaProject
+    const fromQa = qaProjects?.find(
+      p => String(p.label || '').trim().toLowerCase() === target ||
+           String(p.value || '').trim().toLowerCase() === target
+    );
+    if (fromQa?.value) return String(fromQa.value);
+
+    // 3. Active QA project
+    if (qaProjectName && String(qaProjectName).trim().toLowerCase() === target && qaProjectId) {
+      return String(qaProjectId);
+    }
+
+    // 4. UUID string
+    if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(productName)) {
+      return productName;
+    }
+
+    return undefined;
+  }, [projectOptions, qaProjects, qaProjectName, qaProjectId]);
+
+  const resolvedProjectId = resolveProjectId(formData.details.product);
+
   // --- Dynamic Search Handlers ---
   const fetchSprintsSearch = React.useCallback(
     debounce(async (search: string) => {
+      const currentProjId = resolveProjectId(formData.details.product);
+      if (!currentProjId && !formData.details.product) {
+        setSprints([]);
+        return;
+      }
       try {
         setLoadingSprints(true);
-        const selectedProject = projectOptions.find(p => p.value === formData.details.product);
-        const projectId = selectedProject?.id;
-        const res: any = await axios.get("/api/release-plans", { params: { search: search || undefined, limit: 10, projectId: projectId || undefined } });
-        const fetchedSprints = Array.isArray(res) ? res : (res.data || []);
-        setSprints(fetchedSprints);
+        const res: any = await axios.get("/api/release-plans", {
+          params: { search: search || undefined, limit: 50, projectId: currentProjId || undefined }
+        });
+        const list = Array.isArray(res) ? res : (res?.data || []);
+        const filtered = list.filter((s: any) => {
+          if (currentProjId && s.projectId && String(s.projectId) !== String(currentProjId)) return false;
+          if (currentProjId && s.project?.id && String(s.project.id) !== String(currentProjId)) return false;
+          return true;
+        });
+        setSprints(filtered);
       } catch (err) {
         console.error("Failed to fetch sprints:", err);
       } finally {
         setLoadingSprints(false);
       }
     }, 400),
-    [formData.details.product, projectOptions]
+    [formData.details.product, resolveProjectId]
   );
 
   const fetchDevTicketsSearch = React.useCallback(
     debounce(async (search: string) => {
+      const currentProjId = resolveProjectId(formData.details.product);
+      if (!currentProjId && !formData.details.product) {
+        setDevTickets([]);
+        return;
+      }
       try {
         setLoadingDevTickets(true);
-        const selectedProject = projectOptions.find(p => p.value === formData.details.product);
-        const projectId = selectedProject?.id;
-        const res: any = await axios.get("/api/tickets", { params: { search: search || undefined, limit: 10, projectId: projectId || undefined } });
+        const res: any = await axios.get("/api/tickets", {
+          params: { search: search || undefined, limit: 50, projectId: currentProjId || undefined }
+        });
         const data = Array.isArray(res) ? res : (res?.data?.data || res?.data || []);
-        setDevTickets(data);
+        const filtered = data.filter((t: any) => {
+          if (currentProjId && t.projectId && String(t.projectId) !== String(currentProjId)) return false;
+          return true;
+        });
+        setDevTickets(filtered);
       } catch (err) {
         console.error("Failed to fetch dev tickets:", err);
       } finally {
         setLoadingDevTickets(false);
       }
     }, 400),
-    [formData.details.product, projectOptions]
+    [formData.details.product, resolveProjectId]
   );
 
   const fetchBugSheetsSearch = React.useCallback(
     debounce(async (search: string) => {
+      const currentProjId = resolveProjectId(formData.details.product);
+      if (!currentProjId && !formData.details.product) {
+        setBugSheets([]);
+        return;
+      }
       try {
         setLoadingBugSheets(true);
-        const selectedProject = projectOptions.find(p => p.value === formData.details.product);
-        const projectId = selectedProject?.id;
-        const res: any = await axios.get("/api/bug-list/sheets/all", { params: { search: search || undefined, limit: 10, projectId: projectId || undefined } });
+        const res: any = await axios.get("/api/bug-list/sheets/all", {
+          params: { search: search || undefined, limit: 50, projectId: currentProjId || undefined }
+        });
         const data = Array.isArray(res) ? res : (res?.data?.data || res?.data || []);
-        setBugSheets(data);
+        const filtered = data.filter((b: any) => {
+          if (currentProjId && b.projectId && String(b.projectId) !== String(currentProjId)) return false;
+          return true;
+        });
+        setBugSheets(filtered);
       } catch (err) {
         console.error("Failed to fetch bug sheets:", err);
       } finally {
         setLoadingBugSheets(false);
       }
     }, 400),
-    [formData.details.product, projectOptions]
+    [formData.details.product, resolveProjectId]
   );
 
   // The tenant's module list, offered on the Product & Modules step.
   const [qaModules, setQaModules] = useState<any[]>([]);
   const fetchQaModules = useCallback(() => {
-    const selectedProject = projectOptions.find(p => p.value === formData.details.product);
-    const projectId = selectedProject?.id;
+    const currentProjId = resolveProjectId(formData.details.product);
     const productName = formData.details.product;
+    if (!currentProjId && !productName) {
+      setQaModules([]);
+      return;
+    }
     const params: any = {};
-    if (projectId) params.project_id = projectId;
+    if (currentProjId) params.project_id = currentProjId;
     if (productName) params.product = productName;
 
     axios.get('/api/v2/qa/modules', { params })
@@ -1023,102 +1088,151 @@ useActivitySource({ section: "WORK", module: "QA", page: "CreateTestScope" });
         setQaModules(Array.isArray(list) ? list : []);
       })
       .catch(() => { /* typing a module still works without the list */ });
-  }, [formData.details.product, projectOptions]);
+  }, [formData.details.product, resolveProjectId]);
   useEffect(() => { fetchQaModules(); }, [fetchQaModules]);
 
   useEffect(() => {
+    const currentProjId = resolveProjectId(formData.details.product);
+    if (!currentProjId && !formData.details.product) {
+      setTestSuites([]);
+      setTestRuns([]);
+      setTestCases([]);
+      setSprints([]);
+      setDevTickets([]);
+      setBugSheets([]);
+      return;
+    }
+
     (async () => {
       try {
         setLoadingTestSuites(true);
         setLoadingTestRuns(true);
         setLoadingHubDocs(true);
         setLoadingTestCases(true);
-        const selectedProject = projectOptions.find(p => p.value === formData.details.product);
-        const projectId = selectedProject?.id;
-        const [suiteRes, runRes, docRes, parentRes]: any[] = await Promise.all([
-          axios.get('/api/v2/qa/suites/all?limit=1000' + (projectId ? `&project_id=${encodeURIComponent(projectId)}` : '')),
-          axios.get('/api/v2/qa/runs/all?limit=1000' + (projectId ? `&project_id=${encodeURIComponent(projectId)}` : '')),
+        setLoadingSprints(true);
+        const [suiteRes, runRes, docRes, parentRes, sprintRes]: any[] = await Promise.all([
+          axios.get('/api/v2/qa/suites/all?limit=1000' + (currentProjId ? `&project_id=${encodeURIComponent(currentProjId)}` : '')),
+          axios.get('/api/v2/qa/runs/all?limit=1000' + (currentProjId ? `&project_id=${encodeURIComponent(currentProjId)}` : '')),
           axios.get('/api/v2/qa/test-scopes/documents?limit=1000'),
           // Parent cases (modules/scenarios) only — child cases are linked
           // through their parent, not scoped individually.
-          axios.get('/api/v2/qa/parents?limit=1000' + (projectId ? `&project_id=${encodeURIComponent(projectId)}` : '')),
+          axios.get('/api/v2/qa/parents?limit=1000' + (currentProjId ? `&project_id=${encodeURIComponent(currentProjId)}` : '')),
+          axios.get('/api/release-plans', { params: { limit: 50, projectId: currentProjId || undefined } }),
         ]);
         const unwrap = (r: any) => (Array.isArray(r) ? r : (r?.data?.data || r?.data || []));
-        setTestSuites(unwrap(suiteRes));
-        setTestRuns(unwrap(runRes));
+
+        const rawSuites = unwrap(suiteRes);
+        setTestSuites(rawSuites.filter((s: any) => !currentProjId || !s.project_id || String(s.project_id) === String(currentProjId)));
+
+        const rawRuns = unwrap(runRes);
+        setTestRuns(rawRuns.filter((r: any) => !currentProjId || !r.project_id || String(r.project_id) === String(currentProjId)));
+
         setHubDocs(unwrap(docRes));
-        setTestCases(unwrap(parentRes));
+
+        const rawCases = unwrap(parentRes);
+        setTestCases(rawCases.filter((c: any) => !currentProjId || !c.project_id || String(c.project_id) === String(currentProjId)));
+
+        const rawSprints = unwrap(sprintRes);
+        setSprints(rawSprints.filter((s: any) => {
+          if (currentProjId && s.projectId && String(s.projectId) !== String(currentProjId)) return false;
+          if (currentProjId && s.project?.id && String(s.project.id) !== String(currentProjId)) return false;
+          return true;
+        }));
       } catch (err) {
-        console.error('Failed to fetch test suites and runs:', err);
+        console.error('Failed to fetch test suites, runs and sprints:', err);
       } finally {
         setLoadingTestSuites(false);
         setLoadingTestRuns(false);
         setLoadingHubDocs(false);
         setLoadingTestCases(false);
+        setLoadingSprints(false);
       }
     })();
 
     // Also re-fetch the search-based dropdowns for the new project
-    fetchSprintsSearch("");
     fetchDevTicketsSearch("");
     fetchBugSheetsSearch("");
-  }, [formData.details.product]);
+  }, [formData.details.product, resolvedProjectId]);
 
   const fetchTestCasesSearch = React.useCallback(
     debounce(async (search: string) => {
+      const currentProjId = resolveProjectId(formData.details.product);
+      if (!currentProjId && !formData.details.product) {
+        setTestCases([]);
+        return;
+      }
       try {
         setLoadingTestCases(true);
-        const selectedProject = projectOptions.find(p => p.value === formData.details.product);
-        const projectId = selectedProject?.id;
         const res: any = await axios.get('/api/v2/qa/parents', {
-          params: { search: search || undefined, project_id: projectId || undefined },
+          params: { search: search || undefined, limit: 1000, project_id: currentProjId || undefined },
         });
-        setTestCases(Array.isArray(res) ? res : (res?.data?.data || res?.data || []));
+        const list = Array.isArray(res) ? res : (res?.data?.data || res?.data || []);
+        const filtered = list.filter((tc: any) => {
+          if (currentProjId && tc.project_id && String(tc.project_id) !== String(currentProjId)) return false;
+          return true;
+        });
+        setTestCases(filtered);
       } catch (err) {
         console.error("Failed to fetch parent test cases:", err);
       } finally {
         setLoadingTestCases(false);
       }
     }, 400),
-    [formData.details.product, projectOptions]
+    [formData.details.product, resolveProjectId]
   );
 
   const fetchTestSuitesSearch = React.useCallback(
     debounce(async (search: string) => {
+      const currentProjId = resolveProjectId(formData.details.product);
+      if (!currentProjId && !formData.details.product) {
+        setTestSuites([]);
+        return;
+      }
       try {
         setLoadingTestSuites(true);
-        const selectedProject = projectOptions.find(p => p.value === formData.details.product);
-        const projectId = selectedProject?.id;
         const res: any = await axios.get('/api/v2/qa/suites/all', {
-          params: { search: search || undefined, limit: 50, project_id: projectId || undefined },
+          params: { search: search || undefined, limit: 1000, project_id: currentProjId || undefined },
         });
-        setTestSuites(Array.isArray(res) ? res : (res?.data?.data || res?.data || []));
+        const list = Array.isArray(res) ? res : (res?.data?.data || res?.data || []);
+        const filtered = list.filter((ts: any) => {
+          if (currentProjId && ts.project_id && String(ts.project_id) !== String(currentProjId)) return false;
+          return true;
+        });
+        setTestSuites(filtered);
       } catch (err) {
         console.error("Failed to fetch test suites:", err);
       } finally {
         setLoadingTestSuites(false);
       }
     }, 400),
-    [formData.details.product, projectOptions]
+    [formData.details.product, resolveProjectId]
   );
 
   const fetchTestRunsSearch = React.useCallback(
     debounce(async (search: string) => {
+      const currentProjId = resolveProjectId(formData.details.product);
+      if (!currentProjId && !formData.details.product) {
+        setTestRuns([]);
+        return;
+      }
       try {
         setLoadingTestRuns(true);
-        const selectedProject = projectOptions.find(p => p.value === formData.details.product);
-        const projectId = selectedProject?.id;
         const res: any = await axios.get('/api/v2/qa/runs/all', {
-          params: { search: search || undefined, limit: 50, project_id: projectId || undefined },
+          params: { search: search || undefined, limit: 1000, project_id: currentProjId || undefined },
         });
-        setTestRuns(Array.isArray(res) ? res : (res?.data?.data || res?.data || []));
+        const list = Array.isArray(res) ? res : (res?.data?.data || res?.data || []);
+        const filtered = list.filter((tr: any) => {
+          if (currentProjId && tr.project_id && String(tr.project_id) !== String(currentProjId)) return false;
+          return true;
+        });
+        setTestRuns(filtered);
       } catch (err) {
         console.error("Failed to fetch test runs:", err);
       } finally {
         setLoadingTestRuns(false);
       }
     }, 400),
-    [formData.details.product, projectOptions]
+    [formData.details.product, resolveProjectId]
   );
 
   const d = formData.details;
@@ -1827,13 +1941,17 @@ useActivitySource({ section: "WORK", module: "QA", page: "CreateTestScope" });
     ? [...projectOptions, { value: currentProduct, label: currentProduct, description: 'Custom entry' }]
     : projectOptions;
 
-  const sprintOptions = sprints.map(s => ({ value: s.id || s.name, label: s.name }));
+  const sprintOptions = sprints.map(s => ({
+    value: String(s.id || s.name || s.version || ''),
+    label: String(s.name || s.version || s.title || s.id || 'Untitled Sprint'),
+    description: s.description || undefined
+  }));
 
   /* The workspace's own module list — the same one QA Space → Settings curates.
      Filter by selected project so modules from other projects are not shown.
      Anything typed here that isn't on it is registered on save. */
   const selectedProject = projectOptions.find(p => p.value === formData.details.product);
-  const selectedProjectId = selectedProject?.id;
+  const selectedProjectId = resolvedProjectId;
   const selectedProductName = (formData.details.product || '').trim().toLowerCase();
 
   const filteredQaModules = qaModules.filter((m: any) => {
@@ -2629,7 +2747,20 @@ useActivitySource({ section: "WORK", module: "QA", page: "CreateTestScope" });
                     <SearchableDropdown
                       options={productOptions}
                       value={formData.details.product}
-                      onChange={v => updateDetail('product', v)}
+                      onChange={v => {
+                        updateDetail('product', v);
+                        if (v !== formData.details.product) {
+                          updateDetail('sprint', undefined);
+                          updateDetail('modules', []);
+                          updateDetail('features', []);
+                          updateLinkedItemArray('sprints', []);
+                          updateLinkedItemArray('testCases', []);
+                          updateLinkedItemArray('testSuites', []);
+                          updateLinkedItemArray('testRuns', []);
+                          updateLinkedItemArray('devTickets', []);
+                          updateLinkedItemArray('bugSheets', []);
+                        }
+                      }}
                       placeholder="Select Product"
                       searchPlaceholder="Search your projects…"
                       itemNoun="projects"
@@ -2644,10 +2775,11 @@ useActivitySource({ section: "WORK", module: "QA", page: "CreateTestScope" });
                       options={allModuleOpts}
                       value={formData.details.modules}
                       onChange={v => updateDetail('modules', v)}
-                      placeholder="Select or type Modules"
+                      placeholder={!formData.details.product ? "Select Product first" : "Select or type Modules"}
                       searchPlaceholder="Search or type a new module…"
                       itemNoun="modules"
                       freeText={true}
+                      disabled={!formData.details.product}
                       emptyComponent={
                         <NoModulesEmpty
                           projectName={formData.details.product}
@@ -2690,7 +2822,8 @@ useActivitySource({ section: "WORK", module: "QA", page: "CreateTestScope" });
                       value={formData.details.sprint}
                       onChange={v => updateDetail('sprint', v)}
                       onSearch={fetchSprintsSearch}
-                      placeholder="Select Sprint"
+                      placeholder={!formData.details.product ? "Select Product first" : (sprints.length ? "Select Sprint" : "No sprints found for this project")}
+                      disabled={!formData.details.product}
                       loading={loadingSprints}
                       style={{ width: '100%' }}
                     />
@@ -3444,8 +3577,8 @@ useActivitySource({ section: "WORK", module: "QA", page: "CreateTestScope" });
                     <SearchableDropdown
                       mode="multiple"
                       options={sprints.map(s => ({
-                        label: s.name,
-                        value: String(s.id || s.name),
+                        label: String(s.name || s.version || s.title || s.id || 'Untitled Sprint'),
+                        value: String(s.id || s.name || s.version),
                         description: s.description || '',
                         badge: <span style={{ background: '#3b82f6', color: '#fff', borderRadius: '50%', width: 24, height: 24, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10 }}>S</span>
                       }))}
@@ -3454,33 +3587,34 @@ useActivitySource({ section: "WORK", module: "QA", page: "CreateTestScope" });
                         updateLinkedItemArray(
                           'sprints',
                           (v || []).map(id => {
-                            const hit = sprints.find(s => String(s.id || s.name) === id);
-                            return { name: hit?.name || id, link: id };
+                            const hit = sprints.find(s => String(s.id || s.name || s.version) === id);
+                            return { name: hit?.name || hit?.version || id, link: id };
                           })
                         );
                       }}
                       onSearch={fetchSprintsSearch}
                       loading={loadingSprints}
-                      placeholder={sprints.length ? "Search Sprints…" : "No sprints found"}
+                      disabled={!formData.details.product}
+                      placeholder={!formData.details.product ? "Select Product first" : (sprints.length ? "Search Sprints…" : "No sprints found for this project")}
                       itemNoun="sprints"
                       style={{ width: '100%' }}
                     />
                     <TokenList
                       items={(asLinkedIds(formData.details.linkedItems?.sprints) || []).map(id => {
-                        const hit = sprints.find(s => String(s.id || s.name) === id);
+                        const hit = sprints.find(s => String(s.id || s.name || s.version) === id);
                         const stored = Array.isArray(formData.details.linkedItems?.sprints)
-                          ? formData.details.linkedItems.sprints.find((i: any) => String(i.link || i.id || i.name) === id)?.name
+                          ? formData.details.linkedItems.sprints.find((i: any) => String(i.link || i.id || i.name || i.version) === id)?.name
                           : formData.details.linkedItems?.sprints?.name;
                         return {
                           id,
-                          label: hit?.name || stored || id,
+                          label: hit?.name || hit?.version || stored || id,
                         };
                       })}
                       onRemove={(id) => {
                         const current = Array.isArray(formData.details.linkedItems?.sprints)
                           ? formData.details.linkedItems.sprints
                           : formData.details.linkedItems?.sprints ? [formData.details.linkedItems.sprints] : [];
-                        updateLinkedItemArray('sprints', current.filter((i: any) => String(i.link || i.id || i.name) !== id));
+                        updateLinkedItemArray('sprints', current.filter((i: any) => String(i.link || i.id || i.name || i.version) !== id));
                       }}
                     />
                   </Field>
@@ -3516,7 +3650,8 @@ useActivitySource({ section: "WORK", module: "QA", page: "CreateTestScope" });
                       }}
                       onSearch={fetchTestCasesSearch}
                       loading={loadingTestCases}
-                      placeholder={testCases.length ? "Search parent test cases…" : "No test cases found"}
+                      disabled={!formData.details.product}
+                      placeholder={!formData.details.product ? "Select Product first" : (testCases.length ? "Search parent test cases…" : "No test cases found for this project")}
                       itemNoun="cases"
                       style={{ width: '100%' }}
                     />
@@ -3574,7 +3709,8 @@ useActivitySource({ section: "WORK", module: "QA", page: "CreateTestScope" });
                       }
                       onSearch={fetchTestSuitesSearch}
                       loading={loadingTestSuites}
-                      placeholder={testSuites.length ? 'Search test suites…' : 'No test suites created yet'}
+                      disabled={!formData.details.product}
+                      placeholder={!formData.details.product ? "Select Product first" : (testSuites.length ? 'Search test suites…' : 'No test suites found for this project')}
                       itemNoun="suites"
                       style={{ width: '100%' }}
                     />
@@ -3630,7 +3766,8 @@ useActivitySource({ section: "WORK", module: "QA", page: "CreateTestScope" });
                       }
                       onSearch={fetchTestRunsSearch}
                       loading={loadingTestRuns}
-                      placeholder={testRuns.length ? 'Search test runs…' : 'No test runs recorded yet'}
+                      disabled={!formData.details.product}
+                      placeholder={!formData.details.product ? "Select Product first" : (testRuns.length ? 'Search test runs…' : 'No test runs found for this project')}
                       itemNoun="runs"
                       style={{ width: '100%' }}
                     />

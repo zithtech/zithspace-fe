@@ -312,10 +312,10 @@ const PerformanceReportService = {
   },
 
   /** Trigger automated report generation sweep on demand */
-  async triggerAutoGenerateSweep(): Promise<{ scannedTenants: number; generatedCount: number; failedCount: number }> {
+  async triggerAutoGenerateSweep(periodKey?: string): Promise<{ scannedTenants: number; generatedCount: number; failedCount: number }> {
     const res = await apiClient.post(
       `${BASE}/settings/trigger-auto-generate`,
-      {},
+      { periodKey },
       { timeout: 300000 }
     );
     return unwrap(res.data);

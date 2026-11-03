@@ -61,6 +61,8 @@ import {
   Paperclip,
   LayoutGrid,
   List,
+  ArrowRight,
+  Check,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 
@@ -191,6 +193,83 @@ const INVOICE_STATUS_META: Record<
   'PARTIALLY_PAID': { label: 'Partially Paid', color: '#3b82f6', bg: 'rgba(59,130,246,0.10)', ring: 'rgba(59,130,246,0.25)' },
   'OVERDUE': { label: 'Overdue', color: '#f87171', bg: 'rgba(248,113,113,0.10)', ring: 'rgba(248,113,113,0.25)' },
   'CANCELLED': { label: 'Cancelled', color: '#64748b', bg: 'rgba(100,116,139,0.10)', ring: 'rgba(100,116,139,0.25)' },
+};
+
+const STATUS_TRANSITION_DETAILS: Record<
+  InvoiceStatus,
+  {
+    title: string;
+    description: string;
+    color: string;
+    bg: string;
+    border: string;
+    icon: React.ReactNode;
+  }
+> = {
+  DRAFT: {
+    title: 'Move to Draft',
+    description: 'Revert to draft state for updates or corrections.',
+    color: '#64748b',
+    bg: 'rgba(100, 116, 139, 0.08)',
+    border: '#cbd5e1',
+    icon: <Clock size={16} />,
+  },
+  PENDING: {
+    title: 'Submit for Approval',
+    description: 'Send to manager or finance department for verification.',
+    color: '#3b82f6',
+    bg: 'rgba(59, 130, 246, 0.08)',
+    border: '#bfdbfe',
+    icon: <Clock size={16} />,
+  },
+  APPROVED: {
+    title: 'Approve Invoice',
+    description: 'Mark as authorized and verified; ready for client delivery.',
+    color: '#0284c7',
+    bg: 'rgba(2, 132, 199, 0.08)',
+    border: '#bae6fd',
+    icon: <CheckCircle size={16} />,
+  },
+  SENT: {
+    title: 'Mark as Sent',
+    description: 'Invoice delivered to customer; awaiting payment settlement.',
+    color: '#6366f1',
+    bg: 'rgba(99, 102, 241, 0.08)',
+    border: '#c7d2fe',
+    icon: <Mail size={16} />,
+  },
+  PARTIALLY_PAID: {
+    title: 'Record Partial Payment',
+    description: 'Customer paid part of the total; record amount and track balance.',
+    color: '#f59e0b',
+    bg: 'rgba(245, 158, 11, 0.08)',
+    border: '#fde68a',
+    icon: <DollarSign size={16} />,
+  },
+  PAID: {
+    title: 'Mark as Fully Paid',
+    description: 'Total balance settled; record transaction and close invoice.',
+    color: '#10b981',
+    bg: 'rgba(16, 185, 129, 0.08)',
+    border: '#a7f3d0',
+    icon: <CheckCircle size={16} />,
+  },
+  OVERDUE: {
+    title: 'Mark as Overdue',
+    description: 'Payment due date has elapsed without full settlement.',
+    color: '#ef4444',
+    bg: 'rgba(239, 68, 68, 0.08)',
+    border: '#fecaca',
+    icon: <AlertCircle size={16} />,
+  },
+  CANCELLED: {
+    title: 'Void / Cancel Invoice',
+    description: 'Invalidate this invoice and write off any remaining balance.',
+    color: '#94a3b8',
+    bg: 'rgba(148, 163, 184, 0.08)',
+    border: '#e2e8f0',
+    icon: <XCircle size={16} />,
+  },
 };
 
 export default function InvoiceInvoicesPage() {
@@ -1771,125 +1850,288 @@ export default function InvoiceInvoicesPage() {
           statusForm.resetFields();
         }}
         footer={null}
-        width={500}
+        width={560}
+        centered
+        wrapClassName="!overflow-hidden"
         styles={{
-          mask: { backdropFilter: 'blur(4px)', background: 'rgba(15, 23, 42, 0.4)' },
-          content: { padding: 0, borderRadius: 24, overflow: 'hidden', backgroundColor: 'var(--customers-card-bg)' }
+          mask: { backdropFilter: 'blur(6px)', background: 'rgba(15, 23, 42, 0.55)' },
+          wrapper: { overflow: 'hidden' },
+          content: {
+            padding: 0,
+            borderRadius: 24,
+            overflow: 'hidden',
+            backgroundColor: 'var(--customers-card-bg)',
+            border: '1px solid var(--border-color)',
+            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+          },
         }}
       >
-        <div className="p-6 border-b" style={{ borderColor: 'var(--border-color)', backgroundColor: 'var(--bg-slate-50)' }}>
-          <div className="flex items-center gap-3">
-            <div className="p-2.5 rounded-none border" style={{ backgroundColor: 'var(--accounts-emerald-bg)', color: 'var(--accounts-emerald-text)', borderColor: 'var(--accounts-emerald-bg)' }}>
-              <CreditCard size={20} />
+        {/* Modal Header */}
+        <div
+          className="px-6 pt-6 pb-4 border-b"
+          style={{
+            borderColor: 'var(--border-color)',
+            background: 'linear-gradient(180deg, var(--bg-slate-50) 0%, var(--customers-card-bg) 100%)',
+          }}
+        >
+          <div className="flex items-center justify-between gap-3 pr-8">
+            <div className="flex items-center gap-3">
+              <div
+                className="w-10 h-10 rounded-xl flex items-center justify-center shadow-xs shrink-0"
+                style={{ backgroundColor: 'rgba(16, 185, 129, 0.12)', color: '#059669' }}
+              >
+                <CreditCard size={20} />
+              </div>
+              <div>
+                <div className="text-[15px] font-bold tracking-tight" style={{ color: 'var(--text-primary)' }}>
+                  Record Payment
+                </div>
+                <div className="text-xs flex items-center gap-1.5 mt-0.5" style={{ color: 'var(--text-secondary)' }}>
+                  <span className="font-semibold text-emerald-600 dark:text-emerald-400">
+                    Invoice #{statusInvoice?.invoiceNumber}
+                  </span>
+                  {(statusInvoice?.customer?.companyName || statusInvoice?.customer?.displayName || statusInvoice?.customerName) && (
+                    <>
+                      <span>•</span>
+                      <span className="truncate max-w-[200px]">
+                        {statusInvoice?.customer?.companyName || statusInvoice?.customer?.displayName || statusInvoice?.customerName}
+                      </span>
+                    </>
+                  )}
+                </div>
+              </div>
             </div>
-            <div>
-              <Title level={4} style={{ margin: 0, fontSize: 16 }}>Record Payment</Title>
-              <Text type="secondary" style={{ fontSize: 12 }}>Invoice #{statusInvoice?.invoiceNumber}</Text>
+
+            <div className="text-right">
+              <span className="text-[10px] uppercase font-bold tracking-wider block text-slate-400">
+                Balance Due
+              </span>
+              <span className="text-sm font-extrabold text-emerald-600 dark:text-emerald-400">
+                {currencySymbol(statusInvoice?.currency)}
+                {Number(statusInvoice?.balanceDue || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              </span>
             </div>
           </div>
         </div>
 
         <div className="p-6">
-          <div className="grid grid-cols-3 gap-3 mb-6">
-            <div className="p-3 rounded-none border shadow-sm" style={{ backgroundColor: 'var(--customers-card-bg)', borderColor: 'var(--border-color)' }}>
-              <Text type="secondary" className="text-[10px] uppercase font-bold tracking-wider block mb-1">Total</Text>
-              <Text strong className="text-sm">
-                {currencySymbol(statusInvoice?.currency)}{Number(statusInvoice?.grandTotal || statusInvoice?.total || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
-              </Text>
-            </div>
-            <div className="p-3 rounded-none border shadow-sm" style={{ backgroundColor: 'var(--bg-slate-50)', borderColor: 'var(--border-color)' }}>
-              <Text type="secondary" className="text-[10px] uppercase font-bold tracking-wider block mb-1">Paid</Text>
-              <Text strong className="text-sm" style={{ color: 'var(--accounts-emerald-text)' }}>
-                {currencySymbol(statusInvoice?.currency)}{Number(statusInvoice?.paidAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
-              </Text>
-            </div>
-            <div className="p-3 rounded-none border shadow-sm" style={{ backgroundColor: 'var(--bg-blue-50)', borderColor: 'var(--border-color)' }}>
-              <Text type="secondary" className="text-[10px] uppercase font-bold tracking-wider block mb-1">Due</Text>
-              <Text strong className="text-sm" style={{ color: 'var(--text-sky-500)' }}>
-                {currencySymbol(statusInvoice?.currency)}{Number(statusInvoice?.balanceDue || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
-              </Text>
-            </div>
-          </div>
+          {/* Financial Overview Card with Settlement Progress */}
+          {(() => {
+            const grandTotal = Number(statusInvoice?.grandTotal || statusInvoice?.total || 0);
+            const paidAmount = Number(statusInvoice?.paidAmount || 0);
+            const balanceDue = Number(statusInvoice?.balanceDue || 0);
+            const paidPercent = grandTotal > 0 ? Math.min(100, Math.max(0, Math.round((paidAmount / grandTotal) * 100))) : 0;
+
+            return (
+              <div
+                className="p-4 rounded-2xl border mb-5 shadow-xs"
+                style={{ backgroundColor: 'var(--bg-slate-50)', borderColor: 'var(--border-color)' }}
+              >
+                {/* 3 Metric Columns */}
+                <div className="grid grid-cols-3 gap-3 mb-3.5">
+                  <div>
+                    <span className="text-[10.5px] uppercase font-bold tracking-wider block text-slate-400 mb-0.5">
+                      Total Invoice
+                    </span>
+                    <div className="text-[15px] font-extrabold text-slate-900 dark:text-slate-100">
+                      {currencySymbol(statusInvoice?.currency)}
+                      {grandTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </div>
+                  </div>
+
+                  <div>
+                    <span className="text-[10.5px] uppercase font-bold tracking-wider block text-slate-400 mb-0.5">
+                      Already Paid
+                    </span>
+                    <div className="text-[15px] font-extrabold text-slate-700 dark:text-slate-300">
+                      {currencySymbol(statusInvoice?.currency)}
+                      {paidAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </div>
+                  </div>
+
+                  <div>
+                    <span className="text-[10.5px] uppercase font-bold tracking-wider block text-emerald-600 dark:text-emerald-400 mb-0.5">
+                      Remaining Due
+                    </span>
+                    <div className="text-[15px] font-extrabold text-emerald-600 dark:text-emerald-400">
+                      {currencySymbol(statusInvoice?.currency)}
+                      {balanceDue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Visual Progress Bar */}
+                <div>
+                  <div className="flex items-center justify-between text-[11px] mb-1.5 font-medium text-slate-500 dark:text-slate-400">
+                    <span>Payment Completion</span>
+                    <span className="font-bold text-slate-700 dark:text-slate-300">{paidPercent}% Settled</span>
+                  </div>
+                  <div className="w-full h-2 rounded-full bg-slate-200/80 dark:bg-slate-700/60 overflow-hidden">
+                    <div
+                      className="h-full rounded-full transition-all duration-300 bg-emerald-500"
+                      style={{ width: `${paidPercent}%` }}
+                    />
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
 
           <Form form={statusForm} layout="vertical" onFinish={handlePaymentUpdate} requiredMark={false}>
-            <Form.Item
-              label={<span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest leading-none">Payment Amount ({statusInvoice?.currency || 'INR'})</span>}
-              name="paidAmount"
-              rules={[
-                { required: true, message: "Please enter amount" },
-                {
-                  validator: (_, value) => {
-                    const balanceDue = Number(statusInvoice?.balanceDue || 0);
-                    const paidAmount = Number(value || 0);
-                    if (paidAmount > balanceDue) {
-                      return Promise.reject(new Error(`Amount exceeds balance (${currencySymbol(statusInvoice?.currency)}${balanceDue.toFixed(2)})`));
-                    }
-                    if (paidAmount <= 0) {
-                      return Promise.reject(new Error('Amount must be positive'));
-                    }
-                    return Promise.resolve();
-                  }
-                }
-              ]}
-            >
-              <Input
-                type="number"
-                min={0}
-                max={statusInvoice?.balanceDue}
-                placeholder="0.00"
-                prefix={<span className="text-slate-400">{currencySymbol(statusInvoice?.currency)}</span>}
-                className="h-12 rounded-none text-lg font-bold"
-                step="0.01"
-                style={{ backgroundColor: 'var(--customers-card-bg)', borderColor: 'var(--border-color)', color: 'var(--text-primary)' }}
-              />
-            </Form.Item>
+            {/* Payment Amount Input */}
+            <div className="mb-4">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-[11px] font-extrabold uppercase tracking-wider text-slate-400">
+                  Payment Amount ({statusInvoice?.currency || 'INR'})
+                </span>
+                <div className="flex items-center gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      statusForm.setFieldsValue({ paidAmount: Number(statusInvoice?.balanceDue || 0).toFixed(2) });
+                    }}
+                    className="text-[11px] font-bold px-2.5 py-1 rounded-lg border border-emerald-300 dark:border-emerald-700 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 transition-colors cursor-pointer shadow-2xs"
+                  >
+                    Pay Full Due
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const half = (Number(statusInvoice?.balanceDue || 0) / 2).toFixed(2);
+                      statusForm.setFieldsValue({ paidAmount: half });
+                    }}
+                    className="text-[11px] font-bold px-2.5 py-1 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-100 transition-colors cursor-pointer shadow-2xs"
+                  >
+                    Pay 50%
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      statusForm.setFieldsValue({ paidAmount: "" });
+                    }}
+                    className="text-[11px] font-medium px-2 py-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors cursor-pointer"
+                  >
+                    Clear
+                  </button>
+                </div>
+              </div>
 
+              <Form.Item
+                name="paidAmount"
+                className="mb-1"
+                rules={[
+                  { required: true, message: "Please enter amount" },
+                  {
+                    validator: (_, value) => {
+                      const balanceDue = Number(statusInvoice?.balanceDue || 0);
+                      const paidAmount = Number(value || 0);
+                      if (paidAmount > balanceDue) {
+                        return Promise.reject(new Error(`Amount exceeds balance (${currencySymbol(statusInvoice?.currency)}${balanceDue.toFixed(2)})`));
+                      }
+                      if (paidAmount <= 0) {
+                        return Promise.reject(new Error('Amount must be positive'));
+                      }
+                      return Promise.resolve();
+                    }
+                  }
+                ]}
+              >
+                <Input
+                  type="number"
+                  min={0}
+                  max={statusInvoice?.balanceDue}
+                  placeholder="0.00"
+                  prefix={<span className="text-slate-400 font-bold mr-1.5 text-base">{currencySymbol(statusInvoice?.currency)}</span>}
+                  className="h-12 rounded-xl text-lg font-bold"
+                  step="0.01"
+                  style={{ backgroundColor: 'var(--customers-card-bg)', borderColor: 'var(--border-color)', color: 'var(--text-primary)' }}
+                />
+              </Form.Item>
+
+              {/* Dynamic Live Settlement Indicator */}
+              <Form.Item noStyle dependencies={['paidAmount']}>
+                {() => {
+                  const inputVal = Number(statusForm.getFieldValue('paidAmount') || 0);
+                  const balanceDue = Number(statusInvoice?.balanceDue || 0);
+
+                  if (inputVal <= 0 || isNaN(inputVal)) {
+                    return null;
+                  }
+
+                  const isFull = inputVal >= balanceDue;
+                  const remaining = Math.max(0, balanceDue - inputVal);
+
+                  return (
+                    <div
+                      className="mt-2 px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center justify-between transition-all"
+                      style={{
+                        backgroundColor: isFull ? 'rgba(16, 185, 129, 0.08)' : 'rgba(59, 130, 246, 0.08)',
+                        color: isFull ? '#059669' : '#2563eb',
+                        border: `1px solid ${isFull ? 'rgba(16, 185, 129, 0.25)' : 'rgba(59, 130, 246, 0.25)'}`,
+                      }}
+                    >
+                      <span className="flex items-center gap-1.5">
+                        <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: isFull ? '#10b981' : '#3b82f6' }} />
+                        {isFull ? 'Fully Settles Invoice (Status → PAID)' : 'Partial Payment (Status → PARTIALLY PAID)'}
+                      </span>
+                      <span>
+                        Remaining: {currencySymbol(statusInvoice?.currency)}{remaining.toFixed(2)}
+                      </span>
+                    </div>
+                  );
+                }}
+              </Form.Item>
+            </div>
+
+            {/* Method & Date */}
             <div className="grid grid-cols-2 gap-4">
               <Form.Item
-                label={<span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest leading-none">Method</span>}
+                label={<span className="text-[10px] font-extrabold uppercase tracking-widest text-slate-400">Payment Method</span>}
                 name="paymentMethod"
                 initialValue="BANK_TRANSFER"
               >
-                <Select className="h-11 rounded-none" popupClassName="rounded-none">
-                  <Select.Option value="BANK_TRANSFER">Bank Transfer</Select.Option>
-                  <Select.Option value="CREDIT_CARD">Credit Card</Select.Option>
-                  <Select.Option value="CASH">Cash</Select.Option>
-                  <Select.Option value="CHECK">Check</Select.Option>
-                  <Select.Option value="OTHER">Other</Select.Option>
+                <Select className="h-11 rounded-xl w-full" popupClassName="rounded-xl">
+                  <Select.Option value="BANK_TRANSFER">🏦 Bank Transfer</Select.Option>
+                  <Select.Option value="CREDIT_CARD">💳 Credit Card</Select.Option>
+                  <Select.Option value="CASH">💵 Cash</Select.Option>
+                  <Select.Option value="CHECK">📝 Check / Cheque</Select.Option>
+                  <Select.Option value="OTHER">⚡ Other / Online</Select.Option>
                 </Select>
               </Form.Item>
 
               <Form.Item
-                label={<span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest leading-none">Date</span>}
+                label={<span className="text-[10px] font-extrabold uppercase tracking-widest text-slate-400">Payment Date</span>}
                 name="paidAt"
                 initialValue={dayjs()}
               >
                 <DatePicker
                   showTime
                   format="YYYY-MM-DD HH:mm"
-                  className="h-11 w-full rounded-none"
-                  popupClassName="rounded-none"
+                  className="h-11 w-full rounded-xl"
+                  popupClassName="rounded-xl"
                 />
               </Form.Item>
             </div>
 
+            {/* Transaction Reference / Notes */}
             <Form.Item
-              label={<span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest leading-none">Note</span>}
+              label={<span className="text-[10px] font-extrabold uppercase tracking-widest text-slate-400">Transaction Reference / Memo</span>}
               name="description"
+              className="mb-0"
             >
-              <Input.TextArea
-                rows={2}
-                placeholder="Reference number or memo..."
-                className="rounded-none p-3"
+              <Input
+                placeholder="e.g. UTR-982144, Cheque #0041, or transaction note"
+                className="h-11 rounded-xl px-3"
                 maxLength={200}
                 style={{ backgroundColor: 'var(--customers-card-bg)', borderColor: 'var(--border-color)', color: 'var(--text-primary)' }}
               />
             </Form.Item>
 
-            <div className="flex gap-3 mt-8">
+            {/* Actions */}
+            <div className="flex items-center gap-3 mt-6 pt-4 border-t" style={{ borderColor: 'var(--border-color)' }}>
               <Button
                 onClick={() => setStatusModalVisible(false)}
-                className="h-11 flex-1 rounded-none font-semibold"
+                className="h-11 flex-1 rounded-xl font-bold transition-colors"
                 style={{ borderColor: 'var(--border-color)', color: 'var(--text-secondary)' }}
               >
                 Cancel
@@ -1898,10 +2140,10 @@ export default function InvoiceInvoicesPage() {
                 type="primary"
                 htmlType="submit"
                 loading={updateStatusMutation.isPending}
-                className="h-11 flex-1 rounded-none font-semibold border-none"
-                style={{ backgroundColor: 'var(--customers-header-icon-color)' }}
+                className="h-11 flex-1 rounded-xl font-bold border-none shadow-sm"
+                style={{ backgroundColor: '#10b981' }}
               >
-                Update Payment
+                Record Payment
               </Button>
             </div>
           </Form>
@@ -1910,33 +2152,97 @@ export default function InvoiceInvoicesPage() {
 
       {/* Approval Modal */}
       <Modal
-        title={
-          <div className="flex items-center">
-            <CheckCircle size={20} className="text-green-500 mr-2" style={{ color: "#10b981" }} />
-            Approve Invoice {approvalInvoice?.invoiceNumber}
-          </div>
-        }
+        title={null}
         open={approvalModalVisible}
         onCancel={() => {
           setApprovalModalVisible(false);
           approvalForm.resetFields();
         }}
-        onOk={handleApprovalUpdate}
-        confirmLoading={updateStatusMutation.isPending}
-        okText="Approve Invoice"
-        cancelText="Cancel"
-        width={400}
+        footer={null}
+        width={480}
+        centered
+        wrapClassName="!overflow-hidden"
+        styles={{
+          mask: { backdropFilter: 'blur(6px)', background: 'rgba(15, 23, 42, 0.55)' },
+          wrapper: { overflow: 'hidden' },
+          content: {
+            padding: 0,
+            borderRadius: 24,
+            overflow: 'hidden',
+            backgroundColor: 'var(--customers-card-bg)',
+            border: '1px solid var(--border-color)',
+            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+          },
+        }}
       >
-        <Form form={approvalForm} layout="vertical">
-          <Form.Item label="Approval Note (optional)" name="note">
-            <Input.TextArea
-              rows={4}
-              placeholder="Enter note for approval"
-              maxLength={500}
-              showCount
-            />
-          </Form.Item>
-        </Form>
+        <div
+          className="px-6 pt-6 pb-4 border-b"
+          style={{
+            borderColor: 'var(--border-color)',
+            background: 'linear-gradient(135deg, rgba(6, 182, 212, 0.08) 0%, var(--customers-card-bg) 100%)',
+          }}
+        >
+          <div className="flex items-center gap-3 pr-8">
+            <div
+              className="w-10 h-10 rounded-xl flex items-center justify-center shadow-xs shrink-0"
+              style={{ backgroundColor: 'rgba(6, 182, 212, 0.15)', color: '#0891b2' }}
+            >
+              <CheckCircle size={20} />
+            </div>
+            <div>
+              <div className="text-base font-extrabold" style={{ color: 'var(--text-primary)' }}>
+                Approve Invoice
+              </div>
+              <div className="text-xs mt-0.5 font-semibold text-cyan-600 dark:text-cyan-400">
+                Invoice #{approvalInvoice?.invoiceNumber}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="p-6">
+          <p className="text-xs mb-4 leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
+            Are you sure you want to approve this invoice? Once approved, the invoice is authorized and can be dispatched to the customer.
+          </p>
+
+          <Form form={approvalForm} layout="vertical" onFinish={handleApprovalUpdate}>
+            <Form.Item
+              label={<span className="text-[10px] font-extrabold uppercase tracking-widest text-slate-400">Approval Note (Optional)</span>}
+              name="note"
+            >
+              <Input.TextArea
+                rows={3}
+                placeholder="Enter any verification details, PO matching notes, or memo..."
+                maxLength={500}
+                showCount
+                className="rounded-xl approval-note-textarea [&_textarea]:!pl-4 [&_textarea]:!pr-4 [&_textarea]:!pt-3 [&_textarea]:!pb-2"
+                style={{ backgroundColor: 'var(--customers-card-bg)', borderColor: 'var(--border-color)', color: 'var(--text-primary)' }}
+              />
+            </Form.Item>
+
+            <div className="flex items-center gap-3 mt-6 pt-3 border-t" style={{ borderColor: 'var(--border-color)' }}>
+              <Button
+                onClick={() => {
+                  setApprovalModalVisible(false);
+                  approvalForm.resetFields();
+                }}
+                className="h-11 flex-1 rounded-xl font-bold"
+                style={{ borderColor: 'var(--border-color)', color: 'var(--text-secondary)' }}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="primary"
+                htmlType="submit"
+                loading={updateStatusMutation.isPending}
+                className="h-11 flex-1 rounded-xl font-bold border-none shadow-md"
+                style={{ backgroundColor: '#0284c7' }}
+              >
+                Approve Invoice
+              </Button>
+            </div>
+          </Form>
+        </div>
       </Modal>
 
       {/* Status Change Modal */}
@@ -1948,106 +2254,243 @@ export default function InvoiceInvoicesPage() {
           setSelectedNewStatus(null);
         }}
         footer={null}
-        width={450}
+        width={560}
+        centered
+        wrapClassName="!overflow-hidden"
         styles={{
-          mask: { backdropFilter: 'blur(4px)', background: 'rgba(15, 23, 42, 0.4)' },
-          content: { padding: 0, borderRadius: 24, overflow: 'hidden', backgroundColor: 'var(--customers-card-bg)' }
+          mask: { backdropFilter: 'blur(6px)', background: 'rgba(15, 23, 42, 0.55)' },
+          wrapper: { overflow: 'hidden' },
+          content: {
+            padding: 0,
+            borderRadius: 24,
+            overflow: 'hidden',
+            backgroundColor: 'var(--customers-card-bg)',
+            border: '1px solid var(--border-color)',
+            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+          },
         }}
       >
-        <div className="p-6 border-b" style={{ borderColor: 'var(--border-color)', backgroundColor: 'var(--bg-slate-50)' }}>
-          <div className="flex items-center gap-3">
-            <div className="p-2.5 rounded-none border" style={{ backgroundColor: 'var(--bg-blue-50)', color: 'var(--text-sky-500)', borderColor: 'var(--bg-blue-50)' }}>
-              <RefreshCw size={20} />
+        {/* Header */}
+        <div
+          className="px-6 pt-6 pb-4 border-b"
+          style={{
+            borderColor: 'var(--border-color)',
+            background: 'linear-gradient(180deg, var(--bg-slate-50) 0%, var(--customers-card-bg) 100%)',
+          }}
+        >
+          <div className="flex items-center justify-between gap-3 pr-8">
+            <div className="flex items-center gap-3">
+              <div
+                className="w-9 h-9 rounded-xl flex items-center justify-center shadow-xs shrink-0"
+                style={{ backgroundColor: 'rgba(59, 130, 246, 0.1)', color: '#2563eb' }}
+              >
+                <RefreshCw size={18} />
+              </div>
+              <div>
+                <div className="text-[15px] font-bold tracking-tight" style={{ color: 'var(--text-primary)' }}>
+                  Update Invoice Status
+                </div>
+                <div className="text-xs flex items-center gap-1.5 mt-0.5" style={{ color: 'var(--text-secondary)' }}>
+                  <span className="font-semibold text-blue-600 dark:text-blue-400">
+                    Invoice #{statusChangeInvoice?.invoiceNumber}
+                  </span>
+                  {(statusChangeInvoice?.customer?.companyName || statusChangeInvoice?.customer?.displayName || statusChangeInvoice?.customerName) && (
+                    <>
+                      <span>•</span>
+                      <span className="truncate max-w-[180px]">
+                        {statusChangeInvoice?.customer?.companyName || statusChangeInvoice?.customer?.displayName || statusChangeInvoice?.customerName}
+                      </span>
+                    </>
+                  )}
+                </div>
+              </div>
             </div>
-            <div>
-              <Title level={4} style={{ margin: 0, fontSize: 16 }}>Update Status</Title>
-              <Text type="secondary" style={{ fontSize: 12 }}>Invoice #{statusChangeInvoice?.invoiceNumber}</Text>
+
+            {/* Total Badge with close button clearance */}
+            <div className="text-right">
+              <span className="text-[10px] uppercase font-bold tracking-wider block text-slate-400">
+                Total Amount
+              </span>
+              <span className="text-sm font-extrabold text-slate-900 dark:text-slate-100">
+                {currencySymbol(statusChangeInvoice?.currency)}
+                {Number(statusChangeInvoice?.grandTotal || statusChangeInvoice?.total || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              </span>
             </div>
           </div>
         </div>
 
         <div className="p-6">
-          <div className="rounded-none p-4 mb-6 border flex items-center justify-between" style={{ backgroundColor: 'var(--bg-slate-50)', borderColor: 'var(--border-color)' }}>
-            <div className="text-center flex-1 min-w-0">
-              <Text type="secondary" className="text-[10px] font-bold uppercase tracking-wider block mb-2">Current Status</Text>
-              <div className="flex justify-center">
-                <Tag
-                  color={getStatusColor(fromBackendStatus(statusChangeInvoice?.status))}
-                  className="px-3 py-1.5 rounded-full border-none font-bold text-[11px] m-0 shadow-sm"
-                  style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
-                >
-                  {getStatusIcon(fromBackendStatus(statusChangeInvoice?.status))}
-                  <span>{fromBackendStatus(statusChangeInvoice?.status)}</span>
-                </Tag>
-              </div>
-            </div>
+          {/* Sleek Compact Status Stepper Banner (Fixed Height - Never Shifts) */}
+          {(() => {
+            const currentFrontendStatus = fromBackendStatus(statusChangeInvoice?.status);
+            const currentMeta = STATUS_TRANSITION_DETAILS[currentFrontendStatus] || {
+              title: currentFrontendStatus,
+              color: '#64748b',
+              bg: 'rgba(100, 116, 139, 0.10)',
+              icon: <Clock size={13} />,
+            };
+            const targetMeta = selectedNewStatus
+              ? STATUS_TRANSITION_DETAILS[selectedNewStatus]
+              : null;
 
-            <div className="px-4" style={{ color: 'var(--text-slate-400)' }}>
-              <ChevronRight size={20} />
-            </div>
-
-            <div className="text-center flex-1 min-w-0">
-              <Text type="secondary" className="text-[10px] font-bold uppercase tracking-wider block mb-2">Target Status</Text>
-              <div className="flex justify-center">
-                {selectedNewStatus ? (
-                  <Tag
-                    color={getStatusColor(selectedNewStatus)}
-                    className="px-3 py-1.5 rounded-full border-none font-bold text-[11px] m-0 shadow-sm animate-pulse"
-                    style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+            return (
+              <div
+                className="rounded-xl px-3.5 py-2.5 mb-5 border flex items-center justify-between gap-3 shadow-xs h-12"
+                style={{ backgroundColor: 'var(--bg-slate-50)', borderColor: 'var(--border-color)' }}
+              >
+                {/* Current */}
+                <div className="flex items-center gap-2 min-w-0">
+                  <span className="text-[10.5px] font-bold uppercase tracking-wider text-slate-400 shrink-0">
+                    Current
+                  </span>
+                  <div
+                    className="h-6 inline-flex items-center gap-1.5 px-2.5 rounded-md text-xs font-bold"
+                    style={{
+                      backgroundColor: currentMeta.bg,
+                      color: currentMeta.color,
+                    }}
                   >
-                    {getStatusIcon(selectedNewStatus)}
-                    <span>{selectedNewStatus}</span>
-                  </Tag>
-                ) : (
-                  <div className="h-6 w-20 rounded-full mx-auto animate-pulse" style={{ backgroundColor: 'var(--border-color)' }}></div>
-                )}
-              </div>
-            </div>
-          </div>
-
-          <div className="space-y-4">
-            <div>
-              <Text className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest block mb-2">Select Next Step</Text>
-              <Select
-                style={{ width: '100%' }}
-                placeholder="Where should this invoice go next?"
-                size="large"
-                value={selectedNewStatus}
-                onChange={(value) => setSelectedNewStatus(value)}
-                popupClassName="rounded-none"
-                className="rounded-none border-slate-200"
-                options={getAvailableTransitions(fromBackendStatus(statusChangeInvoice?.status)).map(status => ({
-                  label: (
-                    <div className="flex items-center gap-2 py-1">
-                      <div className="p-1 rounded-md" style={{ backgroundColor: 'var(--bg-blue-50)', color: 'var(--text-sky-500)' }}>
-                        {getStatusIcon(status)}
-                      </div>
-                      <span className="font-medium" style={{ color: 'var(--text-primary)' }}>{status}</span>
-                    </div>
-                  ),
-                  value: status
-                }))}
-              />
-            </div>
-
-            {(selectedNewStatus === 'PAID' || selectedNewStatus === 'PARTIALLY_PAID') && (
-              <div className="p-4 rounded-none border flex gap-3" style={{ backgroundColor: 'rgba(250, 173, 20, 0.1)', borderColor: '#faad14' }}>
-                <AlertCircle size={18} className="shrink-0 mt-0.5" style={{ color: '#d48806' }} />
-                <div className="text-xs leading-relaxed" style={{ color: '#d48806' }}>
-                  <Text strong className="block mb-1" style={{ color: '#ad6800' }}>Payment Required</Text>
-                  Moving to <Text strong style={{ color: '#ad6800' }}>{selectedNewStatus}</Text> will open the payment record form to log the transaction.
+                    <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: currentMeta.color }} />
+                    <span className="tracking-wide uppercase text-[11px]">{currentFrontendStatus}</span>
+                  </div>
                 </div>
+
+                {/* Stepper Connector Arrow */}
+                <div className="flex items-center gap-1 text-slate-300 dark:text-slate-600 shrink-0">
+                  <div className="w-5 h-px bg-slate-200 dark:bg-slate-700" />
+                  <ArrowRight size={13} className={selectedNewStatus ? 'text-blue-500' : 'text-slate-400'} />
+                  <div className="w-5 h-px bg-slate-200 dark:bg-slate-700" />
+                </div>
+
+                {/* Target (Strictly Constant Height) */}
+                <div className="flex items-center gap-2 min-w-0 justify-end h-6">
+                  <span className="text-[10.5px] font-bold uppercase tracking-wider text-slate-400 shrink-0">
+                    Target
+                  </span>
+                  {selectedNewStatus && targetMeta ? (
+                    <div
+                      className="h-6 inline-flex items-center gap-1.5 px-2.5 rounded-md text-xs font-bold shadow-xs"
+                      style={{
+                        backgroundColor: targetMeta.bg,
+                        color: targetMeta.color,
+                      }}
+                    >
+                      <span className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ backgroundColor: targetMeta.color }} />
+                      <span className="tracking-wide uppercase text-[11px]">{selectedNewStatus}</span>
+                    </div>
+                  ) : (
+                    <div className="h-6 inline-flex items-center px-2 text-xs text-slate-400 italic">
+                      None selected
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          })()}
+
+          {/* Interactive Transition Cards */}
+          <div>
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-[11px] font-extrabold uppercase tracking-wider text-slate-400">
+                Choose Next Action / Status
+              </span>
+              <span
+                className="text-xs font-medium px-2 py-0.5 rounded-full text-slate-500 dark:text-slate-400"
+                style={{ backgroundColor: 'var(--bg-slate-50)' }}
+              >
+                {getAvailableTransitions(fromBackendStatus(statusChangeInvoice?.status)).length} available
+              </span>
+            </div>
+
+            {getAvailableTransitions(fromBackendStatus(statusChangeInvoice?.status)).length === 0 ? (
+              <div
+                className="p-6 text-center rounded-xl border border-dashed"
+                style={{ borderColor: 'var(--border-color)', color: 'var(--text-secondary)' }}
+              >
+                <AlertCircle size={28} className="mx-auto mb-2 opacity-50" />
+                <div className="text-sm font-bold">No Transitions Available</div>
+                <div className="text-xs mt-1">This invoice is in a final status ({fromBackendStatus(statusChangeInvoice?.status)}).</div>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {getAvailableTransitions(fromBackendStatus(statusChangeInvoice?.status)).map((status) => {
+                  const details = STATUS_TRANSITION_DETAILS[status] || {
+                    title: status,
+                    description: `Change status to ${status}`,
+                    color: '#3b82f6',
+                    bg: 'rgba(59, 130, 246, 0.08)',
+                    border: '#bfdbfe',
+                    icon: getStatusIcon(status),
+                  };
+                  const isSelected = selectedNewStatus === status;
+
+                  return (
+                    <div
+                      key={status}
+                      onClick={() => setSelectedNewStatus(status)}
+                      className={`group relative p-3 rounded-xl border transition-all duration-150 cursor-pointer flex items-center gap-3.5 ${
+                        isSelected
+                          ? 'border-blue-600 dark:border-blue-500 bg-blue-50/50 dark:bg-blue-950/20 shadow-xs'
+                          : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-slate-300 dark:hover:border-slate-700 hover:bg-slate-50/50'
+                      }`}
+                    >
+                      {/* Status Icon */}
+                      <div
+                        className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 transition-colors ${
+                          isSelected
+                            ? 'bg-blue-100 text-blue-600 dark:bg-blue-900/40 dark:text-blue-300'
+                            : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 group-hover:text-slate-700 dark:group-hover:text-slate-200'
+                        }`}
+                      >
+                        {details.icon}
+                      </div>
+
+                      {/* Text info */}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className="font-bold text-[13px] text-slate-900 dark:text-slate-100 leading-snug">
+                            {details.title}
+                          </span>
+                          <span
+                            className="px-2 py-0.5 rounded text-[10px] font-bold tracking-wide"
+                            style={{
+                              backgroundColor: isSelected ? 'rgba(37, 99, 235, 0.12)' : 'rgba(100, 116, 139, 0.08)',
+                              color: isSelected ? '#1d4ed8' : '#475569',
+                            }}
+                          >
+                            {status}
+                          </span>
+                        </div>
+                        <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 line-clamp-1 leading-relaxed">
+                          {details.description}
+                        </p>
+                      </div>
+
+                      {/* Crisp Radio Indicator */}
+                      <div className="shrink-0 flex items-center justify-center">
+                        {isSelected ? (
+                          <div className="w-[18px] h-[18px] rounded-full bg-blue-600 dark:bg-blue-500 flex items-center justify-center text-white shadow-xs">
+                            <Check size={11} strokeWidth={3.5} />
+                          </div>
+                        ) : (
+                          <div className="w-[18px] h-[18px] rounded-full border-2 border-slate-300 dark:border-slate-600 transition-colors group-hover:border-slate-400" />
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             )}
           </div>
 
-          <div className="flex gap-3 mt-8">
+          {/* Action Buttons (Strictly Stationary) */}
+          <div className="flex items-center gap-3 mt-6 pt-4 border-t" style={{ borderColor: 'var(--border-color)' }}>
             <Button
               onClick={() => {
                 setStatusChangeModalVisible(false);
                 setSelectedNewStatus(null);
               }}
-              className="h-11 flex-1 rounded-none font-semibold"
+              className="h-10 flex-1 rounded-xl font-semibold transition-colors"
               style={{ borderColor: 'var(--border-color)', color: 'var(--text-secondary)' }}
             >
               Cancel
@@ -2057,10 +2500,18 @@ export default function InvoiceInvoicesPage() {
               onClick={handleGeneralStatusUpdate}
               loading={updateStatusMutation.isPending}
               disabled={!selectedNewStatus}
-              className="h-11 flex-1 rounded-none font-semibold border-none"
-              style={{ backgroundColor: 'var(--customers-header-icon-color)' }}
+              className="h-10 flex-1 rounded-xl font-bold border-none shadow-sm"
+              style={{
+                backgroundColor: selectedNewStatus ? '#2563eb' : 'var(--customers-header-icon-color)',
+                cursor: selectedNewStatus ? 'pointer' : 'not-allowed',
+                opacity: selectedNewStatus ? 1 : 0.6,
+              }}
             >
-              Update Status
+              {selectedNewStatus === 'PAID' || selectedNewStatus === 'PARTIALLY_PAID'
+                ? 'Proceed to Payment →'
+                : selectedNewStatus === 'APPROVED'
+                ? 'Proceed to Approve →'
+                : 'Confirm Status Change'}
             </Button>
           </div>
         </div>
@@ -3342,6 +3793,13 @@ export default function InvoiceInvoicesPage() {
 
         @media (max-width: 700px) {
           .pp-grid { grid-template-columns: 1fr; }
+        }
+
+        .approval-note-textarea textarea {
+          padding-left: 16px !important;
+          padding-right: 16px !important;
+          padding-top: 12px !important;
+          padding-bottom: 8px !important;
         }
       `}</style>
     </MainLayout>

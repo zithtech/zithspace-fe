@@ -8,7 +8,7 @@ import MainLayout from "@/components/layout/MainLayout";
 import { Button, Input, Upload, DatePicker, Modal, Dropdown, Drawer, App, Tooltip, Popover, Popconfirm } from "antd";
 import {
   Target, CheckSquare, FileText, Link2, Monitor, AlertCircle, CheckCircle, CheckCircle2,
-  Sparkles, Copy, ChevronDown, Maximize, Zap, Wand2, UploadCloud, File as FileIcon,
+  Sparkles, Copy, ChevronDown, ChevronUp, Maximize, Zap, Wand2, UploadCloud, File as FileIcon,
   Image as ImageIcon, Trash2, Eye, Download, X, ClipboardList, Paperclip, ShieldCheck,
   ExternalLink, Plus, Check, Save, Layers, ListChecks, Gauge, SpellCheck,
   PenTool, Braces, FileSpreadsheet,
@@ -284,27 +284,58 @@ function TokenList({
   values,
   items,
   onRemove,
+  limit = 3,
 }: {
   values?: string[];
   items?: { id: string; label: string; badge?: React.ReactNode }[];
   onRemove: (val: string) => void;
+  limit?: number;
 }) {
+  const [expanded, setExpanded] = useState(false);
   const tokenItems: { id: string; label: string; badge?: React.ReactNode }[] = items
     ? items
     : (values || []).map((v) => ({ id: v, label: v }));
 
   if (!tokenItems.length) return null;
+
+  const hasMore = tokenItems.length > limit;
+  const visibleItems = hasMore && !expanded ? tokenItems.slice(0, limit) : tokenItems;
+  const remainingCount = tokenItems.length - limit;
+
   return (
-    <div className="ts-tokens">
-      {tokenItems.map((item) => (
-        <span key={item.id} className="ts-token">
-          {item.badge && <span className="inline-flex items-center mr-0.5">{item.badge}</span>}
-          <span className="truncate" title={item.label}>{item.label}</span>
-          <button type="button" onClick={() => onRemove(item.id)} aria-label={`Remove ${item.label}`}>
-            <X size={11} strokeWidth={2.8} />
+    <div className="ts-tokens-wrapper">
+      <div className="ts-tokens">
+        {visibleItems.map((item) => (
+          <span key={item.id} className="ts-token">
+            {item.badge && <span className="inline-flex items-center mr-0.5">{item.badge}</span>}
+            <span className="truncate" title={item.label}>{item.label}</span>
+            <button type="button" onClick={() => onRemove(item.id)} aria-label={`Remove ${item.label}`}>
+              <X size={11} strokeWidth={2.8} />
+            </button>
+          </span>
+        ))}
+      </div>
+      {hasMore && (
+        <div className="ts-tokens-more-wrap">
+          <button
+            type="button"
+            className="ts-tokens-more-btn"
+            onClick={() => setExpanded(!expanded)}
+          >
+            {expanded ? (
+              <>
+                <span>Show less</span>
+                <ChevronUp size={12} strokeWidth={2.2} />
+              </>
+            ) : (
+              <>
+                <span>+{remainingCount} more</span>
+                <ChevronDown size={12} strokeWidth={2.2} />
+              </>
+            )}
           </button>
-        </span>
-      ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -2269,7 +2300,28 @@ useActivitySource({ section: "WORK", module: "QA", page: "CreateTestScope" });
         }
 
         /* ── Selected-value tokens (modules / features) ─────────────── */
-        .ts-create .ts-tokens { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+        .ts-create .ts-tokens-wrapper { margin-top: 8px; }
+        .ts-create .ts-tokens { display: flex; flex-wrap: wrap; gap: 6px; }
+        .ts-create > .ts-tokens,
+        .ts-create :not(.ts-tokens-wrapper) > .ts-tokens { margin-top: 8px; }
+        .ts-create .ts-tokens-more-wrap { margin-top: 6px; display: flex; align-items: center; }
+        .ts-create .ts-tokens-more-btn {
+          display: inline-flex; align-items: center; gap: 4px;
+          padding: 2.5px 9px; border-radius: 999px;
+          font-size: 11px; font-weight: 600; line-height: 1.4;
+          background: var(--ts-surface-soft, rgba(59,130,246,0.06));
+          color: var(--ts-blue-strong, #2563eb);
+          border: 1px dashed var(--ts-blue-border, rgba(59,130,246,0.35));
+          cursor: pointer; transition: all .15s ease;
+        }
+        .ts-create .ts-tokens-more-btn:hover {
+          background: var(--ts-blue-soft, rgba(59,130,246,0.12));
+          border-style: solid;
+        }
+        [data-theme='dark'] .ts-create .ts-tokens-more-btn {
+          color: #93C5FD;
+          border-color: rgba(147,197,253,0.35);
+        }
         .ts-create .ts-token {
           display: inline-flex; align-items: center; gap: 5px; max-width: 100%;
           padding: 3px 5px 3px 9px; border-radius: 999px;

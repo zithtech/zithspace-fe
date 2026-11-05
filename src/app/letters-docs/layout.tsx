@@ -159,7 +159,7 @@ export default function LettersDocsLayout({ children }: { children: React.ReactN
             </div>
           </aside>
           <main className="lv-main" style={{ flex: 1, minWidth: 0, minHeight: 0, height: '100%', background: 'var(--bg-pure-white)', overflowY: 'auto', overflowX: 'hidden', display: 'flex', flexDirection: 'column', position: 'relative' }}>
-            <div className="lv-content" style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0, minWidth: 0 }}>
+            <div className="lv-content" style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0, minWidth: 0, height: '100%' }}>
               {children}
             </div>
           </main>

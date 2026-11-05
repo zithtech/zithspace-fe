@@ -23,6 +23,7 @@ import {
   Edit2,
   Loader2,
   AlertTriangle,
+  Sparkles,
 } from 'lucide-react';
 import { LettersService, GeneratedDocument, DocumentTemplate, DocumentCategory } from '@/services/lettersService';
 import ConfirmDialog from '@/components/common/ConfirmDialog';
@@ -233,7 +234,7 @@ export default function DocumentRepositoryPage() {
       key: 'template',
       render: (_: any, doc: GeneratedDocument) => (
         <div style={{ fontWeight: 600, fontSize: '13px', color: 'var(--text-slate-700)' }}>
-          {doc.template ? doc.template.templateName : <span style={{ color: 'var(--text-slate-400)' }}>Deleted Template</span>}
+          {doc.template ? doc.template.templateName : (doc.templateId ? <span style={{ color: 'var(--text-slate-400)' }}>Deleted Template</span> : <span style={{ color: 'var(--text-slate-500)', fontStyle: 'italic' }}>None (Custom)</span>)}
         </div>
       ),
     },
@@ -304,7 +305,18 @@ export default function DocumentRepositoryPage() {
           placement="bottomRight"
           menu={{
             items: [
-              ...(perms.canGenerateLetter ? [{ key: 'edit', label: renderDropdownItem(<Edit2 size={16} />, 'Edit Document', 'Open in the builder', 'var(--border-slate-100)', 'var(--text-slate-600)'), onClick: (e: any) => { e.domEvent.stopPropagation(); router.push(`/letters-docs/generate?editId=${doc.id}`); } }] : []),
+              ...(perms.canGenerateLetter ? [{
+                key: 'edit',
+                label: renderDropdownItem(<Edit2 size={16} />, 'Edit Document', 'Open in the editor', 'var(--border-slate-100)', 'var(--text-slate-600)'),
+                onClick: (e: any) => {
+                  e.domEvent.stopPropagation();
+                  if (doc.templateId) {
+                    router.push(`/letters-docs/generate?editId=${doc.id}`);
+                  } else {
+                    router.push(`/letters-docs/repository/create?id=${doc.id}`);
+                  }
+                }
+              }] : []),
               { key: 'preview', label: renderDropdownItem(<Eye size={16} />, 'Preview', 'View document contents', 'var(--bg-blue-50)', '#3b82f6'), onClick: (e) => { e.domEvent.stopPropagation(); handlePreviewDocument(doc); } },
               { key: 'pdf', label: renderDropdownItem(<Download size={16} />, 'Download PDF', 'Export as PDF', 'var(--bg-green-50)', 'var(--text-holiday)'), onClick: (e) => { e.domEvent.stopPropagation(); handleDownload(doc.id, 'pdf', `${doc.documentNumber}.pdf`); } },
               { key: 'docx', label: renderDropdownItem(<Download size={16} />, 'Download DOCX', 'Export as Word Document', 'var(--bg-green-50)', 'var(--text-holiday)'), onClick: (e) => { e.domEvent.stopPropagation(); handleDownload(doc.id, 'docx', `${doc.documentNumber}.docx`); } },
@@ -421,12 +433,20 @@ export default function DocumentRepositoryPage() {
           </Tooltip>
 
           <Button
+            onClick={() => router.push('/letters-docs/generate')}
+            style={{ height: 34, borderRadius: 8, fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+          >
+            <Sparkles size={15} style={{ color: '#3b82f6' }} />
+            Generate from Template
+          </Button>
+
+          <Button
             type="primary"
             icon={<Plus size={16} />}
-            onClick={() => router.push('/letters-docs/generate')}
+            onClick={() => router.push('/letters-docs/repository/create')}
             style={{ height: 34, borderRadius: 8, fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '4px' }}
           >
-            Generate New Letter
+            Create Document
           </Button>
         </div>
       </div>
@@ -481,21 +501,45 @@ export default function DocumentRepositoryPage() {
               <p className="pp-empty-sub" style={{ fontSize: '14px', color: 'var(--text-slate-600)', margin: '0 0 20px' }}>
                 Personalize and generate your first HR letter from Template Management or Letter Generation.
               </p>
-              <Link
-                href="/letters-docs/generate"
-                style={{
-                  padding: '10px 22px',
-                  borderRadius: '8px',
-                  background: '#3b82f6',
-                  color: 'white',
-                  fontWeight: 600,
-                  fontSize: '14px',
-                  textDecoration: 'none',
-                  display: 'inline-block',
-                }}
-              >
-                Go to Document Generation
-              </Link>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px' }}>
+                <Link
+                  href="/letters-docs/repository/create"
+                  style={{
+                    padding: '9px 20px',
+                    borderRadius: '8px',
+                    background: '#3b82f6',
+                    color: 'white',
+                    fontWeight: 600,
+                    fontSize: '13px',
+                    textDecoration: 'none',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                  }}
+                >
+                  <Plus size={15} />
+                  Create Document
+                </Link>
+                <Link
+                  href="/letters-docs/generate"
+                  style={{
+                    padding: '9px 18px',
+                    borderRadius: '8px',
+                    background: 'var(--bg-pure-white, #ffffff)',
+                    border: '1px solid var(--border-slate-200, #cbd5e1)',
+                    color: 'var(--text-slate-700, #334155)',
+                    fontWeight: 600,
+                    fontSize: '13px',
+                    textDecoration: 'none',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                  }}
+                >
+                  <Sparkles size={14} style={{ color: '#3b82f6' }} />
+                  Generate from Template
+                </Link>
+              </div>
             </div>
           } />
         ) : view === 'list' ? (
@@ -528,7 +572,18 @@ export default function DocumentRepositoryPage() {
                       overlayClassName="pc-dropdown"
                       menu={{
                         items: [
-                          ...(perms.canGenerateLetter ? [{ key: 'edit', label: renderDropdownItem(<Edit2 size={16} />, 'Edit Document', 'Open in the builder', 'var(--border-slate-100)', 'var(--text-slate-600)'), onClick: (e: any) => { e.domEvent.stopPropagation(); router.push(`/letters-docs/generate?editId=${doc.id}`); } }] : []),
+                          ...(perms.canGenerateLetter ? [{
+                            key: 'edit',
+                            label: renderDropdownItem(<Edit2 size={16} />, 'Edit Document', 'Open in the editor', 'var(--border-slate-100)', 'var(--text-slate-600)'),
+                            onClick: (e: any) => {
+                              e.domEvent.stopPropagation();
+                              if (doc.templateId) {
+                                router.push(`/letters-docs/generate?editId=${doc.id}`);
+                              } else {
+                                router.push(`/letters-docs/repository/create?id=${doc.id}`);
+                              }
+                            }
+                          }] : []),
                           { key: 'preview', label: renderDropdownItem(<Eye size={16} />, 'Preview', 'View document contents', 'var(--bg-blue-50)', '#3b82f6'), onClick: (e) => { e.domEvent.stopPropagation(); handlePreviewDocument(doc); } },
                           { key: 'pdf', label: renderDropdownItem(<Download size={16} />, 'Download PDF', 'Export as PDF', 'var(--bg-green-50)', 'var(--text-holiday)'), onClick: (e) => { e.domEvent.stopPropagation(); LettersService.downloadLetter(doc.id, 'pdf', `${doc.documentNumber}.pdf`); } },
                           { key: 'docx', label: renderDropdownItem(<Download size={16} />, 'Download DOCX', 'Export as Word Document', 'var(--bg-green-50)', 'var(--text-holiday)'), onClick: (e) => { e.domEvent.stopPropagation(); LettersService.downloadLetter(doc.id, 'docx', `${doc.documentNumber}.docx`); } },

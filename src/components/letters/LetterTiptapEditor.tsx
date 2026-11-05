@@ -51,12 +51,13 @@ import {
   BgColorsOutlined,
   LinkOutlined,
   UploadOutlined,
+  ZoomInOutlined,
+  ZoomOutOutlined,
 } from "@ant-design/icons";
-import { Modal, Radio, Select } from "antd";
+import { Modal, Popover, Radio, Select } from "antd";
 import { toast } from "react-hot-toast";
 import { LettersService, DocumentStructure } from "@/services/lettersService";
 import { AppstoreAddOutlined, ScissorOutlined } from "@ant-design/icons";
-import SearchableDropdown from "@/components/common/SearchableDropdown";
 
 const PageBreak = Node.create({
   name: 'pageBreak',
@@ -187,13 +188,21 @@ const LogoUploadComponent = (props: any) => {
         const url = await LettersService.uploadTemplateImage(base64Str);
         props.editor.chain().focus().insertContentAt({ from: props.getPos(), to: props.getPos() + 1 }, {
           type: 'image',
-          attrs: { src: url }
+          attrs: {
+            src: url,
+            width: '140px',
+            style: 'width: 140px; max-width: 100%; height: auto; object-fit: contain;',
+          }
         }).run();
         toast.success("Logo uploaded!", { id: toastId });
       } catch (err) {
         props.editor.chain().focus().insertContentAt({ from: props.getPos(), to: props.getPos() + 1 }, {
           type: 'image',
-          attrs: { src: base64Str }
+          attrs: {
+            src: base64Str,
+            width: '140px',
+            style: 'width: 140px; max-width: 100%; height: auto; object-fit: contain;',
+          }
         }).run();
         toast.success("Logo embedded!", { id: toastId });
       } finally {
@@ -218,6 +227,293 @@ const LogoUploadComponent = (props: any) => {
   );
 };
 
+const ImageNodeView = (props: any) => {
+  const { node, updateAttributes, selected, deleteNode, editor } = props;
+  const src = node.attrs.src;
+  const rawWidth = node.attrs.width || '';
+  const numericWidth = parseInt(rawWidth, 10);
+
+  const setWidth = (w: string) => {
+    updateAttributes({
+      width: w,
+      style: `width: ${w}; max-width: 100%; height: auto; object-fit: contain;`,
+    });
+  };
+
+  const handleReduce = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const current = !isNaN(numericWidth) && numericWidth > 0 ? numericWidth : 140;
+    const next = Math.max(40, current - 20);
+    setWidth(`${next}px`);
+  };
+
+  const handleEnlarge = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const current = !isNaN(numericWidth) && numericWidth > 0 ? numericWidth : 140;
+    const next = Math.min(800, current + 20);
+    setWidth(`${next}px`);
+  };
+
+  const popoverContent = (
+    <div
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: '4px',
+        padding: '2px',
+        userSelect: 'none',
+        whiteSpace: 'nowrap',
+      }}
+      onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); }}
+      onClick={(e) => e.stopPropagation()}
+    >
+      <span style={{ fontSize: '11px', color: '#64748b', fontWeight: 600, paddingRight: '2px' }}>
+        Size:
+      </span>
+
+      <button
+        type="button"
+        onClick={(e) => { e.preventDefault(); e.stopPropagation(); setWidth('80px'); }}
+        style={{
+          padding: '2px 7px',
+          borderRadius: '4px',
+          border: '1px solid',
+          borderColor: rawWidth === '80px' ? '#3b82f6' : '#e2e8f0',
+          background: rawWidth === '80px' ? '#eff6ff' : '#ffffff',
+          color: rawWidth === '80px' ? '#2563eb' : '#334155',
+          cursor: 'pointer',
+          fontSize: '11px',
+          fontWeight: 500,
+        }}
+        title="Extra Small (80px)"
+      >
+        XS
+      </button>
+
+      <button
+        type="button"
+        onClick={(e) => { e.preventDefault(); e.stopPropagation(); setWidth('140px'); }}
+        style={{
+          padding: '2px 7px',
+          borderRadius: '4px',
+          border: '1px solid',
+          borderColor: (rawWidth === '140px' || !rawWidth) ? '#3b82f6' : '#e2e8f0',
+          background: (rawWidth === '140px' || !rawWidth) ? '#eff6ff' : '#ffffff',
+          color: (rawWidth === '140px' || !rawWidth) ? '#2563eb' : '#334155',
+          cursor: 'pointer',
+          fontSize: '11px',
+          fontWeight: 600,
+        }}
+        title="Logo / Small (140px)"
+      >
+        S (Logo)
+      </button>
+
+      <button
+        type="button"
+        onClick={(e) => { e.preventDefault(); e.stopPropagation(); setWidth('220px'); }}
+        style={{
+          padding: '2px 7px',
+          borderRadius: '4px',
+          border: '1px solid',
+          borderColor: rawWidth === '220px' ? '#3b82f6' : '#e2e8f0',
+          background: rawWidth === '220px' ? '#eff6ff' : '#ffffff',
+          color: rawWidth === '220px' ? '#2563eb' : '#334155',
+          cursor: 'pointer',
+          fontSize: '11px',
+          fontWeight: 500,
+        }}
+        title="Medium (220px)"
+      >
+        M
+      </button>
+
+      <button
+        type="button"
+        onClick={(e) => { e.preventDefault(); e.stopPropagation(); setWidth('360px'); }}
+        style={{
+          padding: '2px 7px',
+          borderRadius: '4px',
+          border: '1px solid',
+          borderColor: rawWidth === '360px' ? '#3b82f6' : '#e2e8f0',
+          background: rawWidth === '360px' ? '#eff6ff' : '#ffffff',
+          color: rawWidth === '360px' ? '#2563eb' : '#334155',
+          cursor: 'pointer',
+          fontSize: '11px',
+          fontWeight: 500,
+        }}
+        title="Large (360px)"
+      >
+        L
+      </button>
+
+      <button
+        type="button"
+        onClick={(e) => { e.preventDefault(); e.stopPropagation(); setWidth('100%'); }}
+        style={{
+          padding: '2px 7px',
+          borderRadius: '4px',
+          border: '1px solid',
+          borderColor: rawWidth === '100%' ? '#3b82f6' : '#e2e8f0',
+          background: rawWidth === '100%' ? '#eff6ff' : '#ffffff',
+          color: rawWidth === '100%' ? '#2563eb' : '#334155',
+          cursor: 'pointer',
+          fontSize: '11px',
+          fontWeight: 500,
+        }}
+        title="Full Width (100%)"
+      >
+        100%
+      </button>
+
+      <span style={{ width: '1px', height: '14px', background: '#e2e8f0', margin: '0 2px' }} />
+
+      <button
+        type="button"
+        onClick={handleReduce}
+        style={{
+          padding: '2px 6px',
+          borderRadius: '4px',
+          border: '1px solid #e2e8f0',
+          background: '#ffffff',
+          color: '#334155',
+          cursor: 'pointer',
+          fontSize: '11px',
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: '2px',
+        }}
+        title="Reduce size (-20px)"
+      >
+        <ZoomOutOutlined style={{ fontSize: '11px' }} /> -20px
+      </button>
+
+      <button
+        type="button"
+        onClick={handleEnlarge}
+        style={{
+          padding: '2px 6px',
+          borderRadius: '4px',
+          border: '1px solid #e2e8f0',
+          background: '#ffffff',
+          color: '#334155',
+          cursor: 'pointer',
+          fontSize: '11px',
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: '2px',
+        }}
+        title="Enlarge size (+20px)"
+      >
+        <ZoomInOutlined style={{ fontSize: '11px' }} /> +20px
+      </button>
+
+      <span style={{ width: '1px', height: '14px', background: '#e2e8f0', margin: '0 2px' }} />
+
+      <button
+        type="button"
+        onClick={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          if (deleteNode) deleteNode();
+        }}
+        style={{
+          padding: '2px 6px',
+          borderRadius: '4px',
+          border: '1px solid #fecaca',
+          background: '#fef2f2',
+          color: '#ef4444',
+          cursor: 'pointer',
+          fontSize: '11px',
+          display: 'inline-flex',
+          alignItems: 'center',
+        }}
+        title="Delete Image"
+      >
+        <DeleteOutlined style={{ fontSize: '11px' }} />
+      </button>
+    </div>
+  );
+
+  return (
+    <NodeViewWrapper
+      as="span"
+      className="tiptap-image-view-wrapper"
+      style={{
+        display: 'inline-block',
+        position: 'relative',
+        maxWidth: '100%',
+        verticalAlign: 'middle',
+        lineHeight: 1,
+        margin: '2px 0',
+      }}
+    >
+      <Popover
+        open={Boolean(selected && editor?.isEditable)}
+        placement="bottom"
+        content={popoverContent}
+        trigger={[]}
+        arrow={false}
+      >
+        <img
+          src={src}
+          alt={node.attrs.alt || ''}
+          style={{
+            width: rawWidth || undefined,
+            maxWidth: '100%',
+            height: 'auto',
+            objectFit: 'contain',
+            display: 'inline-block',
+            verticalAlign: 'middle',
+            borderRadius: '4px',
+            outline: selected ? '2px solid #2563eb' : 'none',
+            outlineOffset: '2px',
+            cursor: 'pointer',
+            transition: 'outline 0.15s ease',
+          }}
+          onClick={(e) => {
+            e.stopPropagation();
+            if (props.selectNode) props.selectNode();
+          }}
+        />
+      </Popover>
+    </NodeViewWrapper>
+  );
+};
+
+const CustomImageExtension = Image.extend({
+  addAttributes() {
+    return {
+      ...this.parent?.(),
+      width: {
+        default: null,
+        parseHTML: (element) => element.getAttribute('width') || (element.style && element.style.width) || null,
+        renderHTML: (attributes) => {
+          if (!attributes.width) return {};
+          return {
+            width: attributes.width,
+            style: `width: ${attributes.width}; max-width: 100%; height: auto; object-fit: contain;`,
+          };
+        },
+      },
+      style: {
+        default: null,
+        parseHTML: (element) => element.getAttribute('style') || null,
+        renderHTML: (attributes) => {
+          if (attributes.style) return { style: attributes.style };
+          if (attributes.width) return { style: `width: ${attributes.width}; max-width: 100%; height: auto; object-fit: contain;` };
+          return { style: 'max-width: 100%; height: auto; object-fit: contain;' };
+        },
+      },
+    };
+  },
+  addNodeView() {
+    return ReactNodeViewRenderer(ImageNodeView);
+  },
+});
+
 const LogoUploadNode = Node.create({
   name: 'logoUpload',
   group: 'inline',
@@ -234,12 +530,47 @@ const LogoUploadNode = Node.create({
   },
 });
 
+const FONT_FAMILIES = [
+  { value: "", label: "Default Font" },
+  { value: "Inter", label: "Inter" },
+  { value: "Arial", label: "Arial" },
+  { value: "Roboto", label: "Roboto" },
+  { value: "Times New Roman", label: "Times New Roman" },
+  { value: "Georgia", label: "Georgia" },
+  { value: "Courier New", label: "Courier New" },
+  { value: "Verdana", label: "Verdana" },
+  { value: "Tahoma", label: "Tahoma" },
+  { value: "Trebuchet MS", label: "Trebuchet MS" },
+];
+
+const FONT_SIZES = [
+  { value: "", label: "Size" },
+  { value: "9px", label: "9px" },
+  { value: "10px", label: "10px" },
+  { value: "11px", label: "11px" },
+  { value: "12px", label: "12px" },
+  { value: "13px", label: "13px" },
+  { value: "14px", label: "14px" },
+  { value: "15px", label: "15px" },
+  { value: "16px", label: "16px" },
+  { value: "18px", label: "18px" },
+  { value: "20px", label: "20px" },
+  { value: "24px", label: "24px" },
+  { value: "28px", label: "28px" },
+  { value: "32px", label: "32px" },
+  { value: "36px", label: "36px" },
+  { value: "48px", label: "48px" },
+];
+
 interface LetterTiptapEditorProps {
   content?: string;
   onChange?: (html: string) => void;
   editable?: boolean;
   minHeight?: number;
   onEditorReady?: (editor: any) => void;
+  bordered?: boolean;
+  style?: React.CSSProperties;
+  className?: string;
 }
 
 export default function LetterTiptapEditor({
@@ -248,6 +579,9 @@ export default function LetterTiptapEditor({
   editable = true,
   minHeight = 450,
   onEditorReady,
+  bordered = true,
+  style,
+  className,
 }: LetterTiptapEditorProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploadingImage, setUploadingImage] = useState(false);
@@ -255,6 +589,7 @@ export default function LetterTiptapEditor({
   const [isStructureModalOpen, setIsStructureModalOpen] = useState(false);
   const [selectedStructureId, setSelectedStructureId] = useState<string>('');
   const [savedSelection, setSavedSelection] = useState<{ from: number; to: number } | null>(null);
+  const [, setSelectionTick] = useState(0);
 
   useEffect(() => {
     const fetchStructures = async () => {
@@ -282,11 +617,19 @@ export default function LetterTiptapEditor({
         const toastId = toast.loading("Uploading image to R2...");
         try {
           const url = await LettersService.uploadTemplateImage(base64Str);
-          editor.chain().focus().setImage({ src: url }).run();
+          editor.chain().focus().setImage({
+            src: url,
+            width: '220px',
+            style: 'width: 220px; max-width: 100%; height: auto; object-fit: contain;',
+          } as any).run();
           toast.success("Image added from R2 storage!", { id: toastId });
         } catch (apiErr) {
           console.warn("R2 upload fallback to base64:", apiErr);
-          editor.chain().focus().setImage({ src: base64Str }).run();
+          editor.chain().focus().setImage({
+            src: base64Str,
+            width: '220px',
+            style: 'width: 220px; max-width: 100%; height: auto; object-fit: contain;',
+          } as any).run();
           toast.success("Image embedded!", { id: toastId });
         }
       } finally {
@@ -302,6 +645,12 @@ export default function LetterTiptapEditor({
   const editor = useEditor({
     immediatelyRender: false,
     editable,
+    onSelectionUpdate: () => {
+      setSelectionTick((t) => t + 1);
+    },
+    onTransaction: () => {
+      setSelectionTick((t) => t + 1);
+    },
     extensions: [
       PageBreak,
       StarterKit.configure({
@@ -349,7 +698,18 @@ export default function LetterTiptapEditor({
           };
         },
       }),
-      TableHeader,
+      TableHeader.extend({
+        addAttributes() {
+          return {
+            ...this.parent?.(),
+            style: {
+              default: null,
+              parseHTML: (el) => el.getAttribute("style"),
+              renderHTML: (attrs) => (attrs.style ? { style: attrs.style } : {}),
+            },
+          };
+        },
+      }),
       TableCell.extend({
         addAttributes() {
           return {
@@ -363,7 +723,7 @@ export default function LetterTiptapEditor({
         },
       }),
       LogoUploadNode,
-      Image.configure({
+      CustomImageExtension.configure({
         inline: true,
         allowBase64: true,
       }),
@@ -410,19 +770,50 @@ export default function LetterTiptapEditor({
     );
   }
 
+  const rawFont = editor?.getAttributes("textStyle")?.fontFamily || "";
+  const primaryFont = rawFont
+    ? rawFont.split(",")[0].replace(/['"]/g, "").trim()
+    : "";
+  const matchedFont = FONT_FAMILIES.find(
+    (f) => f.value && f.value.toLowerCase() === primaryFont.toLowerCase()
+  );
+  const currentFontValue = matchedFont ? matchedFont.value : primaryFont;
+  const fontOptions =
+    currentFontValue && !FONT_FAMILIES.some((f) => f.value.toLowerCase() === currentFontValue.toLowerCase())
+      ? [...FONT_FAMILIES, { value: currentFontValue, label: currentFontValue }]
+      : FONT_FAMILIES;
+
+  const rawSize = editor?.getAttributes("textStyle")?.fontSize || "";
+  const currentSizeValue = rawSize;
+  const sizeOptions =
+    currentSizeValue && !FONT_SIZES.some((s) => s.value.toLowerCase() === currentSizeValue.toLowerCase())
+      ? [...FONT_SIZES, { value: currentSizeValue, label: currentSizeValue }]
+      : FONT_SIZES;
+
+  const isTableActive = Boolean(
+    editor && (
+      editor.isActive("table") ||
+      editor.isActive("tableCell") ||
+      editor.isActive("tableHeader") ||
+      editor.can().addRowAfter?.()
+    )
+  );
+
   return (
     <div
+      className={className}
       style={{
-        border: "1px solid var(--editor-border, #cbd5e1)",
-        borderRadius: "10px",
+        border: bordered ? "1px solid var(--editor-border, #cbd5e1)" : "none",
+        borderRadius: bordered ? "10px" : "0",
         background: "var(--editor-bg, #ffffff)",
-        boxShadow: "0 1px 3px rgba(0,0,0,0.05)",
+        boxShadow: bordered ? "0 1px 3px rgba(0,0,0,0.05)" : "none",
         display: "flex",
         flexDirection: "column",
         flex: 1,
         minHeight: 0,
         height: "100%",
         overflow: "hidden",
+        ...style,
       }}
     >
       {/* Toolbar */}
@@ -444,65 +835,54 @@ export default function LetterTiptapEditor({
             flexShrink: 0,
           }}
         >
-          <SearchableDropdown
-            placeholder="Default Font"
-            onOpenChange={(open) => {
-              if (open) {
+          <Select
+            size="small"
+            style={{ width: 135 }}
+            popupMatchSelectWidth={false}
+            value={currentFontValue || ""}
+            onDropdownVisibleChange={(open) => {
+              if (open && editor) {
                 setSavedSelection({ from: editor.state.selection.from, to: editor.state.selection.to });
               }
             }}
             onChange={(val) => {
-              const newVal = val || "";
-              if (savedSelection) {
-                editor.chain().setTextSelection(savedSelection).setFontFamily(newVal).focus().run();
-              } else {
-                editor.chain().focus().setFontFamily(newVal).run();
-              }
-            }}
-            value={editor.getAttributes("textStyle").fontFamily || ""}
-            style={{ width: 140 }}
-            options={[
-              { value: "", label: "Default Font" },
-              { value: "Arial", label: "Arial" },
-              { value: "Courier New", label: "Courier New" },
-              { value: "Times New Roman", label: "Times New Roman" },
-              { value: "Georgia", label: "Georgia" },
-              { value: "Verdana", label: "Verdana" },
-            ]}
-            hideAvatar={true}
-          />
-
-          <SearchableDropdown
-            placeholder="Size"
-            onOpenChange={(open) => {
-              if (open) {
-                setSavedSelection({ from: editor.state.selection.from, to: editor.state.selection.to });
-              }
-            }}
-            onChange={(val) => {
+              if (!editor) return;
               const chain = savedSelection
                 ? editor.chain().setTextSelection(savedSelection)
                 : editor.chain().focus();
 
               if (val) {
-                chain.setFontSize(val).run();
+                chain.setFontFamily(val).focus().run();
               } else {
-                chain.unsetFontSize().run();
+                chain.unsetFontFamily().focus().run();
               }
             }}
-            value={editor.getAttributes("textStyle").fontSize || ""}
+            options={fontOptions}
+          />
+
+          <Select
+            size="small"
             style={{ width: 80 }}
-            options={[
-              { value: "", label: "Size" },
-              { value: "8pt", label: "8" },
-              { value: "10pt", label: "10" },
-              { value: "12pt", label: "12" },
-              { value: "14pt", label: "14" },
-              { value: "18pt", label: "18" },
-              { value: "24pt", label: "24" },
-              { value: "36pt", label: "36" },
-            ]}
-            hideAvatar={true}
+            popupMatchSelectWidth={false}
+            value={currentSizeValue || ""}
+            onDropdownVisibleChange={(open) => {
+              if (open && editor) {
+                setSavedSelection({ from: editor.state.selection.from, to: editor.state.selection.to });
+              }
+            }}
+            onChange={(val) => {
+              if (!editor) return;
+              const chain = savedSelection
+                ? editor.chain().setTextSelection(savedSelection)
+                : editor.chain().focus();
+
+              if (val) {
+                chain.setFontSize(val).focus().run();
+              } else {
+                chain.unsetFontSize().focus().run();
+              }
+            }}
+            options={sizeOptions}
           />
 
           <div style={{ width: "1px", height: "20px", background: "#cbd5e1", margin: "0 4px" }} />
@@ -661,6 +1041,86 @@ export default function LetterTiptapEditor({
             style={{ display: "none" }}
           />
 
+          {editor.isActive("image") && (
+            <div
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "3px",
+                background: "#eff6ff",
+                border: "1px solid #93c5fd",
+                borderRadius: "6px",
+                padding: "2px 6px",
+              }}
+            >
+              <span style={{ fontSize: "11px", fontWeight: 600, color: "#1d4ed8" }}>Logo/Img:</span>
+              <button
+                type="button"
+                className="tiptap-btn-auto"
+                onClick={() => {
+                  const current = parseInt(editor.getAttributes("image").width || "140", 10);
+                  const next = Math.max(40, (isNaN(current) ? 140 : current) - 20) + "px";
+                  editor.chain().focus().updateAttributes("image", { width: next, style: `width: ${next}; max-width: 100%; height: auto; object-fit: contain;` }).run();
+                }}
+                style={{
+                  padding: "2px 6px",
+                  borderRadius: "4px",
+                  border: "1px solid #bfdbfe",
+                  background: "#ffffff",
+                  color: "#1d4ed8",
+                  cursor: "pointer",
+                  fontSize: "11px",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "2px",
+                }}
+                title="Reduce size (-20px)"
+              >
+                <ZoomOutOutlined style={{ fontSize: "11px" }} /> -20px
+              </button>
+              <button
+                type="button"
+                className="tiptap-btn-auto"
+                onClick={() => {
+                  const current = parseInt(editor.getAttributes("image").width || "140", 10);
+                  const next = Math.min(800, (isNaN(current) ? 140 : current) + 20) + "px";
+                  editor.chain().focus().updateAttributes("image", { width: next, style: `width: ${next}; max-width: 100%; height: auto; object-fit: contain;` }).run();
+                }}
+                style={{
+                  padding: "2px 6px",
+                  borderRadius: "4px",
+                  border: "1px solid #bfdbfe",
+                  background: "#ffffff",
+                  color: "#1d4ed8",
+                  cursor: "pointer",
+                  fontSize: "11px",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "2px",
+                }}
+                title="Enlarge size (+20px)"
+              >
+                <ZoomInOutlined style={{ fontSize: "11px" }} /> +20px
+              </button>
+              <Select
+                size="small"
+                style={{ width: 105 }}
+                popupMatchSelectWidth={false}
+                value={editor.getAttributes("image").width || "140px"}
+                onChange={(val) => {
+                  editor.chain().focus().updateAttributes("image", { width: val, style: `width: ${val}; max-width: 100%; height: auto; object-fit: contain;` }).run();
+                }}
+                options={[
+                  { value: "80px", label: "XS (80px)" },
+                  { value: "140px", label: "Logo (140px)" },
+                  { value: "220px", label: "Med (220px)" },
+                  { value: "360px", label: "Large (360px)" },
+                  { value: "100%", label: "Full (100%)" },
+                ]}
+              />
+            </div>
+          )}
+
           <input
             type="color"
             onInput={(e) => editor.chain().focus().setColor((e.target as HTMLInputElement).value).run()}
@@ -805,6 +1265,7 @@ export default function LetterTiptapEditor({
 
           <button
             type="button"
+            onMouseDown={(e) => e.preventDefault()}
             onClick={() => editor.chain().focus().toggleBulletList().run()}
             style={{
               padding: "6px 10px",
@@ -821,6 +1282,7 @@ export default function LetterTiptapEditor({
           </button>
           <button
             type="button"
+            onMouseDown={(e) => e.preventDefault()}
             onClick={() => editor.chain().focus().toggleOrderedList().run()}
             style={{
               padding: "6px 10px",
@@ -840,6 +1302,7 @@ export default function LetterTiptapEditor({
 
           <button
             type="button"
+            onMouseDown={(e) => e.preventDefault()}
             onClick={() =>
               editor
                 .chain()
@@ -855,13 +1318,14 @@ export default function LetterTiptapEditor({
               color: "var(--btn-icon-color, #475569)",
               cursor: "pointer",
             }}
-            title="Insert Table"
+            title="Insert Table (3x3)"
           >
             <TableOutlined />
           </button>
 
           <button
             type="button"
+            onMouseDown={(e) => e.preventDefault()}
             onClick={() =>
               editor
                 .chain()
@@ -882,18 +1346,124 @@ export default function LetterTiptapEditor({
             <LayoutOutlined />
           </button>
 
+          {isTableActive && (
+            <div
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "4px",
+                background: "#f0fdf4",
+                border: "1px solid #86efac",
+                borderRadius: "6px",
+                padding: "2px 8px",
+              }}
+            >
+              <span style={{ fontSize: "11px", fontWeight: 700, color: "#166534" }}>Table:</span>
+              <button
+                type="button"
+                className="tiptap-btn-auto"
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => editor.chain().focus().addRowAfter().run()}
+                style={{
+                  padding: "3px 8px",
+                  borderRadius: "4px",
+                  border: "1px solid #86efac",
+                  background: "#ffffff",
+                  color: "#15803d",
+                  cursor: "pointer",
+                  fontSize: "11px",
+                  fontWeight: 600,
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "3px",
+                }}
+                title="Add a new row below current cell (or press Tab in last cell)"
+              >
+                <InsertRowBelowOutlined /> + Add Row
+              </button>
+              <button
+                type="button"
+                className="tiptap-btn-auto"
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => editor.chain().focus().addColumnAfter().run()}
+                style={{
+                  padding: "3px 8px",
+                  borderRadius: "4px",
+                  border: "1px solid #86efac",
+                  background: "#ffffff",
+                  color: "#15803d",
+                  cursor: "pointer",
+                  fontSize: "11px",
+                  fontWeight: 600,
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "3px",
+                }}
+                title="Add a new column to the right of current cell"
+              >
+                <InsertRowRightOutlined /> + Add Column
+              </button>
+              <button
+                type="button"
+                className="tiptap-btn-auto"
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => editor.chain().focus().deleteRow().run()}
+                style={{
+                  padding: "3px 6px",
+                  borderRadius: "4px",
+                  border: "1px solid #fecaca",
+                  background: "#ffffff",
+                  color: "#dc2626",
+                  cursor: "pointer",
+                  fontSize: "11px",
+                  fontWeight: 500,
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "2px",
+                }}
+                title="Delete current row"
+              >
+                <DeleteRowOutlined /> - Row
+              </button>
+              <button
+                type="button"
+                className="tiptap-btn-auto"
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => editor.chain().focus().deleteColumn().run()}
+                style={{
+                  padding: "3px 6px",
+                  borderRadius: "4px",
+                  border: "1px solid #fecaca",
+                  background: "#ffffff",
+                  color: "#dc2626",
+                  cursor: "pointer",
+                  fontSize: "11px",
+                  fontWeight: 500,
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "2px",
+                }}
+                title="Delete current column"
+              >
+                <DeleteColumnOutlined /> - Col
+              </button>
+            </div>
+          )}
+
           <div style={{ width: "1px", height: "20px", background: "#cbd5e1", margin: "0 4px" }} />
 
           <button
             type="button"
-            onClick={() => editor.isActive("table") && editor.chain().focus().addRowBefore().run()}
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={() => editor.chain().focus().addRowBefore().run()}
+            disabled={!isTableActive}
             style={{
               padding: "6px 10px",
               borderRadius: "6px",
               border: "1px solid var(--btn-border-color, #e2e8f0)",
               background: "var(--editor-bg, #ffffff)",
-              color: editor.isActive("table") ? "var(--btn-icon-color, #475569)" : "var(--btn-icon-disabled, #cbd5e1)",
-              cursor: editor.isActive("table") ? "pointer" : "not-allowed",
+              color: isTableActive ? "var(--btn-icon-color, #475569)" : "var(--btn-icon-disabled, #cbd5e1)",
+              cursor: isTableActive ? "pointer" : "not-allowed",
             }}
             title="Insert Row Above"
           >
@@ -902,14 +1472,16 @@ export default function LetterTiptapEditor({
 
           <button
             type="button"
-            onClick={() => editor.isActive("table") && editor.chain().focus().addRowAfter().run()}
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={() => editor.chain().focus().addRowAfter().run()}
+            disabled={!isTableActive}
             style={{
               padding: "6px 10px",
               borderRadius: "6px",
               border: "1px solid var(--btn-border-color, #e2e8f0)",
               background: "var(--editor-bg, #ffffff)",
-              color: editor.isActive("table") ? "var(--btn-icon-color, #475569)" : "var(--btn-icon-disabled, #cbd5e1)",
-              cursor: editor.isActive("table") ? "pointer" : "not-allowed",
+              color: isTableActive ? "var(--btn-icon-color, #475569)" : "var(--btn-icon-disabled, #cbd5e1)",
+              cursor: isTableActive ? "pointer" : "not-allowed",
             }}
             title="Insert Row Below"
           >
@@ -918,14 +1490,16 @@ export default function LetterTiptapEditor({
 
           <button
             type="button"
-            onClick={() => editor.isActive("table") && editor.chain().focus().deleteRow().run()}
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={() => editor.chain().focus().deleteRow().run()}
+            disabled={!isTableActive}
             style={{
               padding: "6px 10px",
               borderRadius: "6px",
               border: "1px solid var(--btn-border-color, #e2e8f0)",
               background: "var(--editor-bg, #ffffff)",
-              color: editor.isActive("table") ? "#ef4444" : "var(--btn-icon-disabled, #cbd5e1)",
-              cursor: editor.isActive("table") ? "pointer" : "not-allowed",
+              color: isTableActive ? "#ef4444" : "var(--btn-icon-disabled, #cbd5e1)",
+              cursor: isTableActive ? "pointer" : "not-allowed",
             }}
             title="Delete Row"
           >
@@ -934,14 +1508,16 @@ export default function LetterTiptapEditor({
 
           <button
             type="button"
-            onClick={() => editor.isActive("table") && editor.chain().focus().addColumnBefore().run()}
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={() => editor.chain().focus().addColumnBefore().run()}
+            disabled={!isTableActive}
             style={{
               padding: "6px 10px",
               borderRadius: "6px",
               border: "1px solid var(--btn-border-color, #e2e8f0)",
               background: "var(--editor-bg, #ffffff)",
-              color: editor.isActive("table") ? "var(--btn-icon-color, #475569)" : "var(--btn-icon-disabled, #cbd5e1)",
-              cursor: editor.isActive("table") ? "pointer" : "not-allowed",
+              color: isTableActive ? "var(--btn-icon-color, #475569)" : "var(--btn-icon-disabled, #cbd5e1)",
+              cursor: isTableActive ? "pointer" : "not-allowed",
             }}
             title="Insert Column Left"
           >
@@ -950,14 +1526,16 @@ export default function LetterTiptapEditor({
 
           <button
             type="button"
-            onClick={() => editor.isActive("table") && editor.chain().focus().addColumnAfter().run()}
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={() => editor.chain().focus().addColumnAfter().run()}
+            disabled={!isTableActive}
             style={{
               padding: "6px 10px",
               borderRadius: "6px",
               border: "1px solid var(--btn-border-color, #e2e8f0)",
               background: "var(--editor-bg, #ffffff)",
-              color: editor.isActive("table") ? "var(--btn-icon-color, #475569)" : "var(--btn-icon-disabled, #cbd5e1)",
-              cursor: editor.isActive("table") ? "pointer" : "not-allowed",
+              color: isTableActive ? "var(--btn-icon-color, #475569)" : "var(--btn-icon-disabled, #cbd5e1)",
+              cursor: isTableActive ? "pointer" : "not-allowed",
             }}
             title="Insert Column Right"
           >
@@ -966,14 +1544,16 @@ export default function LetterTiptapEditor({
 
           <button
             type="button"
-            onClick={() => editor.isActive("table") && editor.chain().focus().deleteColumn().run()}
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={() => editor.chain().focus().deleteColumn().run()}
+            disabled={!isTableActive}
             style={{
               padding: "6px 10px",
               borderRadius: "6px",
               border: "1px solid var(--btn-border-color, #e2e8f0)",
               background: "var(--editor-bg, #ffffff)",
-              color: editor.isActive("table") ? "#ef4444" : "var(--btn-icon-disabled, #cbd5e1)",
-              cursor: editor.isActive("table") ? "pointer" : "not-allowed",
+              color: isTableActive ? "#ef4444" : "var(--btn-icon-disabled, #cbd5e1)",
+              cursor: isTableActive ? "pointer" : "not-allowed",
             }}
             title="Delete Column"
           >
@@ -982,14 +1562,16 @@ export default function LetterTiptapEditor({
 
           <button
             type="button"
-            onClick={() => editor.isActive("table") && editor.chain().focus().deleteTable().run()}
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={() => editor.chain().focus().deleteTable().run()}
+            disabled={!isTableActive}
             style={{
               padding: "6px 10px",
               borderRadius: "6px",
               border: "1px solid var(--btn-border-color, #e2e8f0)",
               background: "var(--editor-bg, #ffffff)",
-              color: editor.isActive("table") ? "#dc2626" : "var(--btn-icon-disabled, #cbd5e1)",
-              cursor: editor.isActive("table") ? "pointer" : "not-allowed",
+              color: isTableActive ? "#dc2626" : "var(--btn-icon-disabled, #cbd5e1)",
+              cursor: isTableActive ? "pointer" : "not-allowed",
             }}
             title="Delete Entire Table"
           >
@@ -998,8 +1580,10 @@ export default function LetterTiptapEditor({
 
           <button
             type="button"
+            onMouseDown={(e) => e.preventDefault()}
+            disabled={!isTableActive}
             onClick={() => {
-              if (!editor.isActive("table")) return;
+              if (!isTableActive) return;
               const tableAttrs = editor.getAttributes("table");
               const isBorderless = tableAttrs["data-layout"] === "side-by-side" || tableAttrs["data-layout"] === "borderless" || (tableAttrs.style && tableAttrs.style.includes("border: none"));
               if (isBorderless) {
@@ -1012,10 +1596,10 @@ export default function LetterTiptapEditor({
               padding: "6px 10px",
               borderRadius: "6px",
               border: "1px solid",
-              borderColor: editor.isActive("table") && (editor.getAttributes("table")["data-layout"] === "borderless" || editor.getAttributes("table")["data-layout"] === "side-by-side" || (editor.getAttributes("table").style && editor.getAttributes("table").style.includes("border: none"))) ? "#3b82f6" : "var(--btn-border-color, #e2e8f0)",
-              background: editor.isActive("table") && (editor.getAttributes("table")["data-layout"] === "borderless" || editor.getAttributes("table")["data-layout"] === "side-by-side" || (editor.getAttributes("table").style && editor.getAttributes("table").style.includes("border: none"))) ? "var(--btn-active-bg, #eff6ff)" : "var(--btn-inactive-bg, transparent)",
-              color: editor.isActive("table") ? "#3b82f6" : "var(--btn-icon-disabled, #cbd5e1)",
-              cursor: editor.isActive("table") ? "pointer" : "not-allowed",
+              borderColor: isTableActive && (editor.getAttributes("table")["data-layout"] === "borderless" || editor.getAttributes("table")["data-layout"] === "side-by-side" || (editor.getAttributes("table").style && editor.getAttributes("table").style.includes("border: none"))) ? "#3b82f6" : "var(--btn-border-color, #e2e8f0)",
+              background: isTableActive && (editor.getAttributes("table")["data-layout"] === "borderless" || editor.getAttributes("table")["data-layout"] === "side-by-side" || (editor.getAttributes("table").style && editor.getAttributes("table").style.includes("border: none"))) ? "var(--btn-active-bg, #eff6ff)" : "var(--btn-inactive-bg, transparent)",
+              color: isTableActive ? "#3b82f6" : "var(--btn-icon-disabled, #cbd5e1)",
+              cursor: isTableActive ? "pointer" : "not-allowed",
             }}
             title="Toggle Table Borders (Show / Hide)"
           >
@@ -1024,8 +1608,10 @@ export default function LetterTiptapEditor({
 
           <button
             type="button"
+            onMouseDown={(e) => e.preventDefault()}
+            disabled={!isTableActive}
             onClick={() => {
-              if (!editor.isActive("table")) return;
+              if (!isTableActive) return;
               const cellAttrs = editor.getAttributes("tableCell");
               const headerAttrs = editor.getAttributes("tableHeader");
               let currentStyle = cellAttrs.style || headerAttrs.style || "";
@@ -1047,10 +1633,10 @@ export default function LetterTiptapEditor({
               padding: "6px 10px",
               borderRadius: "6px",
               border: "1px solid",
-              borderColor: editor.isActive("table") && ((editor.getAttributes("tableCell").style || "").includes("vertical-align: middle") || (editor.getAttributes("tableHeader").style || "").includes("vertical-align: middle")) ? "#3b82f6" : "var(--btn-border-color, #e2e8f0)",
-              background: editor.isActive("table") && ((editor.getAttributes("tableCell").style || "").includes("vertical-align: middle") || (editor.getAttributes("tableHeader").style || "").includes("vertical-align: middle")) ? "var(--btn-active-bg, #eff6ff)" : "var(--btn-inactive-bg, transparent)",
-              color: editor.isActive("table") ? "#3b82f6" : "var(--btn-icon-disabled, #cbd5e1)",
-              cursor: editor.isActive("table") ? "pointer" : "not-allowed",
+              borderColor: isTableActive && ((editor.getAttributes("tableCell").style || "").includes("vertical-align: middle") || (editor.getAttributes("tableHeader").style || "").includes("vertical-align: middle")) ? "#3b82f6" : "var(--btn-border-color, #e2e8f0)",
+              background: isTableActive && ((editor.getAttributes("tableCell").style || "").includes("vertical-align: middle") || (editor.getAttributes("tableHeader").style || "").includes("vertical-align: middle")) ? "var(--btn-active-bg, #eff6ff)" : "var(--btn-inactive-bg, transparent)",
+              color: isTableActive ? "#3b82f6" : "var(--btn-icon-disabled, #cbd5e1)",
+              cursor: isTableActive ? "pointer" : "not-allowed",
             }}
             title="Vertical Align Center"
           >
@@ -1362,10 +1948,58 @@ export default function LetterTiptapEditor({
           text-align: left;
           background-color: var(--editor-th-bg, #f1f5f9);
         }
-        .letter-tiptap-content .ProseMirror ul,
+        .letter-tiptap-content .ProseMirror ul {
+          list-style-type: disc !important;
+          list-style-position: outside !important;
+          padding-left: 1.75rem !important;
+          margin-top: 0.5em !important;
+          margin-bottom: 1em !important;
+        }
+        .letter-tiptap-content .ProseMirror ul ul {
+          list-style-type: circle !important;
+          margin-top: 0.25em !important;
+          margin-bottom: 0.25em !important;
+        }
+        .letter-tiptap-content .ProseMirror ul ul ul {
+          list-style-type: square !important;
+        }
         .letter-tiptap-content .ProseMirror ol {
-          padding-left: 1.5rem;
-          margin-bottom: 1em;
+          list-style-type: decimal !important;
+          list-style-position: outside !important;
+          padding-left: 1.75rem !important;
+          margin-top: 0.5em !important;
+          margin-bottom: 1em !important;
+        }
+        .letter-tiptap-content .ProseMirror ol ol {
+          list-style-type: lower-alpha !important;
+          margin-top: 0.25em !important;
+          margin-bottom: 0.25em !important;
+        }
+        .letter-tiptap-content .ProseMirror ol ol ol {
+          list-style-type: lower-roman !important;
+        }
+        .letter-tiptap-content .ProseMirror li {
+          display: list-item !important;
+          margin-bottom: 0.3em !important;
+          line-height: 1.6;
+        }
+        .letter-tiptap-content .ProseMirror li p {
+          margin-top: 0 !important;
+          margin-bottom: 0.25em !important;
+        }
+        .letter-tiptap-content .ProseMirror img {
+          max-width: 100% !important;
+          height: auto !important;
+          object-fit: contain;
+          display: inline-block;
+          vertical-align: middle;
+        }
+        .letter-tiptap-content .ProseMirror td img,
+        .letter-tiptap-content .ProseMirror th img {
+          max-width: 100% !important;
+          max-height: 140px !important;
+          height: auto !important;
+          object-fit: contain;
         }
         .letter-tiptap-content .ProseMirror img[style*="text-align: center"],
         .letter-tiptap-content .ProseMirror img[data-text-align="center"],
@@ -1384,7 +2018,7 @@ export default function LetterTiptapEditor({
           margin-right: 0;
         }
 
-        .tiptap-toolbar button, .tiptap-toolbar input[type="color"] {
+        .tiptap-toolbar button:not(.tiptap-btn-auto), .tiptap-toolbar input[type="color"] {
           width: 26px !important;
           height: 26px !important;
           min-width: 26px !important;

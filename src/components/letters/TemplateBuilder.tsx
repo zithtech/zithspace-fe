@@ -431,9 +431,9 @@ export default function TemplateBuilder({ templateId }: TemplateBuilderProps) {
     const companyDetailsCenter = `<p style="margin: 0 0 2px 0; font-weight: bold; text-align: center; line-height: 1.2;"><span style="font-size: 14px;">${ph('company_name', 'Company Name')}</span></p><p style="margin: 0; text-align: center; line-height: 1.2;"><span style="font-size: 10px;">${ph('company_address', 'Company Address')} | ${ph('company_mail', 'Company Mail')} | ${ph('company_phone', 'Company Phone')}</span></p>`;
 
     if (type === 'left-details') {
-      html = `<table style="width: 100%; border: none; margin-bottom: 0px;"><tr><td style="border: none; text-align: left; vertical-align: middle; width: 70%;">${companyDetails}</td><td style="border: none; text-align: right; vertical-align: middle; width: 30%;"><p style="margin: 0; text-align: right;">${logoPlaceholder}</p></td></tr></table>`;
+      html = `<table style="width: 100%; border: none; margin-bottom: 0px;"><tr><td style="border: none; text-align: left; vertical-align: middle; width: 440px;">${companyDetails}</td><td style="border: none; text-align: right; vertical-align: middle; width: 180px;"><p style="margin: 0; text-align: right;">${logoPlaceholder}</p></td></tr></table>`;
     } else if (type === 'left-logo') {
-      html = `<table style="width: 100%; border: none; margin-bottom: 0px;"><tr><td style="border: none; text-align: left; vertical-align: middle; width: 30%;"><p style="margin: 0;">${logoPlaceholder}</p></td><td style="border: none; text-align: right; vertical-align: middle; width: 70%;">${companyDetailsRight}</td></tr></table>`;
+      html = `<table style="width: 100%; border: none; margin-bottom: 0px;"><tr><td style="border: none; text-align: left; vertical-align: middle; width: 180px;"><p style="margin: 0;">${logoPlaceholder}</p></td><td style="border: none; text-align: right; vertical-align: middle; width: 440px;">${companyDetailsRight}</td></tr></table>`;
     } else if (type === 'top-logo') {
       html = `<div style="text-align: center; margin-bottom: 0px;"><p style="margin: 0 0 6px 0; text-align: center;">${logoPlaceholder}</p>${companyDetailsCenter}</div>`;
     }

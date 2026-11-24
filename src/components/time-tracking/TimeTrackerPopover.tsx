@@ -299,7 +299,15 @@ export const TimeTrackerPopover: React.FC<TimeTrackerPopoverProps> = ({
         {activeEntry?.meetingType && (
           <div style={{ marginTop: -2, marginBottom: 0 }}>
             <Tag
-              color={activeEntry.meetingType === "Client Meeting" ? "purple" : "cyan"}
+              color={
+                activeEntry.meetingType.includes("Client")
+                  ? "purple"
+                  : activeEntry.meetingType.includes("Internal")
+                  ? "cyan"
+                  : activeEntry.meetingType.includes("Standup")
+                  ? "green"
+                  : "orange"
+              }
               style={{ borderRadius: 4, fontWeight: 600, padding: "1px 6px", fontSize: 11, margin: 0 }}
             >
               <Video size={10} style={{ display: "inline", marginRight: 3, verticalAlign: -1 }} />
@@ -444,6 +452,8 @@ export const TimeTrackerPopover: React.FC<TimeTrackerPopoverProps> = ({
               options={[
                 { label: "Client Meeting", value: "Client Meeting" },
                 { label: "Internal Developer Meeting", value: "Internal Developer Meeting" },
+                { label: "Standup Call", value: "Standup Call" },
+                { label: "Wrapup Call", value: "Wrapup Call" },
               ]}
             />
           </Form.Item>

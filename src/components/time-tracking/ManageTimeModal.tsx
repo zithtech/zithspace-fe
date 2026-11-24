@@ -332,6 +332,8 @@ export const ManageTimeModal: React.FC<ManageTimeModalProps> = ({ open, onClose,
                 options={[
                   { label: "Client Meeting", value: "Client Meeting" },
                   { label: "Internal Developer Meeting", value: "Internal Developer Meeting" },
+                  { label: "Standup Call", value: "Standup Call" },
+                  { label: "Wrapup Call", value: "Wrapup Call" },
                 ]}
               />
             </Form.Item>

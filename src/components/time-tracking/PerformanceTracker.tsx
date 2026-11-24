@@ -612,7 +612,15 @@ export const PerformanceTracker: React.FC<PerformanceTrackerProps> = ({ refreshK
                     <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 2, flexWrap: "wrap" }}>
                       {session.meetingType && (
                         <Tag
-                          color={session.meetingType === "Client Meeting" ? "purple" : "cyan"}
+                          color={
+                            session.meetingType.includes("Client")
+                              ? "purple"
+                              : session.meetingType.includes("Internal")
+                              ? "cyan"
+                              : session.meetingType.includes("Standup")
+                              ? "green"
+                              : "orange"
+                          }
                           style={{ borderRadius: 4, border: "none", fontWeight: 600, fontSize: 10, margin: 0 }}
                         >
                           {session.meetingType}

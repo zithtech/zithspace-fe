@@ -24,6 +24,15 @@ import { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
 
 const { Text } = Typography;
 
+const getMeetingTagColor = (type?: string | null) => {
+  if (!type) return "default";
+  if (type.includes("Client")) return "purple";
+  if (type.includes("Internal")) return "cyan";
+  if (type.includes("Standup")) return "green";
+  if (type.includes("Wrapup")) return "orange";
+  return "blue";
+};
+
 export function MyTimeTracker({
   dateRange,
   setDateRange,
@@ -183,7 +192,7 @@ export function MyTimeTracker({
           <Space direction="vertical" size={2}>
             {record.meetingType && (
               <Tag
-                color={record.meetingType === "Client Meeting" ? "purple" : "cyan"}
+                color={getMeetingTagColor(record.meetingType)}
                 style={{ fontWeight: 600, borderRadius: 4, margin: 0 }}
               >
                 {record.meetingType}
@@ -391,6 +400,8 @@ export function MyTimeTracker({
   const displayedEntries = useMemo(() => {
     if (!meetingFilter || meetingFilter === "ALL") return paginatedEntries;
     if (meetingFilter === "PROJECT_ONLY") return paginatedEntries.filter(e => !e.meetingType);
+    if (meetingFilter === "Standup Call") return paginatedEntries.filter(e => e.meetingType?.includes("Standup"));
+    if (meetingFilter === "Wrapup Call") return paginatedEntries.filter(e => e.meetingType?.includes("Wrapup"));
     return paginatedEntries.filter(e => e.meetingType === meetingFilter);
   }, [paginatedEntries, meetingFilter]);
   const pageStart = total === 0 ? 0 : (tablePage - 1) * tablePageSize + 1;
@@ -473,12 +484,14 @@ export function MyTimeTracker({
               placeholder="All Activities"
               value={meetingFilter}
               onChange={setMeetingFilter}
-              style={{ width: 165 }}
+              style={{ width: 175 }}
               size="small"
               options={[
                 { label: "All Activities", value: "ALL" },
                 { label: "Client Meetings", value: "Client Meeting" },
                 { label: "Internal Dev Meetings", value: "Internal Developer Meeting" },
+                { label: "Standup Calls", value: "Standup Call" },
+                { label: "Wrapup Calls", value: "Wrapup Call" },
                 { label: "Project Work Only", value: "PROJECT_ONLY" },
               ]}
             />
@@ -575,7 +588,7 @@ export function MyTimeTracker({
                                                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4, flexWrap: 'wrap' }}>
                                                       {record.meetingType && (
                                                         <Tag
-                                                          color={record.meetingType === 'Client Meeting' ? 'purple' : 'cyan'}
+                                                          color={getMeetingTagColor(record.meetingType)}
                                                           style={{ borderRadius: 4, fontSize: 10, fontWeight: 600, margin: 0 }}
                                                         >
                                                           {record.meetingType}

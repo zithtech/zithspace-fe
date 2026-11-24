@@ -635,7 +635,15 @@ export const TeamTimeTracker: React.FC<TeamTimeTrackerProps> = ({ refreshKey }) 
             <Space direction="vertical" size={2}>
               {record.meetingType && (
                 <Tag
-                  color={record.meetingType === 'Client Meeting' ? 'purple' : 'cyan'}
+                  color={
+                    record.meetingType.includes("Client")
+                      ? "purple"
+                      : record.meetingType.includes("Internal")
+                      ? "cyan"
+                      : record.meetingType.includes("Standup")
+                      ? "green"
+                      : "orange"
+                  }
                   style={{ fontWeight: 600, borderRadius: 4, margin: 0 }}
                 >
                   {record.meetingType}

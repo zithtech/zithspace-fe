@@ -4,7 +4,7 @@ import { getSyncedTime } from '@/utils/timeUtils';
 
 
 import React, { useEffect, useState } from "react";
-import { Popover, Button, Input, Select, Form, App } from "antd";
+import { Popover, Button, Input, Select, Form, App, Segmented, Tag } from "antd";
 import {
   PlayCircleFilled,
   PauseCircleFilled,
@@ -19,6 +19,7 @@ import {
   Square,
   ArrowUpRight,
   Timer,
+  Video,
 } from "lucide-react";
 import { useTimeTrackerStore } from "@/store/useTimeTrackerStore";
 import { useAttendanceGuard } from "@/hooks/useAttendanceGuard";
@@ -78,8 +79,11 @@ export const TimeTrackerPopover: React.FC<TimeTrackerPopoverProps> = ({
       const tIds = Array.from(
         new Set(runningOrPaused.map((e) => e.ticketId).filter(Boolean))
       ) as string[];
+      const mType = runningOrPaused[0].meetingType;
 
       form.setFieldsValue({
+        category: mType ? "meeting" : "project",
+        meetingType: mType || undefined,
         projectId: pIds,
         ticketId: tIds,
         description: runningOrPaused[0].description,
@@ -180,24 +184,43 @@ export const TimeTrackerPopover: React.FC<TimeTrackerPopoverProps> = ({
 
   const handleStart = async (values: any) => {
     try {
-      const entriesToCreate = values.ticketId.map((tId: string) => {
-        const ticket = tickets.find((t) => t.id === tId);
-        const pId =
-          ticket?.projectId ||
-          (values.projectId.length === 1 ? values.projectId[0] : undefined);
+      const isMeetingMode = values.category === "meeting";
+      const meetingType = isMeetingMode ? values.meetingType : null;
 
-        return {
-          projectId: pId,
-          ticketId: tId,
-          description: values.description,
-          billable: values.billable,
-          billingRate: values.billingRate,
-        };
-      });
+      let entriesToCreate: any[] = [];
+      if (values.ticketId && values.ticketId.length > 0) {
+        entriesToCreate = values.ticketId.map((tId: string) => {
+          const ticket = tickets.find((t) => t.id === tId);
+          const pId =
+            ticket?.projectId ||
+            (values.projectId?.length === 1 ? values.projectId[0] : undefined);
+
+          return {
+            projectId: pId,
+            ticketId: tId,
+            description: values.description || (isMeetingMode ? meetingType : undefined),
+            billable: values.billable,
+            billingRate: values.billingRate,
+            meetingType,
+          };
+        });
+      } else {
+        const pId = values.projectId && values.projectId.length > 0 ? values.projectId[0] : undefined;
+        entriesToCreate = [
+          {
+            projectId: pId,
+            ticketId: undefined,
+            description: values.description || (isMeetingMode ? meetingType : undefined),
+            billable: values.billable,
+            billingRate: values.billingRate,
+            meetingType,
+          },
+        ];
+      }
 
       await withAttendanceGuard(async () => {
         await startMultipleTimers(entriesToCreate);
-        message.success("Timer started");
+        message.success(isMeetingMode ? `${meetingType} timer started` : "Timer started");
       });
     } catch (error: any) {
       message.error(`Failed to start timer: ${error.message}`);
@@ -214,6 +237,8 @@ export const TimeTrackerPopover: React.FC<TimeTrackerPopoverProps> = ({
     }
   };
 
+  const selectedCategory = Form.useWatch("category", form) || "project";
+  const isMeeting = selectedCategory === "meeting";
   const selectedPids = Form.useWatch("projectId", form) || [];
 
   const state: TimerState = !activeEntry
@@ -246,7 +271,7 @@ export const TimeTrackerPopover: React.FC<TimeTrackerPopoverProps> = ({
   const renderContent = () => (
     <div
       className={`ttp-root ttp-state-${state}`}
-      style={{ width: showContentOnly ? "100%" : 360, maxWidth: 360 }}
+      style={{ width: showContentOnly ? "100%" : 320, maxWidth: 320 }}
     >
       {isLoading && (
         <div className="ttp-loading">
@@ -271,6 +296,18 @@ export const TimeTrackerPopover: React.FC<TimeTrackerPopoverProps> = ({
 
         <div className="ttp-timer">{formatTime(elapsedTime)}</div>
 
+        {activeEntry?.meetingType && (
+          <div style={{ marginTop: -2, marginBottom: 0 }}>
+            <Tag
+              color={activeEntry.meetingType === "Client Meeting" ? "purple" : "cyan"}
+              style={{ borderRadius: 4, fontWeight: 600, padding: "1px 6px", fontSize: 11, margin: 0 }}
+            >
+              <Video size={10} style={{ display: "inline", marginRight: 3, verticalAlign: -1 }} />
+              {activeEntry.meetingType}
+            </Tag>
+          </div>
+        )}
+
         <div className="ttp-controls">
           {state === "running" && (
             <>
@@ -288,7 +325,7 @@ export const TimeTrackerPopover: React.FC<TimeTrackerPopoverProps> = ({
                 disabled={isLoading}
                 aria-label="Pause"
               >
-                <PauseCircleFilled style={{ fontSize: 20 }} />
+                <PauseCircleFilled style={{ fontSize: 16 }} />
                 <span>Pause</span>
               </button>
               <button
@@ -298,7 +335,7 @@ export const TimeTrackerPopover: React.FC<TimeTrackerPopoverProps> = ({
                 disabled={isLoading}
                 aria-label="Stop"
               >
-                <Square size={14} fill="currentColor" strokeWidth={0} />
+                <Square size={12} fill="currentColor" strokeWidth={0} />
                 <span>Stop</span>
               </button>
             </>
@@ -322,7 +359,7 @@ export const TimeTrackerPopover: React.FC<TimeTrackerPopoverProps> = ({
                 disabled={isLoading}
                 aria-label="Resume"
               >
-                <PlayCircleFilled style={{ fontSize: 20 }} />
+                <PlayCircleFilled style={{ fontSize: 16 }} />
                 <span>Resume</span>
               </button>
               <button
@@ -332,7 +369,7 @@ export const TimeTrackerPopover: React.FC<TimeTrackerPopoverProps> = ({
                 disabled={isLoading}
                 aria-label="Stop"
               >
-                <Square size={14} fill="currentColor" strokeWidth={0} />
+                <Square size={12} fill="currentColor" strokeWidth={0} />
                 <span>Stop</span>
               </button>
             </>
@@ -345,7 +382,7 @@ export const TimeTrackerPopover: React.FC<TimeTrackerPopoverProps> = ({
               disabled={isLoading}
               aria-label="Start timer"
             >
-              <PlayCircleFilled style={{ fontSize: 20 }} />
+              <PlayCircleFilled style={{ fontSize: 16 }} />
               <span>Start timer</span>
             </button>
           )}
@@ -359,24 +396,72 @@ export const TimeTrackerPopover: React.FC<TimeTrackerPopoverProps> = ({
         form={form}
         layout="vertical"
         onFinish={handleStart}
-        initialValues={{ billable: false }}
+        initialValues={{ category: "project", billable: false }}
         disabled={!!activeEntry || isLoading}
         className="ttp-form"
         requiredMark={false}
       >
+        <Form.Item name="category" style={{ marginBottom: 8 }}>
+          <Segmented
+            block
+            size="small"
+            disabled={!!activeEntry || isLoading}
+            options={[
+              {
+                label: (
+                  <span style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 12, fontWeight: 500, padding: "2px 0" }}>
+                    <Briefcase size={13} /> Project
+                  </span>
+                ),
+                value: "project",
+              },
+              {
+                label: (
+                  <span style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 12, fontWeight: 500, padding: "2px 0" }}>
+                    <Video size={13} /> Meeting
+                  </span>
+                ),
+                value: "meeting",
+              },
+            ]}
+          />
+        </Form.Item>
+
+        {isMeeting && (
+          <Form.Item
+            name="meetingType"
+            label={
+              <span className="ttp-label">
+                <Video size={12} />
+                Meeting Type
+              </span>
+            }
+            rules={[{ required: true, message: "Select a meeting type" }]}
+          >
+            <Select
+              placeholder="Select meeting type"
+              disabled={!!activeEntry || isLoading}
+              options={[
+                { label: "Client Meeting", value: "Client Meeting" },
+                { label: "Internal Developer Meeting", value: "Internal Developer Meeting" },
+              ]}
+            />
+          </Form.Item>
+        )}
+
         <Form.Item
           name="projectId"
           label={
             <span className="ttp-label">
-              <Briefcase size={13} />
-              Project
+              <Briefcase size={12} />
+              {isMeeting ? "Project (Optional)" : "Project"}
             </span>
           }
-          rules={[{ required: true, message: "Select a project" }]}
+          rules={isMeeting ? [] : [{ required: true, message: "Select a project" }]}
         >
           <Select
             mode="multiple"
-            placeholder="Select project(s)"
+            placeholder={isMeeting ? "Select project(s) (optional)" : "Select project(s)"}
             onChange={handleProjectChange}
             allowClear
             disabled={!!activeEntry || isLoading}
@@ -391,53 +476,53 @@ export const TimeTrackerPopover: React.FC<TimeTrackerPopoverProps> = ({
           />
         </Form.Item>
 
-        <Form.Item
-          name="ticketId"
-          label={
-            <span className="ttp-label">
-              <ListChecks size={13} />
-              Task
-            </span>
-          }
-          rules={[{ required: true, message: "Select a task" }]}
-        >
-          <Select
-            mode="multiple"
-            placeholder="Select task(s)"
-            allowClear
-            disabled={!!activeEntry || isLoading || !selectedPids.length}
-            showSearch
-            maxTagCount="responsive"
-            optionFilterProp="label"
-            options={tickets.map((t) => {
-              const projectSuffix = selectedPids.length > 1
-                ? ` · ${projects.find((p) => p.value === t.projectId)?.label || "Unknown"}`
-                : "";
-              // label is what Ant Design filters against — include both ticketNumber and title
-              // so copy-pasting either (any case) finds the correct ticket
-              const searchableLabel = `${t.ticketNumber ? `[${t.ticketNumber}] ` : ""}${t.title}${projectSuffix}`;
-              return {
-                label: searchableLabel,
-                value: t.id,
-              };
-            })}
-          />
-        </Form.Item>
+        {(!isMeeting || selectedPids.length > 0) && (
+          <Form.Item
+            name="ticketId"
+            label={
+              <span className="ttp-label">
+                <ListChecks size={12} />
+                {isMeeting ? "Task (Optional)" : "Task"}
+              </span>
+            }
+            rules={isMeeting ? [] : [{ required: true, message: "Select a task" }]}
+          >
+            <Select
+              mode="multiple"
+              placeholder={isMeeting ? "Select task(s) (optional)" : "Select task(s)"}
+              allowClear
+              disabled={!!activeEntry || isLoading || !selectedPids.length}
+              showSearch
+              maxTagCount="responsive"
+              optionFilterProp="label"
+              options={tickets.map((t) => {
+                const projectSuffix = selectedPids.length > 1
+                  ? ` · ${projects.find((p) => p.value === t.projectId)?.label || "Unknown"}`
+                  : "";
+                const searchableLabel = `${t.ticketNumber ? `[${t.ticketNumber}] ` : ""}${t.title}${projectSuffix}`;
+                return {
+                  label: searchableLabel,
+                  value: t.id,
+                };
+              })}
+            />
+          </Form.Item>
+        )}
 
         <Form.Item
           name="description"
           label={
             <span className="ttp-label">
-              <FileText size={13} />
-              What are you working on?
+              <FileText size={12} />
+              {isMeeting ? "Meeting Agenda / Notes" : "What are you working on?"}
             </span>
           }
+          style={{ marginBottom: 4 }}
         >
-          <Input.TextArea
-            rows={2}
-            placeholder="Add a brief note (optional)"
+          <Input
+            placeholder={isMeeting ? "Agenda or notes (optional)" : "Add a brief note (optional)"}
             maxLength={240}
-            showCount
+            allowClear
           />
         </Form.Item>
       </Form>
@@ -459,23 +544,23 @@ export const TimeTrackerPopover: React.FC<TimeTrackerPopoverProps> = ({
 
       <style jsx global>{`
         .ttp-root {
-          padding: 4px 2px 0;
+          padding: 0;
           color: var(--text-primary);
           position: relative;
         }
         .ttp-loading {
           position: absolute;
-          top: 8px;
-          right: 8px;
+          top: 6px;
+          right: 6px;
           z-index: 2;
         }
         .ttp-hero {
           display: flex;
           flex-direction: column;
           align-items: center;
-          gap: 12px;
-          padding: 18px 8px 20px;
-          border-radius: 14px;
+          gap: 6px;
+          padding: 10px 8px 10px;
+          border-radius: 10px;
           background:
             radial-gradient(120% 100% at 50% 0%, var(--bg-blue-50) 0%, transparent 70%),
             var(--bg-pure-white);
@@ -498,19 +583,19 @@ export const TimeTrackerPopover: React.FC<TimeTrackerPopoverProps> = ({
         .ttp-status-pill {
           display: inline-flex;
           align-items: center;
-          gap: 8px;
-          padding: 4px 10px;
+          gap: 5px;
+          padding: 2px 8px;
           background: var(--bg-pure-white);
           border: 1px solid var(--border-slate-200);
           border-radius: 999px;
-          font-size: 11px;
+          font-size: 10px;
           font-weight: 600;
           letter-spacing: 0.02em;
           text-transform: uppercase;
         }
         .ttp-status-dot {
-          width: 8px;
-          height: 8px;
+          width: 6px;
+          height: 6px;
           border-radius: 999px;
           display: inline-block;
         }
@@ -523,7 +608,7 @@ export const TimeTrackerPopover: React.FC<TimeTrackerPopoverProps> = ({
         }
         .ttp-timer {
           font-family: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace;
-          font-size: 40px;
+          font-size: 28px;
           font-weight: 700;
           letter-spacing: -0.02em;
           color: var(--text-slate-900);
@@ -534,21 +619,21 @@ export const TimeTrackerPopover: React.FC<TimeTrackerPopoverProps> = ({
         .ttp-state-paused .ttp-timer { color: #d97706; }
         .ttp-controls {
           display: flex;
-          gap: 8px;
+          gap: 6px;
           width: 100%;
-          padding: 0 12px;
-          margin-top: 4px;
+          padding: 0 4px;
+          margin-top: 2px;
         }
         .ttp-btn {
           flex: 1;
           display: inline-flex;
           align-items: center;
           justify-content: center;
-          gap: 8px;
-          height: 40px;
-          padding: 0 14px;
-          border-radius: 10px;
-          font-size: 13px;
+          gap: 6px;
+          height: 32px;
+          padding: 0 10px;
+          border-radius: 7px;
+          font-size: 12px;
           font-weight: 600;
           border: 1px solid transparent;
           cursor: pointer;
@@ -561,10 +646,10 @@ export const TimeTrackerPopover: React.FC<TimeTrackerPopoverProps> = ({
         .ttp-btn-primary {
           background: linear-gradient(180deg, #3b82f6 0%, #2563eb 100%);
           color: #fff;
-          box-shadow: 0 1px 0 rgba(255,255,255,0.2) inset, 0 4px 14px rgba(37, 99, 235, 0.28);
+          box-shadow: 0 1px 0 rgba(255,255,255,0.2) inset, 0 3px 10px rgba(37, 99, 235, 0.25);
         }
         .ttp-btn-primary:not(:disabled):hover {
-          box-shadow: 0 1px 0 rgba(255,255,255,0.2) inset, 0 6px 18px rgba(37, 99, 235, 0.36);
+          box-shadow: 0 1px 0 rgba(255,255,255,0.2) inset, 0 4px 14px rgba(37, 99, 235, 0.32);
         }
         .ttp-btn-secondary {
           background: var(--bg-pure-white);
@@ -587,34 +672,47 @@ export const TimeTrackerPopover: React.FC<TimeTrackerPopoverProps> = ({
         .ttp-divider {
           height: 1px;
           background: var(--border-slate-100);
-          margin: 16px -2px 12px;
+          margin: 8px 0 6px;
         }
-        .ttp-form .ant-form-item { margin-bottom: 12px; }
-        .ttp-form .ant-form-item-label { padding-bottom: 4px; }
+        .ttp-form .ant-form-item { margin-bottom: 6px; }
+        .ttp-form .ant-form-item-label { padding-bottom: 1px; }
         .ttp-form .ant-form-item-label > label {
           height: auto;
-          font-size: 11px;
+          font-size: 10px;
           font-weight: 600;
           text-transform: uppercase;
-          letter-spacing: 0.04em;
+          letter-spacing: 0.03em;
           color: var(--text-slate-600);
         }
         .ttp-label {
           display: inline-flex;
           align-items: center;
-          gap: 6px;
+          gap: 5px;
         }
         .ttp-form .ant-select-selector,
         .ttp-form .ant-input {
-          border-radius: 10px !important;
+          border-radius: 7px !important;
           background: var(--bg-pure-white) !important;
         }
-        .ttp-form textarea.ant-input {
-          border-radius: 10px !important;
-          background: var(--bg-pure-white) !important;
-          padding: 10px 12px 26px 12px !important;
-          line-height: 1.5;
-          resize: none;
+        .ttp-form .ant-select-single:not(.ant-select-customize-input) .ant-select-selector {
+          height: 30px !important;
+          padding: 0 8px !important;
+          font-size: 12px !important;
+        }
+        .ttp-form .ant-select-single .ant-select-selector .ant-select-selection-item,
+        .ttp-form .ant-select-single .ant-select-selector .ant-select-selection-placeholder {
+          line-height: 28px !important;
+          font-size: 12px !important;
+        }
+        .ttp-form .ant-select-multiple .ant-select-selector {
+          min-height: 30px !important;
+          padding: 1px 4px !important;
+          font-size: 12px !important;
+        }
+        .ttp-form .ant-input {
+          height: 30px !important;
+          padding: 4px 8px !important;
+          font-size: 12px !important;
         }
         .ttp-form .ant-select-selector:hover,
         .ttp-form .ant-input:hover {
@@ -623,21 +721,21 @@ export const TimeTrackerPopover: React.FC<TimeTrackerPopoverProps> = ({
         .ttp-footer {
           display: flex;
           justify-content: center;
-          padding: 8px 0 4px;
-          margin-top: 4px;
+          padding: 4px 0 0;
+          margin-top: 2px;
           border-top: 1px solid var(--border-slate-100);
         }
         .ttp-link {
           display: inline-flex;
           align-items: center;
-          gap: 6px;
-          padding: 8px 12px;
+          gap: 4px;
+          padding: 3px 6px;
           background: transparent;
           border: none;
-          color: var(--text-slate-600);
-          font-size: 12px;
+          color: var(--text-slate-500);
+          font-size: 11px;
           font-weight: 500;
-          border-radius: 8px;
+          border-radius: 6px;
           cursor: pointer;
           transition: background 120ms ease, color 120ms ease;
         }
@@ -646,12 +744,10 @@ export const TimeTrackerPopover: React.FC<TimeTrackerPopoverProps> = ({
           color: var(--text-blue-700);
         }
 
-        /* Trigger button polish - styles moved to globals.css */
-
         /* Popover container override */
         .ttp-popover .ant-popover-inner {
-          border-radius: 16px;
-          padding: 14px;
+          border-radius: 12px;
+          padding: 10px !important;
           box-shadow:
             0 1px 0 rgba(255,255,255,0.06) inset,
             0 12px 32px -8px rgba(15, 23, 42, 0.18),
@@ -663,10 +759,10 @@ export const TimeTrackerPopover: React.FC<TimeTrackerPopoverProps> = ({
           border-color: #27273a !important;
         }
         .ttp-popover .ant-popover-title {
-          padding: 4px 6px 12px;
-          margin-bottom: 6px;
-          border-bottom: 1px solid var(--border-slate-100);
-          font-size: 13px;
+          padding: 0 2px 6px !important;
+          margin-bottom: 4px !important;
+          border-bottom: 1px solid var(--border-slate-100) !important;
+          font-size: 12px !important;
           font-weight: 600;
           color: var(--text-slate-900);
         }

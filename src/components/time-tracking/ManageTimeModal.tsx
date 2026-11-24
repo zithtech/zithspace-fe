@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { Modal, Form, Select, TimePicker, Button, App, Space, Typography, Tag, DatePicker, Row, Col } from 'antd';
+import { Modal, Form, Select, TimePicker, Button, App, Space, Typography, Tag, DatePicker, Row, Col, Segmented } from 'antd';
 import {
   ClockCircleOutlined,
   UserOutlined,
@@ -13,7 +13,8 @@ import {
   InfoCircleOutlined,
   ThunderboltFilled,
   PlayCircleOutlined,
-  PauseCircleOutlined
+  PauseCircleOutlined,
+  VideoCameraOutlined
 } from '@ant-design/icons';
 import { TimeTrackingService } from '@/services/timeTracking.service';
 import TicketService from '@/services/ticketService';
@@ -38,6 +39,8 @@ export const ManageTimeModal: React.FC<ManageTimeModalProps> = ({ open, onClose,
   const [loading, setLoading] = useState(false);
 
   const effectiveDate = selectedDate || dayjs();
+  const selectedCategory = Form.useWatch('category', form) || 'project';
+  const isMeeting = selectedCategory === 'meeting';
   const selectedUserId = Form.useWatch('userId', form);
   const selectedProjectIds = Form.useWatch('projectIds', form) || [];
   const selectedTicketIds = Form.useWatch('ticketIds', form) || [];
@@ -114,7 +117,7 @@ export const ManageTimeModal: React.FC<ManageTimeModalProps> = ({ open, onClose,
   );
 
   const handleSubmit = async (values: any) => {
-    const { userId, ticketIds, startTime, endTime } = values;
+    const { userId, ticketIds, startTime, endTime, category, meetingType } = values;
 
     if (!startTime || !endTime) {
       message.error("Start and End times are required");
@@ -123,6 +126,12 @@ export const ManageTimeModal: React.FC<ManageTimeModalProps> = ({ open, onClose,
 
     if (startTime.isAfter(endTime)) {
       message.error("Start time must be before end time");
+      return;
+    }
+
+    const isMeetingMode = category === 'meeting';
+    if (!isMeetingMode && (!ticketIds || ticketIds.length === 0)) {
+      message.error("Select at least one ticket");
       return;
     }
 
@@ -135,29 +144,44 @@ export const ManageTimeModal: React.FC<ManageTimeModalProps> = ({ open, onClose,
       const endISO = endDayjs.toISOString();
 
       let successCount = 0;
-      for (const tId of ticketIds) {
-        const ticketObj = allUserTickets.find((t: any) => t.id === tId);
-        let pId: string | undefined = undefined;
-        if (ticketObj) {
-          if (ticketObj.project && typeof ticketObj.project === 'object') {
-            pId = (ticketObj.project as any).id;
-          } else if (typeof ticketObj.project === 'string') {
-            pId = ticketObj.project;
+      if (isMeetingMode && (!ticketIds || ticketIds.length === 0)) {
+        await TimeTrackingService.addManualEntry({
+          userId,
+          projectId: values.projectIds?.[0] || undefined,
+          meetingType,
+          description: meetingType,
+          startTime: startISO,
+          endTime: endISO,
+          billable: true,
+        });
+        successCount++;
+      } else {
+        for (const tId of (ticketIds || [])) {
+          const ticketObj = allUserTickets.find((t: any) => t.id === tId);
+          let pId: string | undefined = undefined;
+          if (ticketObj) {
+            if (ticketObj.project && typeof ticketObj.project === 'object') {
+              pId = (ticketObj.project as any).id;
+            } else if (typeof ticketObj.project === 'string') {
+              pId = ticketObj.project;
+            }
           }
-        }
 
-        try {
-          await TimeTrackingService.addManualEntry({
-            userId,
-            projectId: pId,
-            ticketId: tId,
-            startTime: startISO,
-            endTime: endISO,
-            billable: true
-          });
-          successCount++;
-        } catch (e) {
-          console.error(`Error creating entry for ticket ${tId}:`, e);
+          try {
+            await TimeTrackingService.addManualEntry({
+              userId,
+              projectId: pId,
+              ticketId: tId,
+              meetingType: isMeetingMode ? meetingType : undefined,
+              description: isMeetingMode ? meetingType : undefined,
+              startTime: startISO,
+              endTime: endISO,
+              billable: true,
+            });
+            successCount++;
+          } catch (e) {
+            console.error(`Error creating entry for ticket ${tId}:`, e);
+          }
         }
       }
 
@@ -218,6 +242,7 @@ export const ManageTimeModal: React.FC<ManageTimeModalProps> = ({ open, onClose,
         layout="vertical"
         onFinish={handleSubmit}
         initialValues={{
+          category: 'project',
           userId: undefined,
           projectIds: [],
           ticketIds: [],
@@ -265,21 +290,61 @@ export const ManageTimeModal: React.FC<ManageTimeModalProps> = ({ open, onClose,
           <div className="mtm-section__header">
             <span className="mtm-section__index">2</span>
             <span className="mtm-section__title">What was worked on</span>
-            {selectedMember && (
+            {selectedMember && !isMeeting && (
               <span className="mtm-section__hint">
                 {allUserTickets.length} {allUserTickets.length === 1 ? 'ticket' : 'tickets'} assigned
               </span>
             )}
           </div>
 
+          <Form.Item name="category" style={{ marginBottom: 14 }}>
+            <Segmented
+              block
+              options={[
+                {
+                  label: (
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                      <ProjectOutlined /> Project Work
+                    </span>
+                  ),
+                  value: 'project',
+                },
+                {
+                  label: (
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                      <VideoCameraOutlined /> Meeting
+                    </span>
+                  ),
+                  value: 'meeting',
+                },
+              ]}
+            />
+          </Form.Item>
+
+          {isMeeting && (
+            <Form.Item
+              name="meetingType"
+              label={<span className="mtm-label"><VideoCameraOutlined /> Meeting Type</span>}
+              rules={[{ required: true, message: 'Select a meeting type' }]}
+            >
+              <Select
+                placeholder="Select meeting type"
+                options={[
+                  { label: "Client Meeting", value: "Client Meeting" },
+                  { label: "Internal Developer Meeting", value: "Internal Developer Meeting" },
+                ]}
+              />
+            </Form.Item>
+          )}
+
           <Form.Item
             name="projectIds"
-            label={<span className="mtm-label"><ProjectOutlined /> Projects</span>}
-            rules={[{ required: true, message: 'Select at least one project' }]}
+            label={<span className="mtm-label"><ProjectOutlined /> {isMeeting ? 'Projects (Optional)' : 'Projects'}</span>}
+            rules={isMeeting ? [] : [{ required: true, message: 'Select at least one project' }]}
           >
             <Select
               mode="multiple"
-              placeholder={selectedUserId ? 'Select projects' : 'Pick a team member first'}
+              placeholder={isMeeting ? 'Select projects (optional)' : (selectedUserId ? 'Select projects' : 'Pick a team member first')}
               disabled={!selectedUserId}
               options={availableProjects}
               loading={loadingTickets}
@@ -294,14 +359,14 @@ export const ManageTimeModal: React.FC<ManageTimeModalProps> = ({ open, onClose,
 
           <Form.Item
             name="ticketIds"
-            label={<span className="mtm-label"><TagOutlined /> Tickets</span>}
-            rules={[{ required: true, message: 'Select at least one ticket' }]}
+            label={<span className="mtm-label"><TagOutlined /> {isMeeting ? 'Tickets (Optional)' : 'Tickets'}</span>}
+            rules={isMeeting ? [] : [{ required: true, message: 'Select at least one ticket' }]}
             style={{ marginBottom: 0 }}
           >
             <Select
               mode="multiple"
-              placeholder={selectedProjectIds.length === 0 ? 'Pick a project first' : 'Select tickets'}
-              disabled={selectedProjectIds.length === 0}
+              placeholder={isMeeting ? 'Select tickets (optional)' : (selectedProjectIds.length === 0 ? 'Pick a project first' : 'Select tickets')}
+              disabled={!isMeeting && selectedProjectIds.length === 0}
               loading={loadingTickets}
               maxTagCount="responsive"
               showSearch
@@ -321,7 +386,7 @@ export const ManageTimeModal: React.FC<ManageTimeModalProps> = ({ open, onClose,
             </Select>
           </Form.Item>
 
-          {!loadingTickets && selectedUserId && filteredTickets.length === 0 && (
+          {!isMeeting && !loadingTickets && selectedUserId && filteredTickets.length === 0 && (
             <div className="mtm-empty">
               <InfoCircleOutlined /> This user has no tickets assigned to the selected projects.
             </div>
@@ -369,11 +434,11 @@ export const ManageTimeModal: React.FC<ManageTimeModalProps> = ({ open, onClose,
               </Col>
             </Row>
 
-            {ticketCount > 0 && totalDuration && (
+            {(ticketCount > 0 || isMeeting) && totalDuration && (
               <div className="mtm-summary">
                 <ThunderboltFilled className="mtm-summary__icon" />
                 <span>
-                  This will create <strong>{ticketCount}</strong> {ticketCount === 1 ? 'entry' : 'entries'} ·
+                  This will create <strong>{Math.max(ticketCount, 1)}</strong> {Math.max(ticketCount, 1) === 1 ? 'entry' : 'entries'} ·
                   <strong> {Math.floor(totalLoggedMinutes / 60)}h {String(totalLoggedMinutes % 60).padStart(2, '0')}m</strong> total logged
                 </span>
               </div>

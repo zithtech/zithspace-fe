@@ -1,7 +1,7 @@
 "use client";
 
 import NoData from "@/components/common/NoData";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import ZukvoLoader from "@/components/common/ZukvoLoader";
 import { getSyncedTime } from "@/utils/timeUtils";
 import { DeleteOutlined, PlayCircleOutlined, PauseCircleOutlined, ClockCircleOutlined, FileTextOutlined, ReloadOutlined } from "@ant-design/icons";
@@ -23,6 +23,15 @@ import { useAttendanceGuard } from "@/hooks/useAttendanceGuard";
 import { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
 
 const { Text } = Typography;
+
+const getMeetingTagColor = (type?: string | null) => {
+  if (!type) return "default";
+  if (type.includes("Client")) return "purple";
+  if (type.includes("Internal")) return "cyan";
+  if (type.includes("Standup")) return "green";
+  if (type.includes("Wrapup")) return "orange";
+  return "blue";
+};
 
 export function MyTimeTracker({
   dateRange,
@@ -46,6 +55,7 @@ export function MyTimeTracker({
   const [tablePage, setTablePage] = useState(1);
   const [tablePageSize, setTablePageSize] = useState(15);
   const [totalRecords, setTotalRecords] = useState(0);
+  const [meetingFilter, setMeetingFilter] = useState<string>("ALL");
 
   const fetchEntries = async () => {
     try {
@@ -176,11 +186,27 @@ export function MyTimeTracker({
       title: "Project",
       dataIndex: ["project", "name"],
       key: "project",
-      width: 150,
+      width: 160,
       render: (text: string, record: TimeTrackingEntry) => {
-        if (text) return text;
-        if (record.projectId) return `Project ${record.projectId}`;
-        return <Text type="secondary">No project</Text>;
+        return (
+          <Space direction="vertical" size={2}>
+            {record.meetingType && (
+              <Tag
+                color={getMeetingTagColor(record.meetingType)}
+                style={{ fontWeight: 600, borderRadius: 4, margin: 0 }}
+              >
+                {record.meetingType}
+              </Tag>
+            )}
+            {text ? (
+              <span>{text}</span>
+            ) : record.projectId ? (
+              <span>Project {record.projectId}</span>
+            ) : !record.meetingType ? (
+              <Text type="secondary">No project</Text>
+            ) : null}
+          </Space>
+        );
       },
     },
     {
@@ -203,7 +229,9 @@ export function MyTimeTracker({
                 {record.ticket.title}
               </a>
             ) : (
-              text || (record.ticketId ? `Ticket ${record.ticketId}` : <Text type="secondary">No task</Text>)
+              <span style={{ fontWeight: record.meetingType ? 500 : 400 }}>
+                {text || (record.meetingType ? record.meetingType : (record.ticketId ? `Ticket ${record.ticketId}` : <Text type="secondary">No task</Text>))}
+              </span>
             )}
           </div>
           {record.description && record.ticket?.title && (
@@ -369,6 +397,13 @@ export function MyTimeTracker({
   }, [total, tablePageSize, pageCount, tablePage]);
 
   const paginatedEntries = entries; // Now we get paginated entries from the server
+  const displayedEntries = useMemo(() => {
+    if (!meetingFilter || meetingFilter === "ALL") return paginatedEntries;
+    if (meetingFilter === "PROJECT_ONLY") return paginatedEntries.filter(e => !e.meetingType);
+    if (meetingFilter === "Standup Call") return paginatedEntries.filter(e => e.meetingType?.includes("Standup"));
+    if (meetingFilter === "Wrapup Call") return paginatedEntries.filter(e => e.meetingType?.includes("Wrapup"));
+    return paginatedEntries.filter(e => e.meetingType === meetingFilter);
+  }, [paginatedEntries, meetingFilter]);
   const pageStart = total === 0 ? 0 : (tablePage - 1) * tablePageSize + 1;
   const pageEnd = Math.min(total, tablePage * tablePageSize);
 
@@ -445,6 +480,22 @@ export function MyTimeTracker({
               onChange={(dates) => setDateRange(dates as any)}
             />
 
+            <Select
+              placeholder="All Activities"
+              value={meetingFilter}
+              onChange={setMeetingFilter}
+              style={{ width: 175 }}
+              size="small"
+              options={[
+                { label: "All Activities", value: "ALL" },
+                { label: "Client Meetings", value: "Client Meeting" },
+                { label: "Internal Dev Meetings", value: "Internal Developer Meeting" },
+                { label: "Standup Calls", value: "Standup Call" },
+                { label: "Wrapup Calls", value: "Wrapup Call" },
+                { label: "Project Work Only", value: "PROJECT_ONLY" },
+              ]}
+            />
+
             <Tooltip title="Refresh data">
               <Button
                 onClick={fetchEntries}
@@ -461,7 +512,7 @@ export function MyTimeTracker({
           <ZukvoLoadingOverlay loading={loading} message="">
                   <Table
                               columns={columns.filter(col => col.key !== 'action' || canCreateTimeTracking || canDeleteTimeTracking)}
-                              dataSource={paginatedEntries}
+                              dataSource={displayedEntries}
                               rowKey="id"
                               pagination={false}
                               rowClassName={(record) => record.status === "RUNNING" ? "running-row" : ""}
@@ -535,6 +586,14 @@ export function MyTimeTracker({
                                                 <Row gutter={[12, 12]} align="middle">
                                                   <Col xs={24} sm={16} md={18}>
                                                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4, flexWrap: 'wrap' }}>
+                                                      {record.meetingType && (
+                                                        <Tag
+                                                          color={getMeetingTagColor(record.meetingType)}
+                                                          style={{ borderRadius: 4, fontSize: 10, fontWeight: 600, margin: 0 }}
+                                                        >
+                                                          {record.meetingType}
+                                                        </Tag>
+                                                      )}
                                                       <Text type="secondary" style={{ fontSize: 11, fontWeight: 500 }}>
                                                         {dayjs(session.start).format("h:mm:ss A")} - {session.end ? dayjs(session.end).format("h:mm:ss A") : "Running"}
                                                       </Text>

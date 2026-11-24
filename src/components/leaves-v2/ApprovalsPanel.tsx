@@ -42,6 +42,25 @@ const initials = (s?: string) => (s || '?').split(' ').map((p) => p[0]).slice(0,
 const { RangePicker } = DatePicker;
 type DateRange = [Dayjs | null, Dayjs | null] | null;
 
+const rangePresets: { label: string; value: [Dayjs, Dayjs] }[] = [
+  { label: 'This Month', value: [dayjs().startOf('month'), dayjs().endOf('month')] },
+  {
+    label: 'Last Month',
+    value: [
+      dayjs().subtract(1, 'month').startOf('month'),
+      dayjs().subtract(1, 'month').endOf('month'),
+    ],
+  },
+];
+
+const isAppliedAfterLeave = (r: LeaveRequest) => {
+  if (!r.createdAt || !r.fromDate) return false;
+  const applied = dayjs(r.createdAt);
+  const leave = dayjs(r.fromDate);
+  if (!applied.isValid() || !leave.isValid()) return false;
+  return applied.startOf('day').isAfter(leave.startOf('day'));
+};
+
 export default function ApprovalsPanel() {
   const { canApproveLeave } = usePermission();
 
@@ -126,6 +145,39 @@ export default function ApprovalsPanel() {
   useEffect(() => { if (tablePage > pageCount) setTablePage(pageCount); }, [pageCount, tablePage]);
   const hasFilters = !!search || statusFilter !== 'all' || !!userFilter || !!dateRange;
   const clearFilters = () => { setSearch(''); setStatusFilter('all'); setUserFilter(undefined); setDateRange(null); };
+
+  const isThisMonth = useMemo(() => {
+    if (!dateRange || !dateRange[0] || !dateRange[1]) return false;
+    const start = dayjs().startOf('month');
+    const end = dayjs().endOf('month');
+    return dateRange[0].isSame(start, 'day') && dateRange[1].isSame(end, 'day');
+  }, [dateRange]);
+
+  const isLastMonth = useMemo(() => {
+    if (!dateRange || !dateRange[0] || !dateRange[1]) return false;
+    const start = dayjs().subtract(1, 'month').startOf('month');
+    const end = dayjs().subtract(1, 'month').endOf('month');
+    return dateRange[0].isSame(start, 'day') && dateRange[1].isSame(end, 'day');
+  }, [dateRange]);
+
+  const handleThisMonth = () => {
+    if (isThisMonth) {
+      setDateRange(null);
+    } else {
+      setDateRange([dayjs().startOf('month'), dayjs().endOf('month')]);
+    }
+  };
+
+  const handleLastMonth = () => {
+    if (isLastMonth) {
+      setDateRange(null);
+    } else {
+      setDateRange([
+        dayjs().subtract(1, 'month').startOf('month'),
+        dayjs().subtract(1, 'month').endOf('month'),
+      ]);
+    }
+  };
 
   const decide = async (r: LeaveRequest, action: 'approve' | 'reject') => {
     setBusyId(r.id);
@@ -226,12 +278,20 @@ export default function ApprovalsPanel() {
     {
       title: 'Period',
       key: 'period',
-      render: (_, r) => (
-        <span style={{ color: 'var(--text-slate-600)' }}>
-          {fmt(r.fromDate)}{r.toDate !== r.fromDate ? ` → ${fmt(r.toDate)}` : ''}
-          {r.dayPortion !== 'full' && <Tag style={{ marginLeft: 6 }}>{r.dayPortion === 'first_half' ? '1st half' : '2nd half'}</Tag>}
-        </span>
-      ),
+      render: (_, r) => {
+        const isLate = isAppliedAfterLeave(r);
+        return (
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+            <span
+              className={isLate ? 'lvap-date-late' : 'lvap-date-normal'}
+              title={isLate ? `Applied after leave date (Applied: ${fmt(r.createdAt)})` : undefined}
+            >
+              {fmt(r.fromDate)}{r.toDate !== r.fromDate ? ` → ${fmt(r.toDate)}` : ''}
+            </span>
+            {r.dayPortion !== 'full' && <Tag style={{ marginLeft: 0 }}>{r.dayPortion === 'first_half' ? '1st half' : '2nd half'}</Tag>}
+          </span>
+        );
+      },
     },
     { title: 'Days', dataIndex: 'totalUnits', key: 'days', render: (v) => <strong>{v}</strong> },
     {
@@ -397,6 +457,38 @@ export default function ApprovalsPanel() {
             options={userOptions.map((u) => ({ value: u.value, label: u.label }))}
             onChange={(v) => setUserFilter(v ? String(v) : undefined)}
           />
+          <RangePicker
+            value={dateRange}
+            onChange={(dates) => {
+              if (dates && dates[0] && dates[1]) {
+                setDateRange([dates[0].startOf('day'), dates[1].endOf('day')]);
+              } else {
+                setDateRange(null);
+              }
+            }}
+            presets={rangePresets}
+            format="MMM D, YYYY"
+            allowClear
+            className="lvap-filter-range"
+            placeholder={['Start date', 'End date']}
+            style={{ borderRadius: 8, height: 32 }}
+          />
+          <div className="lvap-quick-dates">
+            <button
+              type="button"
+              className={`lvap-quick-btn ${isThisMonth ? 'is-active' : ''}`}
+              onClick={handleThisMonth}
+            >
+              This Month
+            </button>
+            <button
+              type="button"
+              className={`lvap-quick-btn ${isLastMonth ? 'is-active' : ''}`}
+              onClick={handleLastMonth}
+            >
+              Last Month
+            </button>
+          </div>
         </FilterBar>
       )}
 
@@ -516,7 +608,17 @@ export default function ApprovalsPanel() {
                             <div className="lv-list-card-row">
                               <span className="lv-list-card-item">
                                 <span className="lv-list-card-key">Dates:</span>
-                                <span className="lv-list-card-val">{fmt(r.fromDate)} {r.toDate !== r.fromDate && `→ ${fmt(r.toDate)}`}</span>
+                                {(() => {
+                                  const isLate = isAppliedAfterLeave(r);
+                                  return (
+                                    <span
+                                      className={isLate ? 'lvap-date-late lvap-date-late--grid' : 'lv-list-card-val'}
+                                      title={isLate ? `Applied after leave date (Applied: ${fmt(r.createdAt)})` : undefined}
+                                    >
+                                      {fmt(r.fromDate)} {r.toDate !== r.fromDate && `→ ${fmt(r.toDate)}`}
+                                    </span>
+                                  );
+                                })()}
                               </span>
                             </div>
                             <div className="lv-list-card-row">
@@ -577,7 +679,67 @@ export default function ApprovalsPanel() {
         .lvap-filter-label { display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 600; color: var(--text-slate-600); }
         .lvap-filter-label .anticon { color: var(--text-slate-400); }
         .lvap-filter-count { font-size: 12px; color: var(--text-slate-500); }
-        .lvap-filter-range { height: 34px; border-radius: 8px; }
+        .lvap-filter-range { height: 32px; border-radius: 8px; }
+        .lvap-quick-dates {
+          display: inline-flex;
+          align-items: center;
+          gap: 3px;
+          background: var(--bg-slate-50, #f8fafc);
+          border: 1px solid var(--border-slate-200, #e2e8f0);
+          border-radius: 8px;
+          padding: 2px;
+          height: 32px;
+          box-sizing: border-box;
+        }
+        .lvap-quick-btn {
+          border: none;
+          background: transparent;
+          cursor: pointer;
+          padding: 0 10px;
+          height: 26px;
+          border-radius: 6px;
+          white-space: nowrap;
+          font-size: 12px;
+          font-weight: 600;
+          color: var(--text-slate-600, #475569);
+          transition: all .15s ease;
+          display: inline-flex;
+          align-items: center;
+        }
+        .lvap-quick-btn:hover {
+          color: var(--text-slate-900, #0f172a);
+          background: rgba(0, 0, 0, 0.04);
+        }
+        .lvap-quick-btn.is-active {
+          color: #2563eb;
+          background: var(--bg-pure-white, #ffffff);
+          box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08);
+          font-weight: 700;
+        }
+        .lvap-date-normal {
+          color: var(--text-slate-600);
+        }
+        .lvap-date-late {
+          color: #ea580c;
+          background: rgba(249, 115, 22, 0.12);
+          border: 1px solid rgba(249, 115, 22, 0.28);
+          padding: 2px 8px;
+          border-radius: 6px;
+          font-weight: 600;
+          font-size: 12px;
+          display: inline-flex;
+          align-items: center;
+          line-height: 1.4;
+        }
+        .lvap-date-late--grid {
+          padding: 1px 6px;
+          font-size: 11.5px;
+        }
+        :global(.dark) .lvap-date-late {
+          color: #fb923c;
+          background: rgba(249, 115, 22, 0.18);
+          border-color: rgba(249, 115, 22, 0.35);
+        }
         .lvap-clear { display: inline-flex; align-items: center; gap: 5px; background: none; border: none; cursor: pointer; padding: 3px 6px; font-size: 12px; font-weight: 600; color: ${PALETTE.red}; margin-left: auto; }
         .lvap-table-wrap { background: var(--bg-pure-white); border: 1px solid var(--border-slate-200); border-radius: 0; overflow: hidden; margin-bottom: 24px; }
         .lvap-table, .lvap-table.ant-table-wrapper, .lvap-table .ant-table, .lvap-table .ant-table-container, .lvap-table .ant-table-content, .lvap-table .ant-table-header, .lvap-table .ant-table-body { background: transparent; font-size: 12px; border-radius: 0 !important; }

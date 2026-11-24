@@ -4,6 +4,7 @@ export interface TimeTrackingEntry {
   id: string;
   projectId?: string;
   ticketId?: string;
+  meetingType?: string | null;
   description?: string;
   billable: boolean;
   billingRate?: number;
@@ -201,6 +202,7 @@ export class TimeTrackingService {
     userId?: string;
     projectId?: string;
     ticketId?: string;
+    meetingType?: string | null;
     description?: string;
     startTime: string;
     endTime: string;

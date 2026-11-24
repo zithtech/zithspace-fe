@@ -579,6 +579,7 @@ export const PerformanceTracker: React.FC<PerformanceTrackerProps> = ({ refreshK
           ticket: entry.ticket,
           description: entry.description,
           ticketId: entry.ticketId,
+          meetingType: entry.meetingType,
           entryStatus: entry.status,
           isLive: !session.end && entry.status === "RUNNING",
         });
@@ -608,8 +609,24 @@ export const PerformanceTracker: React.FC<PerformanceTrackerProps> = ({ refreshK
               <div style={{ padding: "8px 12px", background: "var(--bg-secondary)", border: "1px solid var(--border-slate-200)" }}>
                 <Row gutter={12} align="middle">
                   <Col flex="auto">
-                    <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 2 }}>
-                      <Tag color="blue" style={{ borderRadius: 4, border: "none", fontWeight: 600, fontSize: 10 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 2, flexWrap: "wrap" }}>
+                      {session.meetingType && (
+                        <Tag
+                          color={
+                            session.meetingType.includes("Client")
+                              ? "purple"
+                              : session.meetingType.includes("Internal")
+                              ? "cyan"
+                              : session.meetingType.includes("Standup")
+                              ? "green"
+                              : "orange"
+                          }
+                          style={{ borderRadius: 4, border: "none", fontWeight: 600, fontSize: 10, margin: 0 }}
+                        >
+                          {session.meetingType}
+                        </Tag>
+                      )}
+                      <Tag color="blue" style={{ borderRadius: 4, border: "none", fontWeight: 600, fontSize: 10, margin: 0 }}>
                         {session.project?.name || "No Project"}
                       </Tag>
                       <Text type="secondary" style={{ fontSize: 11 }}>
@@ -633,7 +650,7 @@ export const PerformanceTracker: React.FC<PerformanceTrackerProps> = ({ refreshK
                           <Text strong style={{ fontSize: 13, color: "var(--text-slate-900)" }}>{session.ticket.title}</Text>
                         </div>
                       ) : (
-                        <Text strong style={{ fontSize: 13, color: "var(--text-slate-900)" }}>{session.description || "No description provided"}</Text>
+                        <Text strong style={{ fontSize: 13, color: "var(--text-slate-900)" }}>{session.description || session.meetingType || "No description provided"}</Text>
                       )}
                     </div>
                   </Col>

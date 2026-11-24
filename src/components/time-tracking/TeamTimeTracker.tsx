@@ -610,6 +610,7 @@ export const TeamTimeTracker: React.FC<TeamTimeTrackerProps> = ({ refreshKey }) 
           ticket: entry.ticket,
           description: entry.description,
           ticketId: entry.ticketId,
+          meetingType: entry.meetingType,
           entryStatus: entry.status,
           isLive: !session.end && entry.status === 'RUNNING'
         });
@@ -628,11 +629,35 @@ export const TeamTimeTracker: React.FC<TeamTimeTrackerProps> = ({ refreshKey }) 
         title: "Project",
         dataIndex: ["project", "name"],
         key: "project",
-        width: 150,
+        width: 160,
         render: (name: string, record: any) => {
-          if (name) return name;
-          if (record.project && typeof record.project === 'string') return `Project ${record.project}`;
-          return <Text type="secondary" italic>No Project</Text>;
+          return (
+            <Space direction="vertical" size={2}>
+              {record.meetingType && (
+                <Tag
+                  color={
+                    record.meetingType.includes("Client")
+                      ? "purple"
+                      : record.meetingType.includes("Internal")
+                      ? "cyan"
+                      : record.meetingType.includes("Standup")
+                      ? "green"
+                      : "orange"
+                  }
+                  style={{ fontWeight: 600, borderRadius: 4, margin: 0 }}
+                >
+                  {record.meetingType}
+                </Tag>
+              )}
+              {name ? (
+                <span>{name}</span>
+              ) : record.project && typeof record.project === 'string' ? (
+                <span>Project {record.project}</span>
+              ) : !record.meetingType ? (
+                <Text type="secondary" italic>No Project</Text>
+              ) : null}
+            </Space>
+          );
         }
       },
       {
@@ -651,7 +676,7 @@ export const TeamTimeTracker: React.FC<TeamTimeTrackerProps> = ({ refreshKey }) 
             );
           }
 
-          return <Text>{description || (ticketId ? `Ticket ${ticketId}` : "No description")}</Text>;
+          return <Text>{description || (record.meetingType ? record.meetingType : (ticketId ? `Ticket ${ticketId}` : "No description"))}</Text>;
         }
       },
       {

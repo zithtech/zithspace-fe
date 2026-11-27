@@ -284,6 +284,12 @@ function TestScopeContent() {
       });
       if (res && res.totalScopes !== undefined) {
         setStats(res);
+        if (ownerFilter.length === 0) {
+          setOwnerCounts({
+            all: res.totalScopes ?? 0,
+            mine: res.mineScopes ?? 0
+          });
+        }
       }
     } catch (err) {
       console.error('fetchStats error:', err);
@@ -321,12 +327,17 @@ function TestScopeContent() {
     }
   };
 
+  // Stats only refetch when project or owner filter changes (not on pagination or sorting)
   useEffect(() => {
-    /* Nothing is worth fetching until a project is chosen — an unscoped list
-     is exactly what this page moved away from. */
+    if (!isLoading && canReadScope && projectFilter) {
+      fetchStats();
+    }
+  }, [isLoading, canReadScope, projectFilter, ownerFilter]);
+
+  // Scopes list refetches on pagination, search, sorting, and any filter changes
+  useEffect(() => {
     if (!isLoading && canReadScope && projectFilter) {
       fetchScopes();
-      fetchStats();
     }
   }, [isLoading, canReadScope, page, pageSize, debouncedSearch, statusFilter, priorityFilter, ownerFilter, timelineFilter, projectFilter, userProjects, sortKey]);
 
@@ -373,39 +384,31 @@ function TestScopeContent() {
     }
   };
   /**
-   * Totals behind the My / All Scopes switch, read independent of the
-   * filters currently applied to the list.
+   * Totals behind the My / All Scopes switch.
+   * Leverages the optimized stats response which includes both totalScopes and mineScopes.
    */
   const fetchOwnerCounts = async () => {
     try {
-      const allRes: any = await axios.get("/api/v2/qa/test-scopes/stats", {
+      const res: any = await axios.get("/api/v2/qa/test-scopes/stats", {
         params: { product: projectFilter || undefined }
       });
-      const mineRes: any = user?.name ? await axios.get("/api/v2/qa/test-scopes/stats", {
-        params: { product: projectFilter || undefined, qa_owner: user.name }
-      }) : null;
-
-      setOwnerCounts({
-        all: allRes?.totalScopes ?? 0,
-        mine: mineRes?.totalScopes ?? 0
-      });
+      if (res && res.totalScopes !== undefined) {
+        setOwnerCounts({
+          all: res.totalScopes ?? 0,
+          mine: res.mineScopes ?? 0
+        });
+      }
     } catch (err) {
       console.error('fetchOwnerCounts error:', err);
     }
   };
-
-  useEffect(() => {
-    if (!isLoading && canReadScope && projectFilter) fetchOwnerCounts();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isLoading, canReadScope, user?.name, userProjects, projectFilter]);
 
   const handleRefresh = async () => {
     try {
       await Promise.all([
         fetchScopes(),
         fetchStats(),
-        fetchScopeSettings(),
-        fetchOwnerCounts()
+        fetchScopeSettings()
       ]);
       message.success("View refreshed");
     } catch (err) {

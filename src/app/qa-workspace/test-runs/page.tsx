@@ -106,6 +106,8 @@ function TestRunsContent() {
   const [modalOpen, setModalOpen] = useState(false);
   const [formData, setFormData] = useState<any>({});
   const [saving, setSaving] = useState(false);
+  const [dropdownLoading, setDropdownLoading] = useState(false);
+  const [dropdownsLoadedForProject, setDropdownsLoadedForProject] = useState<string | null>(null);
 
   const filteredSuites = useMemo(() => {
     if (!formData?.module_id) return suites;
@@ -121,55 +123,76 @@ function TestRunsContent() {
 
   const { canReadRun, canCreateRun, canUpdateRun, canDeleteRun } = usePermission();
 
-  const fetchData = async () => {
+  /**
+   * Fast paginated fetch: only requests test runs for the active page and filters.
+   * Does NOT refetch suites/parents/scopes on pagination or filter changes.
+   */
+  const fetchRuns = async () => {
     try {
       setLoading(true);
-      const [runsRes, suitesRes, modRes, scopeRes] = await Promise.all([
-        apiClient.get("/api/v2/qa/runs/all", {
-          params: {
-            page,
-            pageSize,
-            ...(suiteFilter.length > 0 ? { suite_id: suiteFilter.join(',') } : {}),
-            ...(progressFilter.length > 0 ? { progress: progressFilter.join(',') } : {}),
-            ...(moduleFilter.length > 0 ? { module_id: moduleFilter.join(',') } : {}),
-            project_id: projectFilter || undefined,
-            allowed_projects: projectOptions.length > 0 ? projectOptions.map(p => p.value).join(',') : undefined
-          }
-        }),
-        axios.get("/api/v2/qa/suites/all", { params: { limit: 1000, project_id: projectFilter } }),
-        axios.get("/api/v2/qa/parents", { params: { limit: 1000, project_id: projectFilter } }),
-        // The scopes endpoint paginates on pageSize, not limit — without it we'd only get 10.
-        // Scopes are keyed by project *name*, not id.
-        axios.get("/api/v2/qa/test-scopes", {
-          params: {
-            pageSize: 1000,
-            product: projectOptions.find(pj => pj.value === projectFilter)?.label || undefined,
-          },
-        }),
-      ]);
+      const runsRes = await apiClient.get("/api/v2/qa/runs/all", {
+        params: {
+          page,
+          pageSize,
+          ...(suiteFilter.length > 0 ? { suite_id: suiteFilter.join(',') } : {}),
+          ...(progressFilter.length > 0 ? { progress: progressFilter.join(',') } : {}),
+          ...(moduleFilter.length > 0 ? { module_id: moduleFilter.join(',') } : {}),
+          project_id: projectFilter || undefined,
+          allowed_projects: projectOptions.length > 0 ? projectOptions.map(p => p.value).join(',') : undefined
+        }
+      });
       const body = (runsRes as any).data;
       setRuns(body?.data || []);
       setTotalItems(body?.pagination?.total || 0);
       setStats(body?.stats || {});
-      setSuites(Array.isArray(suitesRes) ? suitesRes : (suitesRes?.data?.data || suitesRes?.data || []));
-      setModules(Array.isArray(modRes) ? modRes : (modRes?.data?.data || modRes?.data || []));
-      setScopes(Array.isArray(scopeRes) ? scopeRes : (scopeRes?.data?.data || scopeRes?.data || []));
     } catch (error) {
-      message.error("Failed to fetch data");
+      message.error("Failed to fetch test runs");
     } finally {
       setLoading(false);
     }
   };
 
+  /**
+   * Lazy dropdown reference data: loaded once when opening the Create modal,
+   * avoiding the massive 1,000-scope payload during initial page load and pagination.
+   */
+  const fetchCreateDropdownData = async (force = false) => {
+    if (!projectFilter) return;
+    if (!force && dropdownsLoadedForProject === projectFilter && (suites.length > 0 || scopes.length > 0)) {
+      return;
+    }
+    try {
+      setDropdownLoading(true);
+      const [suitesRes, modRes, scopeRes] = await Promise.all([
+        axios.get("/api/v2/qa/suites/all", { params: { limit: 1000, project_id: projectFilter } }),
+        axios.get("/api/v2/qa/parents", { params: { limit: 1000, project_id: projectFilter } }),
+        axios.get("/api/v2/qa/test-scopes", {
+          params: {
+            pageSize: 1000,
+            product: projectOptions.find(pj => pj.value === projectFilter)?.label || undefined,
+            summary: 'true'
+          },
+        }),
+      ]);
+      setSuites(Array.isArray(suitesRes) ? suitesRes : (suitesRes?.data?.data || suitesRes?.data || []));
+      setModules(Array.isArray(modRes) ? modRes : (modRes?.data?.data || modRes?.data || []));
+      setScopes(Array.isArray(scopeRes) ? scopeRes : (scopeRes?.data?.data || scopeRes?.data || []));
+      setDropdownsLoadedForProject(projectFilter);
+    } catch (error) {
+      console.error("Failed to load create dropdown references", error);
+    } finally {
+      setDropdownLoading(false);
+    }
+  };
+
   useEffect(() => {
-    /* Nothing is worth fetching until a project is chosen — an unscoped list
-       is exactly what this page moved away from. */
+    /* Only runs are fetched when pagination, search, or filters change. */
     if (canReadRun && projectFilter) {
-      fetchData();
+      fetchRuns();
     }
   }, [canReadRun, projectFilter, page, pageSize, debouncedSearch, suiteFilter, progressFilter, moduleFilter]);
 
-  /** Switching project drops filters that name things from the old one. */
+  /** Switching project drops filters and clears cached dropdown data. */
   const chooseProject = (id: string | null) => {
     setProjectId(id);
     setSuiteFilter([]);
@@ -177,11 +200,16 @@ function TestRunsContent() {
     setProgressFilter([]);
     setSearchTerm('');
     setPage(1);
+    setSuites([]);
+    setModules([]);
+    setScopes([]);
+    setDropdownsLoadedForProject(null);
   };
 
   const openCreateModal = () => {
     setFormData({});
     setModalOpen(true);
+    fetchCreateDropdownData();
   };
 
   const handleCreateRun = async () => {
@@ -199,7 +227,7 @@ function TestRunsContent() {
       if (createdId) {
         router.push(`/qa-workspace/test-runs/${createdId}`);
       }
-      fetchData();
+      fetchRuns();
     } catch (error) {
       message.error("Failed to create test run");
     } finally {
@@ -216,7 +244,7 @@ function TestRunsContent() {
     try {
       await axios.delete(`/api/v2/qa/runs/${id}`);
       message.success("Test Run deleted");
-      fetchData();
+      fetchRuns();
     } catch (error) {
       message.error("Failed to delete run");
     }
@@ -669,7 +697,10 @@ function TestRunsContent() {
                 <Tooltip title="Refresh view">
                   <Button
                     icon={<ReloadOutlined spin={loading} />}
-                    onClick={fetchData}
+                    onClick={() => {
+                      fetchRuns();
+                      fetchCreateDropdownData(true);
+                    }}
                     disabled={loading || !projectFilter}
                     style={{ width: 36, height: 36, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                   />
@@ -926,8 +957,9 @@ function TestRunsContent() {
             <button className="rd__close" onClick={() => setModalOpen(false)} aria-label="Close"><CloseOutlined /></button>
           </div>
 
-          <div className="rd__body">
-            <div className="rd__field">
+          <ZukvoLoadingOverlay loading={dropdownLoading}>
+            <div className="rd__body">
+              <div className="rd__field">
               <label className="rd__label">Run Name <span className="rd__req">*</span></label>
               <Input
                 placeholder="E.g. Release v2.1 Smoke"
@@ -1020,6 +1052,7 @@ function TestRunsContent() {
               </div>
             )}
           </div>
+        </ZukvoLoadingOverlay>
 
           <div className="rd__foot">
             <Button onClick={() => setModalOpen(false)}>Cancel</Button>

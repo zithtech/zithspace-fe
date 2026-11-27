@@ -41,6 +41,19 @@ interface UpdateTableProps {
   onDeleteUpdate?: (updateId: string) => Promise<void>;
 }
 
+export function parseProjectUpdates(rawPu: any): ProjectUpdate[] {
+  if (Array.isArray(rawPu)) return rawPu;
+  if (typeof rawPu === 'string') {
+    try {
+      const parsed = JSON.parse(rawPu);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
+  }
+  return [];
+}
+
 interface TableDataType {
   key: string;
   update: DailyStatusUpdate;
@@ -52,6 +65,7 @@ interface TableDataType {
   taskCount: number;
   submittedAt: string | Date;
   dueDate: string | Date;
+  projectUpdates: ProjectUpdate[];
 }
 
 export default function UpdateTable({
@@ -111,12 +125,16 @@ export default function UpdateTable({
       key: "projectCount",
       width: 140,
       render: (count: number, record) => {
-        const projectUpdates = (record.update.projectUpdates || []) as ProjectUpdate[];
+        const projectUpdates = record.projectUpdates || parseProjectUpdates(record.update.projectUpdates);
         return (
           <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
             <Package size={14} color="var(--text-slate-400)" />
             <Text style={{ fontSize: 12, color: "var(--text-slate-700)" }}>
-              {count === 1 ? projectUpdates[0]?.projectName : `${count} Projects`}
+              {count === 1
+                ? (projectUpdates[0]?.projectName || "1 Project")
+                : count > 1
+                ? `${count} Projects`
+                : "No project"}
             </Text>
           </div>
         );
@@ -128,7 +146,7 @@ export default function UpdateTable({
       key: "taskCount",
       width: 120,
       render: (count: number, record) => {
-        const projectUpdates = (record.update.projectUpdates || []) as ProjectUpdate[];
+        const projectUpdates = record.projectUpdates || parseProjectUpdates(record.update.projectUpdates);
         const firstTask = projectUpdates[0]?.tasks?.[0];
         const projectName = projectUpdates[0]?.projectName;
         const showAsTicketLink = count === 1 && !!firstTask?.ticketNumber && !!firstTask?.ticketId;
@@ -175,7 +193,7 @@ export default function UpdateTable({
                   lineHeight: 1.45,
                 }}
               >
-                {firstTask!.description}
+                {firstTask!.description || firstTask!.ticketTitle}
               </div>
               <div
                 className="mt-2 pt-2 flex items-center justify-between"
@@ -224,9 +242,18 @@ export default function UpdateTable({
             </Tooltip>
           );
         }
+        const taskText =
+          firstTask?.description ||
+          firstTask?.ticketTitle ||
+          (firstTask as any)?.title ||
+          firstTask?.ticketNumber ||
+          (projectUpdates[0] as any)?.completedTasks?.[0] ||
+          (record.update.generalNotes ? record.update.generalNotes.slice(0, 60) : null) ||
+          (count > 0 ? `${count} Tasks Completed` : "No tasks");
+
         return (
           <Text ellipsis style={{ fontSize: 12, color: "var(--text-slate-700)", maxWidth: 160 }}>
-            {count === 1 ? (firstTask?.description) : `${count} Tasks Completed`}
+            {count === 1 ? taskText : (count > 1 ? `${count} Tasks Completed` : taskText)}
           </Text>
         );
       },
@@ -236,10 +263,10 @@ export default function UpdateTable({
       key: "progress",
       width: 140,
       render: (_, record) => {
-        const projectUpdates = (record.update.projectUpdates || []) as ProjectUpdate[];
+        const projectUpdates = record.projectUpdates || parseProjectUpdates(record.update.projectUpdates);
         const firstTask = projectUpdates[0]?.tasks?.[0];
-        const status = firstTask?.status || "pending";
-        const config = getStatusConfig(status);
+        const status = firstTask?.status || (projectUpdates[0] as any)?.status || "pending";
+        const config = getStatusConfig(status as any);
 
         return (
           <div style={{
@@ -287,11 +314,14 @@ export default function UpdateTable({
       dataIndex: "dueDate",
       key: "dueDate",
       width: 130,
-      render: (date: string) => (
-        <Text style={{ fontSize: 12, color: "var(--text-slate-600)", fontWeight: 500 }}>
-          {dayjs(date).format("DD MMM YYYY")}
-        </Text>
-      ),
+      render: (date: string) => {
+        const dStr = typeof date === 'string' && /^\d{4}-\d{2}-\d{2}/.test(date) ? date.slice(0, 10) : date;
+        return (
+          <Text style={{ fontSize: 12, color: "var(--text-slate-600)", fontWeight: 500 }}>
+            {dStr ? dayjs(dStr).format("DD MMM YYYY") : "—"}
+          </Text>
+        );
+      },
     },
     {
       title: "Submitted On",
@@ -418,21 +448,36 @@ export default function UpdateTable({
   ];
 
   const dataSource: TableDataType[] = updates.map((update) => {
-    const projectUpdates = (update.projectUpdates || []) as ProjectUpdate[];
-    const totalHours = projectUpdates.reduce(
-      (sum, project) => sum + (project.hoursWorked || 0),
-      0
-    );
+    const projectUpdates = parseProjectUpdates(update.projectUpdates);
+
+    const totalHours =
+      projectUpdates.reduce(
+        (sum, project) => sum + (Number(project.hoursWorked) || Number((project as any).hoursSpent) || 0),
+        0
+      ) || Number(update.totalHoursWorked) || 0;
+
     const totalTasks = projectUpdates.reduce(
-      (sum, project) => sum + (project.tasks?.length || 0),
+      (sum, project) => sum + (project.tasks?.length || (project as any).completedTasks?.length || 0),
       0
     );
 
+    const pos = (update.user?.position as any)?.title || (typeof update.user?.position === 'string' ? update.user.position : "") || "";
+
+    const dateVal =
+      update.date ||
+      update.dueDate ||
+      (update.is_missed && update.missed_updateAt ? update.missed_updateAt : null) ||
+      update.createdAt;
+
     return {
       key: update.id,
-      update,
+      update: {
+        ...update,
+        projectUpdates,
+      },
+      projectUpdates,
       userName: update.user?.name || "Unknown",
-      userPosition: update.user?.position?.title || "",
+      userPosition: pos,
       mood: update.mood || "neutral",
       totalHours,
       projectCount: projectUpdates.length,
@@ -440,9 +485,9 @@ export default function UpdateTable({
       submittedAt: typeof update.submittedAt === "string"
         ? update.submittedAt
         : update.submittedAt?.toISOString() || update.createdAt,
-      dueDate: update.is_missed && update.missed_updateAt
-        ? update.missed_updateAt
-        : update.createdAt,
+      dueDate: typeof dateVal === 'string' && /^\d{4}-\d{2}-\d{2}/.test(dateVal)
+        ? dateVal.slice(0, 10)
+        : dateVal,
     };
   });
 

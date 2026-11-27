@@ -3,7 +3,7 @@ import ZukvoLoader from "@/components/common/ZukvoLoader";
 
 
 import React, { useEffect, useMemo, useState } from 'react';
-import {  message } from 'antd';
+import { message } from 'antd';
 import { Ticket, Timer, NotebookPen, CalendarCheck, Plane } from 'lucide-react';
 import { Dayjs } from 'dayjs';
 import PerformanceReportService, { ReportTicket } from '@/services/performanceReportService';
@@ -129,7 +129,7 @@ export default function OverviewSection({
           DailyUpdateService.getTeamUpdates({
             startDate: from,
             endDate: to,
-            projectId: projectId || undefined,
+            projectId: undefined,
             userId: userId || undefined,
           }).catch(() => []),
           AttendanceService.getAttendance({
@@ -177,10 +177,12 @@ export default function OverviewSection({
       daily_updates: scoreDailyUpdates({
         updates: data.updates,
         attendance: data.attendance,
+        leaves: data.leaves,
         holidays: data.holidays,
         range,
         bodEnabled,
         eodEnabled,
+        userId,
       }),
       attendance: scoreAttendance({
         attendance: data.attendance,

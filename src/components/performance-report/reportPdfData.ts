@@ -20,6 +20,10 @@ import {
   timeTrackingPoints,
   avgTrackedSeconds,
   performanceBand,
+  getUpdateDateStr,
+  listDates,
+  expandApprovedLeaves,
+  isWeekendDay,
 } from './moduleScores';
 
 export interface StageScore {
@@ -120,7 +124,7 @@ export async function gatherReportData(opts: Opts): Promise<ReportModel> {
     DailyUpdateService.getTeamUpdates({
       startDate: from,
       endDate: to,
-      projectId: opts.projectId || undefined,
+      projectId: undefined,
       userId: opts.userId || undefined,
     }).catch(() => []),
     AttendanceService.getAttendance({
@@ -150,7 +154,12 @@ export async function gatherReportData(opts: Opts): Promise<ReportModel> {
   const avgSeconds = avgTrackedSeconds(ttRows);
   const ttScore = ttRows.length ? timeTrackingPoints(avgSeconds / 3600) : null;
   const trackedDays = ttRows.length;
-  const summaryTiers = (legend.weekday || []).map((t: any) => {
+  const rawTiers = (legend as any)?.weekday || (legend as any)?.tiers?.map((t: any) => ({
+    label: t.label,
+    minHours: t.minHours ?? t.min ?? 0,
+    maxHours: t.maxHours ?? t.max ?? null,
+  })) || [];
+  const summaryTiers = rawTiers.map((t: any) => {
     const days = ttRows.filter((r: any) => r.status === t.label).length;
     const members = new Set(ttRows.filter((r: any) => r.status === t.label).map((r: any) => r.userId)).size;
     return { label: t.label, range: tierRange(t.minHours, t.maxHours), days, members };
@@ -158,40 +167,47 @@ export async function gatherReportData(opts: Opts): Promise<ReportModel> {
 
   // ── Daily Updates ──────────────────────────────────────────────────────────
   const inRange = (d: string) => d >= from && d <= to;
-  const postedDate = (u: any) =>
-    norm(u.is_missed && u.missed_updateAt ? u.missed_updateAt : u.createdAt);
-  const realUpdates = updateRows.filter((u: any) => {
-    if (u.is_missed) return false;
-    const t = u.updateType || 'EOD';
-    if (t === 'BOD') return opts.bodEnabled;
-    if (t === 'EOD') return opts.eodEnabled;
-    return true;
-  });
-  const visibleUpdates = realUpdates.filter((u: any) => inRange(postedDate(u)));
+  const postedDate = (u: any) => getUpdateDateStr(u);
+  const visibleUpdates = updateRows.filter((u: any) => inRange(postedDate(u)));
   const duScore = scoreDailyUpdates({
     updates: updateRows,
     attendance,
+    leaves,
     holidays,
     range: opts.range,
     bodEnabled: opts.bodEnabled,
     eodEnabled: opts.eodEnabled,
+    userId: opts.userId,
   });
-  // recompute expected/posted for the summary line
+
   const postedKeys = new Set<string>();
-  for (const u of visibleUpdates) {
+  for (const u of updateRows) {
     const d = postedDate(u);
-    if (isWeekend(d) || holidays.has(d)) continue;
-    postedKeys.add(`${u.userId}_${d}`);
+    if (!d || !inRange(d)) continue;
+    postedKeys.add(d);
   }
-  const expectedKeys = new Set<string>();
+
+  const allDates = listDates(opts.range);
+  const leaveByUser = leaves ? expandApprovedLeaves(leaves) : new Map<string, Set<string>>();
+  const userLeaves = opts.userId ? leaveByUser.get(opts.userId) : null;
+  const workingDays = new Set<string>();
+  for (const d of allDates) {
+    if (isWeekendDay(d) || holidays.has(d)) continue;
+    if (userLeaves?.has(d)) continue;
+    workingDays.add(d);
+  }
+
+  const presentDays = new Set<string>();
   for (const a of attendance) {
     if (a.status === 'absent') continue;
     const d = norm(a.date);
-    if (!inRange(d) || isWeekend(d) || holidays.has(d)) continue;
-    expectedKeys.add(`${a.userId ?? a.member?.id}_${d}`);
+    if (!inRange(d) || isWeekendDay(d) || holidays.has(d)) continue;
+    presentDays.add(d);
   }
-  const duExpected = expectedKeys.size;
-  const duPosted = Math.min(postedKeys.size, duExpected || postedKeys.size);
+
+  let duExpected = presentDays.size > 0 ? presentDays.size : workingDays.size;
+  duExpected = Math.max(duExpected, postedKeys.size);
+  const duPosted = postedKeys.size;
 
   // ── Attendance ─────────────────────────────────────────────────────────────
   const attScore = scoreAttendance({

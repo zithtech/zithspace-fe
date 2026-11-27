@@ -47,6 +47,7 @@ import {
   formatHours,
   getStatusConfig,
 } from "@/types/dailyUpdate";
+import { parseProjectUpdates } from "./UpdateTable";
 import { useRouter } from "next/navigation";
 import { usePermission } from "@/hooks/usePermission";
 import DailyUpdateService from "@/services/dailyUpdateService";
@@ -70,9 +71,16 @@ export default function UpdateCard({
   const { canUpdateDailyUpdate, canDeleteDailyUpdate } = usePermission();
   const { user } = useAuth();
 
-  const projectUpdates = (update.projectUpdates || []) as ProjectUpdate[];
-  const totalHours = projectUpdates.reduce((sum, p) => sum + (p.hoursWorked || 0), 0);
-  const totalTasks = projectUpdates.reduce((sum, p) => sum + (p.tasks?.length || 0), 0);
+  const projectUpdates = parseProjectUpdates(update.projectUpdates);
+  const totalHours =
+    projectUpdates.reduce(
+      (sum, p) => sum + (Number(p.hoursWorked) || Number((p as any).hoursSpent) || 0),
+      0
+    ) || Number(update.totalHoursWorked) || 0;
+  const totalTasks = projectUpdates.reduce(
+    (sum, p) => sum + (p.tasks?.length || (p as any).completedTasks?.length || 0),
+    0
+  );
   const firstTask = projectUpdates[0]?.tasks?.[0];
   const status = firstTask?.status || "pending";
   const statusConfig = getStatusConfig(status);
@@ -252,9 +260,11 @@ export default function UpdateCard({
               <span style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 11, color: "var(--text-slate-700)", whiteSpace: "nowrap", flexShrink: 0 }}>
                 <span style={{ fontSize: 10, fontWeight: 600, color: "var(--text-slate-400)" }}>Due Date:</span>
                 <span style={{ fontWeight: 600 }}>
-                  {update.is_missed && update.missed_updateAt
-                    ? dayjs(update.missed_updateAt).format("DD MMM YYYY")
-                    : dayjs(update.createdAt).format("DD MMM YYYY")}
+                  {(() => {
+                    const d = update.date || update.dueDate || (update.is_missed && update.missed_updateAt ? update.missed_updateAt : null) || update.createdAt;
+                    const dStr = typeof d === 'string' && /^\d{4}-\d{2}-\d{2}/.test(d) ? d.slice(0, 10) : d;
+                    return dStr ? dayjs(dStr).format("DD MMM YYYY") : "—";
+                  })()}
                 </span>
               </span>
               <span style={{ width: 1, height: 11, background: "var(--border-slate-300)", flexShrink: 0 }} />

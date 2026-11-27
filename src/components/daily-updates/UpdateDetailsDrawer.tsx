@@ -23,6 +23,7 @@ import {
   WorkStatus,
   formatHours,
 } from "@/types/dailyUpdate";
+import { parseProjectUpdates } from "./UpdateTable";
 import { useTicketDrawer } from "@/context/TicketDrawerContext";
 
 const { Text, Title } = Typography;
@@ -58,9 +59,16 @@ export default function UpdateDetailsDrawer({
   const { open: openTicketDrawer } = useTicketDrawer();
   if (!update) return null;
 
-  const projectUpdates = (update.projectUpdates || []) as ProjectUpdate[];
-  const totalHours = projectUpdates.reduce((sum, p) => sum + (p.hoursWorked || 0), 0);
-  const totalTasks = projectUpdates.reduce((sum, p) => sum + (p.tasks?.length || 0), 0);
+  const projectUpdates = parseProjectUpdates(update.projectUpdates);
+  const totalHours =
+    projectUpdates.reduce(
+      (sum, p) => sum + (Number(p.hoursWorked) || Number((p as any).hoursSpent) || 0),
+      0
+    ) || Number(update.totalHoursWorked) || 0;
+  const totalTasks = projectUpdates.reduce(
+    (sum, p) => sum + (p.tasks?.length || (p as any).completedTasks?.length || 0),
+    0
+  );
   const mood = moodConfig[update.mood || "neutral"] || moodConfig.neutral;
   const isBOD = update.updateType === "BOD";
 
@@ -466,11 +474,11 @@ export default function UpdateDetailsDrawer({
                     textTransform: "uppercase",
                     letterSpacing: 0.6,
                   }}>
-                    Tasks &amp; Achievements · {project.tasks.length}
+                    Tasks &amp; Achievements · {(project.tasks || []).length}
                   </Text>
 
                   <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                    {project.tasks.map((task, tIdx) => {
+                    {(project.tasks || []).map((task, tIdx) => {
                       const status = statusConfig[task.status] || statusConfig.pending;
                       const isTicket = task.type === "ticket";
                       return (

@@ -39,12 +39,39 @@ export function fmtHM(seconds: number): string {
 }
 
 // ─── Shared date helpers ─────────────────────────────────────────────────────
-const normDay = (d: string | Date) => dayjs(d).format('YYYY-MM-DD');
-const isWeekendDay = (d: string) => {
+export const normDay = (d: string | Date) => {
+  if (!d) return '';
+  if (typeof d === 'string') {
+    if (/^\d{4}-\d{2}-\d{2}/.test(d)) {
+      if (d.length === 10 || d.includes('T00:00:00')) {
+        return d.slice(0, 10);
+      }
+    }
+  }
+  return dayjs(d).format('YYYY-MM-DD');
+};
+
+export const getUpdateDateStr = (u: any): string => {
+  if (!u) return '';
+  if (u.date) {
+    if (typeof u.date === 'string') return u.date.slice(0, 10);
+    return dayjs(u.date).format('YYYY-MM-DD');
+  }
+  if (u.dueDate) {
+    if (typeof u.dueDate === 'string') return u.dueDate.slice(0, 10);
+    return dayjs(u.dueDate).format('YYYY-MM-DD');
+  }
+  const raw = (u.is_missed && u.missed_updateAt ? u.missed_updateAt : null) || u.submittedAt || u.createdAt;
+  if (!raw) return '';
+  return normDay(raw);
+};
+
+export const isWeekendDay = (d: string) => {
   const wd = dayjs(d).day();
   return wd === 0 || wd === 6;
 };
-function listDates(range: [Dayjs, Dayjs]): string[] {
+
+export function listDates(range: [Dayjs, Dayjs]): string[] {
   const out: string[] = [];
   let cur = range[0].startOf('day');
   const end = range[1].startOf('day');
@@ -55,7 +82,8 @@ function listDates(range: [Dayjs, Dayjs]): string[] {
   }
   return out;
 }
-function expandApprovedLeaves(leaves: any[]): Map<string, Set<string>> {
+
+export function expandApprovedLeaves(leaves: any[]): Map<string, Set<string>> {
   const map = new Map<string, Set<string>>();
   for (const lv of leaves) {
     if (lv.status !== 'approved') continue;
@@ -95,44 +123,58 @@ export function scoreTickets(rows: any[], statusMarks?: StatusMarks): number | n
   return scores.length ? Math.round(scores.reduce((a, b) => a + b, 0) / scores.length) : null;
 }
 
-/** Daily Updates: posted ÷ present working days. */
+/** Daily Updates: posted ÷ expected working days (attendance present days or calendar working days minus leaves/holidays). */
 export function scoreDailyUpdates(p: {
   updates: any[];
-  attendance: any[];
+  attendance?: any[];
+  leaves?: any[];
   holidays: Set<string>;
   range: [Dayjs, Dayjs];
-  bodEnabled: boolean;
-  eodEnabled: boolean;
+  bodEnabled?: boolean;
+  eodEnabled?: boolean;
+  userId?: string;
 }): number | null {
   const from = p.range[0].format('YYYY-MM-DD');
   const to = p.range[1].format('YYYY-MM-DD');
   const inRange = (d: string) => d >= from && d <= to;
-  const postedDate = (u: any) =>
-    normDay(u.is_missed && u.missed_updateAt ? u.missed_updateAt : u.createdAt);
-  const real = p.updates.filter((u) => {
-    if (u.is_missed) return false;
-    const t = u.updateType || 'EOD';
-    if (t === 'BOD') return p.bodEnabled;
-    if (t === 'EOD') return p.eodEnabled;
-    return true;
-  });
   const postedKeys = new Set<string>();
-  for (const u of real) {
-    const d = postedDate(u);
-    if (!inRange(d) || isWeekendDay(d) || p.holidays.has(d)) continue;
-    postedKeys.add(`${u.userId}_${d}`);
+  for (const u of (p.updates || [])) {
+    const d = getUpdateDateStr(u);
+    if (!d || !inRange(d)) continue;
+    postedKeys.add(d);
   }
-  const expectedKeys = new Set<string>();
-  for (const a of p.attendance) {
+
+  // 1. Working days in range (excluding weekends and holidays, and approved leaves)
+  const allDates = listDates(p.range);
+  const leaveByUser = p.leaves ? expandApprovedLeaves(p.leaves) : new Map<string, Set<string>>();
+  const userLeaves = p.userId ? leaveByUser.get(p.userId) : null;
+
+  const workingDays = new Set<string>();
+  for (const d of allDates) {
+    if (isWeekendDay(d) || p.holidays.has(d)) continue;
+    if (userLeaves?.has(d)) continue;
+    workingDays.add(d);
+  }
+
+  // 2. Attendance present days
+  const presentDays = new Set<string>();
+  for (const a of (p.attendance || [])) {
     if (a.status === 'absent') continue;
     const d = normDay(a.date);
     if (!inRange(d) || isWeekendDay(d) || p.holidays.has(d)) continue;
-    const uid = a.userId ?? a.member?.id;
-    expectedKeys.add(`${uid}_${d}`);
+    presentDays.add(d);
   }
-  const expected = expectedKeys.size;
-  if (!expected) return postedKeys.size ? 100 : null;
-  return Math.round((Math.min(postedKeys.size, expected) / expected) * 100);
+
+  // Use attendance present days if recorded; otherwise calendar working days
+  let expected = presentDays.size > 0 ? presentDays.size : workingDays.size;
+  // If posted on extra days (e.g. weekend work), floor expected at posted count
+  expected = Math.max(expected, postedKeys.size);
+
+  if (expected === 0) {
+    return postedKeys.size > 0 ? 100 : null;
+  }
+
+  return Math.min(100, Math.round((postedKeys.size / expected) * 100));
 }
 
 /** Attendance: per expected day absent→0, present→min(100, hours/7×100); averaged. */

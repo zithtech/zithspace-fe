@@ -311,9 +311,25 @@ export const PerformanceTracker: React.FC<PerformanceTrackerProps> = ({ refreshK
   // Full status scale (weekday tiers + weekend) with color, range and live count.
   const guideItems = useMemo(() => {
     if (!legend) return [] as { label: string; range: string; color: string; count: number }[];
+    const weekdayList: { label: string; minHours: number; maxHours: number | null }[] =
+      (legend as any).weekday ||
+      (legend as any).tiers?.map((t: any) => ({
+        label: t.label,
+        minHours: t.minHours ?? t.min ?? 0,
+        maxHours: t.maxHours ?? t.max ?? null,
+      })) ||
+      [];
+
+    const rawWeekend = (legend as any).weekend;
+    const weekendList: { day: string; label: string }[] = Array.isArray(rawWeekend)
+      ? rawWeekend
+      : rawWeekend && typeof rawWeekend === 'object'
+      ? Object.entries(rawWeekend).map(([day, label]) => ({ day, label: String(label) }))
+      : [];
+
     const base = [
-      ...legend.weekday.map((t) => ({ label: t.label, range: legendRangeLabel(t.minHours, t.maxHours) })),
-      ...legend.weekend.map((w) => ({ label: w.label, range: `${w.day}` })),
+      ...weekdayList.map((t) => ({ label: t.label, range: legendRangeLabel(t.minHours, t.maxHours) })),
+      ...weekendList.map((w) => ({ label: w.label, range: `${w.day}` })),
     ];
     return base.map((it) => ({ ...it, color: statusColor(it.label), count: statusCounts[it.label] || 0 }));
   }, [legend, statusCounts]);
@@ -328,7 +344,16 @@ export const PerformanceTracker: React.FC<PerformanceTrackerProps> = ({ refreshK
     const sun = statusCounts["Weekend Warrior (Sun)"] || 0;
     const weekendDays = sat > 0 && sun > 0 ? "Saturday and Sunday" : sat > 0 ? "Saturday" : sun > 0 ? "Sunday" : "";
 
-    const weekdayTiers = legend.weekday.map((t) => ({
+    const weekdayList: { label: string; minHours: number; maxHours: number | null }[] =
+      (legend as any).weekday ||
+      (legend as any).tiers?.map((t: any) => ({
+        label: t.label,
+        minHours: t.minHours ?? t.min ?? 0,
+        maxHours: t.maxHours ?? t.max ?? null,
+      })) ||
+      [];
+
+    const weekdayTiers = weekdayList.map((t) => ({
       label: t.label,
       range: legendRangeLabel(t.minHours, t.maxHours),
       count: statusCounts[t.label] || 0,
